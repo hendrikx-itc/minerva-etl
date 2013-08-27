@@ -1,0 +1,15 @@
+Source: minerva-dimension-schema
+Section: contrib/misc
+Priority: extra
+Maintainer: Hendrikx ITC (Software Package Signing Key) <info@hendrikx-itc.nl>
+Build-Depends: debhelper (>= 8.0.0)
+Standards-Version: 3.9.4
+Homepage: http://www.hendrikx-itc.nl
+
+Package: minerva-dimension-schema
+Architecture: all
+Depends: ${misc:Depends}
+Description: Minerva dimension database schema
+ Provides the schema definition for the 'dimension' schema, which houses default
+ dimension tables and functions, but also provides a location for custom
+ dimensions.
