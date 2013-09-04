@@ -1,0 +1,14 @@
+Source: minerva-storage-notification-schema
+Section: contrib/misc
+Priority: extra
+Maintainer: Hendrikx ITC (Software Package Signing Key) <info@hendrikx-itc.nl>
+Build-Depends: debhelper (>= 8.0.0)
+Standards-Version: 3.9.4
+Homepage: http://www.hendrikx-itc.nl
+
+Package: minerva-storage-notification-schema
+Architecture: all
+Depends: ${misc:Depends}
+Description: Minerva Notification storage plugin schema definition
+ This package is used to create the database schema for notification storage
+ type support in the Minerva database.

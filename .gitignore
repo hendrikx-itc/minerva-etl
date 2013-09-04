@@ -1,0 +1,9 @@
+*.pyc
+.directory
+.project
+build/*
+doc/_build
+dist/*
+*.egg-info/*
+schema/debian/minerva-storage-notification-schema*
+schema/debian/files
