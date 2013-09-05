@@ -1,0 +1,13 @@
+Source: minerva-storage-trend-schema
+Section: contrib/database
+Priority: extra
+Maintainer: Alfred Blokland <alfred.blokland@hendrikx-itc.nl>
+Build-Depends: debhelper (>= 8.0.0)
+Standards-Version: 3.9.2
+Homepage: http://www.hendrikx-itc.nl
+
+Package: minerva-storage-trend-schema
+Architecture: all
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Minerva Trend storage plugin schema definition
+ <insert long description, indented with spaces>

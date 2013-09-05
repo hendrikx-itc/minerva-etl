@@ -1,0 +1,15 @@
+Source: python-minerva-storage-trend
+Section: contrib/misc
+Priority: extra
+Maintainer: Alfred Blokland <alfred.blokland@hendrikx-itc.nl>
+Build-Depends: debhelper (>= 8.0.0)
+Standards-Version: 3.9.2
+Homepage: http://www.hendrikx-itc.nl
+
+Package: python-minerva-storage-trend
+Architecture: all
+Depends: ${shlibs:Depends}, ${misc:Depends}, python-minerva, python-configobj
+Description: Minerva Trend storage plugin
+ Provides fixed granularity measurement and KPI data storage functionality for
+ the Minerva platform. A Minerva database that has been extended with a trend
+ schema is required.
