@@ -1,0 +1,56 @@
+SET statement_timeout = 0;
+SET client_encoding = 'UTF8';
+SET standard_conforming_strings = off;
+SET check_function_bodies = false;
+SET client_min_messages = warning;
+SET escape_string_warning = off;
+
+SET search_path = directory, pg_catalog;
+
+
+CREATE OR REPLACE FUNCTION directory."create alias for new entity (func)"()
+	RETURNS trigger
+AS $$
+BEGIN
+	INSERT INTO directory.alias (entity_id, name, type_id)
+		SELECT NEW.id, NEW.name, id FROM directory.aliastype WHERE name = 'name';
+
+	RETURN NEW;
+END;
+$$ LANGUAGE plpgsql VOLATILE;
+
+ALTER FUNCTION directory."create alias for new entity (func)"() OWNER TO postgres;
+
+
+CREATE OR REPLACE FUNCTION directory."create tag for new entitytypes (func)"()
+	RETURNS trigger
+AS $$
+BEGIN
+	BEGIN
+		INSERT INTO directory.tag (name, taggroup_id) SELECT NEW.name, id FROM directory.taggroup WHERE directory.taggroup.name = 'entitytype';
+	EXCEPTION WHEN unique_violation THEN
+		UPDATE directory.tag SET taggroup_id = (SELECT id FROM directory.taggroup WHERE directory.taggroup.name = 'entitytype') WHERE tag.name = NEW.name;
+	END;
+
+	RETURN NEW;
+END;
+$$ LANGUAGE plpgsql VOLATILE;
+
+ALTER FUNCTION directory."create tag for new entitytypes (func)"() OWNER TO postgres;
+
+
+CREATE OR REPLACE FUNCTION directory."create entitytaglink for new entity (func)"()
+	RETURNS trigger
+AS $$
+BEGIN
+	INSERT INTO directory.entitytaglink (entity_id, tag_id) VALUES (NEW.id, (
+	SELECT tag.id FROM directory.tag
+	INNER JOIN directory.entitytype ON tag.name = entitytype.name
+	WHERE entitytype.id = NEW.entitytype_id
+	));
+
+	RETURN NEW;
+END;
+$$ LANGUAGE plpgsql VOLATILE;
+
+ALTER FUNCTION directory."create entitytaglink for new entity (func)"() OWNER TO postgres;

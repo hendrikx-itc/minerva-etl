@@ -1,0 +1,10 @@
+*.pyc
+.directory
+.project
+.pydevproject
+.settings
+build
+dist
+*.swp
+debian/files
+debian/minerva-database*
