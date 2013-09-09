@@ -1,0 +1,17 @@
+Source: python-minerva-storage-attribute
+Section: contrib/misc
+Priority: extra
+Maintainer: Alfred Blokland <alfred.blokland@hendrikx-itc.nl>
+Build-Depends: debhelper (>= 8.0.0)
+Standards-Version: 3.9.2
+Homepage: http://www.hendrikx-itc.nl
+
+Package: python-minerva-storage-attribute
+Architecture: all
+Depends: ${shlibs:Depends}, ${misc:Depends}, python-minerva
+Description: Minerva Attribute storage plugin
+ Provides attribute storage functionality for the Minerva platform. Only
+ changes (delta's) are stored even though the data might be delivered to the
+ system multiple times. Such a storage type is particularly useful for
+ configuration data. A Minerva database that has been extended
+ with an attribute schema is required.
