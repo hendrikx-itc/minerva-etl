@@ -1,0 +1,15 @@
+Source: python-minerva-storage-geospatial
+Section: contrib/misc
+Priority: extra
+Maintainer: Alfred Blokland <alfred.blokland@hendrikx-itc.nl>
+Build-Depends: debhelper (>= 8.0.0)
+Standards-Version: 3.9.2
+Homepage: http://www.hendrikx-itc.nl
+
+Package: python-minerva-storage-geospatial
+Architecture: all
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Minerva Geospatial storage plugin
+ Provides storage functionality for geospatially positioned information for the
+ Minerva platform. A Minerva database that has been extended with the 'gis'
+ schema is required.
