@@ -1,0 +1,13 @@
+*.pyc
+.directory
+.project
+.pydevproject
+.settings
+build
+doc/_build
+dist
+minerva.egg-info
+debian/python-minerva
+debian/python-minerva.*
+debian/files
+debian/changelog
