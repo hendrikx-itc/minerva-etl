@@ -13,17 +13,16 @@ this software.
 from functools import partial
 from itertools import chain
 import StringIO
+import re
 
 import psycopg2
 from minerva.util import head
 from minerva.db.query import Table
 from minerva.directory.helpers_v4 import get_entitytype_by_id, \
     get_datasource_by_id
-from minerva.storage.exceptions import DataError
 from minerva.db.error import translate_postgresql_exception, \
-    NoSuchColumnError, DataTypeMismatch, UniqueViolation
-from minerva.db.dbtransaction import DbTransaction, DbAction, insert_before, \
-    replace
+    NoSuchColumnError, DataTypeMismatch
+from minerva.db.dbtransaction import DbTransaction, DbAction, insert_before
 
 from minerva_storage_attribute import schema
 from minerva_storage_attribute.attribute import Attribute
@@ -57,31 +56,9 @@ class AttributeStore(object):
             attr.attributestore = self
 
         self.table = Table(schema.name, self.table_name())
+        self.history_table = Table(schema.name, self.table_name() + '_history')
         self.staging_table = Table(schema.name, self.table_name() + '_staging')
         self.table_curr = Table(schema.name, self.table_name_curr())
-
-    def _insert_query(self, attribute_names):
-        """Return a query for inserting a record in the trendstore table."""
-        system_columns = "entity_id", "timestamp"
-        columns = system_columns + tuple(attribute_names)
-        columns_part = ", ".join(map(quote_ident, columns))
-        args_part = ", ".join(["%s"] * len(columns))
-
-        return Query(
-            "INSERT INTO {0} ({1}) "
-            "VALUES ({2})".format(
-                self.table.render(), columns_part, args_part))
-
-    def _update_query(self, attribute_names):
-        """Return a query for updating a record in the trendstore table."""
-        columns_part = ", ".join(map(quote_ident, attribute_names))
-        args_part = ", ".join(["%s"] * len(attribute_names))
-
-        return Query(
-            "UPDATE {0} SET ({1}) = "
-            "({2}) "
-            "WHERE entity_id = %s AND timestamp = %s".format(
-                self.table.render(), columns_part, args_part))
 
     def table_name(self):
         """Return the table name for this attributestore."""
@@ -97,14 +74,14 @@ class AttributeStore(object):
 
         by_name = dict((a.name, a) for a in curr_attributes)
 
-        for a in attributes:
-            curr_attribute = by_name.get(a.name)
+        for attribute in attributes:
+            curr_attribute = by_name.get(attribute.name)
 
             if curr_attribute:
-                curr_attribute.datatype = a.datatype
+                curr_attribute.datatype = attribute.datatype
             else:
-                a.attributestore = self
-                curr_attributes.append(a)
+                attribute.attributestore = self
+                curr_attributes.append(attribute)
 
         self.attributes = curr_attributes
 
@@ -233,6 +210,7 @@ class AttributeStore(object):
         return DbTransaction(Insert(self, datapackage))
 
     def store_batch(self, cursor, datapackage):
+        """Write data in one batch using staging table."""
         attribute_names = [a.name for a in self.attributes]
 
         copy_from_query = create_copy_from_query(self.staging_table,
@@ -243,28 +221,6 @@ class AttributeStore(object):
         cursor.execute(
             "SELECT attribute.store_batch(attributestore) "
             "from attribute.attributestore WHERE id = %s", (self.id,))
-
-    def insert_row(self, cursor, column_names, timestamp, entity_id, values):
-        if len(values) != len(column_names):
-            raise DataError((
-                "Number of values does not match number of "
-                "attributes ({0} != {1})").format(
-                len(values), len(column_names)))
-
-        query = self._insert_query(column_names)
-
-        args = [entity_id, timestamp]
-        args.extend(values)
-
-        query.execute(cursor, args)
-
-    def update_row(self, cursor, column_names, timestamp, entity_id, values):
-        query = self._update_query(column_names)
-
-        args = list(values)
-        args.extend((entity_id, timestamp))
-
-        query.execute(cursor, args)
 
     def check_attributes_exist(self, cursor):
         query = (
@@ -316,28 +272,41 @@ class Insert(DbAction):
         self.datapackage = datapackage
 
     def execute(self, cursor, state):
-        for entity_id, values in self.datapackage.rows:
-            try:
-                self.attributestore.insert_row(
-                    cursor, self.datapackage.attribute_names,
-                    self.datapackage.timestamp, entity_id, values)
-            except UniqueViolation:
-                fix = Update(self.attributestore, self.datapackage)
-                return replace(fix)
-            except DataTypeMismatch:
+        try:
+            self.attributestore.store_batch(cursor, self.datapackage)
+        except psycopg2.DataError as exc:
+            if exc.pgcode == '22P02' and re.match('.*invalid input syntax for integer.*', exc.pgerror): # INVALID TEXT REPRESENTATION
+                print(exc.pgerror)
                 attributes = self.datapackage.deduce_attributes()
+                print(map(str, attributes))
 
                 self.attributestore._update_attributes(attributes)
 
                 fix = CheckAttributeTypes(self.attributestore)
                 return insert_before(fix)
-            except NoSuchColumnError:
+
                 attributes = self.datapackage.deduce_attributes()
 
                 self.attributestore._update_attributes(attributes)
 
                 fix = CheckAttributesExist(self.attributestore)
                 return insert_before(fix)
+            else:
+                raise
+        except DataTypeMismatch:
+            attributes = self.datapackage.deduce_attributes()
+
+            self.attributestore._update_attributes(attributes)
+
+            fix = CheckAttributeTypes(self.attributestore)
+            return insert_before(fix)
+        except NoSuchColumnError:
+            attributes = self.datapackage.deduce_attributes()
+
+            self.attributestore._update_attributes(attributes)
+
+            fix = CheckAttributesExist(self.attributestore)
+            return insert_before(fix)
 
 
 class Update(DbAction):

@@ -60,7 +60,7 @@ class Attribute(object):
         return "<Attribute({0} {1})>".format(self.name, self.datatype)
 
     def __str__(self):
-        return self.name
+        return "{0.name}({0.datatype})".format(self)
 
 
 def adapt_attribute(attribute):

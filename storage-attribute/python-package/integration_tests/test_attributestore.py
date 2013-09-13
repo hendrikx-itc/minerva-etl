@@ -10,7 +10,7 @@ the Free Software Foundation; either version 3, or (at your option) any later
 version.  The full license is in the file COPYING, distributed as part of
 this software.
 """
-from datetime import datetime
+from datetime import datetime, timedelta
 from contextlib import closing
 
 from nose.tools import eq_
@@ -117,7 +117,7 @@ def test_store_batch_update(conn):
         conn.commit()
         modified_query = (
             "SELECT modified FROM {0} "
-            "WHERE entity_id = 10023").format(attributestore.table.render())
+            "WHERE entity_id = 10023").format(attributestore.history_table.render())
 
         cursor.execute(modified_query)
         modified_a, = cursor.fetchone()
@@ -135,13 +135,13 @@ def test_store_batch_update(conn):
             "FROM {0}").format(attributestore.table.render())
 
         cursor.execute(query)
-        eq_(cursor.rowcount, len(datapackage.rows), "Row count should be the "
-            "same as the stored batch size")
+        # Row count should be the same as the stored batch size
+        eq_(cursor.rowcount, len(datapackage.rows))
 
         timestamp, drops = cursor.fetchone()
 
-        eq_(timestamp, datapackage.timestamp, "Timestamp should be the same "
-            "as the stored batch timestamp")
+        # Timestamp should be the same as the stored batch timestamp
+        eq_(timestamp, datapackage.timestamp)
         eq_(drops, 18)
 
 
@@ -155,13 +155,15 @@ def test_compact(conn):
         datasource = name_to_datasource(cursor, "integration-test")
         entitytype = name_to_entitytype(cursor, "UtranCell")
 
+        timestamp = datasource.tzinfo.localize(datetime.now())
+
         datapackage_a = DataPackage(
-            timestamp=datasource.tzinfo.localize(datetime.now()),
+            timestamp=timestamp,
             attribute_names=attribute_names,
             rows=data_rows
         )
         datapackage_b = DataPackage(
-            timestamp=datasource.tzinfo.localize(datetime.now()),
+            timestamp=timestamp + timedelta(10),
             attribute_names=attribute_names,
             rows=data_rows
         )
@@ -182,15 +184,15 @@ def test_compact(conn):
 
         cursor.execute(count_query)
 
-        c, = cursor.fetchone()
-        eq_(c, len(datapackage_b.rows) + len(datapackage_a.rows), "Row count should be "
-            "the same as the stored batch sizes summed")
+        count, = cursor.fetchone()
+        # Row count should be the same as the stored batch sizes summed
+        eq_(count, len(datapackage_b.rows) + len(datapackage_a.rows))
 
         attributestore.compact(cursor)
         conn.commit()
 
         cursor.execute(count_query)
 
-        c, = cursor.fetchone()
-        eq_(c, len(datapackage_a.rows), "Row count should be "
-            "the same as the first stored batch size")
+        count, = cursor.fetchone()
+        # Row count should be the same as the first stored batch size
+        eq_(count, len(datapackage_a.rows))

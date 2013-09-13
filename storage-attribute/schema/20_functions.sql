@@ -36,6 +36,8 @@ AS $$
 BEGIN
 	PERFORM attribute.create_main_table($1);
 
+	PERFORM attribute.create_history_table($1);
+
 	PERFORM attribute.create_staging_table($1);
 
 	PERFORM attribute.create_changes_view($1);
@@ -58,7 +60,7 @@ DECLARE
 	view_name name;
 	view_sql text;
 BEGIN
-	table_name = attribute.to_table_name($1);
+	table_name = attribute.to_table_name($1) || '_history';
 	view_name = table_name || '_changes';
 
 	view_sql = format('SELECT entity_id, timestamp, COALESCE(hash <> lag(hash) OVER w, true) AS change FROM attribute.%I WINDOW w AS (PARTITION BY entity_id ORDER BY timestamp asc)', table_name);
@@ -85,18 +87,42 @@ BEGIN
 
 	default_columns = ARRAY[
 		'entity_id integer NOT NULL',
-		'"timestamp" timestamp with time zone NOT NULL',
-		'"modified" timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP',
-		'hash character varying'];
+		'"timestamp" timestamp with time zone NOT NULL'];
 
 	SELECT array_to_string(default_columns || array_agg(format('%I %s', name, datatype)), ', ') INTO columns_part
 	FROM attribute.attribute
 	WHERE attributestore_id = $1.id;
 
 	EXECUTE format('CREATE TABLE attribute.%I (
-	%s,
-	PRIMARY KEY (entity_id, timestamp)
+	%s
 	)', table_name, columns_part);
+
+	EXECUTE format('ALTER TABLE attribute.%I
+		OWNER TO minerva_admin', table_name);
+
+	EXECUTE format('GRANT SELECT ON TABLE attribute.%I TO minerva', table_name);
+
+	RETURN $1;
+END;
+$$ LANGUAGE plpgsql VOLATILE;
+
+
+CREATE OR REPLACE FUNCTION create_history_table(attribute.attributestore)
+	RETURNS attribute.attributestore
+AS $$
+DECLARE
+	parent_table_name name;
+	table_name name;
+	columns_part text;
+BEGIN
+	parent_table_name = attribute.to_table_name($1);
+	table_name = parent_table_name || '_history';
+
+	EXECUTE format('CREATE TABLE attribute.%I (
+		"modified" timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+		hash character varying,
+		PRIMARY KEY (entity_id, timestamp)
+	) INHERITS (attribute.%I)', table_name, parent_table_name);
 
 	EXECUTE format('CREATE INDEX ON attribute.%I
 		USING btree (modified)', table_name);
@@ -120,9 +146,11 @@ CREATE OR REPLACE FUNCTION create_staging_table(attribute.attributestore)
 AS $$
 DECLARE
 	table_name name;
+	parent_table_name name;
 	default_columns text[];
 	columns_part text;
 BEGIN
+	parent_table_name = attribute.to_table_name($1);
 	table_name = attribute.to_table_name($1) || '_staging';
 
 	default_columns = ARRAY[
@@ -136,7 +164,7 @@ BEGIN
 	EXECUTE format('CREATE UNLOGGED TABLE attribute.%I (
 	%s,
 	PRIMARY KEY (entity_id, timestamp)
-	)', table_name, columns_part);
+	) INHERITS (attribute.%I)', table_name, columns_part, parent_table_name);
 
 	EXECUTE format('ALTER TABLE attribute.%I
 		OWNER TO minerva_admin', table_name);
@@ -205,7 +233,7 @@ AS $$
 DECLARE
 	table_name name;
 BEGIN
-	table_name = attribute.to_table_name($1);
+	table_name = attribute.to_table_name($1) || '_history';
 
 	EXECUTE format('CREATE TRIGGER set_hash_on_update
 		BEFORE UPDATE ON attribute.%I
@@ -235,7 +263,7 @@ CREATE OR REPLACE FUNCTION drop_hash_function(attribute.attributestore)
 	RETURNS attribute.attributestore
 AS $$
 BEGIN
-	EXECUTE format('DROP FUNCTION attribute.values_hash(attribute.%I)', attribute.to_table_name($1));
+	EXECUTE format('DROP FUNCTION attribute.values_hash(attribute.%I)', attribute.to_table_name($1) || '_history');
 
 	RETURN $1;
 END;
@@ -250,7 +278,7 @@ BEGIN
 RETURNS text
 AS $$
 	%s
-$$ LANGUAGE SQL STABLE', attribute.to_table_name($1), attribute.render_hash_query($1));
+$$ LANGUAGE SQL STABLE', attribute.to_table_name($1) || '_history', attribute.render_hash_query($1));
 
 	RETURN $1;
 END;
@@ -266,7 +294,7 @@ BEGIN
 		USING attribute.%I changes
 		WHERE changes.entity_id = d.entity_id
 			AND changes.timestamp = d.timestamp
-			AND changes.change = false', attribute.to_table_name($1), attribute.to_table_name($1) || '_changes');
+			AND changes.change = false', attribute.to_table_name($1), attribute.to_table_name($1) || '_history_changes');
 
 	RETURN $1;
 END;
@@ -415,7 +443,7 @@ DECLARE
 	set_columns_part text;
 	default_columns text[];
 BEGIN
-	table_name = attribute.to_table_name($1);
+	table_name = attribute.to_table_name($1) || '_history';
 	staging_table_name = attribute.to_table_name($1) || '_staging';
 
 	default_columns = ARRAY[
