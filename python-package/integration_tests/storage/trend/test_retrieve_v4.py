@@ -1,15 +1,14 @@
 from functools import partial
 from contextlib import closing
 import logging
+from datetime import datetime, timedelta
 
 from nose.tools import eq_
 
 from minerva.util import head, unlines
 from minerva.db.query import Column, Call
 from minerva.db.util import render_result
-from datetime import datetime, timedelta
-
-from minerva_storage_trend.storage_v4 import retrieve, retrieve_aggregated
+from minerva.storage.trend.storage_v4 import retrieve, retrieve_aggregated
 
 from minerva_db import with_data
 from helpers import render_source

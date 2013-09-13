@@ -12,9 +12,9 @@ this software.
 from contextlib import closing
 
 from minerva.db.util import create_temp_table, drop_table, \
-        create_copy_from_file
+    create_copy_from_file
 
-from minerva_storage_trend import schema
+from minerva.storage.trend import schema
 
 
 def tag_trends(conn, tag_links):

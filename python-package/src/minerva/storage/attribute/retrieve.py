@@ -18,8 +18,7 @@ from operator import itemgetter
 
 from minerva.directory import helpers
 from minerva.directory.helpers import get_entitytype_by_id
-
-from minerva_storage_attribute import schema
+from minerva.storage.attribute import schema
 
 
 def enquote_ident(ident):

@@ -10,10 +10,9 @@ from minerva.db.query import Table, Column, Call, Eq
 from minerva.directory.helpers_v4 import name_to_datasource, name_to_entitytype
 from minerva.storage.generic import extract_data_types
 from minerva.test import with_conn
-
-from minerva_storage_trend.trendstore import TrendStore
-from minerva_storage_trend.granularity import create_granularity
-from minerva_storage_trend.storage import DataTypeMismatch, \
+from minerva.storage.trend.trendstore import TrendStore
+from minerva.storage.trend.granularity import create_granularity
+from minerva.storage.trend.storage import DataTypeMismatch, \
     create_trend_table, store_copy_from, store_using_tmp, \
     store_insert_rows, store, create_temp_table_from
 

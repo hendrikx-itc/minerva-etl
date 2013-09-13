@@ -1,27 +1,22 @@
 from __future__ import division
 from contextlib import closing
 from functools import partial
-from datetime import datetime
 
 import psycopg2
-import pytz
-
-from minerva.directory.helpers import get_entity, get_entitytype_by_id
 
 from minerva.directory.helpers_v4 import get_entitytype
-
-from minerva_storage_trend import schema
-from minerva_storage_trend.granularity import ensure_granularity
-from minerva_storage_trend.storage import refine_data_rows, retrieve, \
-        retrieve_orderedby_time, retrieve_aggregated, retrieve_related, \
-        aggregate
-from minerva_storage_trend.tables import PARTITION_SIZES
-from minerva_storage_trend.helpers import get_trend_by_id, \
-        get_previous_timestamp, get_most_recent_timestamp, get_next_timestamp, \
-        get_table_names_v4
-from minerva_storage_trend.trendstore import TrendStore, store_raw
-from minerva_storage_trend.datapackage import DataPackage
-from minerva_storage_trend.rawdatapackage import RawDataPackage
+from minerva.storage.trend import schema
+from minerva.storage.trend.granularity import ensure_granularity
+from minerva.storage.trend.storage import refine_data_rows, retrieve, \
+    retrieve_orderedby_time, retrieve_aggregated, retrieve_related, \
+    aggregate
+from minerva.storage.trend.tables import PARTITION_SIZES
+from minerva.storage.trend.helpers import get_trend_by_id, \
+    get_previous_timestamp, get_most_recent_timestamp, get_next_timestamp, \
+    get_table_names_v4
+from minerva.storage.trend.trendstore import TrendStore, store_raw
+from minerva.storage.trend.datapackage import DataPackage
+from minerva.storage.trend.rawdatapackage import RawDataPackage
 
 
 class TrendPlugin(object):

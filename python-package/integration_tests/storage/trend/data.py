@@ -16,11 +16,11 @@ from pytz import timezone
 
 from minerva.storage.generic import extract_data_types
 from minerva.directory.helpers_v4 import name_to_datasource, \
-        name_to_entitytype, dn_to_entity
-from minerva_storage_trend.test import DataSet
-from minerva_storage_trend.granularity import create_granularity
-from minerva_storage_trend.datapackage import DataPackage
-from minerva_storage_trend.trendstore import TrendStore, store_copy_from
+    name_to_entitytype, dn_to_entity
+from minerva.storage.trend.test import DataSet
+from minerva.storage.trend.granularity import create_granularity
+from minerva.storage.trend.datapackage import DataPackage
+from minerva.storage.trend.trendstore import TrendStore, store_copy_from
 
 
 class TestSetQtr(DataSet):

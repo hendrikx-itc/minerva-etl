@@ -28,7 +28,7 @@ from minerva.db.util import enquote_column_name
 from minerva.db.error import NoSuchTable
 from minerva.db.generic import UniqueViolation
 from minerva.db.query import Sql, Table, And, Eq, Column, FromItem, \
-        Argument, Literal, LtEq, Gt, ands, Select, WithQuery, As, Value
+    Argument, Literal, LtEq, Gt, ands, Select, WithQuery, As, Value
 from minerva.db.postgresql import column_exists
 from minerva.directory.helpers import NoSuchEntityError, \
     get_entity, create_entity
@@ -36,12 +36,10 @@ from minerva.storage.generic import format_value, \
     RecoverableError, NonRecoverableError, \
     create_full_table_name, extract_data_types, MaxRetriesError, \
     get_data_types, datatype
-
-from tables import create_trend_table, \
+from minerva.storage.trend.tables import create_trend_table, \
     check_columns_exist, create_temp_table_from, add_missing_columns, \
     check_column_types
-
-from minerva_storage_trend.helpers import get_previous_timestamp, \
+from minerva.storage.trend.helpers import get_previous_timestamp, \
     get_table_names_v4
 
 

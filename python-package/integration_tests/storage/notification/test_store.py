@@ -9,41 +9,34 @@ the Free Software Foundation; either version 3, or (at your option) any later
 version.  The full license is in the file COPYING, distributed as part of
 this software.
 """
-import time
 from contextlib import closing
-from pytz import timezone
-from datetime import datetime, timedelta
+from datetime import datetime
 
-from nose.tools import eq_, raises, assert_not_equal
+from minerva.test import with_conn
+from minerva.directory.helpers_v4 import name_to_datasource, name_to_entitytype
+from minerva.storage.notification.types import NotificationStore, Attribute, Record
 
-from minerva.storage.generic import extract_data_types
-
-from minerva_storage_notification.types import NotificationStore, Attribute, Record
-
-from minerva_db import with_connection, clear_database, \
-		get_or_create_datasource, get_or_create_entitytype
+from minerva_db import clear_database
 
 
-@with_connection()
+@with_conn(clear_database)
 def test_store_record(conn):
-	with closing(conn.cursor()) as cursor:
-		clear_database(cursor)
+    with closing(conn.cursor()) as cursor:
+        datasource = name_to_datasource(cursor, "test-source-003")
+        entitytype = name_to_entitytype(cursor, "node")
 
-		datasource = get_or_create_datasource(cursor, "test-source-003")
-		entitytype = get_or_create_entitytype(cursor, "node")
+        attributes = [
+            Attribute("a", "integer", "a attribute"),
+            Attribute("b", "integer", "b attribute")]
 
-		attributes = [
-			Attribute("a", "integer", "a attribute"),
-			Attribute("b", "integer", "b attribute")]
+        notificationstore = NotificationStore(datasource, entitytype, attributes)
 
-		notificationstore = NotificationStore(datasource, entitytype, attributes)
+        notificationstore.create(cursor)
 
-		notificationstore.create(cursor)
+        datarecord = Record(
+            entity_id=100,
+            timestamp=datetime(2013, 6, 5, 12, 0, 0),
+            attribute_names=["a", "b"],
+            values=[1, 42])
 
-		datarecord = Record(
-			entity_id=100,
-			timestamp=datetime(2013, 6, 5, 12, 0, 0),
-			attribute_names=["a", "b"],
-			values=[1, 42])
-
-		notificationstore.store_record(datarecord)(cursor)
+        notificationstore.store_record(datarecord)(cursor)

@@ -26,11 +26,11 @@ from minerva.db import parse_db_url, extract_safe_url
 from minerva.util.config import load_config, get_defaults, ConfigError
 from minerva.directory.helpers import get_datasource, get_entitytype
 
-from minerva_storage_trend.tables import resolve_table_name, InvalidTrendTableName, PARTITION_SIZES
-from minerva_storage_trend.types_v4 import Partition, TrendStore
-from minerva_storage_trend.inference import populate, extract_partitions
+from minerva.storage.trend.tables import resolve_table_name, InvalidTrendTableName, PARTITION_SIZES
+from minerva.storage.trend.types_v4 import Partition, TrendStore
+from minerva.storage.trend.inference import populate, extract_partitions
 
-package_name = "minerva_storage_trend"
+package_name = "minerva.storage.trend"
 script_name = os.path.basename(__file__)
 config_file = "{}.conf".format(script_name)
 

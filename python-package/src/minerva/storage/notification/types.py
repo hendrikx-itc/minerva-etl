@@ -15,142 +15,142 @@ from minerva.db.error import translate_postgresql_exceptions
 
 
 class Record(object):
-	def __init__(self, entity_id, timestamp, attribute_names, values):
-		self.entity_id = entity_id
-		self.timestamp = timestamp
-		self.attribute_names = attribute_names
-		self.values = values
+    def __init__(self, entity_id, timestamp, attribute_names, values):
+        self.entity_id = entity_id
+        self.timestamp = timestamp
+        self.attribute_names = attribute_names
+        self.values = values
 
 
 class RawRecord(object):
-	def __init__(self, dn, timestamp, attribute_names, values):
-		self.dn = dn
-		self.timestamp = timestamp
-		self.attribute_names = attribute_names
-		self.values = values
+    def __init__(self, dn, timestamp, attribute_names, values):
+        self.dn = dn
+        self.timestamp = timestamp
+        self.attribute_names = attribute_names
+        self.values = values
 
 
 class Package(object):
-	def __init__(self, attribute_names, rows):
-		self.attribute_names = attribute_names
-		self.rows = rows
+    def __init__(self, attribute_names, rows):
+        self.attribute_names = attribute_names
+        self.rows = rows
 
 
 class Attribute(object):
-	def __init__(self, name, data_type, description):
-		self.id = None
-		self.notificationstore_id = None
-		self.name = name
-		self.data_type = data_type
-		self.description = description
+    def __init__(self, name, data_type, description):
+        self.id = None
+        self.notificationstore_id = None
+        self.name = name
+        self.data_type = data_type
+        self.description = description
 
-	def __str__(self):
-		return self.name
+    def __str__(self):
+        return self.name
 
 
 class NotificationStore(object):
-	def __init__(self, datasource, entitytype, attributes):
-		self.id = None
-		self.version = 1
-		self.datasource = datasource
-		self.entitytype = entitytype
-		self.attributes = attributes
-		table_name = "{}_{}".format(datasource.name, entitytype.name)
-		self.table = Table("notification", table_name)
+    def __init__(self, datasource, entitytype, attributes):
+        self.id = None
+        self.version = 1
+        self.datasource = datasource
+        self.entitytype = entitytype
+        self.attributes = attributes
+        table_name = "{}_{}".format(datasource.name, entitytype.name)
+        self.table = Table("notification", table_name)
 
-	@staticmethod
-	def load(cursor, datasource, entitytype):
-		query = (
-			"SELECT id, datasource_id, entitytype_id, version "
-			"FROM notification.notificationstore "
-			"WHERE datasource_id = %s AND entitytype_id = %s")
+    @staticmethod
+    def load(cursor, datasource, entitytype):
+        query = (
+            "SELECT id, datasource_id, entitytype_id, version "
+            "FROM notification.notificationstore "
+            "WHERE datasource_id = %s AND entitytype_id = %s")
 
-		args = datasource.id, entitytype.id
+        args = datasource.id, entitytype.id
 
-		cursor.execute(query, args)
+        cursor.execute(query, args)
 
-		if cursor.rowcount == 1:
-			id, datasource_id, entitytype_id, version = cursor.fetchone()
+        if cursor.rowcount == 1:
+            id, datasource_id, entitytype_id, version = cursor.fetchone()
 
-			return NotificationStore(datasource, entitytype, [])
+            return NotificationStore(datasource, entitytype, [])
 
-	def create(self, cursor):
-		if self.id:
-			raise NotImplementedError()
-		else:
-			query = (
-				"INSERT INTO notification.notificationstore "
-				"(datasource_id, entitytype_id, version) "
-				"VALUES (%s, %s, %s) RETURNING id")
+    def create(self, cursor):
+        if self.id:
+            raise NotImplementedError()
+        else:
+            query = (
+                "INSERT INTO notification.notificationstore "
+                "(datasource_id, entitytype_id, version) "
+                "VALUES (%s, %s, %s) RETURNING id")
 
-			args = self.datasource.id, self.entitytype.id, self.version
+            args = self.datasource.id, self.entitytype.id, self.version
 
-			cursor.execute(query, args)
+            cursor.execute(query, args)
 
-			self.id = first(cursor.fetchone())
+            self.id = first(cursor.fetchone())
 
-			for attribute in self.attributes:
-				query = (
-					"INSERT INTO notification.attribute "
-					"(notificationstore_id, name, data_type, description) "
-					"VALUES (%s, %s, %s, %s) "
-					"RETURNING id")
+            for attribute in self.attributes:
+                query = (
+                    "INSERT INTO notification.attribute "
+                    "(notificationstore_id, name, data_type, description) "
+                    "VALUES (%s, %s, %s, %s) "
+                    "RETURNING id")
 
-				args = (self.id, attribute.name, attribute.data_type, attribute.description)
-				cursor.execute(query, args)
+                args = (self.id, attribute.name, attribute.data_type, attribute.description)
+                cursor.execute(query, args)
 
-			return self
+            return self
 
-	def store_record(self, record):
-		@translate_postgresql_exceptions
-		def f(cursor):
-			column_names = ["entity_id", "\"timestamp\""] + record.attribute_names
-			columns_part = ",".join(column_names)
-			num_args = 2 + len(record.attribute_names)
-			args_part = ",".join(["%s"] * num_args)
+    def store_record(self, record):
+        @translate_postgresql_exceptions
+        def f(cursor):
+            column_names = ["entity_id", "\"timestamp\""] + record.attribute_names
+            columns_part = ",".join(column_names)
+            num_args = 2 + len(record.attribute_names)
+            args_part = ",".join(["%s"] * num_args)
 
-			query = (
-				"INSERT INTO {} ({}) "
-				"VALUES ({})").format(self.table.render(), columns_part, args_part)
+            query = (
+                "INSERT INTO {} ({}) "
+                "VALUES ({})").format(self.table.render(), columns_part, args_part)
 
-			args = [record.entity_id, record.timestamp] + record.values
+            args = [record.entity_id, record.timestamp] + record.values
 
-			cursor.execute(query, args)
+            cursor.execute(query, args)
 
-		return f
+        return f
 
-	def store_rawrecord(self, rawrecord):
-		@translate_postgresql_exceptions
-		def f(cursor):
-			column_names = ["entity_id", "\"timestamp\""] + rawrecord.attribute_names
-			columns_part = ",".join(column_names)
-			num_args = 1 + len(rawrecord.attribute_names)
-			args_part = ",".join(["%s"] * num_args)
+    def store_rawrecord(self, rawrecord):
+        @translate_postgresql_exceptions
+        def f(cursor):
+            column_names = ["entity_id", "\"timestamp\""] + rawrecord.attribute_names
+            columns_part = ",".join(column_names)
+            num_args = 1 + len(rawrecord.attribute_names)
+            args_part = ",".join(["%s"] * num_args)
 
-			query = (
-				"INSERT INTO {} ({}) "
-				"VALUES ((directory.dn_to_entity(%s)).id, {})").format(self.table.render(), columns_part, args_part)
+            query = (
+                "INSERT INTO {} ({}) "
+                "VALUES ((directory.dn_to_entity(%s)).id, {})").format(self.table.render(), columns_part, args_part)
 
-			args = [rawrecord.dn, rawrecord.timestamp] + rawrecord.values
+            args = [rawrecord.dn, rawrecord.timestamp] + rawrecord.values
 
-			cursor.execute(query, args)
+            cursor.execute(query, args)
 
-		return f
+        return f
 
-	def store_package(self, datarecord):
-		@translate_postgresql_exceptions
-		def f(cursor):
-			column_names = ["entity_id", "\"timestamp\""] + datarecord.attribute_names
-			columns_part = ",".join(column_names)
-			num_args = 2 + len(datarecord.attribute_names)
-			args_part = ",".join(["%s"] * num_args)
+    def store_package(self, datarecord):
+        @translate_postgresql_exceptions
+        def f(cursor):
+            column_names = ["entity_id", "\"timestamp\""] + datarecord.attribute_names
+            columns_part = ",".join(column_names)
+            num_args = 2 + len(datarecord.attribute_names)
+            args_part = ",".join(["%s"] * num_args)
 
-			query = (
-				"INSERT INTO {} ({}) "
-				"VALUES ({})").format(self.table.render(), columns_part, args_part)
+            query = (
+                "INSERT INTO {} ({}) "
+                "VALUES ({})").format(self.table.render(), columns_part, args_part)
 
-			args = [datarecord.entity_id, datarecord.timestamp] + datarecord.values
+            args = [datarecord.entity_id, datarecord.timestamp] + datarecord.values
 
-			cursor.execute(query, args)
+            cursor.execute(query, args)
 
-		return f
+        return f

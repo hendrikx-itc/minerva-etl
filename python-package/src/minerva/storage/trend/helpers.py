@@ -19,14 +19,11 @@ from itertools import chain
 
 import pytz
 
-from minerva.db.query import Column, ands, Eq
 from minerva.directory.helpers_v4 import get_datasource_by_id, \
     get_entitytype_by_id
-
-from minerva_storage_trend.basetypes import Trend
-from minerva_storage_trend.trendstore import TrendStore
-from minerva_storage_trend import schema
-from minerva_storage_trend.granularity import create_granularity
+from minerva.storage.trend.basetypes import Trend
+from minerva.storage.trend.trendstore import TrendStore
+from minerva.storage.trend.granularity import create_granularity
 
 
 class NoSuchTrendError(Exception):

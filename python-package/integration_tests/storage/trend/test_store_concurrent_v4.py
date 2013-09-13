@@ -17,11 +17,10 @@ from functools import partial
 from minerva.util import head
 from minerva.directory.helpers_v4 import name_to_entitytype, name_to_datasource
 from minerva.test import connect, with_conn, with_dataset
-
-from minerva_storage_trend.granularity import create_granularity
-from minerva_storage_trend.test import DataSet
-from minerva_storage_trend.rawdatapackage import RawDataPackage
-from minerva_storage_trend.trendstore import store_raw
+from minerva.storage.trend.granularity import create_granularity
+from minerva.storage.trend.test import DataSet
+from minerva.storage.trend.rawdatapackage import RawDataPackage
+from minerva.storage.trend.trendstore import store_raw
 
 from minerva_db import clear_database
 

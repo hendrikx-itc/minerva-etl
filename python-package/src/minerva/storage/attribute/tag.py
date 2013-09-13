@@ -14,7 +14,7 @@ from contextlib import closing
 from minerva.db.util import create_temp_table, drop_table, \
     create_copy_from_file
 
-from minerva_storage_attribute import schema
+from minerva.storage.attribute import schema
 
 
 def tag_attributes(conn, tag_links):

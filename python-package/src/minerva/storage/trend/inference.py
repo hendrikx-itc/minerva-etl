@@ -11,7 +11,7 @@ this software.
 """
 from minerva.util import first
 
-from minerva_storage_trend.schema import system_columns_set
+from minerva.storage.trend.schema import system_columns_set
 
 
 def partition_record_exists(cursor, partition):

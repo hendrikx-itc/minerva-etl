@@ -16,14 +16,13 @@ from contextlib import closing
 import psycopg2
 
 from minerva.directory.relation import get_relation_name
-from minerva_storage_trend.trendstore import TrendStore
-from minerva_storage_trend.granularity import create_granularity
+from minerva.storage.trend.trendstore import TrendStore
+from minerva.storage.trend.granularity import create_granularity
 
-from minerva_storage_delta.tables import get_table_name as get_delta_tablename
-from minerva_storage_delta import SCHEMA as delta_schema
+from minerva.storage.attribute.attributestore import AttributeStore
 
-from minerva_storage_geospatial.tables import make_box_2d
-from minerva_storage_geospatial.types import set_srid, transform_srid
+from minerva.storage.geospatial.tables import make_box_2d
+from minerva.storage.geospatial.types import set_srid, transform_srid
 
 
 def get_entities_in_region(conn, database_srid, region, region_srid,
@@ -209,9 +208,9 @@ def retrieve_related_trend(conn, database_srid, region, region_srid,
 
 def retrieve_attribute(conn, database_srid, region, region_srid, datasource,
                        entitytype, attribute_name, srid, limit=None):
-
-    tablename = get_delta_tablename(datasource.name, entitytype.name)
-    full_base_tbl_name = "{0}.\"{1}\"".format(delta_schema, tablename)
+    with closing(conn.cursor()) as cursor:
+        attributestore = AttributeStore.get_by_attributes(cursor, datasource, entitytype)
+    full_base_tbl_name = attributestore.history_table.render()
 
     relation_name = get_relation_name(conn, "Cell", "Site")
 
@@ -251,8 +250,9 @@ def retrieve_attribute(conn, database_srid, region, region_srid, datasource,
 def retrieve_related_attribute(conn, database_srid, region, region_srid,
                                datasource, entitytype, attribute_name, limit):
 
-    tablename = get_delta_tablename(datasource.name, entitytype.name)
-    full_base_tbl_name = "{0}.\"{1}\"".format(delta_schema, tablename)
+    with closing(conn.cursor()) as cursor:
+        attributestore = AttributeStore.get_by_attributes(cursor, datasource, entitytype)
+    full_base_tbl_name = attributestore.history_table.render()
 
     relation_name = get_relation_name(conn, "Cell", entitytype.name)
     relation_cell_site_name = get_relation_name(conn, "Cell", "Site")

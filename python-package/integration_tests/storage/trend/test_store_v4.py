@@ -17,12 +17,11 @@ from nose.tools import eq_
 from minerva.db.query import Column, Eq, And
 from minerva.directory.helpers_v4 import name_to_entitytype, name_to_datasource
 from minerva.test import with_conn, with_dataset
-
-from minerva_storage_trend.test import DataSet
-from minerva_storage_trend.datapackage import DataPackage
-from minerva_storage_trend.trendstore import TrendStore
-from minerva_storage_trend.partitioning import Partitioning
-from minerva_storage_trend.granularity import create_granularity
+from minerva.storage.trend.test import DataSet
+from minerva.storage.trend.datapackage import DataPackage
+from minerva.storage.trend.trendstore import TrendStore
+from minerva.storage.trend.partitioning import Partitioning
+from minerva.storage.trend.granularity import create_granularity
 
 from minerva_db import clear_database
 

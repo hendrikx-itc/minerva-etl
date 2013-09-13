@@ -14,7 +14,7 @@ import datetime
 import pytz
 from nose.tools import eq_
 
-from minerva_storage_attribute.datapackage import DataPackage
+from minerva.storage.attribute.datapackage import DataPackage
 
 TIMESTAMP = pytz.utc.localize(datetime.datetime(2013, 8, 30, 15, 30))
 

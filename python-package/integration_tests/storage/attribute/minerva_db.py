@@ -13,7 +13,7 @@ from contextlib import closing
 
 from minerva.util import first
 
-from minerva_storage_attribute import schema
+from minerva.storage.attribute import schema
 
 
 def clear_database(conn):
@@ -24,7 +24,7 @@ def clear_database(conn):
 
         system_tables = ["attribute", "attribute_tag_link"]
 
-        all_tables = get_tables(cursor, schema.name)
+        all_tables = get_tables(cursor)
 
         attribute_tables = [t for t in all_tables if not t in system_tables]
 
@@ -32,7 +32,7 @@ def clear_database(conn):
             drop_table(cursor, schema.name, table_name)
 
 
-def get_tables(cursor, schema):
+def get_tables(cursor):
     query = (
         "SELECT relname FROM pg_class "
         "JOIN pg_namespace ON pg_class.relnamespace = pg_namespace.oid "
@@ -40,7 +40,7 @@ def get_tables(cursor, schema):
         "AND (relkind = 'r' OR relkind = 'v') "
         "AND relhassubclass = true")
 
-    args = (schema, )
+    args = (schema.name, )
 
     cursor.execute(query, args)
 

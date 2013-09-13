@@ -12,7 +12,7 @@ this software.
 """
 from psycopg2.extensions import adapt, register_adapter
 
-from minerva_storage_attribute import schema
+from minerva.storage.attribute import schema
 
 
 class Attribute(object):

@@ -9,9 +9,9 @@ from minerva.directory.helpers_v4 import name_to_datasource, name_to_entitytype
 from minerva.test import with_conn
 
 from minerva.storage import get_plugin
-from minerva_storage_trend.plugin_v4 import TrendPlugin
-from minerva_storage_trend.datapackage import DataPackage
-from minerva_storage_trend.granularity import create_granularity
+from minerva.storage.trend.plugin_v4 import TrendPlugin
+from minerva.storage.trend.datapackage import DataPackage
+from minerva.storage.trend.granularity import create_granularity
 
 from minerva_db import clear_database
 

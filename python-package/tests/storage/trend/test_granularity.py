@@ -12,7 +12,7 @@ from datetime import datetime
 
 from nose.tools import assert_raises, assert_equal
 
-from minerva_storage_trend.granularity import Granularity, \
+from minerva.storage.trend.granularity import Granularity, \
         GranularitySeconds, GranularityMonth
 
 

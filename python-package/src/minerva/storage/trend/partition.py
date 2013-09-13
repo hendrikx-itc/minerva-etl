@@ -12,10 +12,8 @@ this software.
 import psycopg2
 
 from minerva.db.error import translate_postgresql_exception, DuplicateTable
-
 from minerva.db.query import Table, Column, Eq, And, Call
-
-from minerva_storage_trend import schema
+from minerva.storage.trend import schema
 
 
 class Partition(object):

@@ -15,9 +15,9 @@ this software.
 from contextlib import closing
 import psycopg2.errorcodes
 
-from minerva_storage_attribute import schema
-from minerva_storage_attribute.attribute import Attribute
-from minerva_storage_attribute.basetypes import AttributeTag
+from minerva.storage.attribute import schema
+from minerva.storage.attribute.attribute import Attribute
+from minerva.storage.attribute.basetypes import AttributeTag
 
 
 class NoSuchAttributeError(Exception):

@@ -13,7 +13,7 @@ import pytz
 
 from nose.tools import assert_true, assert_false, assert_equal
 
-from minerva_storage_trend.helpers import get_next_timestamp, \
+from minerva.storage.trend.helpers import get_next_timestamp, \
     get_previous_timestamp, get_most_recent_timestamp
 
 

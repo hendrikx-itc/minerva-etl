@@ -13,18 +13,18 @@ version.  The full license is in the file COPYING, distributed as part of
 this software.
 """
 
-import pkg_resources
-
-ENTRYPOINT = "minerva.storage.plugins"
+from minerva.storage import trend, attribute, geospatial, notification
 
 
 def load_plugins():
     """
     Load and return a dictionary with plugins by their names.
     """
-    return dict((entrypoint.name, entrypoint.load())
-                for entrypoint in
-                pkg_resources.iter_entry_points(group=ENTRYPOINT))
+    return {
+        'attribute': attribute.create,
+        'trend': trend.create,
+        'notification': notification.NotificationPlugin,
+        'geospatial': geospatial.create}
 
 
 def get_plugin(name):

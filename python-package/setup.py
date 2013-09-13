@@ -12,22 +12,40 @@ this software.
 
 from setuptools import setup
 
-setup(name="minerva",
+setup(
+    name="minerva",
     author="Hendrikx ITC",
     author_email="info@hendrikx-itc.nl",
     version="4.1.0",
     license="GPL",
     install_requires=["pytz", "psycopg2>=2.2.1", "DBUtils", "PyYAML"],
     test_suite="nose.collector",
-    packages=["minerva", "minerva.directory", "minerva.xmldochandler",
-        "minerva.xmldochandler.xmlschema", "minerva.xmlschemaparser",
-        "minerva.util", "minerva.schemacontextbuilder",
-        "minerva.system", "minerva.db", "minerva.storage", "minerva.instance"],
+    packages=[
+        "minerva",
+        "minerva.util",
+        "minerva.db",
+        "minerva.system",
+        "minerva.directory",
+        "minerva.storage",
+        "minerva.storage.trend",
+        "minerva.storage.attribute",
+        "minerva.storage.notification",
+        "minerva.xmldochandler",
+        "minerva.xmldochandler.xmlschema",
+        "minerva.xmlschemaparser",
+        "minerva.schemacontextbuilder",
+        "minerva.instance"],
     package_dir={"": "src"},
     package_data={"minerva": ["defaults/*"]},
-    scripts=["scripts/create-relations", "scripts/load-tags",
-        "scripts/link-entity-tags", "scripts/create-network",
-        "scripts/create-virtual-entities", "scripts/create-csv",
-        "scripts/create-aliases", "scripts/job", "scripts/load-data",
+    scripts=[
+        "scripts/create-relations",
+        "scripts/load-tags",
+        "scripts/link-entity-tags",
+        "scripts/create-network",
+        "scripts/create-virtual-entities",
+        "scripts/create-csv",
+        "scripts/create-aliases",
+        "scripts/job",
+        "scripts/load-data",
         "scripts/query-entities"]
-    )
+)

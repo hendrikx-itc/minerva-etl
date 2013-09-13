@@ -11,7 +11,7 @@ this software.
 import logging
 from nose.tools import eq_
 
-from minerva_storage_trend.aggregate import arith_expr
+from minerva.storage.trend.aggregate import arith_expr
 
 
 def setup_module():

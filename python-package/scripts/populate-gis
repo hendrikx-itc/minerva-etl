@@ -21,10 +21,10 @@ from minerva.db import connect
 from minerva.instance import MinervaInstance
 from minerva.storage import get_plugin
 
-from minerva_storage_geospatial.types import Site, Cell, Point
+from minerva.storage.geospatial.types import Site, Cell, Point
 
 
-package_name = "minerva_storage_geospatial"
+package_name = "minerva.storage.geospatial"
 script_name = os.path.basename(__file__)
 config_file = "{}.conf".format(script_name)
 

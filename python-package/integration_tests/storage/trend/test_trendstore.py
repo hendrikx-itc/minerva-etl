@@ -16,9 +16,8 @@ from nose.tools import eq_
 
 from minerva.directory.helpers_v4 import name_to_entitytype, name_to_datasource
 from minerva.test import connect
-
-from minerva_storage_trend.trendstore import TrendStore
-from minerva_storage_trend.granularity import create_granularity
+from minerva.storage.trend.trendstore import TrendStore
+from minerva.storage.trend.granularity import create_granularity
 
 from minerva_db import clear_database
 

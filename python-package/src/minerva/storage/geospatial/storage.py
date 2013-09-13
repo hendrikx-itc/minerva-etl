@@ -16,7 +16,7 @@ import logging
 
 from minerva.storage.generic import MaxRetriesError, RecoverableError
 
-from minerva_storage_geospatial.tables import MAX_RETRIES, store_cell, \
+from minerva.storage.geospatial.tables import MAX_RETRIES, store_cell, \
     store_site
 
 

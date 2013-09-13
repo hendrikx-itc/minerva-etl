@@ -16,9 +16,9 @@ from minerva.db import connect
 from minerva.directory.tag import get_tag, create_tag, NoSuchTagError, \
     create_tag_group
 
-from minerva_storage_attribute.tag import tag_attributes, flush_tag_links
+from minerva.storage.attribute.tag import tag_attributes, flush_tag_links
 
-CONFIG_DEFAULTS = resource_string("minerva_storage_attribute",
+CONFIG_DEFAULTS = resource_string("minerva.storage.attribute",
                                   "defaults/link-attribute-tags.conf")
 
 

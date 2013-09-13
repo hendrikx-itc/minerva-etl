@@ -2,15 +2,14 @@ from contextlib import closing
 from datetime import datetime, timedelta
 
 from nose.tools import eq_, raises, assert_not_equal, assert_equal, \
-        assert_false, assert_true
+    assert_false, assert_true
 import pytz
 
 from minerva.directory.helpers_v4 import name_to_datasource
 from minerva.test import with_conn
 from minerva.storage import get_plugin
 from minerva.util import head
-
-from minerva_storage_trend.plugin import TrendPlugin
+from minerva.storage.trend.plugin import TrendPlugin
 
 from minerva_db import clear_database
 from data import TestData

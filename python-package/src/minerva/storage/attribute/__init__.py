@@ -9,8 +9,8 @@ the Free Software Foundation; either version 3, or (at your option) any later
 version.  The full license is in the file COPYING, distributed as part of
 this software.
 """
-from minerva_storage_attribute.plugin import DeltaPlugin as DeltaPlugin3
-from minerva_storage_attribute.plugin_v4 import DeltaPlugin as DeltaPlugin4
+from minerva.storage.attribute.plugin import DeltaPlugin as DeltaPlugin3
+from minerva.storage.attribute.plugin_v4 import DeltaPlugin as DeltaPlugin4
 
 
 def create(conn, api_version=3):

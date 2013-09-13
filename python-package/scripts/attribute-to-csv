@@ -24,7 +24,7 @@ import csv
 from minerva.util import parse_size
 from minerva.db import connect
 
-from minerva_storage_attribute.plugin import DeltaPlugin
+from minerva.storage.attribute.plugin import DeltaPlugin
 
 
 CONFIG_DEFAULTS = """\

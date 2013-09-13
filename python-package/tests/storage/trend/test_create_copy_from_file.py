@@ -13,8 +13,7 @@ import datetime
 from nose.tools import eq_
 
 from minerva.directory.basetypes import DataSource
-
-from minerva_storage_trend.storage import create_copy_from_file
+from minerva.storage.trend.storage import create_copy_from_file
 
 
 def create_datasource(timezone):

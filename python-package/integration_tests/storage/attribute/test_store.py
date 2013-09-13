@@ -21,9 +21,9 @@ from minerva.test import with_conn
 
 from minerva_db import clear_database
 
-from minerva_storage_attribute import schema
-from minerva_storage_attribute.attributestore import AttributeStore, Query
-from minerva_storage_attribute.datapackage import DataPackage
+from minerva.storage.attribute import schema
+from minerva.storage.attribute.attributestore import AttributeStore, Query
+from minerva.storage.attribute.datapackage import DataPackage
 
 
 @with_conn(clear_database)
@@ -221,5 +221,5 @@ def test_changing_datatype(conn):
 
         conn.commit()
         column_names = get_column_names(conn, schema.name,
-                                        attributestore.table.name)
+                                        attributestore.history_table.name)
         eq_(len(column_names), 6)

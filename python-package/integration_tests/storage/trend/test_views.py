@@ -3,13 +3,11 @@ from contextlib import closing
 
 from nose.tools import eq_
 
-from minerva.util import head
 from minerva.test import with_conn
 from minerva.directory.helpers_v4 import name_to_datasource
-
 from minerva.storage import get_plugin
-from minerva_storage_trend.trendstore import TrendStore
-from minerva_storage_trend.view import View
+from minerva.storage.trend.trendstore import TrendStore
+from minerva.storage.trend.view import View
 
 from minerva_db import clear_database
 from data import TestSet1Small

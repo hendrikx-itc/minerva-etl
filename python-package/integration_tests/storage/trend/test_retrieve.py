@@ -9,12 +9,11 @@ from minerva.db.query import Column
 from minerva.db.util import render_result
 from datetime import datetime, timedelta
 from minerva.directory.helpers_v4 import \
-        name_to_datasource, name_to_entitytype
-
-from minerva_storage_trend.storage import retrieve, retrieve_orderedby_time, \
-        retrieve_aggregated
-from minerva_storage_trend.granularity import create_granularity
-from minerva_storage_trend.trendstore import TrendStore
+    name_to_datasource, name_to_entitytype
+from minerva.storage.trend.storage import retrieve, retrieve_orderedby_time, \
+    retrieve_aggregated
+from minerva.storage.trend.granularity import create_granularity
+from minerva.storage.trend.trendstore import TrendStore
 
 from minerva_db import connect, with_data
 

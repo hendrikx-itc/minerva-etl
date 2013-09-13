@@ -26,10 +26,10 @@ from minerva.util.config import load_config, get_defaults, ConfigError
 from minerva.directory.helpers import get_datasource, \
     NoSuchDataSourceError
 from minerva.db import connect
-from minerva_storage_trend.plugin import TrendPlugin
+from minerva.storage.trend.plugin import TrendPlugin
 
 
-package_name = "minerva_storage_trend"
+package_name = "minerva.storage.trend"
 script_name = os.path.basename(__file__)
 config_file = "{}.conf".format(script_name)
 

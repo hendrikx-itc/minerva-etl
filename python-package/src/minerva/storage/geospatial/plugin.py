@@ -16,10 +16,10 @@ from contextlib import closing
 
 from minerva.directory import helpers
 
-from minerva_storage_geospatial.tables import get_column_srid, \
+from minerva.storage.geospatial.tables import get_column_srid, \
     create_sql_for_bbox
-from minerva_storage_geospatial.storage import store_cells, store_sites
-from minerva_storage_geospatial.retrieve import retrieve_attribute, \
+from minerva.storage.geospatial.storage import store_cells, store_sites
+from minerva.storage.geospatial.retrieve import retrieve_attribute, \
     retrieve_related_attribute, retrieve_trend, retrieve_related_trend, \
     get_cells_in_region, get_sites_in_region, get_entities_in_region
 

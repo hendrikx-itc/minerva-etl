@@ -20,9 +20,9 @@ from minerva.directory.tag import get_tag, create_tag, NoSuchTagError, \
 from minerva.util.config import load_config, get_defaults, ConfigError
 from minerva.instance import MinervaInstance
 
-from minerva_storage_trend.tag import tag_trends, flush_tag_links
+from minerva.storage.trend.tag import tag_trends, flush_tag_links
 
-package_name = "minerva_storage_trend"
+package_name = "minerva.storage.trend"
 script_name = os.path.basename(__file__)
 config_file = "{}.conf".format(script_name)
 

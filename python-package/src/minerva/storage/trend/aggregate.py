@@ -22,12 +22,11 @@ from operator import itemgetter
 
 import pytz
 
-from minerva.db.query import Table
-
 from pyparsing import Word, nums, alphas, alphanums, Combine, oneOf, \
     Optional, opAssoc, operatorPrecedence, Suppress, delimitedList, Forward
 
-from minerva_storage_trend.tables import PARTITION_SIZES
+from minerva.db.query import Table
+from minerva.storage.trend.tables import PARTITION_SIZES
 
 
 def get_aggregate_shard(conn, entities_sql, entitytype_id, granularity,

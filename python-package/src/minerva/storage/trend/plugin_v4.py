@@ -20,17 +20,16 @@ import psycopg2
 
 from minerva.util import first
 from minerva.db.query import Table
-
-from minerva_storage_trend import schema
-from minerva_storage_trend.storage_v4 import retrieve, retrieve_aggregated, \
-        retrieve_orderedby_time, retrieve_related
-from minerva_storage_trend.tables import PARTITION_SIZES
-from minerva_storage_trend.helpers import get_trend_by_id, \
-        get_previous_timestamp, get_table_names as get_table_names_v4
-from minerva_storage_trend.trendstore import TrendStore, store_raw
-from minerva_storage_trend.datapackage import DataPackage
-from minerva_storage_trend.rawdatapackage import RawDataPackage
-from minerva_storage_trend.granularity import create_granularity
+from minerva.storage.trend import schema
+from minerva.storage.trend.storage_v4 import retrieve, retrieve_aggregated, \
+    retrieve_orderedby_time, retrieve_related
+from minerva.storage.trend.tables import PARTITION_SIZES
+from minerva.storage.trend.helpers import get_trend_by_id, \
+    get_previous_timestamp, get_table_names as get_table_names_v4
+from minerva.storage.trend.trendstore import TrendStore, store_raw
+from minerva.storage.trend.datapackage import DataPackage
+from minerva.storage.trend.rawdatapackage import RawDataPackage
+from minerva.storage.trend.granularity import create_granularity
 
 
 class TrendPlugin(object):

@@ -10,8 +10,8 @@ this software.
 """
 from nose.tools import assert_true, eq_
 
-from minerva_storage_trend.granularity import create_granularity
-from minerva_storage_trend.types_v4 import RawDataPackage
+from minerva.storage.trend.granularity import create_granularity
+from minerva.storage.trend.rawdatapackage import RawDataPackage
 
 TIMEZONE = "Europe/Amsterdam"
 

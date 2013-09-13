@@ -9,11 +9,10 @@ the Free Software Foundation; either version 3, or (at your option) any later
 version.  The full license is in the file COPYING, distributed as part of
 this software.
 """
-from plugin import TrendPlugin as TrendPluginV3
-from plugin_v4 import TrendPlugin as TrendPluginV4
-
-from minerva_storage_trend.helpers import get_previous_timestamp, \
-        get_most_recent_timestamp, get_next_timestamp
+from minerva.storage.trend.plugin import TrendPlugin as TrendPluginV3
+from minerva.storage.trend.plugin_v4 import TrendPlugin as TrendPluginV4
+from minerva.storage.trend.helpers import get_previous_timestamp, \
+    get_most_recent_timestamp, get_next_timestamp
 
 
 def create(conn, api_version=3):

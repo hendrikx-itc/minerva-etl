@@ -21,11 +21,10 @@ from minerva.db.query import Table
 from minerva.directory.helpers_v4 import get_entitytype_by_id, \
     get_datasource_by_id
 from minerva.db.error import translate_postgresql_exception, \
-    NoSuchColumnError, DataTypeMismatch
+    NoSuchColumnError, DataTypeMismatch, translate_postgresql_exceptions
 from minerva.db.dbtransaction import DbTransaction, DbAction, insert_before
-
-from minerva_storage_attribute import schema
-from minerva_storage_attribute.attribute import Attribute
+from minerva.storage.attribute import schema
+from minerva.storage.attribute.attribute import Attribute
 
 MAX_RETRIES = 10
 
@@ -209,6 +208,7 @@ class AttributeStore(object):
         """Return transaction to store the data in the attributestore."""
         return DbTransaction(Insert(self, datapackage))
 
+    @translate_postgresql_exceptions
     def store_batch(self, cursor, datapackage):
         """Write data in one batch using staging table."""
         attribute_names = [a.name for a in self.attributes]
@@ -216,11 +216,16 @@ class AttributeStore(object):
         copy_from_query = create_copy_from_query(self.staging_table,
                                                  attribute_names)
         copy_from_file = create_copy_from_file(datapackage)
-        cursor.copy_expert(copy_from_query, copy_from_file)
 
-        cursor.execute(
-            "SELECT attribute.store_batch(attributestore) "
-            "from attribute.attributestore WHERE id = %s", (self.id,))
+        try:
+            cursor.copy_expert(copy_from_query, copy_from_file)
+
+            cursor.execute(
+                "SELECT attribute.store_batch(attributestore) "
+                "from attribute.attributestore WHERE id = %s", (self.id,))
+        except Exception as exc:
+            print(exc)
+            raise
 
     def check_attributes_exist(self, cursor):
         query = (
@@ -275,16 +280,9 @@ class Insert(DbAction):
         try:
             self.attributestore.store_batch(cursor, self.datapackage)
         except psycopg2.DataError as exc:
-            if exc.pgcode == '22P02' and re.match('.*invalid input syntax for integer.*', exc.pgerror): # INVALID TEXT REPRESENTATION
-                print(exc.pgerror)
-                attributes = self.datapackage.deduce_attributes()
-                print(map(str, attributes))
-
-                self.attributestore._update_attributes(attributes)
-
-                fix = CheckAttributeTypes(self.attributestore)
-                return insert_before(fix)
-
+            print(exc.pgcode)
+            print(exc.pgerror)
+            if exc.pgcode == psycopg2.errorcodes.BAD_COPY_FILE_FORMAT and re.match('.*', exc.pgerror):
                 attributes = self.datapackage.deduce_attributes()
 
                 self.attributestore._update_attributes(attributes)
@@ -294,13 +292,15 @@ class Insert(DbAction):
             else:
                 raise
         except DataTypeMismatch:
+            print("DataTypeMismatch")
             attributes = self.datapackage.deduce_attributes()
 
             self.attributestore._update_attributes(attributes)
 
             fix = CheckAttributeTypes(self.attributestore)
             return insert_before(fix)
-        except NoSuchColumnError:
+        except NoSuchColumnError as exc:
+            print("NoSuchColumnError")
             attributes = self.datapackage.deduce_attributes()
 
             self.attributestore._update_attributes(attributes)

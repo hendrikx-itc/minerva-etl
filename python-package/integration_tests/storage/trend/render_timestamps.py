@@ -2,7 +2,7 @@ import datetime
 from functools import partial
 
 from minerva.directory.basetypes import DataSource
-from minerva_storage_trend.tables import make_table_name
+from minerva.storage.trend.tables import make_table_name
 
 WITH_ACCS = {
     "auto": min,

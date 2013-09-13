@@ -17,10 +17,10 @@ from nose.tools import eq_
 from minerva.test import with_conn
 from minerva.directory.helpers_v4 import name_to_datasource, name_to_entitytype
 
-from minerva_storage_attribute import schema
-from minerva_storage_attribute.attribute import Attribute
-from minerva_storage_attribute.attributestore import AttributeStore
-from minerva_storage_attribute.datapackage import DataPackage
+from minerva.storage.attribute import schema
+from minerva.storage.attribute.attribute import Attribute
+from minerva.storage.attribute.attributestore import AttributeStore
+from minerva.storage.attribute.datapackage import DataPackage
 
 from minerva_db import clear_database
 
@@ -77,19 +77,19 @@ def test_store_batch(conn):
         attributestore.create(cursor)
 
         attributestore.store_batch(cursor, datapackage)
+        conn.commit()
 
         query = (
             "SELECT timestamp, \"Drops\" "
             "FROM {0}").format(attributestore.table.render())
 
         cursor.execute(query)
-        eq_(cursor.rowcount, len(datapackage.rows), "Row count should be the "
-            "same as the stored batch size")
+        # Row count should be the same as the stored batch size
+        eq_(cursor.rowcount, len(datapackage.rows))
 
         timestamp, drops = cursor.fetchone()
-
-        eq_(timestamp, datapackage.timestamp, "Timestamp should be the same "
-            "as the stored batch timestamp")
+        # Timestamp should be the same as the stored batch timestamp
+        eq_(timestamp, datapackage.timestamp)
         eq_(drops, 17)
 
 
@@ -117,7 +117,8 @@ def test_store_batch_update(conn):
         conn.commit()
         modified_query = (
             "SELECT modified FROM {0} "
-            "WHERE entity_id = 10023").format(attributestore.history_table.render())
+            "WHERE entity_id = 10023").format(
+            attributestore.history_table.render())
 
         cursor.execute(modified_query)
         modified_a, = cursor.fetchone()

@@ -21,10 +21,10 @@ from minerva.directory.helpers_v4 import name_to_datasource, name_to_entitytype
 
 from minerva_db import clear_database
 
-from minerva_storage_attribute.datapackage import DataPackage
-from minerva_storage_attribute.attributestore import AttributeStore
-from minerva_storage_attribute.attribute import Attribute
-from minerva_storage_attribute.retrieve import retrieve
+from minerva.storage.attribute.datapackage import DataPackage
+from minerva.storage.attribute.attributestore import AttributeStore
+from minerva.storage.attribute.attribute import Attribute
+from minerva.storage.attribute.retrieve import retrieve
 
 
 @with_conn(clear_database)

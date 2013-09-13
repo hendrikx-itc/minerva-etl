@@ -19,25 +19,24 @@ from itertools import chain
 import pytz
 import psycopg2
 
-from minerva.util import k, head, first, compose, no_op
+from minerva.util import k, first, compose, no_op
 from minerva.db.error import NoCopyInProgress, NoSuchTable, NoSuchColumnError, \
-        UniqueViolation, DataTypeMismatch, DuplicateTable
+    UniqueViolation, DataTypeMismatch, DuplicateTable
 from minerva.db.query import Table, Column, Eq, column_exists, ands
 from minerva.directory.helpers_v4 import get_datasource_by_id, \
-        get_entitytype_by_id, get_entity, dns_to_entity_ids
+    get_entitytype_by_id, get_entity, dns_to_entity_ids
 from minerva.storage.generic import datatype, format_value
 from minerva.db.error import translate_postgresql_exception, \
-        translate_postgresql_exceptions
+    translate_postgresql_exceptions
 from minerva.db.dbtransaction import DbTransaction, DbAction, \
-        insert_before, replace, drop_action
-
-from minerva_storage_trend.tables import DATA_TABLE_POSTFIXES
-from minerva_storage_trend import schema
-from minerva_storage_trend.datapackage import DataPackage
-from minerva_storage_trend.granularity import create_granularity, ensure_granularity
-from minerva_storage_trend.tables import create_column
-from minerva_storage_trend.partition import Partition
-from minerva_storage_trend.partitioning import Partitioning
+    insert_before, replace, drop_action
+from minerva.storage.trend.tables import DATA_TABLE_POSTFIXES
+from minerva.storage.trend import schema
+from minerva.storage.trend.datapackage import DataPackage
+from minerva.storage.trend.granularity import create_granularity, ensure_granularity
+from minerva.storage.trend.tables import create_column
+from minerva.storage.trend.partition import Partition
+from minerva.storage.trend.partitioning import Partitioning
 
 LARGE_BATCH_THRESHOLD = 10
 

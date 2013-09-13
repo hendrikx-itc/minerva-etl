@@ -9,20 +9,18 @@ the Free Software Foundation; either version 3, or (at your option) any later
 version.  The full license is in the file COPYING, distributed as part of
 this software.
 """
-from contextlib import closing
-
-from minerva_storage_notification.types import NotificationStore, Record, \
-		RawRecord, Attribute
+from minerva.storage.notification.types import NotificationStore, \
+    RawRecord, Record, Attribute
 
 
 class NotificationPlugin(object):
-	Record = staticmethod(Record)
-	RawRecord = staticmethod(RawRecord)
-	Attribute = staticmethod(Attribute)
-	NotificationStore = staticmethod(NotificationStore)
+    Record = staticmethod(Record)
+    RawRecord = staticmethod(RawRecord)
+    Attribute = staticmethod(Attribute)
+    NotificationStore = staticmethod(NotificationStore)
 
-	def get_notificationstore(self, datasource, entitytype):
-		def f(cursor):
-			return NotificationStore.load(cursor, datasource, entitytype)
+    def get_notificationstore(self, datasource, entitytype):
+        def f(cursor):
+            return NotificationStore.load(cursor, datasource, entitytype)
 
-		return f
+        return f

@@ -16,8 +16,8 @@ from functools import partial
 from nose.tools import eq_
 from minerva.directory.helpers_v4 import name_to_entitytype
 from minerva.directory.query import compile_sql
-from minerva_storage_trend.aggregate import get_aggregate_shard
-from minerva_storage_trend.granularity import create_granularity
+from minerva.storage.trend.aggregate import get_aggregate_shard
+from minerva.storage.trend.granularity import create_granularity
 
 from minerva_db import with_data
 from data import TestData

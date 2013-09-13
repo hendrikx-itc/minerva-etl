@@ -12,12 +12,11 @@ this software.
 from minerva.util import head
 from minerva.db.query import Column, Eq
 from minerva.directory.helpers_v4 import get_datasource_by_id, \
-        get_entitytype_by_id, get_datasource, get_entitytype
-
-from minerva_storage_trend import schema
-from minerva_storage_trend.granularity import create_granularity
-from minerva_storage_trend.trendstore import TrendStore
-from minerva_storage_trend.partition import Partition
+    get_entitytype_by_id, get_datasource, get_entitytype
+from minerva.storage.trend import schema
+from minerva.storage.trend.granularity import create_granularity
+from minerva.storage.trend.trendstore import TrendStore
+from minerva.storage.trend.partition import Partition
 
 
 def partition_getter(datasource_name, entitytype_name, granularity, timestamp):

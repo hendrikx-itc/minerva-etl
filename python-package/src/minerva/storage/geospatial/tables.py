@@ -19,7 +19,7 @@ from minerva.directory.relation import get_relation_name
 from minerva.util import head
 from minerva.storage.generic import RecoverableError, NonRecoverableError
 
-from minerva_storage_geospatial.types import transform_srid
+from minerva.storage.geospatial.types import transform_srid
 
 
 SCHEMA = "gis"

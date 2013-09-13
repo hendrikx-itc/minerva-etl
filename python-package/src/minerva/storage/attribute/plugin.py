@@ -16,13 +16,13 @@ import pytz
 
 from minerva.directory.helpers import get_entity, get_entitytype_by_id
 
-from minerva_storage_attribute.datapackage import DataPackage
-from minerva_storage_attribute.attribute import Attribute
-from minerva_storage_attribute.attributestore import AttributeStore
-from minerva_storage_attribute.storage import refine_data_rows
-from minerva_storage_attribute.retrieve import retrieve, retrieve_current, \
+from minerva.storage.attribute.datapackage import DataPackage
+from minerva.storage.attribute.attribute import Attribute
+from minerva.storage.attribute.attributestore import AttributeStore
+from minerva.storage.attribute.storage import refine_data_rows
+from minerva.storage.attribute.retrieve import retrieve, retrieve_current, \
     retrieve_attributes_for_entity
-from minerva_storage_attribute.helpers import get_attribute_by_id
+from minerva.storage.attribute.helpers import get_attribute_by_id
 
 
 class DeltaPlugin(object):

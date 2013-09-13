@@ -28,11 +28,11 @@ from minerva.util import first
 from minerva.db.query import Table
 from minerva.directory.helpers import get_datasource, get_entitytype
 
-from minerva_storage_trend.types_v4 import View
-from minerva_storage_trend.helpers import get_trendstore_by_id
+from minerva.storage.trend.types_v4 import View
+from minerva.storage.trend.helpers import get_trendstore_by_id
 
 
-package_name = "minerva_storage_trend"
+package_name = "minerva.storage.trend"
 script_name = os.path.basename(__file__)
 config_file = "{}.conf".format(script_name)
 

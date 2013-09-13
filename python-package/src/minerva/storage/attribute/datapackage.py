@@ -14,8 +14,7 @@ from operator import itemgetter
 
 from minerva.util import compose, expand_args
 from minerva.storage import datatype
-
-from minerva_storage_attribute.attribute import Attribute
+from minerva.storage.attribute.attribute import Attribute
 
 
 class DataPackage(object):
