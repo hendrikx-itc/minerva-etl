@@ -4,7 +4,6 @@ Creates csv output based on modules found in module_directory
 """
 import sys
 import os
-import re
 import argparse
 import traceback
 import logging
@@ -17,13 +16,10 @@ import pytz
 import psycopg2.errorcodes
 import psycopg2.extras
 
-from configobj import ConfigObj
-
 from minerva.db import parse_db_url
-from minerva.directory import create_entity
-from minerva.util import parse_size
 
-from minerva.util.config import load_config, get_defaults, ConfigError
+from minerva.util.config import parse_size, load_config, get_defaults, \
+    ConfigError
 
 package_name = "minerva"
 script_name = os.path.basename(__file__)
@@ -40,29 +36,39 @@ LEVEL_MAP = {
 def setup_args_parser():
     parser = argparse.ArgumentParser(description="Create virtual entities")
 
-    parser.add_argument("-m", "--module",
+    parser.add_argument(
+        "-m", "--module",
         help="name of the module containing output generation magic")
 
-    parser.add_argument("-c", "--configfile", dest="configfile",
-        default="/etc/minerva/create-csv.conf", help="the path to the config file")
+    parser.add_argument(
+        "-c", "--configfile", dest="configfile",
+        default="/etc/minerva/create-csv.conf",
+        help="the path to the config file")
 
-    parser.add_argument("-t", "--timestamp",  help="Timestamp specifying data to "
-            "process (%%Y%%m%%d_%%H%%M%%S). When ommitted now() is used." )
+    parser.add_argument(
+        "-t", "--timestamp", help="Timestamp specifying data to "
+        "process (%%Y%%m%%d_%%H%%M%%S). When ommitted now() is used.")
 
-    parser.add_argument("-v", "--verbose", action="store_true", default=False,
+    parser.add_argument(
+        "-v", "--verbose", action="store_true", default=False,
         help="verbose output")
 
-    parser.add_argument("--debug", action="store_true", default=False,
-            help="log and show debug output")
+    parser.add_argument(
+        "--debug", action="store_true", default=False,
+        help="log and show debug output")
 
-    parser.add_argument("-p", "--pretend", action="store_true", default=False,
+    parser.add_argument(
+        "-p", "--pretend", action="store_true", default=False,
         help="determine relations, but don't store anything in database")
 
-    parser.add_argument("-f", "--to-file", action="store_true", default=False,
+    parser.add_argument(
+        "-f", "--to-file", action="store_true", default=False,
         help="store output to file")
 
-    parser.add_argument("--generate-configfile", 	dest="generate_configfile",
-        action=GenerateConfigFileAction, nargs=0, help="generate base config file")
+    parser.add_argument(
+        "--generate-configfile", dest="generate_configfile",
+        action=GenerateConfigFileAction, nargs=0,
+        help="generate base config file")
 
     return parser.parse_args()
 
