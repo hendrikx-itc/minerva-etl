@@ -92,8 +92,13 @@ function main()
 
 	log "relation schema"
 	exec_module_scripts "/usr/share/minerva/relation"
+	log "dimension schema"
+	exec_module_scripts "/usr/share/minerva/dimension"
 	log "storage plugins"
-	exec_nested_module_scripts "/usr/share/minerva/storage-plugins"
+	exec_module_scripts "/usr/share/minerva/storage/attribute"
+	exec_module_scripts "/usr/share/minerva/storage/trend"
+	exec_module_scripts "/usr/share/minerva/storage/notification"
+	exec_module_scripts "/usr/share/minerva/storage/geospatial"
 	log "extensions"
 	exec_nested_module_scripts "/usr/share/minerva/extensions"
 
@@ -168,9 +173,9 @@ function exec_module_scripts()
 	if [ -f $module_path/prerequisite ]
 	then
 		if [ $VERBOSE ]; then
-			$module_path/prerequisite -v $INSTANCE
+			bash $module_path/prerequisite -v $INSTANCE
 		else
-			$module_path/prerequisite $INSTANCE
+			bash $module_path/prerequisite $INSTANCE
 		fi
 	fi
 

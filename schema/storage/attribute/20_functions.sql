@@ -40,16 +40,39 @@ BEGIN
 
 	PERFORM attribute.create_staging_table($1);
 
+	PERFORM attribute.create_hash_triggers($1);
+
 	PERFORM attribute.create_changes_view($1);
 
-	PERFORM attribute.create_hash_function($1);
-
-	PERFORM attribute.create_hash_triggers($1);
+	PERFORM attribute.create_dependees($1);
 
 	RETURN $1;
 END;
 $$ LANGUAGE plpgsql VOLATILE;
 
+
+CREATE OR REPLACE FUNCTION create_dependees(attribute.attributestore)
+	RETURNS attribute.attributestore
+AS $$
+	SELECT
+		attribute.create_staging_modified_view(
+			attribute.create_staging_new_view(
+				attribute.create_hash_function($1)
+			)
+		);
+$$ LANGUAGE SQL VOLATILE;
+
+
+CREATE OR REPLACE FUNCTION drop_dependees(attribute.attributestore)
+	RETURNS attribute.attributestore
+AS $$
+	SELECT
+		attribute.drop_hash_function(
+			attribute.drop_staging_new_view(
+				attribute.drop_staging_modified_view($1)
+			)
+		);
+$$ LANGUAGE SQL VOLATILE;
 
 
 CREATE OR REPLACE FUNCTION create_changes_view(attribute.attributestore)
@@ -69,6 +92,17 @@ BEGIN
 
 	EXECUTE format('ALTER TABLE attribute.%I
 		OWNER TO minerva_admin', view_name);
+
+	RETURN $1;
+END;
+$$ LANGUAGE plpgsql VOLATILE;
+
+
+CREATE OR REPLACE FUNCTION drop_changes_view(attribute.attributestore)
+	RETURNS attribute.attributestore
+AS $$
+BEGIN
+	EXECUTE format('DROP VIEW attribute.%I', attribute.to_table_name($1) || '_history_changes');
 
 	RETURN $1;
 END;
@@ -169,10 +203,6 @@ BEGIN
 	EXECUTE format('ALTER TABLE attribute.%I
 		OWNER TO minerva_admin', table_name);
 
-	PERFORM attribute.create_staging_new_view($1);
-
-	PERFORM attribute.create_staging_modified_view($1);
-
 	RETURN $1;
 END;
 $$ LANGUAGE plpgsql VOLATILE;
@@ -184,19 +214,32 @@ AS $$
 DECLARE
 	table_name name;
 	staging_table_name name;
+	history_table_name name;
 	view_name name;
 BEGIN
 	table_name = attribute.to_table_name($1);
 	staging_table_name = table_name || '_staging';
+	history_table_name = table_name || '_history';
 	view_name = staging_table_name || '_new';
 
 	EXECUTE format('CREATE VIEW attribute.%I
 AS SELECT s.* FROM attribute.%I s
 LEFT JOIN attribute.%I a ON a.entity_id = s.entity_id AND a.timestamp = s.timestamp
-WHERE a.entity_id IS NULL', view_name, staging_table_name, table_name);
+WHERE a.entity_id IS NULL', view_name, staging_table_name, history_table_name);
 
 	EXECUTE format('ALTER TABLE attribute.%I
 		OWNER TO minerva_admin', view_name);
+
+	RETURN $1;
+END;
+$$ LANGUAGE plpgsql VOLATILE;
+
+
+CREATE OR REPLACE FUNCTION drop_staging_new_view(attribute.attributestore)
+	RETURNS attribute.attributestore
+AS $$
+BEGIN
+	EXECUTE format('DROP VIEW attribute.%I', attribute.to_table_name($1) || '_staging_new');
 
 	RETURN $1;
 END;
@@ -221,6 +264,17 @@ JOIN attribute.%I a ON a.entity_id = s.entity_id AND a.timestamp = s.timestamp',
 
 	EXECUTE format('ALTER TABLE attribute.%I
 		OWNER TO minerva_admin', view_name);
+
+	RETURN $1;
+END;
+$$ LANGUAGE plpgsql VOLATILE;
+
+
+CREATE OR REPLACE FUNCTION drop_staging_modified_view(attribute.attributestore)
+	RETURNS attribute.attributestore
+AS $$
+BEGIN
+	EXECUTE format('DROP VIEW attribute.%I', attribute.to_table_name($1) || '_staging_modified');
 
 	RETURN $1;
 END;
@@ -306,10 +360,17 @@ CREATE OR REPLACE FUNCTION init(attribute.attribute)
 AS $$
 DECLARE
 	table_name name;
+	tmp_attributestore attribute.attributestore;
 BEGIN
+	SELECT * INTO tmp_attributestore FROM attribute.attributestore WHERE id = $1.attributestore_id;
+
+	PERFORM attribute.drop_dependees(tmp_attributestore);
+
 	SELECT attribute.to_char(attributestore) INTO table_name FROM attribute.attributestore WHERE id = $1.attributestore_id;
 
 	EXECUTE format('ALTER TABLE attribute.%I ADD COLUMN %I %s', table_name, $1.name, $1.datatype);
+
+	PERFORM attribute.create_dependees(tmp_attributestore);
 
 	RETURN $1;
 END;
@@ -418,9 +479,9 @@ CREATE OR REPLACE FUNCTION modify_datatype(attribute.attribute)
 AS $$
 BEGIN
 	PERFORM
-		attribute.create_hash_function(
+		attribute.create_dependees(
 			attribute.modify_column_type(
-				attribute.drop_hash_function(attributestore),
+				attribute.drop_dependees(attributestore),
 				$1.name,
 				$1.datatype
 			)
