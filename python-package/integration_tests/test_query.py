@@ -1,11 +1,21 @@
+# -*- coding: utf-8 -*-
+__docformat__ = "restructuredtext en"
+
+__copyright__ = """
+Copyright (C) 2008-2013 Hendrikx-ITC B.V.
+
+Distributed under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 3, or (at your option) any later
+version.  The full license is in the file COPYING, distributed as part of
+this software.
+"""
 from StringIO import StringIO
 from contextlib import closing
 
-from nose.tools import eq_, assert_raises
+from nose.tools import eq_
 
-from minerva.db.query import Table, table_exists, Column, Copy, Select, Eq
-
-from minerva_db import with_connection
+from minerva.test import with_conn
+from minerva.db.query import Table, table_exists, Column, Copy, Eq
 
 
 def with_cursor(conn, f):
@@ -13,7 +23,7 @@ def with_cursor(conn, f):
         return f(cursor)
 
 
-@with_connection
+@with_conn()
 def test_table_create(conn):
     table = Table("test_table")
 
@@ -25,7 +35,7 @@ def test_table_create(conn):
         eq_(table_exists(cursor, table), True)
 
 
-@with_connection
+@with_conn()
 def test_table_drop(conn):
     table = Table("test_table")
 
@@ -42,7 +52,7 @@ def test_table_drop(conn):
         eq_(table_exists(cursor, table), False)
 
 
-@with_connection
+@with_conn()
 def test_copy_from(conn):
     data = (
         "1\tfirst\n"

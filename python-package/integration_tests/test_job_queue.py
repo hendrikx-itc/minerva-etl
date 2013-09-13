@@ -1,21 +1,36 @@
+# -*- coding: utf-8 -*-
+__docformat__ = "restructuredtext en"
+
+__copyright__ = """
+Copyright (C) 2008-2013 Hendrikx-ITC B.V.
+
+Distributed under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 3, or (at your option) any later
+version.  The full license is in the file COPYING, distributed as part of
+this software.
+"""
 from contextlib import closing
 import json
 from threading import Thread
 import time
 
-from nose.tools import eq_, assert_raises
+from nose.tools import eq_
 import psycopg2
 
-from minerva_db import with_connection, connect
-from minerva.system.jobqueue import enqueue_job, get_job, NoJobAvailable
+from minerva.test import with_conn, connect
+from minerva.system.jobqueue import enqueue_job, get_job
 from minerva.system.helpers import add_job_source, get_job_source
 from minerva.directory.helpers_v4 import name_to_datasource
 
 
-@with_connection
-def test_enqueue_job(conn):
-    clear(conn)
+def clear(conn):
+    with closing(conn.cursor()) as cursor:
+        cursor.execute("DELETE FROM system.job_source")
+        cursor.execute("TRUNCATE system.job CASCADE")
 
+
+@with_conn(clear)
+def test_enqueue_job(conn):
     job_source_name = "dummy-job-src"
     path = "/data/kpi_1.csv"
     job_type = "dummy"
@@ -24,12 +39,7 @@ def test_enqueue_job(conn):
     description_json = json.dumps(description)
 
     with closing(conn.cursor()) as cursor:
-        datasource = name_to_datasource(cursor, "dummy-src")
-
-        job_source_id = get_job_source(cursor, job_source_name)
-
-        if not job_source_id:
-            job_source_id = add_job_source(conn, job_source_name, "dummy", '{}')
+        job_source_id = add_job_source(cursor, job_source_name, "dummy", '{}')
 
     enqueue_job(conn, job_type, description_json, filesize, job_source_id)
 
@@ -46,10 +56,8 @@ def test_enqueue_job(conn):
     eq_(json.loads(job_description)["uri"], path)
 
 
-@with_connection
+@with_conn(clear)
 def test_get_job(conn):
-    clear(conn)
-
     job_source_name = "dummy-job-src"
     path = "/data/kpi_2.csv"
     job_type = 'dummy'
@@ -58,12 +66,7 @@ def test_get_job(conn):
     description_json = json.dumps(description)
 
     with closing(conn.cursor()) as cursor:
-        datasource = name_to_datasource(cursor, "dummy-src")
-
-        job_source_id = get_job_source(cursor, job_source_name)
-
-        if not job_source_name:
-            job_source_id = add_job_source(conn, job_source_name, "dummy", '{}')
+        job_source_id = add_job_source(cursor, job_source_name, "dummy", '{}')
 
     enqueue_job(conn, job_type, description_json, filesize, job_source_id)
 
@@ -74,7 +77,7 @@ def test_get_job(conn):
 
     conn.commit()
 
-    job_id, job_type, description, size, parser_config = job
+    _, job_type, description, _, _ = job
 
     eq_(path, json.loads(description)["uri"])
 
@@ -95,16 +98,16 @@ def test_concurrent_locks():
     thread2.join()
 
 
-def get_job_task():
+@with_conn()
+def get_job_task(conn):
     none_tuple = (None, None, None, None, None)
 
-    with closing(connect()) as conn:
-        with closing(conn.cursor()) as cursor:
-            cursor.callproc("system.get_job")
+    with closing(conn.cursor()) as cursor:
+        cursor.callproc("system.get_job")
 
-            row = cursor.fetchone()
+        row = cursor.fetchone()
 
-            eq_(row, none_tuple)
+        eq_(row, none_tuple)
 
 
 def lock_job_queue(duration):
@@ -123,7 +126,7 @@ def lock_job_queue(duration):
                 conn.rollback()
             else:
                 conn.commit()
-    
+
     return f
 
 
@@ -134,10 +137,8 @@ def query(sql):
     return f
 
 
-@with_connection
+@with_conn(clear)
 def test_waiting_locks(conn):
-    clear(conn)
-
     job_source_name = "dummy-job-src"
     path = "/data/kpi_2.csv"
     job_type = 'dummy'
@@ -169,9 +170,4 @@ def test_waiting_locks(conn):
     job_id, job_type, description, size, parser_config = job
 
     eq_(path, json.loads(description)["uri"])
-
-
-def clear(conn):
-    with closing(conn.cursor()) as cursor:
-        cursor.execute("TRUNCATE system.job CASCADE")
 

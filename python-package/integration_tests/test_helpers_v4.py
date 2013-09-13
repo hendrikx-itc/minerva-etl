@@ -13,14 +13,15 @@ from threading import Thread
 from contextlib import closing
 from functools import partial
 
-from nose.tools import eq_, raises, assert_not_equal
-from minerva.db.error import translate_postgresql_exceptions, UniqueViolation
+from nose.tools import raises
+from minerva.test import with_conn
+from minerva.db.error import UniqueViolation
 from minerva.directory import helpers_v4
 
-from minerva_db import connect, with_connection, clear_database
+from minerva_db import clear_database
 
 
-@with_connection
+@with_conn(clear_database)
 def test_dns_to_entity_ids(conn):
     dns = [
         "Network=TL,Node=001",
@@ -28,13 +29,12 @@ def test_dns_to_entity_ids(conn):
         "Network=TL,Node=003"]
 
     with closing(conn.cursor()) as cursor:
-        clear_database(cursor)
         entity_ids = helpers_v4.dns_to_entity_ids(cursor, dns)
 
     assert len(entity_ids) == 3
 
 
-@with_connection
+@with_conn()
 def run_dns_to_entity_ids(conn, amount=100):
     dns = ["Network=TL,Node={}".format(i) for i in range(amount)]
 
@@ -51,11 +51,6 @@ def test_dns_to_entity_ids_concurrent():
     Concurrent execution of dns_to_entity_ids for the same previously non-existing
     Distinguished Names should result in a UniqueViolation exception.
     """
-    with closing(connect()) as conn:
-        with closing(conn.cursor()) as cursor:
-            clear_database(cursor)
-        conn.commit()
-
     tasks = [
         partial(run_dns_to_entity_ids, 10),
         partial(raises(UniqueViolation)(run_dns_to_entity_ids), 10)]
@@ -69,7 +64,7 @@ def test_dns_to_entity_ids_concurrent():
         t.join()
 
 
-@with_connection
+@with_conn(clear_database)
 def test_dn_to_entity(conn):
     dn = "Network=TL,Node=001"
 
@@ -82,7 +77,7 @@ def test_dn_to_entity(conn):
     assert entity.name == "001"
 
 
-@with_connection
+@with_conn()
 def test_create_entity(conn):
     dn = "Network=TL,Node=001"
 
@@ -93,7 +88,7 @@ def test_create_entity(conn):
     assert entity.name == "001"
 
 
-@with_connection
+@with_conn()
 def test_create_datasource(conn):
     with closing(conn.cursor()) as cursor:
         datasource = helpers_v4.create_datasource(cursor, "test-create-datasource", "short description", "Europe/Amsterdam")
@@ -101,7 +96,7 @@ def test_create_datasource(conn):
     assert not datasource.id is None
 
 
-@with_connection
+@with_conn()
 def test_name_to_datasource(conn):
     with closing(conn.cursor()) as cursor:
         datasource = helpers_v4.name_to_datasource(cursor, "test_name_to_datasource")
@@ -109,7 +104,7 @@ def test_name_to_datasource(conn):
     assert not datasource.id is None
 
 
-@with_connection
+@with_conn()
 def test_create_entitytype(conn):
     with closing(conn.cursor()) as cursor:
         entitytype = helpers_v4.create_entitytype(cursor, "test_create_entitytype", "short description of type")
@@ -118,7 +113,7 @@ def test_create_entitytype(conn):
     assert entitytype.name == "test_create_entitytype"
 
 
-@with_connection
+@with_conn()
 def test_get_entitytype_by_id(conn):
     with closing(conn.cursor()) as cursor:
         new_entitytype = helpers_v4.create_entitytype(cursor, "test_get_entitytype_by_id", "short description of type")
@@ -129,7 +124,7 @@ def test_get_entitytype_by_id(conn):
     assert entitytype.name == "test_get_entitytype_by_id"
 
 
-@with_connection
+@with_conn()
 def test_get_entitytype(conn):
     with closing(conn.cursor()) as cursor:
         new_entitytype = helpers_v4.create_entitytype(cursor, "test_get_entitytype", "short description of type")
@@ -140,7 +135,7 @@ def test_get_entitytype(conn):
     assert entitytype.name == "test_get_entitytype"
 
 
-@with_connection
+@with_conn()
 def test_name_to_entitytype(conn):
     with closing(conn.cursor()) as cursor:
         entitytype = helpers_v4.name_to_entitytype(cursor, "test_name_to_entitytype")

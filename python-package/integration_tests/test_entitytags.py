@@ -1,63 +1,57 @@
-import os
-import time
-import logging
 from contextlib import closing
-from datetime import datetime, timedelta
 
-from pytz import timezone
-from nose.tools import eq_, raises, assert_not_equal
+from nose.tools import eq_
 
-from minerva.storage.generic import extract_data_types
+from minerva.test import with_conn
 
-from minerva_db import connect, clear_database, get_tables, with_connection
+from minerva_db import clear_database
 
 
-@with_connection
+@with_conn(clear_database)
 def test_create_alias(conn):
-    cursor = conn.cursor()
-    clear_database(cursor)
+    with closing(conn.cursor()) as cursor:
+        schema = 'directory'
 
-    schema = 'directory'
+        query = (
+            "INSERT INTO {0}.{1} (id, name, description) VALUES "
+            "(1, 'test_type', 'test entity type')"
+        ).format(schema, "entitytype")
 
-    query = (
-        "INSERT INTO {0}.{1} (id, name, description) VALUES "
-        "(1, 'test_type', 'test entity type')").format(schema, "entitytype")
+        cursor.execute(query)
 
-    cursor.execute(query)
+        query = (
+            "INSERT INTO {0}.{1} "
+            "(id, first_appearance, \"name\", entitytype_id, dn, parent_id) "
+            "VALUES"
+            "(DEFAULT, now(), 'test_entity', 1, 'type=12345', DEFAULT)"
+        ).format(schema, "entity")
 
-    cursor.execute("""INSERT INTO {0}.{1} (id, first_appearance,
-    "name", entitytype_id, dn, parent_id) VALUES
-    (DEFAULT, now(), 'test_entity', 1, 'type=12345', DEFAULT )
-    """.format(schema, "entity"))
+        cursor.execute(query)
 
-    conn.commit()
-    eq_(row_count(conn, "directory", "alias"), 1)
+        conn.commit()
+        eq_(row_count(conn, "directory", "alias"), 1)
 
 
-@with_connection
+@with_conn(clear_database)
 def test_create_tag(conn):
-    cursor = conn.cursor()
-    clear_database(cursor)
+    with closing(conn.cursor()) as cursor:
+        schema = 'directory'
 
-    schema = 'directory'
+        cursor.execute("""INSERT INTO {0}.{1} (id, name, description) VALUES
+        (1, 'test_type', 'test entity type')""".format(schema, "entitytype"))
 
-    cursor.execute("""INSERT INTO {0}.{1} (id, name, description) VALUES
-    (1, 'test_type', 'test entity type')""".format(schema, "entitytype"))
+        cursor.execute("""INSERT INTO {0}.{1} (id, first_appearance,
+        "name", entitytype_id, dn, parent_id) VALUES
+        (DEFAULT, now(), 'test_entity', 1, 'type=12345', DEFAULT )
+        """.format(schema, "entity"))
 
-    cursor.execute("""INSERT INTO {0}.{1} (id, first_appearance,
-    "name", entitytype_id, dn, parent_id) VALUES
-    (DEFAULT, now(), 'test_entity', 1, 'type=12345', DEFAULT )
-    """.format(schema, "entity"))
-
-    conn.commit()
-    eq_(row_count(conn, "directory", "tag"), 1)
+        conn.commit()
+        eq_(row_count(conn, "directory", "tag"), 1)
 
 
-@with_connection
+@with_conn(clear_database)
 def test_create_entitytaglink(conn):
     with closing(conn.cursor()) as cursor:
-        clear_database(cursor)
-
         schema = 'directory'
 
         cursor.execute("""INSERT INTO {0}.{1} (id, name, description) VALUES
