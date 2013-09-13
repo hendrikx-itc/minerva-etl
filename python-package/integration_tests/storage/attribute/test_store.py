@@ -87,7 +87,7 @@ def test_update_modified_column(conn):
     query = Query((
         "SELECT modified, hash "
         "FROM {0} "
-        "WHERE entity_id = 10023").format(attributestore.table.render()))
+        "WHERE entity_id = 10023").format(attributestore.history_table.render()))
 
     attributestore.store(datapackage_a).run(conn)
 
@@ -139,7 +139,7 @@ def test_update(conn):
 
         query = (
             'SELECT modified, "CCR" '
-            'FROM {0}').format(attributestore.table.render())
+            'FROM {0}').format(attributestore.history_table.render())
 
         cursor.execute(query)
         test_list = [(modified, ccr) for modified, ccr in cursor.fetchall()]
@@ -181,7 +181,7 @@ def test_extra_column(conn):
 
         conn.commit()
         column_names = get_column_names(conn, schema.name,
-                                        attributestore.table.name)
+                                        attributestore.history_table.name)
         eq_(len(column_names), 7)
 
 

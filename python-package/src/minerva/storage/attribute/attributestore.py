@@ -217,15 +217,11 @@ class AttributeStore(object):
                                                  attribute_names)
         copy_from_file = create_copy_from_file(datapackage)
 
-        try:
-            cursor.copy_expert(copy_from_query, copy_from_file)
+        cursor.copy_expert(copy_from_query, copy_from_file)
 
-            cursor.execute(
-                "SELECT attribute.store_batch(attributestore) "
-                "from attribute.attributestore WHERE id = %s", (self.id,))
-        except Exception as exc:
-            print(exc)
-            raise
+        cursor.execute(
+            "SELECT attribute.store_batch(attributestore) "
+            "from attribute.attributestore WHERE id = %s", (self.id,))
 
     def check_attributes_exist(self, cursor):
         query = (
@@ -280,9 +276,8 @@ class Insert(DbAction):
         try:
             self.attributestore.store_batch(cursor, self.datapackage)
         except psycopg2.DataError as exc:
-            print(exc.pgcode)
-            print(exc.pgerror)
-            if exc.pgcode == psycopg2.errorcodes.BAD_COPY_FILE_FORMAT and re.match('.*', exc.pgerror):
+            if exc.pgcode == psycopg2.errorcodes.BAD_COPY_FILE_FORMAT \
+               and re.match('.*', exc.pgerror):
                 attributes = self.datapackage.deduce_attributes()
 
                 self.attributestore._update_attributes(attributes)
@@ -292,7 +287,6 @@ class Insert(DbAction):
             else:
                 raise
         except DataTypeMismatch:
-            print("DataTypeMismatch")
             attributes = self.datapackage.deduce_attributes()
 
             self.attributestore._update_attributes(attributes)
@@ -300,7 +294,6 @@ class Insert(DbAction):
             fix = CheckAttributeTypes(self.attributestore)
             return insert_before(fix)
         except NoSuchColumnError as exc:
-            print("NoSuchColumnError")
             attributes = self.datapackage.deduce_attributes()
 
             self.attributestore._update_attributes(attributes)
