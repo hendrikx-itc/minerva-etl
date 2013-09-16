@@ -13,10 +13,9 @@ version.  The full license is in the file COPYING, distributed as part of
 this software.
 """
 
-from minerva.storage import trend, attribute, geospatial, notification
-
 
 def load_plugins():
+    from minerva.storage import trend, attribute, geospatial, notification
     """
     Load and return a dictionary with plugins by their names.
     """
