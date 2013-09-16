@@ -30,6 +30,55 @@ CREATE TYPE attribute_info AS (
 );
 
 
+CREATE OR REPLACE FUNCTION datatype_order(datatype character varying)
+	RETURNS integer
+AS $$
+BEGIN
+	CASE datatype
+		WHEN 'smallint' THEN
+			RETURN 1;
+		WHEN 'integer' THEN
+			RETURN 2;
+		WHEN 'bigint' THEN
+			RETURN 3;
+		WHEN 'real' THEN
+			RETURN 4;
+		WHEN 'double precision' THEN
+			RETURN 5;
+		WHEN 'numeric' THEN
+			RETURN 6;
+		WHEN 'timestamp without time zone' THEN
+			RETURN 7;
+		WHEN 'smallint[]' THEN
+			RETURN 8;
+		WHEN 'integer[]' THEN
+			RETURN 9;
+		WHEN 'text[]' THEN
+			RETURN 10;
+		WHEN 'text' THEN
+			RETURN 11;
+		WHEN NULL THEN
+			RETURN NULL;
+		ELSE
+			RAISE EXCEPTION 'Unsupported data type: %', datatype;
+	END CASE;
+END;
+$$ LANGUAGE plpgsql IMMUTABLE STRICT;
+
+
+CREATE OR REPLACE FUNCTION greatest_datatype(datatype_a character varying, datatype_b character varying)
+	RETURNS character varying
+AS $$
+BEGIN
+	IF trend.datatype_order(datatype_b) > trend.datatype_order(datatype_a) THEN
+		RETURN datatype_b;
+	ELSE
+		RETURN datatype_a;
+	END IF;
+END;
+$$ LANGUAGE plpgsql IMMUTABLE;
+
+
 CREATE OR REPLACE FUNCTION init(attribute.attributestore)
 	RETURNS attribute.attributestore
 AS $$
@@ -304,10 +353,11 @@ $$ LANGUAGE plpgsql VOLATILE;
 CREATE OR REPLACE FUNCTION render_hash_query(attribute.attributestore)
 	RETURNS text
 AS $$
-	SELECT
+	SELECT COALESCE(
 		'SELECT md5(' ||
 		array_to_string(array_agg(format('($1.%I)::text', name)), ' || ') ||
-		')'
+		')',
+		'SELECT ''''::text')
 	FROM attribute.attribute
 	WHERE attributestore_id = $1.id;
 $$ LANGUAGE SQL STABLE;
@@ -450,7 +500,8 @@ AS $$
 	FROM unnest($1) n
 	WHERE attribute.name = n.name
 	AND attribute.attributestore_id = n.attributestore_id
-	AND attribute.datatype <> n.datatype RETURNING attribute.*;
+	AND attribute.datatype <> attribute.greatest_datatype(n.datatype, attribute.datatype)
+   	RETURNING attribute.*;
 $$ LANGUAGE SQL VOLATILE;
 
 
