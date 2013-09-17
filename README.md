@@ -87,7 +87,8 @@ Using the API, the data is stored in chunks ('data packages') per timestamp.
 from datetime import datetime
 
 import minerva.db
-from minerva.directory.helpers_v4 import dn_to_entity, name_to_datasource, name_to_entitytype
+from minerva.directory.helpers_v4 import dn_to_entity, name_to_datasource, \
+    name_to_entitytype
 from minerva.storage.trend.trendstore import TrendStore
 from minerva.storage.trend.granularity import create_granularity
 from minerva.storage.trend.datapackage import DataPackage
@@ -95,61 +96,73 @@ from minerva.storage.trend.datapackage import DataPackage
 db = minerva.db.connect('postgresql://user:pass@host/minerva')
 
 with db.cursor() as cursor:
-	# dn_to_entity retrieves the entity, creating it if needed.
-	entity_ws2 = dn_to_entity(cursor, 'WebServer=2')
-	entity_ws3 = dn_to_entity(cursor, 'WebServer=3')
+    # dn_to_entity retrieves the entity, creating it if needed.
+    entity_ws2 = dn_to_entity(cursor, 'WebServer=2')
+    entity_ws3 = dn_to_entity(cursor, 'WebServer=3')
 
-	# name_to_entitytype retrieves the entity type, creating it if needed.
-	# In this case, it will already have been created by dn_to_entity.
-	entity_type = name_to_entitytype(cursor, 'WebServer')
+    # name_to_entitytype retrieves the entity type, creating it if needed.
+    # In this case, it will already have been created by dn_to_entity.
+    entity_type = name_to_entitytype(cursor, 'WebServer')
 
-	# name_to_datasource retrieves the data source, creating it if needed.
-	data_source = name_to_datasource(cursor, 'example')
+    # name_to_datasource retrieves the data source, creating it if needed.
+    data_source = name_to_datasource(cursor, 'example')
 
-	granularity = create_granularity('60')
+    granularity = create_granularity('60')
 
-	# The TrendStore contains all the database interface logic related to trends.
-	# There is one TrendStore per data source, entity type and granularity.
-	trend_store = TrendStore.get(data_source, entity_type, granularity)
-	if not trend_store:
-		# A partition size of one day is often a reasonable default for a one-minute granularity.
-		partition_size = 86400
+    # The TrendStore contains all the database interface logic related to
+    # trends.
+    # There is one TrendStore per data source, entity type and granularity.
+    trend_store = TrendStore.get(data_source, entity_type, granularity)
+    if not trend_store:
+        # A partition size of one day is often a reasonable default for a
+        # one-minute granularity.
+        partition_size = 86400
 
-		# This is actual data; use table.
-		trend_store_type = 'table'
+        # This is actual data; use table.
+        store_type = 'table'
 
-		trend_store = TrendStore(data_source, entity_type, granularity, 86400, trend_store_type)
-		trend_store.create(cursor)
+        trend_store = TrendStore(
+            data_source, entity_type, granularity, partition_size, store_type)
+        trend_store.create(cursor)
 
-	db.commit()
+    db.commit()
 
-	# DataPackages contain the trend data for a given timestamp and granularity.
-	# They can contain data for any number of trends and entities, but the entities
-	# must be of the same entity type as the TrendStore.
+    # DataPackages contain the trend data for a given timestamp and
+    # granularity. They can contain data for any number of trends and entities,
+    # but the entities must be of the same entity type as the TrendStore.
 
-	# Timestamps must have a time zone. They can be in local time, UTC, or a
-	# different time zone.
+    # Timestamps must have a time zone. They can be in local time, UTC, or a
+    # different time zone.
 
-	# 2013-09-01 00:00 local time
-	timestamp = data_source.tzinfo.localize(datetime(2013, 9, 1, 0, 0))
-	data_package = DataPackage(granularity, timestamp, ['requests', 'errors'], [
-		(entity_ws2.id, [42, 0]),
-		(entity_ws3.id, [50, 10]),
-	])
+    # First DataPackage, for 2013-09-01 00:00 local time
+    timestamp = data_source.tzinfo.localize(datetime(2013, 9, 1, 0, 0))
+    data_package = DataPackage(
+        granularity=granularity,
+        timestamp=timestamp,
+        trend_names=['requests', 'errors'],
+        rows=[
+            (entity_ws2.id, [42, 0]),
+            (entity_ws3.id, [50, 10]),
+        ]
+    )
 
-	# Store the trend data and commit.
-	# store() doesn't touch the database; only run() does.
-	trend_store.store(data_package).run(db)
+    # Store the trend data and commit.
+    # store() doesn't touch the database; only run() does.
+    trend_store.store(data_package).run(db)
 
+    # Second DataPackage, for 2013-09-01 00:01 local time
+    timestamp = data_source.tzinfo.localize(datetime(2013, 9, 1, 0, 1))
+    data_package = DataPackage(
+        granularity=granularity,
+        timestamp=timestamp,
+        trend_names=['requests', 'errors'],
+        rows=[
+            (entity_ws2.id, [68, 2]),
+            (entity_ws3.id, [65, 5]),
+        ]
+    )
 
-	# 2013-09-01 00:01 local time
-	timestamp = data_source.tzinfo.localize(datetime(2013, 9, 1, 0, 1))
-	data_package = DataPackage(granularity, timestamp, ['requests', 'errors'], [
-		(entity_ws2.id, [68, 2]),
-		(entity_ws3.id, [65, 5]),
-	])
-
-	trend_store.store(data_package).run(db)
+    trend_store.store(data_package).run(db)
 ```
 
 
