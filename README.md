@@ -125,44 +125,44 @@ with db.cursor() as cursor:
             data_source, entity_type, granularity, partition_size, store_type)
         trend_store.create(cursor)
 
-    db.commit()
+db.commit()
 
-    # DataPackages contain the trend data for a given timestamp and
-    # granularity. They can contain data for any number of trends and entities,
-    # but the entities must be of the same entity type as the TrendStore.
+# DataPackages contain the trend data for a given timestamp and granularity.
+# They can contain data for any number of trends and entities, but the entities
+# must be of the same entity type as the TrendStore.
 
-    # Timestamps must have a time zone. They can be in local time, UTC, or a
-    # different time zone.
+# Timestamps must have a time zone. They can be in local time, UTC, or a
+# different time zone.
 
-    # First DataPackage, for 2013-09-01 00:00 local time
-    timestamp = data_source.tzinfo.localize(datetime(2013, 9, 1, 0, 0))
-    data_package = DataPackage(
-        granularity=granularity,
-        timestamp=timestamp,
-        trend_names=['requests', 'errors'],
-        rows=[
-            (entity_ws2.id, [42, 0]),
-            (entity_ws3.id, [50, 10]),
-        ]
-    )
+# First DataPackage, for 2013-09-01 00:00 local time
+timestamp = data_source.tzinfo.localize(datetime(2013, 9, 1, 0, 0))
+data_package = DataPackage(
+    granularity=granularity,
+    timestamp=timestamp,
+    trend_names=['requests', 'errors'],
+    rows=[
+        (entity_ws2.id, [42, 0]),
+        (entity_ws3.id, [50, 10]),
+    ]
+)
 
-    # Store the trend data and commit.
-    # store() doesn't touch the database; only run() does.
-    trend_store.store(data_package).run(db)
+# Store the trend data and commit.
+# store() doesn't touch the database; only run() does.
+trend_store.store(data_package).run(db)
 
-    # Second DataPackage, for 2013-09-01 00:01 local time
-    timestamp = data_source.tzinfo.localize(datetime(2013, 9, 1, 0, 1))
-    data_package = DataPackage(
-        granularity=granularity,
-        timestamp=timestamp,
-        trend_names=['requests', 'errors'],
-        rows=[
-            (entity_ws2.id, [68, 2]),
-            (entity_ws3.id, [65, 5]),
-        ]
-    )
+# Second DataPackage, for 2013-09-01 00:01 local time
+timestamp = data_source.tzinfo.localize(datetime(2013, 9, 1, 0, 1))
+data_package = DataPackage(
+    granularity=granularity,
+    timestamp=timestamp,
+    trend_names=['requests', 'errors'],
+    rows=[
+        (entity_ws2.id, [68, 2]),
+        (entity_ws3.id, [65, 5]),
+    ]
+)
 
-    trend_store.store(data_package).run(db)
+trend_store.store(data_package).run(db)
 ```
 
 
