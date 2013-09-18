@@ -4,15 +4,11 @@ set -e
 set -o pipefail
 
 VERBOSE=
-USER="postgres"
+USER=postgres
 
-while getopts “hvu: OPTION
+while getopts :vu: OPTION
 do
 	case $OPTION in
-		h)
-			usage
-			exit 1
-			;;
 		v)
 			VERBOSE=1
 			;;
@@ -20,8 +16,8 @@ do
 			USER=$OPTARG
 			;;
 		?)
-			usage
-			exit
+			echo $0: unrecognized option: $OPTARG
+			exit 1
 			;;
 	esac
 done
@@ -47,10 +43,10 @@ export PGUSER="$USER"
 
 log()
 {
-	local message=$1
+	local message="$@"
 
-	if [ $VERBOSE ]; then
-		echo $message
+	if [[ $VERBOSE == 1 ]]; then
+		echo "$message"
 	fi
 }
 
@@ -63,7 +59,7 @@ runsqlscript()
 {
 	local filepath=$1
 
-	if [ $VERBOSE ]; then
+	if [[ "$VERBOSE" == 1 ]]; then
 		invoke_psql $DATABASE --file $filepath
 	else
 		invoke_psql $DATABASE --file $filepath 2>&1 > /dev/null
@@ -74,15 +70,14 @@ runsql()
 {
 	local sql=$1
 
-	if [ $VERBOSE ]; then
+	if [[ "$VERBOSE" == 1 ]]; then
 		invoke_psql $DATABASE --command "$sql"
 	else
 		invoke_psql $DATABASE --command "$sql" 2>&1 > /dev/null
 	fi
 }
 
-runsqlscript /usr/share/postgresql/9.1/contrib/postgis-1.5/postgis.sql
-runsqlscript /usr/share/postgresql/9.1/contrib/postgis-1.5/spatial_ref_sys.sql
+runsql 'CREATE EXTENSION postgis'
 
-runsql "GRANT SELECT ON public.geometry_columns TO minerva;"
-runsql "GRANT SELECT ON public.spatial_ref_sys TO minerva;"
+runsql 'GRANT SELECT ON public.geometry_columns TO minerva'
+runsql 'GRANT SELECT ON public.spatial_ref_sys TO minerva'

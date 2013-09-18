@@ -21,15 +21,15 @@ EOF
 
 VERBOSE=
 DROP=
-USER="postgres"
-INSTANCE="default"
+USER=postgres
+INSTANCE=default
 
-while getopts hvdu:i: OPTION
+while getopts :hvdu:i: OPTION
 do
 	case $OPTION in
 		h)
 			usage
-			exit 1
+			exit
 			;;
 		v)
 			VERBOSE=1
@@ -44,8 +44,9 @@ do
 			INSTANCE=$OPTARG
 			;;
 		?)
-			usage
-			exit
+			echo $0: unrecognized option: $OPTARG
+			echo Try \'$0 -h\' for more information.
+			exit 1
 			;;
 	esac
 done
