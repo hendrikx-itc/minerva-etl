@@ -24,7 +24,7 @@ DROP=
 USER="postgres"
 INSTANCE="default"
 
-while getopts “hvdu:i: OPTION
+while getopts hvdu:i: OPTION
 do
 	case $OPTION in
 		h)
@@ -71,15 +71,15 @@ export PGUSER="$USER"
 function main()
 {
 	log "resetting Minerva database '$DATABASE'"
-	if [ $(db_exists $DATABASE) = "1" ]; then
-		if [ ! "$DROP" ]; then
+	if [[ $(db_exists $DATABASE) = 1 ]]; then
+		if [[ "$DROP" != 1 ]]; then
 			echo "database '$DATABASE' already exists, specify '-d' to first drop the database"
 			exit 1
 		fi
-		runsql "DROP DATABASE $DATABASE;"
+		runsql "DROP DATABASE $DATABASE"
 	fi
 
-	runsql "CREATE DATABASE $DATABASE;"
+	runsql "CREATE DATABASE $DATABASE"
 
 	log "roles"
 	exec_module_scripts "/usr/share/minerva"
@@ -91,8 +91,7 @@ function main()
 	exec_module_scripts "/usr/share/minerva/system"
 
 	log "set timezone"
-	timezone=$(cat /etc/timezone)
-	runsql_in_database "SELECT system.set_setting('default_timezone', '$timezone');"
+	runsql_in_database "SELECT system.set_setting('default_timezone', '$(timezone)');"
 
 	log "relation schema"
 	exec_module_scripts "/usr/share/minerva/relation"
@@ -109,6 +108,17 @@ function main()
 	log "done"
 }
 
+function timezone()
+{
+	if [[ -f /etc/timezone ]]; then
+		cat /etc/timezone
+	elif [[ -h /etc/localtime ]]; then
+		readlink /etc/localtime | sed s-/usr/share/zoneinfo/--
+	else
+		echo UTC
+	fi
+}
+
 function invoke_psql()
 {
 	psql --no-psqlrc --set ON_ERROR_STOP=1 "$@"
@@ -116,10 +126,10 @@ function invoke_psql()
 
 function log()
 {
-	local message=$1
+	local message="$@"
 
-	if [ $VERBOSE ]; then
-		echo $message
+	if [[ $VERBOSE ]]; then
+		echo "$message"
 	fi
 }
 
@@ -127,7 +137,7 @@ function runsqlscript()
 {
 	local filepath=$1
 
-	if [ $VERBOSE ]; then
+	if [[ $VERBOSE ]]; then
 		invoke_psql $DATABASE --file $filepath --single-transaction
 	else
 		invoke_psql $DATABASE --file $filepath --single-transaction > /dev/null
@@ -136,9 +146,9 @@ function runsqlscript()
 
 function runsql()
 {
-	local command=$1
+	local command="$@"
 
-	if [ $VERBOSE ]; then
+	if [[ $VERBOSE ]]; then
 		invoke_psql --command "$command"
 	else
 		invoke_psql --command "$command" > /dev/null
@@ -149,7 +159,7 @@ function runsql_in_database()
 {
 	local command=$1
 
-	if [ $VERBOSE ]; then
+	if [[ $VERBOSE ]]; then
 		invoke_psql --command "$command" $DATABASE
 	else
 		invoke_psql --command "$command" $DATABASE > /dev/null
@@ -160,7 +170,7 @@ function db_exists()
 {
 	# Return 1 if database exists, otherwise return 0.
 	local name=$1
-	invoke_psql -lqt | cut -d \| -f 1 | grep -w $name | wc -l
+	invoke_psql -c '' $name 2>/dev/null && echo 1 || echo 0
 }
 
 function exec_nested_module_scripts()
@@ -179,9 +189,9 @@ function exec_module_scripts()
 {
 	local module_path=$1
 
-	if [ -f $module_path/prerequisite ]
+	if [[ -f $module_path/prerequisite ]]
 	then
-		if [ $VERBOSE ]; then
+		if [[ $VERBOSE ]]; then
 			bash $module_path/prerequisite -v $INSTANCE
 		else
 			bash $module_path/prerequisite $INSTANCE
