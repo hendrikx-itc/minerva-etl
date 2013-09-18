@@ -1,5 +1,8 @@
 #!/bin/bash
 
+set -e
+set -o pipefail
+
 VERBOSE=
 USER="postgres"
 
@@ -51,14 +54,19 @@ log()
 	fi
 }
 
+function invoke_psql()
+{
+	psql --no-psqlrc --set ON_ERROR_STOP=1 "$@"
+}
+
 runsqlscript()
 {
 	local filepath=$1
 
 	if [ $VERBOSE ]; then
-		psql $DATABASE --file $filepath
+		invoke_psql $DATABASE --file $filepath
 	else
-		psql $DATABASE --file $filepath 2>&1 > /dev/null
+		invoke_psql $DATABASE --file $filepath 2>&1 > /dev/null
 	fi
 }
 
@@ -67,9 +75,9 @@ runsql()
 	local sql=$1
 
 	if [ $VERBOSE ]; then
-		psql $DATABASE --command "$sql"
+		invoke_psql $DATABASE --command "$sql"
 	else
-		psql $DATABASE --command "$sql" 2>&1 > /dev/null
+		invoke_psql $DATABASE --command "$sql" 2>&1 > /dev/null
 	fi
 }
 
