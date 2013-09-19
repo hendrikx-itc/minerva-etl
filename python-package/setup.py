@@ -18,7 +18,7 @@ setup(
     author_email="info@hendrikx-itc.nl",
     version="4.1.0",
     license="GPL",
-    install_requires=["pytz", "psycopg2>=2.2.1", "DBUtils", "PyYAML"],
+    install_requires=["pytz", "psycopg2>=2.2.1", "DBUtils", "PyYAML", "configobj", "python-dateutil"],
     test_suite="nose.collector",
     packages=[
         "minerva",
@@ -30,6 +30,8 @@ setup(
         "minerva.storage.trend",
         "minerva.storage.attribute",
         "minerva.storage.notification",
+        "minerva.storage.delta",
+        "minerva.storage.geospatial",
         "minerva.xmldochandler",
         "minerva.xmldochandler.xmlschema",
         "minerva.xmlschemaparser",
@@ -47,5 +49,6 @@ setup(
         "scripts/create-aliases",
         "scripts/job",
         "scripts/load-data",
+        "scripts/load-datapackage",
         "scripts/query-entities"]
 )

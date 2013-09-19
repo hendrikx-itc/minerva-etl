@@ -1,7 +1,4 @@
 # -*- coding: utf-8 -*-
-"""
-Unit tests for the storing of data packages.
-"""
 __docformat__ = "restructuredtext en"
 
 __copyright__ = """
@@ -20,15 +17,15 @@ from configobj import ConfigObj
 from minerva.instance.error import ConfigurationError
 
 INSTANCES_PATH = "/etc/minerva/instances"
-INSTANCE_TYPES_PATH = "/usr/lib/minerva/instance_types"
+CLASSES_PATH = "/usr/lib/minerva/classes"
 
 
 class MinervaInstance(object):
     def __init__(self, config):
         self.config = config
 
-    def type(self):
-        return MinervaInstanceType(self.config.get("type", "default"))
+    def minerva_class(self):
+        return MinervaClass(self.config.get("class", "default"))
 
     def get_db_uri(self, user):
         return "postgresql://{user}@{host}:{port}/{name}".format(
@@ -38,7 +35,31 @@ class MinervaInstance(object):
             name=self.config["database"]["name"])
 
     def connect(self, **kwargs):
+        """
+        Return new database connection.
+
+        The kwargs are merged with the database configuration of the instance
+        and passed directly to the psycopg2 connect function.
+        """
         db_conf = self.config["database"]
+
+        merged_kwargs = {
+            "database": db_conf.get("name"),
+            "host": db_conf.get("host"),
+            "port": db_conf.get("port")}
+
+        merged_kwargs.update(kwargs)
+
+        return psycopg2.connect(**merged_kwargs)
+
+    def connect_ro(self, **kwargs):
+        """
+        Return new read-only database connection.
+
+        The kwargs are merged with the read-only database configuration of the
+        instance and passed directly to the psycopg2 connect function.
+        """
+        db_conf = self.config["database_ro"]
 
         merged_kwargs = {
             "database": db_conf.get("name"),
@@ -64,9 +85,9 @@ class MinervaInstance(object):
         return ConfigObj(instance_config_path)
 
 
-class MinervaInstanceType(object):
+class MinervaClass(object):
     def __init__(self, name):
         self.name = name
 
     def path(self):
-        return os.path.join(INSTANCE_TYPES_PATH, self.name)
+        return os.path.join(CLASSES_PATH, self.name)

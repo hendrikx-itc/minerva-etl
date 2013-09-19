@@ -90,8 +90,9 @@ class DbTransaction(object):
                     conn.rollback()
 
                     if attempt > max_retries:
-                        msg = "maximum number({}) of retries reached".format(
-                            max_retries)
+                        msg = (
+                            "maximum number({}) of retries reached with current transaction [{}]"
+                        ).format(max_retries, transaction)
 
                         raise MaxRetriesError(msg)
 
