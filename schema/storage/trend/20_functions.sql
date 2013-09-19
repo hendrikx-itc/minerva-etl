@@ -1195,3 +1195,17 @@ AS $$
 	RETURNING view;
 $$ LANGUAGE SQL VOLATILE;
 
+
+CREATE OR REPLACE FUNCTION trend.transfer(source trend.trendstore, target trend.trendstore, "timestamp" timestamp with time zone, trend_names text[])
+	RETURNS VOID
+AS $$
+DECLARE 
+	columns_part text;
+BEGIN
+	SELECT 
+		array_to_string(array_agg(quote_ident(trend_name)), ',') INTO columns_part
+	FROM unnest(ARRAY['entity_id', 'timestamp', 'modified'] || trend_names) AS trend_name;
+
+	EXECUTE format('INSERT INTO trend.%I (%s) SELECT %s FROM trend.%I WHERE timestamp = $1', trend.to_base_table_name(target), columns_part, columns_part, trend.to_base_table_name(source)) USING timestamp;
+END;
+$$ LANGUAGE plpgsql VOLATILE;
