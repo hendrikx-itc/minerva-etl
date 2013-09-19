@@ -31,6 +31,7 @@ setup(
         "minerva.storage.attribute",
         "minerva.storage.notification",
         "minerva.storage.delta",
+        "minerva.storage.geospatial",
         "minerva.xmldochandler",
         "minerva.xmldochandler.xmlschema",
         "minerva.xmlschemaparser",
