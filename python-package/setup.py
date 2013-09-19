@@ -18,7 +18,7 @@ setup(
     author_email="info@hendrikx-itc.nl",
     version="4.1.0",
     license="GPL",
-    install_requires=["pytz", "psycopg2>=2.2.1", "DBUtils", "PyYAML"],
+    install_requires=["pytz", "psycopg2>=2.2.1", "DBUtils", "PyYAML", "configobj", "python-dateutil"],
     test_suite="nose.collector",
     packages=[
         "minerva",
