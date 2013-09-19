@@ -18,12 +18,12 @@ import pytz
 
 from minerva.directory.helpers import get_entity, get_entitytype_by_id
 
-from minerva_storage_delta.basetypes import AttributeStore
-from minerva_storage_delta.storage import store, refine_data_rows
-from minerva_storage_delta.retrieve import retrieve, retrieve_current, \
+from minerva.storage.delta.basetypes import AttributeStore
+from minerva.storage.delta.storage import store, refine_data_rows
+from minerva.storage.delta.retrieve import retrieve, retrieve_current, \
 		retrieve_attributes_for_entity
-from minerva_storage_delta.tables import resolve_table_name
-from minerva_storage_delta.helpers import get_attribute_by_id
+from minerva.storage.delta.tables import resolve_table_name
+from minerva.storage.delta.helpers import get_attribute_by_id
 
 
 class DeltaPlugin(object):

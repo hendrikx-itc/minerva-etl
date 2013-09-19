@@ -29,7 +29,7 @@ from minerva.storage.generic import MaxRetriesError, RecoverableError, \
 from minerva.storage.datatype import TYPE_ORDER
 from minerva.storage.exceptions import DataError
 
-from minerva_storage_delta.tables import create_table, SCHEMA
+from minerva.storage.delta.tables import create_table, SCHEMA
 
 DATATYPE_MISMATCH_ERRORS = set((
 	psycopg2.errorcodes.DATATYPE_MISMATCH,
