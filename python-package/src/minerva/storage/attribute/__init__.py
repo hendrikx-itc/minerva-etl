@@ -9,14 +9,14 @@ the Free Software Foundation; either version 3, or (at your option) any later
 version.  The full license is in the file COPYING, distributed as part of
 this software.
 """
-from minerva.storage.attribute.plugin import DeltaPlugin as DeltaPlugin3
-from minerva.storage.attribute.plugin_v4 import DeltaPlugin as DeltaPlugin4
+from minerva.storage.attribute.plugin import AttributePlugin as AttributePlugin3
+from minerva.storage.attribute.plugin_v4 import AttributePlugin as AttributePlugin4
 
 
 def create(conn, api_version=3):
     if api_version == 3:
-        return DeltaPlugin3(conn)
+        return AttributePlugin3(conn)
     elif api_version == 4:
-        return DeltaPlugin4(conn)
+        return AttributePlugin4(conn)
     else:
         raise Exception("Unsupported API version: {}".format(api_version))

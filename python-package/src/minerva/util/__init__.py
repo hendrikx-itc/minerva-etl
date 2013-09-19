@@ -16,22 +16,35 @@ from itertools import repeat
 from functools import partial
 
 
-def compose(fn_a, fn_b):
+def compose_pair(fn_a, fn_b):
     """
     Return a new function that executes both functions after each other,
     feeding the result of `fn_b` as the argument to `fn_a`.
     """
     def composed(*args, **kwargs):
-            return fn_a(fn_b(*args, **kwargs))
+        return fn_a(fn_b(*args, **kwargs))
 
     return composed
+
+
+def compose(*args):
+    """
+    Return a new function that executes all functions, one after the other,
+    passing the output of one to the next as argument.
+    """
+    return reduce(compose_pair, args)
+
+
+def apply_fn(f, x):
+    """Return the result of f applied to x."""
+    return f(x)
 
 
 def zipapply(functions, values):
     """
     Zip the functions with the values and then apply the function to the value.
     """
-    return map(lambda x, y: x(y), functions, values)
+    return map(apply_fn, functions, values)
 
 
 def reorderer(required_order, actual_order):

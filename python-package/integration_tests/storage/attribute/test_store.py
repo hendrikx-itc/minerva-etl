@@ -56,6 +56,28 @@ def test_simple(conn):
 
 
 @with_conn(clear_database)
+def test_array(conn):
+    with closing(conn.cursor()) as cursor:
+        attribute_names = ['channel', 'pwr']
+        data_rows = [
+            (10023, ('7', '0,0,0,2,5,12,87,34,5,0,0')),
+            (10024, ('9', '0,0,0,1,11,15,95,41,9,0,0'))
+        ]
+
+        datasource = name_to_datasource(cursor, "integration-test")
+        entitytype = name_to_entitytype(cursor, "UtranCell")
+
+        timestamp = datasource.tzinfo.localize(datetime.now())
+        datapackage = DataPackage(timestamp, attribute_names, data_rows)
+
+        attributes = datapackage.deduce_attributes()
+        attributestore = AttributeStore(datasource, entitytype, attributes)
+        attributestore.create(cursor)
+
+        attributestore.store(datapackage).run(conn)
+
+
+@with_conn(clear_database)
 def test_update_modified_column(conn):
     attribute_names = ['CCR', 'Drops']
 

@@ -60,7 +60,7 @@ def test_create(conn):
 
 
 @with_conn(clear_database)
-def test_store_batch(conn):
+def test_store_batch_simple(conn):
     """Test batch wise storing using staging table."""
     with closing(conn.cursor()) as cursor:
         attribute_names = ['CCR', 'Drops']
@@ -91,6 +91,40 @@ def test_store_batch(conn):
         # Timestamp should be the same as the stored batch timestamp
         eq_(timestamp, datapackage.timestamp)
         eq_(drops, 17)
+
+
+@with_conn(clear_database)
+def test_store_batch_with_list(conn):
+    """Test batch wise storing using staging table."""
+    with closing(conn.cursor()) as cursor:
+        attribute_names = ['height', 'refs']
+        data_rows = [(10023 + i, ('19.5', ['r34', 'r23', 'r33'])) for i in range(100)]
+
+        datasource = name_to_datasource(cursor, "integration-test")
+        entitytype = name_to_entitytype(cursor, "UtranCell")
+
+        timestamp = datasource.tzinfo.localize(datetime.now())
+        datapackage = DataPackage(timestamp, attribute_names, data_rows)
+
+        attributes = datapackage.deduce_attributes()
+        attributestore = AttributeStore(datasource, entitytype, attributes)
+        attributestore.create(cursor)
+
+        attributestore.store_batch(cursor, datapackage)
+        conn.commit()
+
+        query = (
+            "SELECT timestamp, height "
+            "FROM {0}").format(attributestore.table.render())
+
+        cursor.execute(query)
+        # Row count should be the same as the stored batch size
+        eq_(cursor.rowcount, len(datapackage.rows))
+
+        timestamp, height = cursor.fetchone()
+        # Timestamp should be the same as the stored batch timestamp
+        eq_(timestamp, datapackage.timestamp)
+        eq_(height, 19.5)
 
 
 @with_conn(clear_database)
@@ -144,6 +178,27 @@ def test_store_batch_update(conn):
         # Timestamp should be the same as the stored batch timestamp
         eq_(timestamp, datapackage.timestamp)
         eq_(drops, 18)
+
+
+@with_conn(clear_database)
+def test_store_empty(conn):
+    """Test storing of empty datapackage."""
+    with closing(conn.cursor()) as cursor:
+        attribute_names = ['CCR', 'Drops']
+        data_rows = []
+
+        datasource = name_to_datasource(cursor, "integration-test")
+        entitytype = name_to_entitytype(cursor, "UtranCell")
+
+        timestamp = datasource.tzinfo.localize(datetime.now())
+        datapackage = DataPackage(timestamp, attribute_names, data_rows)
+
+        attributes = datapackage.deduce_attributes()
+        attributestore = AttributeStore(datasource, entitytype, attributes)
+        attributestore.create(cursor)
+
+        attributestore.store(datapackage).run(conn)
+        conn.commit()
 
 
 @with_conn(clear_database)

@@ -12,7 +12,6 @@ this software.
 """
 from functools import partial
 from itertools import chain
-import StringIO
 import re
 
 import psycopg2
@@ -32,6 +31,25 @@ DATATYPE_MISMATCH_ERRORS = set((
     psycopg2.errorcodes.DATATYPE_MISMATCH,
     psycopg2.errorcodes.NUMERIC_VALUE_OUT_OF_RANGE,
     psycopg2.errorcodes.INVALID_TEXT_REPRESENTATION))
+
+
+def show(value):
+    print(str(value))
+
+
+def log_exception(log_fn):
+    """Return a decorator that wraps a function with an exception logger."""
+    def dec_fn(fn):
+        def wrapper(*args, **kwargs):
+            try:
+                return fn(*args, **kwargs)
+            except Exception as exc:
+                log_fn(exc)
+                raise
+
+        return wrapper
+
+    return dec_fn
 
 
 class AttributeStore(object):
@@ -209,13 +227,15 @@ class AttributeStore(object):
         return DbTransaction(Insert(self, datapackage))
 
     @translate_postgresql_exceptions
+    @log_exception(show)
     def store_batch(self, cursor, datapackage):
         """Write data in one batch using staging table."""
-        attribute_names = [a.name for a in self.attributes]
+        attributes_by_name = dict((a.name, a) for a in self.attributes)
 
-        copy_from_query = create_copy_from_query(self.staging_table,
-                                                 attribute_names)
-        copy_from_file = create_copy_from_file(datapackage)
+        copy_from_query = datapackage.create_copy_from_query(self.staging_table)
+
+        data_types = [attributes_by_name[name].datatype for name in datapackage.attribute_names]
+        copy_from_file = datapackage.create_copy_from_file(data_types)
 
         cursor.copy_expert(copy_from_query, copy_from_file)
 
@@ -224,6 +244,7 @@ class AttributeStore(object):
             "from attribute.attributestore WHERE id = %s", (self.id,))
 
     def check_attributes_exist(self, cursor):
+        """Check if attributes exist and create missing."""
         query = (
             "SELECT {schema.name}.check_attributes_exist("
             "%s::{attribute}[])").format(
@@ -234,6 +255,7 @@ class AttributeStore(object):
         cursor.execute(query, args)
 
     def check_attribute_types(self, cursor):
+        """Check and correct attribute data types."""
         query = (
             "SELECT {schema.name}.check_attribute_types("
             "%s::{schema.name}.attribute[])").format(
@@ -331,40 +353,5 @@ class CheckAttributeTypes(DbAction):
         self.attributestore.check_attribute_types(cursor)
 
 
-def create_copy_from_query(table, attribute_names):
-    system_columns = "entity_id", "timestamp"
-    column_names = chain(system_columns, attribute_names)
-
-    quote = partial(str.format, '"{}"')
-
-    query = "COPY {0}({1}) FROM STDIN".format(
-        table.render(), ",".join(map(quote, column_names)))
-
-    return query
 
 
-def create_copy_from_file(datapackage):
-    copy_from_file = StringIO.StringIO()
-
-    lines = create_copy_from_lines(datapackage)
-
-    copy_from_file.writelines(lines)
-
-    copy_from_file.seek(0)
-
-    return copy_from_file
-
-
-def create_copy_from_lines(datapackage):
-    return [create_copy_from_line(datapackage.timestamp, r)
-            for r in datapackage.rows]
-
-
-def create_copy_from_line(timestamp, row):
-    entity_id, attributes = row
-
-    values = chain((entity_id, timestamp), attributes)
-
-    return "\t".join(map(str, values)) + "\n"
-
-quote_ident = partial(str.format, '"{}"')

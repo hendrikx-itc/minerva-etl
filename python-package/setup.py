@@ -30,6 +30,7 @@ setup(
         "minerva.storage.trend",
         "minerva.storage.attribute",
         "minerva.storage.notification",
+        "minerva.storage.delta",
         "minerva.xmldochandler",
         "minerva.xmldochandler.xmlschema",
         "minerva.xmlschemaparser",
@@ -47,5 +48,6 @@ setup(
         "scripts/create-aliases",
         "scripts/job",
         "scripts/load-data",
+        "scripts/load-datapackage",
         "scripts/query-entities"]
 )
