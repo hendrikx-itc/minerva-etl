@@ -234,7 +234,7 @@ class AttributeStore(object):
 
         copy_from_query = datapackage.create_copy_from_query(self.staging_table)
 
-        data_types = [attributes_by_name[name].datatype for name in datapackage.attribute_names]
+        data_types = [attributes_by_name.get(name).datatype for name in datapackage.attribute_names]
         copy_from_file = datapackage.create_copy_from_file(data_types)
 
         cursor.copy_expert(copy_from_query, copy_from_file)

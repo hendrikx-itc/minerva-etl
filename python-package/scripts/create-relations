@@ -19,7 +19,7 @@ from configobj import ConfigObj
 
 from minerva.instance import MinervaInstance
 from minerva.directory.relation import add_relations, flush_relations, reverse_relations
-from minerva.util import parse_size
+from minerva.util.config import parse_size
 from minerva.db import parse_db_url
 
 
