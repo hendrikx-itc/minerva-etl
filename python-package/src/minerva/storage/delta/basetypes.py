@@ -13,7 +13,7 @@ from minerva.db.query import Table
 
 from minerva.directory.basetypes import DataSource, EntityType
 
-from minerva.storage.delt.tables import get_table_name, get_table_name_curr, \
+from minerva.storage.delta.tables import get_table_name, get_table_name_curr, \
 		SCHEMA
 
 
