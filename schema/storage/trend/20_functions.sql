@@ -1201,11 +1201,14 @@ CREATE OR REPLACE FUNCTION trend.transfer(source trend.trendstore, target trend.
 AS $$
 DECLARE 
 	columns_part text;
+	dst_partition trend.partition;
 BEGIN
 	SELECT 
 		array_to_string(array_agg(quote_ident(trend_name)), ',') INTO columns_part
 	FROM unnest(ARRAY['entity_id', 'timestamp', 'modified'] || trend_names) AS trend_name;
 
-	EXECUTE format('INSERT INTO trend.%I (%s) SELECT %s FROM trend.%I WHERE timestamp = $1', trend.to_base_table_name(target), columns_part, columns_part, trend.to_base_table_name(source)) USING timestamp;
+	dst_partition = trend.attributes_to_partition(target, trend.timestamp_to_index(target.partition_size, timestamp));
+	
+	EXECUTE format('INSERT INTO trend.%I (%s) SELECT %s FROM trend.%I WHERE timestamp = $1', dst_partition.table_name, columns_part, columns_part, trend.to_base_table_name(source)) USING timestamp;
 END;
 $$ LANGUAGE plpgsql VOLATILE;
