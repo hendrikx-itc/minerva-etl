@@ -1049,6 +1049,19 @@ AS $$
 $$ LANGUAGE SQL;
 
 
+CREATE OR REPLACE FUNCTION get_max_modified(trend.trendstore, timestamp with time zone)
+	RETURNS timestamp with time zone
+AS $$
+DECLARE
+	max_modified timestamp with time zone;
+BEGIN
+	EXECUTE format('SELECT max(modified) FROM trend.%I WHERE timestamp = $1', trend.to_base_table_name($1)) INTO max_modified USING $2;
+	
+	RETURN max_modified;
+END;
+$$ LANGUAGE plpgsql STABLE;
+
+
 CREATE OR REPLACE FUNCTION mark_modified(table_name name, "timestamp" timestamp with time zone, modified timestamp with time zone)
 	RETURNS trend.modified
 AS $$
@@ -1196,12 +1209,19 @@ AS $$
 $$ LANGUAGE SQL VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION trend.transfer(source trend.trendstore, target trend.trendstore, "timestamp" timestamp with time zone, trend_names text[])
-	RETURNS VOID
+CREATE TYPE transfer_result AS (
+	row_count int,
+	max_modified timestamp with time zone
+);
+
+
+CREATE OR REPLACE FUNCTION transfer(source trend.trendstore, target trend.trendstore, "timestamp" timestamp with time zone, trend_names text[])
+	RETURNS trend.transfer_result
 AS $$
 DECLARE 
 	columns_part text;
 	dst_partition trend.partition;
+	result trend.transfer_result;
 BEGIN
 	SELECT 
 		array_to_string(array_agg(quote_ident(trend_name)), ',') INTO columns_part
@@ -1210,5 +1230,11 @@ BEGIN
 	dst_partition = trend.attributes_to_partition(target, trend.timestamp_to_index(target.partition_size, timestamp));
 	
 	EXECUTE format('INSERT INTO trend.%I (%s) SELECT %s FROM trend.%I WHERE timestamp = $1', dst_partition.table_name, columns_part, columns_part, trend.to_base_table_name(source)) USING timestamp;
+
+	SELECT (trend.mark_modified(dst_partition.table_name, timestamp, trend.get_max_modified(target, timestamp))).end INTO result.max_modified;	
+	
+	GET DIAGNOSTICS result.row_count = ROW_COUNT;
+	
+	RETURN result;
 END;
 $$ LANGUAGE plpgsql VOLATILE;
