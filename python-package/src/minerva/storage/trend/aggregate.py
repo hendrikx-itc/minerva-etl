@@ -23,7 +23,8 @@ from operator import itemgetter
 import pytz
 
 from pyparsing import Word, nums, alphas, alphanums, Combine, oneOf, \
-    Optional, opAssoc, operatorPrecedence, Suppress, delimitedList, Forward
+    Optional, opAssoc, operatorPrecedence, Suppress, delimitedList, Forward, \
+    QuotedString
 
 from minerva.db.query import Table
 from minerva.storage.trend.tables import PARTITION_SIZES
@@ -224,8 +225,10 @@ real = (Combine(Word(nums) + Optional("." + Word(nums))
         + oneOf("E e") + Optional(oneOf('+ -')) + Word(nums))
         | Combine(Word(nums) + "." + Word(nums)))
 
+identifier_part = Word(alphanums + '_') | QuotedString('"', unquoteResults=True)
+
 identifier = Optional(
-    Word(alphanums + '_') + Suppress(".")) + Word(alphanums + '_')
+     identifier_part + Suppress(".")) + identifier_part
 
 funcName = Word(alphas)
 

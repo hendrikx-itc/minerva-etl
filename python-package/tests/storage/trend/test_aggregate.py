@@ -96,7 +96,7 @@ def test_parser_advanced_a():
 
 
 def test_parser_advanced_b():
-    formula_str = "SUM(CCR * Traffic_Full) / SUM(Traffic_full)"
+    formula_str = 'SUM(CCR * src1."Traffic-Full") / SUM(src2."Traffic-full")'
 
     formula = arith_expr.parseString(formula_str, parseAll=True)[0]
 
@@ -104,4 +104,4 @@ def test_parser_advanced_b():
 
     r = formula(context)
 
-    eq_(r, "SUM(t1.\"CCR\" * t1.\"Traffic_Full\") / SUM(t1.\"Traffic_full\")")
+    eq_(r, "SUM(t1.\"CCR\" * t2.\"Traffic-Full\") / SUM(t3.\"Traffic-full\")")
