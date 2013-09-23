@@ -24,6 +24,7 @@ from minerva.db.generic import UniqueViolation
 from minerva.directory.distinguishedname import splitparts, type_indexes, \
     explode, implode
 from minerva.directory.basetypes import DataSource, Entity, EntityType
+from minerva.directory import helpers_v4
 
 
 MATCH_ALL = re.compile(".*")
@@ -526,21 +527,17 @@ def create_entity(conn, dn):
     :param conn: A psycopg2 connection to a Minerva Directory database.
     :param dn: The distinguished name of the entity.
     """
-    parent_id = None
     dnparts = splitparts(dn)
 
     if len(dnparts) == 0:
         raise Exception("Invalid DN: '{0}'".format(dn))
 
     with closing(conn.cursor()) as cursor:
-        cursor.callproc("directory.dn_to_entity", (dn,))
-
-        row = cursor.fetchone()
-        id, first_appearance, name, entitytype_id, _dn, parent_id = row
+        entity = helpers_v4.create_entity(cursor, dn)
 
     conn.commit()
 
-    return Entity(id, name, entitytype_id, dn, parent_id)
+    return entity
 
 
 def make_entitytaglinks(conn, entity_ids, tag_names):

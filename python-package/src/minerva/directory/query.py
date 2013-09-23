@@ -17,11 +17,13 @@ import pyparsing
 from pyparsing import alphanums, ZeroOrMore, Optional
 
 from minerva.util import first, compose
+from minerva.directory.helpers import get_entitytype_by_id, \
+    get_relationtype_id, NoSuchRelationTypeError
+from minerva.directory.query_types import Tag, Alias, Context, Query
 
-from helpers import get_entitytype_by_id, get_relationtype_id, \
-    NoSuchRelationTypeError
 
-from query_types import Tag, Alias, Context, Query
+class QueryError(Exception):
+    pass
 
 
 def parser():
@@ -71,6 +73,9 @@ def compile_sql(minerva_query, relation_group_name, entity_id_column=None):
     """
     args = []
     query_parts = []
+
+    if minerva_query[0]["type"] != 'C':
+        raise QueryError("query must start with a context(tag)")
 
     for index, cs in enumerate(iter_cs(minerva_query)):
         c, s = cs
