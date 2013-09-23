@@ -50,5 +50,6 @@ setup(
         "scripts/job",
         "scripts/load-data",
         "scripts/load-datapackage",
-        "scripts/query-entities"]
+        "scripts/query-entities",
+        "scripts/load-elements"]
 )
