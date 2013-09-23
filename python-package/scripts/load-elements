@@ -79,7 +79,6 @@ def main():
                                    for line in lines]
 
             with closing(conn.cursor()) as cursor:
-                print("dns_to_entity_ids")
                 dns_to_entity_ids(cursor, distinguished_names)
 
         conn.commit()
