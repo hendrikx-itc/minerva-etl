@@ -23,6 +23,7 @@ setup(
     packages=[
         "minerva",
         "minerva.util",
+        "minerva.test",
         "minerva.db",
         "minerva.system",
         "minerva.directory",
