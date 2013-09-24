@@ -10,8 +10,6 @@ the Free Software Foundation; either version 3, or (at your option) any later
 version.  The full license is in the file COPYING, distributed as part of
 this software.
 """
-from functools import partial
-from itertools import chain
 import re
 
 import psycopg2
@@ -19,8 +17,8 @@ from minerva.util import head
 from minerva.db.query import Table
 from minerva.directory.helpers_v4 import get_entitytype_by_id, \
     get_datasource_by_id
-from minerva.db.error import translate_postgresql_exception, \
-    NoSuchColumnError, DataTypeMismatch, translate_postgresql_exceptions
+from minerva.db.error import NoSuchColumnError, DataTypeMismatch, translate_postgresql_exception, \
+    translate_postgresql_exceptions
 from minerva.db.dbtransaction import DbTransaction, DbAction, insert_before
 from minerva.storage.attribute import schema
 from minerva.storage.attribute.attribute import Attribute
@@ -34,13 +32,16 @@ DATATYPE_MISMATCH_ERRORS = set((
 
 
 def show(value):
+    """Write value to stdout."""
     print(str(value))
 
 
 def log_exception(log_fn):
     """Return a decorator that wraps a function with an exception logger."""
     def dec_fn(fn):
+        """Return decorated version of `fn`."""
         def wrapper(*args, **kwargs):
+            """Return result of wrapped function."""
             try:
                 return fn(*args, **kwargs)
             except Exception as exc:
@@ -232,9 +233,11 @@ class AttributeStore(object):
         """Write data in one batch using staging table."""
         attributes_by_name = dict((a.name, a) for a in self.attributes)
 
-        copy_from_query = datapackage.create_copy_from_query(self.staging_table)
+        copy_from_query = datapackage.create_copy_from_query(
+            self.staging_table)
 
-        data_types = [attributes_by_name.get(name).datatype for name in datapackage.attribute_names]
+        data_types = [attributes_by_name[name].datatype
+                      for name in datapackage.attribute_names]
         copy_from_file = datapackage.create_copy_from_file(data_types)
 
         cursor.copy_expert(copy_from_query, copy_from_file)
@@ -282,10 +285,12 @@ class Query(object):
 
 
 def fetch_scalar(cursor):
+    """Return the one scalar result from `cursor`."""
     return head(cursor.fetchone())
 
 
 def fetch_one(cursor):
+    """Return the one record result from `cursor`."""
     return cursor.fetch_one()
 
 
@@ -351,7 +356,3 @@ class CheckAttributeTypes(DbAction):
 
     def execute(self, cursor, state):
         self.attributestore.check_attribute_types(cursor)
-
-
-
-

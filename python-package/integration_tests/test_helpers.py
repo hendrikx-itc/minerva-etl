@@ -4,6 +4,7 @@ Unit tests for functions provided by the minerva.directory.helpers module.
 """
 import mock
 import psycopg2
+from datetime import datetime
 from nose.tools import assert_raises, raises, eq_
 
 from minerva.directory.basetypes import EntityType, Entity
@@ -22,12 +23,11 @@ def test_create_entitytype():
     mock_conn.cursor.return_value = mock_cursor
 
     entitytype = helpers.create_entitytype(mock_conn, entitytype_name,
-            entitytype_descr)
+                                           entitytype_descr)
 
     assert entitytype.id == entitytype_id
     assert entitytype.name == entitytype_name
     assert entitytype.description == entitytype_descr
-
 
 
 @raises(Exception)
@@ -37,6 +37,7 @@ def test_create_entity_empty_dn():
     mock_conn = mock.Mock()
 
     helpers.create_entity(mock_conn, dn)
+
 
 @mock.patch('minerva.directory.helpers.get_entity')
 @mock.patch('minerva.directory.helpers.get_entitytype')
@@ -49,7 +50,16 @@ def test_create_entity(mock_get_entitytype, mock_get_entity):
     mock_conn = mock.Mock()
     mock_cursor = mock.Mock()
     mock_conn.cursor.return_value = mock_cursor
-    mock_cursor.fetchone.return_value = (1, )
+
+    mock_cursor.fetchone.return_value = (
+        1,               # id
+        datetime.now(),  # first_appearance
+        'Two',           # name
+        33,              # entitytype_id
+        dn,              # dn
+        42               # parent_id
+    )
+
     mock_get_entitytype.return_value = entitytype
     mock_get_entity.return_value = parent_entity
 
@@ -79,7 +89,7 @@ def test_create_entitytype_existing():
     mock_conn.cursor.return_value = mock_cursor
 
     assert_raises(UniqueViolation, helpers.create_entitytype, mock_conn,
-            entitytype_name, entitytype_descr)
+                  entitytype_name, entitytype_descr)
 
 
 def test_get_entitytype():
@@ -92,7 +102,8 @@ def test_get_entitytype():
 
     mock_conn = mock.Mock()
     mock_cursor = mock.Mock()
-    mock_cursor.fetchone.return_value = (entitytype_id, entitytype_name, entitytype_descr)
+    mock_cursor.fetchone.return_value = (entitytype_id, entitytype_name,
+                                         entitytype_descr)
     mock_conn.cursor.return_value = mock_cursor
 
     entitytype = helpers.get_entitytype(mock_conn, entitytype_name)

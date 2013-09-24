@@ -60,6 +60,39 @@ def test_create(conn):
 
 
 @with_conn(clear_database)
+def test_from_attributes(conn):
+    """Test creation of a new attribute store from attributes."""
+    with closing(conn.cursor()) as cursor:
+        datasource = name_to_datasource(cursor, "integration-test")
+        entitytype = name_to_entitytype(cursor, "UtranCell")
+
+        attributes = [
+            Attribute("cntr1", "integer", "description for this attribute"),
+            Attribute("cntr2", "integer", "description for this attribute")]
+
+        attributestore = AttributeStore.from_attributes(cursor, datasource, entitytype, attributes)
+
+        expected_table_name = "integration-test_UtranCell"
+
+        eq_(attributestore.table_name(), expected_table_name)
+
+        conn.commit()
+
+        query = (
+            "SELECT {0.name}.to_table_name(attributestore) "
+            "FROM {0.name}.attributestore "
+            "WHERE id = %s").format(schema)
+
+        args = attributestore.id,
+
+        cursor.execute(query, args)
+
+        table_name, = cursor.fetchone()
+
+    eq_(table_name, expected_table_name)
+
+
+@with_conn(clear_database)
 def test_store_batch_simple(conn):
     """Test batch wise storing using staging table."""
     with closing(conn.cursor()) as cursor:
