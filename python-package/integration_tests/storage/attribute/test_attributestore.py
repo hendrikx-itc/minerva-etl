@@ -22,7 +22,7 @@ from minerva.storage.attribute.attribute import Attribute
 from minerva.storage.attribute.attributestore import AttributeStore
 from minerva.storage.attribute.datapackage import DataPackage
 
-from minerva_db import clear_database
+from .minerva_db import clear_database
 
 
 @with_conn(clear_database)
@@ -70,7 +70,8 @@ def test_from_attributes(conn):
             Attribute("cntr1", "integer", "description for this attribute"),
             Attribute("cntr2", "integer", "description for this attribute")]
 
-        attributestore = AttributeStore.from_attributes(cursor, datasource, entitytype, attributes)
+        attributestore = AttributeStore.from_attributes(
+            cursor, datasource, entitytype, attributes)
 
         expected_table_name = "integration-test_UtranCell"
 
@@ -131,7 +132,8 @@ def test_store_batch_with_list(conn):
     """Test batch wise storing using staging table."""
     with closing(conn.cursor()) as cursor:
         attribute_names = ['height', 'refs']
-        data_rows = [(10023 + i, ('19.5', ['r34', 'r23', 'r33'])) for i in range(100)]
+        data_rows = [(10023 + i, ('19.5', ['r34', 'r23', 'r33']))
+                     for i in range(100)]
 
         datasource = name_to_datasource(cursor, "integration-test")
         entitytype = name_to_entitytype(cursor, "UtranCell")

@@ -132,6 +132,7 @@ row_to_types = compose(types_from_values, snd)
 
 def create_copy_from_line(timestamp, data_types, row):
     entity_id, attributes = row
+    print(data_types)
 
     value_mappers = map(value_mapper_by_type.get, data_types)
 
@@ -152,6 +153,7 @@ value_mapper_by_type = {
     "bigint[]": value_to_string,
     "integer[]": value_to_string,
     "smallint[]": value_to_string,
+    "text[]": value_to_string,
     "bigint": str,
     "integer": str,
     "smallint": str,
