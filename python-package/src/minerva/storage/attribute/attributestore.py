@@ -53,6 +53,10 @@ def log_exception(log_fn):
     return dec_fn
 
 
+class NoSuchAttributeError(Exception):
+    pass
+
+
 class AttributeStore(object):
 
     """
@@ -236,8 +240,12 @@ class AttributeStore(object):
         copy_from_query = datapackage.create_copy_from_query(
             self.staging_table)
 
-        data_types = [attributes_by_name[name].datatype
-                      for name in datapackage.attribute_names]
+        try:
+            data_types = [attributes_by_name[name].datatype
+                          for name in datapackage.attribute_names]
+        except KeyError:
+            raise NoSuchAttributeError()
+
         copy_from_file = datapackage.create_copy_from_file(data_types)
 
         cursor.copy_expert(copy_from_query, copy_from_file)
@@ -320,7 +328,7 @@ class Insert(DbAction):
 
             fix = CheckAttributeTypes(self.attributestore)
             return insert_before(fix)
-        except NoSuchColumnError as exc:
+        except (NoSuchColumnError, NoSuchAttributeError) as exc:
             attributes = self.datapackage.deduce_attributes()
 
             self.attributestore._update_attributes(attributes)
