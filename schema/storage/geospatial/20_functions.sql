@@ -67,3 +67,41 @@ $BODY$
 
 ALTER FUNCTION gis.get_handovers(integer) OWNER TO postgres;
 
+
+-- Function: gis.get_changed_handover_cells(timestamp with time zone)
+
+-- DROP FUNCTION gis.get_changed_handover_cells(timestamp with time zone);
+
+CREATE OR REPLACE FUNCTION gis.get_changed_handover_cells(timestamp with time zone)
+  RETURNS SETOF integer AS
+$BODY$
+SELECT id FROM (
+	SELECT sc.source_id as id FROM (
+		SELECT e.id as id 
+		FROM directory.entity e
+		JOIN directory.entitytype et on et.id = e.entitytype_id
+		JOIN relation.real_handover real_ho on real_ho.source_id = e.id
+		JOIN directory.existence ex on ex.entity_id = real_ho.target_id
+		WHERE et.name = 'HandoverRelation'and ex.timestamp > $1
+	     ) ho
+	JOIN relation."Cell->HandoverRelation" sc on sc.target_id = ho.id
+	UNION
+	SELECT tc.source_id as id FROM (
+		SELECT e.id as id
+		FROM directory.entity e
+		JOIN directory.entitytype et on et.id = e.entitytype_id
+		JOIN relation.real_handover real_ho on real_ho.source_id = e.id
+		JOIN directory.existence ex on ex.entity_id = real_ho.target_id
+		WHERE et.name = 'HandoverRelation'and ex.timestamp > $1
+	     ) ho
+	JOIN relation."HandoverRelation->Cell" tc on tc.source_id = ho.id
+) t group by t.id order by t.id
+
+
+$BODY$
+  LANGUAGE sql STABLE
+  COST 100
+  ROWS 10000;
+ALTER FUNCTION gis.get_changed_handover_cells(timestamp with time zone)
+  OWNER TO postgres;
+
