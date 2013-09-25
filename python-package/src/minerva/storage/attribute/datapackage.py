@@ -124,9 +124,6 @@ snd = itemgetter(1)
 
 types_from_values = partial(map, datatype.deduce_from_value)
 
-txt_values_from_row = compose(partial(map, str), snd)
-
-#row_to_types = compose(types_from_values, txt_values_from_row)
 row_to_types = compose(types_from_values, snd)
 
 
