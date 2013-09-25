@@ -77,7 +77,12 @@ runsql()
 	fi
 }
 
-runsql 'CREATE EXTENSION postgis'
+POSTGIS_PATH=$(find $(pg_config --sharedir)/contrib -maxdepth 1 -name 'postgis*' -type d)
+runsqlscript "$POSTGIS_PATH/postgis.sql"
+runsqlscript "$POSTGIS_PATH/spatial_ref_sys.sql"
 
-runsql 'GRANT SELECT ON public.geometry_columns TO minerva'
-runsql 'GRANT SELECT ON public.spatial_ref_sys TO minerva'
+# Only works for PostGIS newer than version 2.0
+# runsqlscript 'CREATE EXTENSION postgis'
+
+runsql 'GRANT SELECT ON public.geometry_columns TO PUBLIC'
+runsql 'GRANT SELECT ON public.spatial_ref_sys TO PUBLIC'
