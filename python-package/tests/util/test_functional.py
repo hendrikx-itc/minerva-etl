@@ -12,7 +12,7 @@ this software.
 """
 from nose.tools import assert_equal
 
-from minerva.util import identity, compose, k, no_op, retry_while
+from minerva.util import identity, compose, k, no_op, retry_while, zipapply
 
 
 def test_identity():
@@ -64,6 +64,18 @@ def test_retry_while():
     retry_while(fn, exception_handlers, condition=k(True), timeout=k(1.0))
 
     assert_equal(state["val"], 42)
+
+
+def test_zipapply():
+    funcs = (add_one, add_one, times_two)
+    values = (1, 2, 3)
+    result = zipapply(funcs, values)
+
+    assert result == [2, 3, 6]
+
+    result = zipapply([], [])
+
+    assert result == []
 
 
 def add_one(x):

@@ -7,7 +7,8 @@ from contextlib import closing
 from functools import partial
 
 from minerva.util import k
-from minerva.directory.helpers_v4 import name_to_datasource
+from minerva.directory.helpers_v4 import name_to_datasource, \
+    get_entity_by_id, get_entitytype_by_id
 from minerva.instance import MinervaInstance
 from minerva.storage import load_plugins
 
@@ -40,6 +41,10 @@ def main():
         help="actually store the data in the database")
 
     parser.add_argument(
+        "--raw", action="store_true", default=False,
+        help="datapackage is raw package with distinguished names")
+
+    parser.add_argument(
         "--datasource", default="load-datapackage",
         help="name of datasource to use for storing the data")
 
@@ -69,12 +74,24 @@ def main():
 
         for file_handle in file_handles:
             with file_handle() as package_file:
-                datapackage = storage_class.load_rawdatapackage(package_file)
+                if args.raw:
+                    datapackage = storage_class.load_rawdatapackage(
+                        package_file)
+                else:
+                    datapackage = storage_class.load_datapackage(package_file)
 
                 if args.deduce_datatypes:
                     print(datapackage.deduce_attributes())
 
-                storage_class.store_raw(datasource, datapackage)
+                if args.store:
+                    if args.raw:
+                        storage_class.store_raw(datasource, datapackage)
+                    else:
+                        with closing(conn.cursor()) as cursor:
+                            entity = get_entity_by_id(cursor, datapackage.rows[0][0])
+                            entitytype = get_entitytype_by_id(cursor, entity.entitytype_id)
+
+                        storage_class.store(datasource, entitytype, datapackage)
 
     return 0
 

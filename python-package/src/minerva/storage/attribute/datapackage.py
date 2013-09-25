@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+"""Provides the DataPackage class."""
 __docformat__ = "restructuredtext en"
 
 __copyright__ = """
@@ -13,6 +14,7 @@ import StringIO
 from functools import partial
 from operator import itemgetter
 from itertools import chain
+from collections import Iterable
 
 from dateutil.parser import parse as parse_timestamp
 
@@ -52,6 +54,7 @@ class DataPackage(object):
         return str((self.timestamp, self.attribute_names, self.rows))
 
     def is_empty(self):
+        """Return True if the package has no data rows."""
         return len(self.rows) == 0
 
     def deduce_data_types(self):
@@ -64,22 +67,32 @@ class DataPackage(object):
                       [DEFAULT_DATATYPE] * len(self.attribute_names))
 
     def deduce_attributes(self):
+        """Return list of attributes matching the data in this package."""
         data_types = self.deduce_data_types()
 
         return map(expand_args(Attribute),
                    zip(self.attribute_names, data_types))
 
+    def copy_expert(self, table, data_types):
+        def fn(cursor):
+            cursor.copy_expert(
+                self.create_copy_from_query(table),
+                self.create_copy_from_file(data_types)
+            )
+
+        return fn
+
     def create_copy_from_query(self, table):
+        """Return SQL query that can be used in the COPY FROM command."""
         column_names = chain(SYSTEM_COLUMNS, self.attribute_names)
 
         quote = partial(str.format, '"{}"')
 
-        query = "COPY {0}({1}) FROM STDIN".format(
+        return "COPY {0}({1}) FROM STDIN".format(
             table.render(), ",".join(map(quote, column_names)))
 
-        return query
-
     def create_copy_from_file(self, data_types):
+        """Return StringIO instance to use with COPY FROM command."""
         copy_from_file = StringIO.StringIO()
 
         lines = self._create_copy_from_lines(data_types)
@@ -109,12 +122,12 @@ class DataPackage(object):
             "rows": map(row_to_list, self.rows)
         }
 
-    @staticmethod
-    def from_dict(d):
+    @classmethod
+    def from_dict(cls, d):
         def list_to_row(l):
             return l[0], l[1:]
 
-        return DataPackage(
+        return cls(
             timestamp=parse_timestamp(d["timestamp"]),
             attribute_names=d["attribute_names"],
             rows=map(list_to_row, d["rows"]))
@@ -128,21 +141,27 @@ row_to_types = compose(types_from_values, snd)
 
 
 def create_copy_from_line(timestamp, data_types, row):
+    """Return line compatible with COPY FROM command."""
     entity_id, attributes = row
-    print(data_types)
 
     value_mappers = map(value_mapper_by_type.get, data_types)
 
-    values = chain((str(entity_id), str(timestamp)), zipapply(value_mappers, attributes))
+    values = chain(
+        (str(entity_id), str(timestamp)),
+        zipapply(value_mappers, attributes)
+    )
 
     return "\t".join(values) + "\n"
 
 
 def value_to_string(value):
-    if isinstance(value, list):
+    """Return PostgreSQL compatible string for ARRAY-like variable."""
+    if isinstance(value, Iterable):
         return "{" + ",".join(map(str, value)) + "}"
     elif isinstance(value, str):
         return "{" + value + "}"
+    else:
+        raise Exception("Unexpected type '{}'".format(type(value)))
 
 
 value_mapper_by_type = {

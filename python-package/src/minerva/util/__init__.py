@@ -343,3 +343,8 @@ def unlines(lines):
     Join lines with a newline character in between.
     """
     return "\n".join(lines)
+
+
+def show(value):
+    """Write value to stdout."""
+    print(str(value))

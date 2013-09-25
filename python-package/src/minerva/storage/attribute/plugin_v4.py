@@ -15,6 +15,7 @@ from contextlib import closing
 
 from minerva.directory.helpers import get_entity, get_entitytype_by_id
 from minerva.storage.attribute.attributestore import AttributeStore
+from minerva.storage.attribute.datapackage import DataPackage
 from minerva.storage.attribute.rawdatapackage import RawDataPackage
 from minerva.storage.attribute.retrieve import retrieve, retrieve_current, \
     retrieve_attributes_for_entity
@@ -75,3 +76,7 @@ class AttributePlugin(object):
     @staticmethod
     def load_rawdatapackage(stream):
         return RawDataPackage.from_dict(json.load(stream))
+
+    @staticmethod
+    def load_datapackage(stream):
+        return DataPackage.from_dict(json.load(stream))

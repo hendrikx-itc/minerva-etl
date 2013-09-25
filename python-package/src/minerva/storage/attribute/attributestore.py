@@ -10,15 +10,17 @@ the Free Software Foundation; either version 3, or (at your option) any later
 version.  The full license is in the file COPYING, distributed as part of
 this software.
 """
-import re
+import json
 
 import psycopg2
-from minerva.util import head
+
+from minerva.util.debug import log_call_on_exception
+from minerva.util import head, show
 from minerva.db.query import Table
 from minerva.directory.helpers_v4 import get_entitytype_by_id, \
     get_datasource_by_id
-from minerva.db.error import NoSuchColumnError, DataTypeMismatch, translate_postgresql_exception, \
-    translate_postgresql_exceptions
+from minerva.db.error import NoSuchColumnError, DataTypeMismatch, \
+    translate_postgresql_exception, translate_postgresql_exceptions
 from minerva.db.dbtransaction import DbTransaction, DbAction, insert_before
 from minerva.storage.attribute import schema
 from minerva.storage.attribute.attribute import Attribute
@@ -29,28 +31,6 @@ DATATYPE_MISMATCH_ERRORS = set((
     psycopg2.errorcodes.DATATYPE_MISMATCH,
     psycopg2.errorcodes.NUMERIC_VALUE_OUT_OF_RANGE,
     psycopg2.errorcodes.INVALID_TEXT_REPRESENTATION))
-
-
-def show(value):
-    """Write value to stdout."""
-    print(str(value))
-
-
-def log_exception(log_fn):
-    """Return a decorator that wraps a function with an exception logger."""
-    def dec_fn(fn):
-        """Return decorated version of `fn`."""
-        def wrapper(*args, **kwargs):
-            """Return result of wrapped function."""
-            try:
-                return fn(*args, **kwargs)
-            except Exception as exc:
-                log_fn(exc)
-                raise
-
-        return wrapper
-
-    return dec_fn
 
 
 class NoSuchAttributeError(Exception):
@@ -90,7 +70,7 @@ class AttributeStore(object):
         """Return the table name for this attributestore's current values."""
         return "{0}_curr".format(self.table_name())
 
-    def _update_attributes(self, attributes):
+    def update_attributes(self, attributes):
         """Add to, or update current attributes."""
         curr_attributes = list(self.attributes)
 
@@ -232,24 +212,31 @@ class AttributeStore(object):
         return DbTransaction(Insert(self, datapackage))
 
     @translate_postgresql_exceptions
-    @log_exception(show)
+    #@log_call_on_exception(show)
     def store_batch(self, cursor, datapackage):
         """Write data in one batch using staging table."""
-        attributes_by_name = dict((a.name, a) for a in self.attributes)
-
-        copy_from_query = datapackage.create_copy_from_query(
-            self.staging_table)
+        data_types = self.get_data_types(datapackage.attribute_names)
 
         try:
-            data_types = [attributes_by_name[name].datatype
-                          for name in datapackage.attribute_names]
+            datapackage.copy_expert(self.staging_table, data_types)(cursor)
+        except:
+            with open('/tmp/datapackage.json', 'w') as out:
+                json.dump(datapackage.to_dict(), out)
+
+        self._transfer_batch(cursor)
+
+    def get_data_types(self, attribute_names):
+        """Return list of data types corresponding to the `attribute_names`."""
+        attributes_by_name = dict((a.name, a) for a in self.attributes)
+
+        try:
+            return [attributes_by_name[name].datatype
+                    for name in attribute_names]
         except KeyError:
             raise NoSuchAttributeError()
 
-        copy_from_file = datapackage.create_copy_from_file(data_types)
-
-        cursor.copy_expert(copy_from_query, copy_from_file)
-
+    def _transfer_batch(self, cursor):
+        """Transfer all records from staging to history table."""
         cursor.execute(
             "SELECT attribute.store_batch(attributestore) "
             "from attribute.attributestore WHERE id = %s", (self.id,))
@@ -278,12 +265,14 @@ class AttributeStore(object):
 
 
 class Query(object):
+    """Generic query wrapper."""
     __slots__ = 'sql',
 
     def __init__(self, sql):
         self.sql = sql
 
     def execute(self, cursor, args=None):
+        """Execute wrapped query with provided cursor and arguments."""
         try:
             cursor.execute(self.sql, args)
         except psycopg2.DatabaseError as exc:
@@ -311,11 +300,10 @@ class Insert(DbAction):
         try:
             self.attributestore.store_batch(cursor, self.datapackage)
         except psycopg2.DataError as exc:
-            if exc.pgcode == psycopg2.errorcodes.BAD_COPY_FILE_FORMAT \
-               and re.match('.*', exc.pgerror):
+            if exc.pgcode == psycopg2.errorcodes.BAD_COPY_FILE_FORMAT:
                 attributes = self.datapackage.deduce_attributes()
 
-                self.attributestore._update_attributes(attributes)
+                self.attributestore.update_attributes(attributes)
 
                 fix = CheckAttributesExist(self.attributestore)
                 return insert_before(fix)
@@ -324,14 +312,14 @@ class Insert(DbAction):
         except DataTypeMismatch:
             attributes = self.datapackage.deduce_attributes()
 
-            self.attributestore._update_attributes(attributes)
+            self.attributestore.update_attributes(attributes)
 
             fix = CheckAttributeTypes(self.attributestore)
             return insert_before(fix)
         except (NoSuchColumnError, NoSuchAttributeError) as exc:
             attributes = self.datapackage.deduce_attributes()
 
-            self.attributestore._update_attributes(attributes)
+            self.attributestore.update_attributes(attributes)
 
             fix = CheckAttributesExist(self.attributestore)
             return insert_before(fix)
