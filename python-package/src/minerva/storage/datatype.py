@@ -170,9 +170,6 @@ def matches_float(value):
     if value is None or type(value) is float or len(value) == 0:
         return True
 
-    if type(value) is str and value.startswith('0'):
-        return False
-
     try:
         float(value)
     except ValueError:

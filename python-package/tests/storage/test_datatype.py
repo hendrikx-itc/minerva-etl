@@ -161,15 +161,19 @@ def test_parse_boolean():
 def test_matches_float():
     assert not datatype.matches_float("abc")
 
+    assert datatype.matches_float(0.0)
+    assert datatype.matches_float(42.0)
+    assert datatype.matches_float("0.0")
     assert datatype.matches_float("42")
+    assert datatype.matches_float("042")
     assert datatype.matches_float("42.42")
     assert datatype.matches_float("42e10")
     assert datatype.matches_float("42.42e10")
     assert datatype.matches_float("42.42e-10")
     assert datatype.matches_float(None)
 
-    # Checking for a match with any other type than a string shouldn't
-    # result in a TypeError exception, but just return False.
+    # Checking for a match with any other type than a string or number
+    # shouldn't result in a TypeError exception, but just return False.
     assert not datatype.matches_float(("42.41", "42.42", "42.43"))
 
 
@@ -220,7 +224,6 @@ def test_matches_decimal():
 
     assert datatype.matches_decimal(decimal.Decimal('528676.842519685039'))
     assert datatype.matches_decimal(decimal.Decimal('5.842519685039'))
-    
 
 
 def test_parse_decimal():
@@ -262,45 +265,25 @@ def test_matches_array_of_integers():
 
 
 def test_extract_from_value():
-    data_type = datatype.extract_from_value("100")
-
-    eq_(data_type, "smallint")
-
-    data_type = datatype.extract_from_value("100000")
-
-    eq_(data_type, "integer")
-
-    data_type = datatype.extract_from_value("10,89")
-
-    eq_(data_type, "smallint[]")
-
-    data_type = datatype.extract_from_value([10,89])
-
-    eq_(data_type, "smallint[]")
-
-    data_type = datatype.extract_from_value("1000000,89")
-
-    eq_(data_type, "integer[]")
-
-    data_type = datatype.extract_from_value([1000000,89])
-
-    eq_(data_type, "integer[]")
-
-    data_type = datatype.extract_from_value(["eueou", "oeu"])
-
-    eq_(data_type, "text[]")
-
-    data_type = datatype.extract_from_value("10,89au")
-
-    eq_(data_type, "text")
-    
-    data_type = datatype.extract_from_value(decimal.Decimal('528676.842519685039'))
-
-    eq_(data_type, "numeric")
-
-    data_type = datatype.extract_from_value(decimal.Decimal('6.842519685039'))
-
-    eq_(data_type, "numeric")
+    eq_(datatype.extract_from_value("100"), "smallint")
+    eq_(datatype.extract_from_value("100000"), "integer")
+    eq_(datatype.extract_from_value("10,89"), "smallint[]")
+    eq_(datatype.extract_from_value([10, 89]), "smallint[]")
+    eq_(datatype.extract_from_value("1000000,89"), "integer[]")
+    eq_(datatype.extract_from_value([1000000, 89]), "integer[]")
+    eq_(datatype.extract_from_value(["eueou", "oeu"]), "text[]")
+    eq_(datatype.extract_from_value("10,89au"), "text")
+    eq_(datatype.extract_from_value(12.34), "real")
+    eq_(datatype.extract_from_value(0.0), "real")
+    eq_(datatype.extract_from_value(10.5), "real")
+    eq_(datatype.extract_from_value(22.3), "real")
+    eq_(datatype.extract_from_value(30.0), "real")
+    eq_(datatype.extract_from_value("30.0"), "real")
+    eq_(datatype.extract_from_value("0.0"), "real")
+    eq_(datatype.extract_from_value(decimal.Decimal('528676.842519685039')),
+        "numeric")
+    eq_(datatype.extract_from_value(decimal.Decimal('6.842519685039')),
+        "numeric")
 
 
 def test_max_datatypes():

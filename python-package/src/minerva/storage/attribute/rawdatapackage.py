@@ -1,5 +1,5 @@
-
 # -*- coding: utf-8 -*-
+"""Provides the RawDataPackage class."""
 __docformat__ = "restructuredtext en"
 
 __copyright__ = """
@@ -12,7 +12,6 @@ this software.
 """
 from datetime import datetime
 
-from dateutil.parser import parse as parse_timestamp
 import pytz
 
 from minerva.directory.distinguishedname import entitytype_name_from_dn
@@ -21,30 +20,33 @@ from minerva.storage.attribute.datapackage import DataPackage
 
 
 class RawDataPackage(DataPackage):
+    """A DataPackage subclass with refining functionality."""
     def get_entitytype_name(self):
+        """Return the entity type name from the first Distinguished Name."""
         if self.rows:
             first_dn = self.rows[0][0]
 
             return entitytype_name_from_dn(first_dn)
 
     def get_key(self):
+        """
+        Return key by which this package could be merged with other packages.
+        """
         return self.timestamp, self.get_entitytype_name()
 
-    def as_tuple(self):
-        """
-        Return the legacy tuple (timestamp, attribute_names, rows)
-        """
-        return self.timestamp, self.attribute_names, self.rows
-
-    def is_empty(self):
-        return len(self.rows) == 0
-
     def refine(self, cursor):
+        """
+        Return a DataPackage with 'refined' data of this package.
+
+        This means that:
+
+        * If the timestamp of this raw datapackage is a string,
+        it will be parsed as a timestamp in UTC timezone.
+        * All distinguished names are translated to entity Ids.
+        """
         dns, value_rows = zip(*self.rows)
 
         entity_ids = dns_to_entity_ids(cursor, list(dns))
-
-        refined_value_rows = map(refine_values, value_rows)
 
         if isinstance(self.timestamp, datetime):
             timestamp = self.timestamp
@@ -55,49 +57,5 @@ class RawDataPackage(DataPackage):
         else:
             raise Exception("timestamp should be datetime or string")
 
-        rows = zip(entity_ids, refined_value_rows)
+        rows = zip(entity_ids, value_rows)
         return DataPackage(timestamp, self.attribute_names, rows)
-
-    def to_dict(self):
-        def row_to_list(row):
-            entity_id, values = row
-
-            result = [entity_id]
-            result.extend(values)
-
-            return result
-
-        return {
-            "timestamp": self.timestamp.isoformat(),
-            "attribute_names": list(self.attribute_names),
-            "rows": map(row_to_list, self.rows)
-        }
-
-    @staticmethod
-    def from_dict(d):
-        def list_to_row(l):
-            return l[0], l[1:]
-
-        return RawDataPackage(
-            timestamp=parse_timestamp(d["timestamp"]),
-            attribute_names=d["attribute_names"],
-            rows=map(list_to_row, d["rows"]))
-
-
-def refine_values(raw_values):
-    values = []
-
-    for value in raw_values:
-        if type(value) is tuple:
-            joined = ",".join(value)
-
-            if len(joined) > 0:
-                values.append(joined)
-            else:
-                values.append(None)
-        elif len(value) == 0:
-            values.append(None)
-        else:
-            values.append(value)
-
-    return values

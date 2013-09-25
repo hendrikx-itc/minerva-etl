@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+"""Tests for methods of the DataPackage class."""
 __docformat__ = "restructuredtext en"
 __copyright__ = """
 Copyright (C) 2008-2013 Hendrikx-ITC B.V.
@@ -16,44 +17,62 @@ from nose.tools import eq_
 
 from minerva.storage.attribute.datapackage import DataPackage
 
+TIMESTAMP = pytz.utc.localize(datetime(2013, 8, 30, 15, 30))
 
-def test_deduce_datatypes():
-    timestamp = pytz.utc.localize(datetime.utcnow())
+
+def create_simple_package():
+    """Return new DataPackage instance with a simple set of data."""
+    attribute_names = ["power", "height", "state"]
+    rows = [
+        (123001, (405, 0.0, "enabled")),
+        (123002, (300, 10.5, "enabled")),
+        (123003, (41033, 22.3, "enabled")),
+        (123004, (880, 30.0, "enabled"))]
+
+    return DataPackage(TIMESTAMP, attribute_names, rows)
+
+
+def test_constructor():
+    """Test creation of a new DataPackage instance."""
+    datapackage = create_simple_package()
+
+    eq_(datapackage.timestamp, TIMESTAMP)
+    eq_(len(datapackage.attribute_names), 3)
+    eq_(len(datapackage.rows), 4)
+
+
+def test_deduce_data_types():
+    """The max data types should be deduced from the package."""
+    datapackage = create_simple_package()
+
+    data_types = datapackage.deduce_data_types()
+
+    eq_(data_types[0], "integer")
+    eq_(data_types[1], "real")
+    eq_(data_types[2], "text")
+
+    attr_type_dict = dict(zip(datapackage.attribute_names, data_types))
+
+    eq_(attr_type_dict["state"], "text")
+    eq_(attr_type_dict["power"], "integer")
+    eq_(attr_type_dict["height"], "real")
+
+
+def test_deduce_datatypes_empty():
     datapackage = DataPackage(
-        timestamp=timestamp,
+        timestamp=TIMESTAMP,
         attribute_names=('height', 'power', 'refs'),
-        rows=[
-            (10034, ['15.6', '68', ['r32', 'r44', 'r50']])
-        ]
+        rows=[]
     )
 
     data_types = datapackage.deduce_data_types()
 
-    assert data_types[0] == 'real'
-    assert data_types[1] == 'smallint'
-    assert data_types[2] == 'text'
-
-
-def test_deduce_datatypes_empty_package():
-    timestamp = pytz.utc.localize(datetime.utcnow())
-    datapackage = DataPackage(
-        timestamp=timestamp,
-        attribute_names=('height', 'power', 'refs'),
-        rows=[
-        ]
-    )
-
-    data_types = datapackage.deduce_data_types()
-
-    assert data_types[0] == 'smallint'
-    assert data_types[1] == 'smallint'
-    assert data_types[2] == 'smallint'
+    assert data_types == ['smallint', 'smallint', 'smallint']
 
 
 def test_to_dict():
-    timestamp = pytz.utc.localize(datetime(2013, 9, 16, 14, 36))
     datapackage = DataPackage(
-        timestamp=timestamp,
+        timestamp=TIMESTAMP,
         attribute_names=('height', 'power'),
         rows=[
             (10034, ['15.6', '68'])
@@ -63,7 +82,7 @@ def test_to_dict():
     json_data = datapackage.to_dict()
 
     expected_json = (
-        '{"timestamp": "2013-09-16T14:36:00+00:00", '
+        '{"timestamp": "2013-08-30T15:30:00+00:00", '
         '"attribute_names": ["height", "power"], '
         '"rows": ['
         '[10034, "15.6", "68"]'
@@ -86,3 +105,17 @@ def test_from_dict():
 
     eq_(datapackage.attribute_names[1], "azimuth")
     eq_(datapackage.rows[0][0], 13403)
+
+
+def test_deduce_attributes():
+    datapackage = create_simple_package()
+
+    print(datapackage.deduce_data_types())
+    attributes = datapackage.deduce_attributes()
+
+    attr_dict = dict((attribute.name, attribute)
+                     for attribute in attributes)
+
+    eq_(attr_dict["power"].datatype, "integer")
+    eq_(attr_dict["height"].datatype, "real")
+    eq_(attr_dict["state"].datatype, "text")
