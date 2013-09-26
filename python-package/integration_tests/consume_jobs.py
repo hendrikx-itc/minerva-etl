@@ -29,6 +29,7 @@ def jobs(conn):
         else:
             conn.commit()
             yield job
+            sleep(1.0)
 
 
 if __name__ == "__main__":

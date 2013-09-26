@@ -17,6 +17,7 @@ def run(conn):
     for path, size in job_generator():
         description = '{{"uri": {}}}'.format(path)
         enqueue_job(conn, 'dummy', description, size, jobsource_id)
+        conn.commit()
 
 
 def job_generator():
