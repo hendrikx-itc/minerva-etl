@@ -10,12 +10,9 @@ the Free Software Foundation; either version 3, or (at your option) any later
 version.  The full license is in the file COPYING, distributed as part of
 this software.
 """
-import json
-
 import psycopg2
 
-from minerva.util.debug import log_call_on_exception
-from minerva.util import head, show
+from minerva.util import head
 from minerva.db.query import Table
 from minerva.directory.helpers_v4 import get_entitytype_by_id, \
     get_datasource_by_id
@@ -34,6 +31,7 @@ DATATYPE_MISMATCH_ERRORS = set((
 
 
 class NoSuchAttributeError(Exception):
+    """Exception type indicating an unknown attribute."""
     pass
 
 
@@ -207,7 +205,7 @@ class AttributeStore(object):
         args = self.id,
         cursor.execute(query, args)
 
-    def store(self, datapackage):
+    def store_txn(self, datapackage):
         """Return transaction to store the data in the attributestore."""
         return DbTransaction(Insert(self, datapackage))
 

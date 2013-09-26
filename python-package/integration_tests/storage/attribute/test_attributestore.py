@@ -232,7 +232,7 @@ def test_store_empty(conn):
         attributestore = AttributeStore(datasource, entitytype, attributes)
         attributestore.create(cursor)
 
-        attributestore.store(datapackage).run(conn)
+        attributestore.store_txn(datapackage).run(conn)
         conn.commit()
 
 

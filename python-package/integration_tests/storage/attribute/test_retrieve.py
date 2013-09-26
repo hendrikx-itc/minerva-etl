@@ -19,7 +19,7 @@ from nose.tools import assert_not_equal
 from minerva.test import with_conn
 from minerva.directory.helpers_v4 import name_to_datasource, name_to_entitytype
 
-from minerva_db import clear_database
+from .minerva_db import clear_database
 
 from minerva.storage.attribute.datapackage import DataPackage
 from minerva.storage.attribute.attributestore import AttributeStore
@@ -49,13 +49,13 @@ def test_retrieve(conn):
         attributestore = AttributeStore(datasource, entitytype, attributes)
         attributestore.create(cursor)
 
-        attributestore.store(datapackage).run(conn)
+        attributestore.store_txn(datapackage).run(conn)
         time.sleep(5)
 
         time2 = pytz.UTC.localize(datetime.now())
         update_data_rows = [(10023, ('10023', '0.9919', '18'))]
         update_datapackage = DataPackage(time2, trend_names, update_data_rows)
-        attributestore.store(update_datapackage).run(conn)
+        attributestore.store_txn(update_datapackage).run(conn)
         conn.commit()
 
         data = retrieve(conn, attributestore.table, trend_names, [10023])

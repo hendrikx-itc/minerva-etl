@@ -19,7 +19,7 @@ from minerva.directory.helpers_v4 import name_to_datasource, name_to_entitytype
 from minerva.db.postgresql import get_column_names
 from minerva.test import with_conn
 
-from minerva_db import clear_database
+from .minerva_db import clear_database
 
 from minerva.storage.attribute import schema
 from minerva.storage.attribute.attributestore import AttributeStore, Query
@@ -42,7 +42,7 @@ def test_simple(conn):
         attributestore = AttributeStore(datasource, entitytype, attributes)
         attributestore.create(cursor)
 
-        attributestore.store(datapackage).run(conn)
+        attributestore.store_txn(datapackage).run(conn)
 
         query = (
             "SELECT timestamp "
@@ -58,23 +58,24 @@ def test_simple(conn):
 @with_conn(clear_database)
 def test_array(conn):
     with closing(conn.cursor()) as cursor:
-        attribute_names = ['channel', 'pwr']
-        data_rows = [
-            (10023, ('7', '0,0,0,2,5,12,87,34,5,0,0')),
-            (10024, ('9', '0,0,0,1,11,15,95,41,9,0,0'))
-        ]
-
         datasource = name_to_datasource(cursor, "integration-test")
         entitytype = name_to_entitytype(cursor, "UtranCell")
 
         timestamp = datasource.tzinfo.localize(datetime.now())
-        datapackage = DataPackage(timestamp, attribute_names, data_rows)
+        datapackage = DataPackage(
+            timestamp=timestamp,
+            attribute_names=['channel', 'pwr'],
+            rows=[
+                (10023, ('7', '0,0,0,2,5,12,87,34,5,0,0')),
+                (10024, ('9', '0,0,0,1,11,15,95,41,9,0,0'))
+            ]
+        )
 
         attributes = datapackage.deduce_attributes()
         attributestore = AttributeStore(datasource, entitytype, attributes)
         attributestore.create(cursor)
 
-        attributestore.store(datapackage).run(conn)
+        attributestore.store_txn(datapackage).run(conn)
 
 
 @with_conn(clear_database)
@@ -111,12 +112,12 @@ def test_update_modified_column(conn):
         "FROM {0} "
         "WHERE entity_id = 10023").format(attributestore.history_table.render()))
 
-    attributestore.store(datapackage_a).run(conn)
+    attributestore.store_txn(datapackage_a).run(conn)
 
     with closing(conn.cursor()) as cursor:
         modified_a, hash_a = query.execute(cursor).fetchone()
 
-    attributestore.store(datapackage_b).run(conn)
+    attributestore.store_txn(datapackage_b).run(conn)
 
     with closing(conn.cursor()) as cursor:
         modified_b, hash_b = query.execute(cursor).fetchone()
@@ -150,12 +151,12 @@ def test_update(conn):
         attributestore = AttributeStore(datasource, entitytype, attributes)
         attributestore.create(cursor)
 
-        attributestore.store(datapackage).run(conn)
+        attributestore.store_txn(datapackage).run(conn)
 
         time.sleep(1)
 
         datapackage = DataPackage(time1, attribute_names, update_data_rows)
-        attributestore.store(datapackage).run(conn)
+        attributestore.store_txn(datapackage).run(conn)
 
         conn.commit()
 
@@ -198,8 +199,8 @@ def test_extra_column(conn):
 
         conn.commit()
 
-        attributestore.store(datapackage_a).run(conn)
-        attributestore.store(datapackage_b).run(conn)
+        attributestore.store_txn(datapackage_a).run(conn)
+        attributestore.store_txn(datapackage_b).run(conn)
 
         conn.commit()
         column_names = get_column_names(conn, schema.name,
@@ -238,8 +239,8 @@ def test_changing_datatype(conn):
 
         conn.commit()
 
-        attributestore.store(datapackage_a).run(conn)
-        attributestore.store(datapackage_b).run(conn)
+        attributestore.store_txn(datapackage_a).run(conn)
+        attributestore.store_txn(datapackage_b).run(conn)
 
         conn.commit()
         column_names = get_column_names(conn, schema.name,
