@@ -212,18 +212,13 @@ class AttributeStore(object):
         return DbTransaction(Insert(self, datapackage))
 
     @translate_postgresql_exceptions
-    #@log_call_on_exception(show)
     def store_batch(self, cursor, datapackage):
         """Write data in one batch using staging table."""
         data_types = self.get_data_types(datapackage.attribute_names)
 
-        try:
-            datapackage.copy_expert(self.staging_table, data_types)(cursor)
-        except:
-            with open('/tmp/datapackage.json', 'w') as out:
-                json.dump(datapackage.to_dict(), out)
+        datapackage.copy_expert(self.staging_table, data_types)(cursor)
 
-        self._transfer_batch(cursor)
+        self._transfer_staged(cursor)
 
     def get_data_types(self, attribute_names):
         """Return list of data types corresponding to the `attribute_names`."""
@@ -235,10 +230,10 @@ class AttributeStore(object):
         except KeyError:
             raise NoSuchAttributeError()
 
-    def _transfer_batch(self, cursor):
+    def _transfer_staged(self, cursor):
         """Transfer all records from staging to history table."""
         cursor.execute(
-            "SELECT attribute.store_batch(attributestore) "
+            "SELECT attribute.transfer_staged(attributestore) "
             "from attribute.attributestore WHERE id = %s", (self.id,))
 
     def check_attributes_exist(self, cursor):

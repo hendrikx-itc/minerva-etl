@@ -20,7 +20,6 @@ from minerva.util.config import load_config, get_defaults, ConfigError
 from minerva.db import connect
 from minerva.instance import MinervaInstance
 from minerva.storage import get_plugin
-
 from minerva.storage.geospatial.types import Site, Cell, Point
 
 
@@ -101,7 +100,7 @@ def setup_logging(level):
 def get_sites(cursor):
     query = (
         "SELECT entity_id, timestamp, x_lon, y_lat, srid "
-        "FROM delta.configuration_site_curr")
+        'FROM attribute."configuration_Site_curr"')
 
     cursor.execute(query)
 
@@ -114,7 +113,7 @@ def get_sites(cursor):
 def get_cells(cursor):
     query = (
         "SELECT entity_id, timestamp, azimuth, type "
-        "FROM delta.configuration_cell_curr")
+        'FROM attribute."configuration_Cell_curr"')
 
     cursor.execute(query)
 

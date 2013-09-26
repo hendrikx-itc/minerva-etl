@@ -44,6 +44,7 @@ setup(
         "scripts/create-relations",
         "scripts/load-tags",
         "scripts/link-entity-tags",
+        "scripts/link-trend-tags",
         "scripts/create-network",
         "scripts/create-virtual-entities",
         "scripts/create-csv",
@@ -52,5 +53,6 @@ setup(
         "scripts/load-data",
         "scripts/load-datapackage",
         "scripts/query-entities",
-        "scripts/load-elements"]
+        "scripts/load-elements",
+        "scripts/populate-gis"]
 )

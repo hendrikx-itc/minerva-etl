@@ -74,7 +74,7 @@ def main():
 
     minerva_instance = MinervaInstance.load(args.instance)
 
-    module_directory = os.path.join(minerva_instance.type().path(), "tags/trend")
+    module_directory = os.path.join(minerva_instance.minerva_class().path(), "tags/trend")
 
     sys.path.append(module_directory)
 
