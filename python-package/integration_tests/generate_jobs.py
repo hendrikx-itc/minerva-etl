@@ -1,9 +1,9 @@
 import random
 from contextlib import closing
 
-from minerva_db import connect
+from minerva.test import connect
 from minerva.system.jobqueue import enqueue_job
-from minerva.system.helpers import add_datasource, add_process
+from minerva.system.helpers import add_job_source, get_job_source
 
 
 def main():
@@ -12,28 +12,29 @@ def main():
 
 
 def run(conn):
-    datasource_id = add_dummy_datasource(conn)
+    jobsource_id = add_dummy_jobsource(conn)
 
-    minerva_proc_id = add_dummy_process(conn)
-
-    for path, filesize in job_generator():
-        enqueue_job(conn, datasource_id, minerva_proc_id, path, filesize)
+    for path, size in job_generator():
+        description = '{{"uri": {}}}'.format(path)
+        enqueue_job(conn, 'dummy', description, size, jobsource_id)
 
 
 def job_generator():
     while True:
         path = "/data/kpi_1.csv"
-        filesize = random.randint(100, 100000)
+        size = random.randint(100, 100000)
 
-        yield path, filesize
+        yield path, size
 
 
-def add_dummy_datasource(conn):
-    return add_datasource(conn, "job_generater", "dummy_data",
-            "/data", ".*", False, "do_nothing", "do_nothing", "{}")
+def add_dummy_jobsource(conn):
+    name = "job_generator"
+    config = "{}"
 
-def add_dummy_process(conn):
-    return add_process(conn, "integration_test", "localhost", 1234, 567)
+    with closing(conn.cursor()) as cursor:
+        return (
+            get_job_source(cursor, name) or
+            add_job_source(cursor, name, "dummy", config))
 
 
 if __name__ == "__main__":
