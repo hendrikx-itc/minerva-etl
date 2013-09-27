@@ -39,7 +39,10 @@ setup(
         "minerva.schemacontextbuilder",
         "minerva.instance"],
     package_dir={"": "src"},
-    package_data={"minerva": ["defaults/*"]},
+    package_data={
+        "minerva": ["defaults/*"],
+        "minerva.storage.geospatial": ["defaults/*"]
+    },
     scripts=[
         "scripts/create-relations",
         "scripts/load-tags",
