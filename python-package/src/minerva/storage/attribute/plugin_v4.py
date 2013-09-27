@@ -37,7 +37,7 @@ class AttributePlugin(object):
 
         self.conn.commit()
 
-        attributestore.store(datapackage).run(self.conn)
+        attributestore.store_txn(datapackage).run(self.conn)
 
     def retrieve_attributes_for_entity(self, entity_id, attributes):
         return retrieve_attributes_for_entity(self.conn, entity_id, attributes)
