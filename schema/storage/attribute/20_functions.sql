@@ -104,9 +104,11 @@ CREATE OR REPLACE FUNCTION create_dependees(attribute.attributestore)
 	RETURNS attribute.attributestore
 AS $$
 	SELECT
-		attribute.create_staging_modified_view(
-			attribute.create_staging_new_view(
-				attribute.create_hash_function($1)
+		attribute.create_curr_view(
+			attribute.create_staging_modified_view(
+				attribute.create_staging_new_view(
+					attribute.create_hash_function($1)
+				)
 			)
 		);
 $$ LANGUAGE SQL VOLATILE;
@@ -118,7 +120,9 @@ AS $$
 	SELECT
 		attribute.drop_hash_function(
 			attribute.drop_staging_new_view(
-				attribute.drop_staging_modified_view($1)
+				attribute.drop_staging_modified_view(
+					attribute.drop_curr_view($1)
+				)
 			)
 		);
 $$ LANGUAGE SQL VOLATILE;
@@ -152,6 +156,46 @@ CREATE OR REPLACE FUNCTION drop_changes_view(attribute.attributestore)
 AS $$
 BEGIN
 	EXECUTE format('DROP VIEW attribute.%I', attribute.to_table_name($1) || '_history_changes');
+
+	RETURN $1;
+END;
+$$ LANGUAGE plpgsql VOLATILE;
+
+
+CREATE OR REPLACE FUNCTION create_curr_view(attribute.attributestore)
+	RETURNS attribute.attributestore
+AS $$
+DECLARE
+	history_table_name name;
+	view_name name;
+	view_sql text;
+BEGIN
+	history_table_name = attribute.to_table_name($1) || '_history';
+	view_name = attribute.to_table_name($1) || '_curr';
+
+	view_sql = format('SELECT h.*
+		FROM attribute.%I h
+		JOIN (
+			SELECT max(timestamp) AS timestamp, entity_id
+			FROM attribute.%I
+			GROUP BY entity_id
+		) newest ON h.entity_id = newest.entity_id AND h.timestamp = newest.timestamp', history_table_name, history_table_name);
+
+	EXECUTE format('CREATE VIEW attribute.%I AS %s', view_name, view_sql);
+
+	EXECUTE format('ALTER TABLE attribute.%I
+		OWNER TO minerva_admin', view_name);
+
+	RETURN $1;
+END;
+$$ LANGUAGE plpgsql VOLATILE;
+
+
+CREATE OR REPLACE FUNCTION drop_curr_view(attribute.attributestore)
+	RETURNS attribute.attributestore
+AS $$
+BEGIN
+	EXECUTE format('DROP VIEW attribute.%I', attribute.to_table_name($1) || '_curr');
 
 	RETURN $1;
 END;
@@ -245,9 +289,11 @@ BEGIN
 	WHERE attributestore_id = $1.id;
 
 	EXECUTE format('CREATE UNLOGGED TABLE attribute.%I (
-	%s,
-	PRIMARY KEY (entity_id, timestamp)
+	%s
 	) INHERITS (attribute.%I)', table_name, columns_part, parent_table_name);
+
+	EXECUTE format('CREATE INDEX ON attribute.%I
+		USING btree (entity_id, timestamp)', table_name);
 
 	EXECUTE format('ALTER TABLE attribute.%I
 		OWNER TO minerva_admin', table_name);
@@ -265,16 +311,32 @@ DECLARE
 	staging_table_name name;
 	history_table_name name;
 	view_name name;
+	column_expressions text[];
+	columns_part character varying;
 BEGIN
 	table_name = attribute.to_table_name($1);
 	staging_table_name = table_name || '_staging';
 	history_table_name = table_name || '_history';
 	view_name = staging_table_name || '_new';
 
+	SELECT
+		array_agg(format('last(s.%I) AS %I', name, name)) INTO column_expressions
+	FROM
+		public.column_names('attribute', staging_table_name) name
+	WHERE name NOT in ('entity_id', 'timestamp');
+
+	SELECT array_to_string(
+		ARRAY['s.entity_id', 's.timestamp'] || column_expressions,
+		', ')
+	INTO columns_part;
+
 	EXECUTE format('CREATE VIEW attribute.%I
-AS SELECT s.* FROM attribute.%I s
-LEFT JOIN attribute.%I a ON a.entity_id = s.entity_id AND a.timestamp = s.timestamp
-WHERE a.entity_id IS NULL', view_name, staging_table_name, history_table_name);
+AS SELECT %s FROM attribute.%I s
+LEFT JOIN attribute.%I a
+	ON a.entity_id = s.entity_id
+	AND a.timestamp = s.timestamp
+WHERE a.entity_id IS NULL
+GROUP BY s.entity_id, s.timestamp', view_name, columns_part, staging_table_name, history_table_name);
 
 	EXECUTE format('ALTER TABLE attribute.%I
 		OWNER TO minerva_admin', view_name);
@@ -545,7 +607,7 @@ END;
 $$ LANGUAGE plpgsql VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION store_batch(attribute.attributestore)
+CREATE OR REPLACE FUNCTION transfer_staged(attribute.attributestore)
 	RETURNS attribute.attributestore
 AS $$
 DECLARE
