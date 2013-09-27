@@ -41,7 +41,10 @@ setup(
     package_dir={"": "src"},
     package_data={
         "minerva": ["defaults/*"],
-        "minerva.storage.geospatial": ["defaults/*"]
+        "minerva.storage.geospatial": ["defaults/*"],
+        "minerva.storage.attribute": ["defaults/*"],
+        "minerva.storage.trend": ["defaults/*"],
+        "minerva.storage.delta": ["defaults/*"]
     },
     scripts=[
         "scripts/create-relations",
