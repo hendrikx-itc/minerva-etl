@@ -74,15 +74,21 @@ class DataPackage(object):
                    zip(self.attribute_names, data_types))
 
     def copy_expert(self, table, data_types):
+        """
+        Return a function that can execute a COPY FROM query on a cursor.
+
+        :param data_types: A list of datatypes that determine how the values
+        should be rendered.
+        """
         def fn(cursor):
             cursor.copy_expert(
-                self.create_copy_from_query(table),
-                self.create_copy_from_file(data_types)
+                self._create_copy_from_query(table),
+                self._create_copy_from_file(data_types)
             )
 
         return fn
 
-    def create_copy_from_query(self, table):
+    def _create_copy_from_query(self, table):
         """Return SQL query that can be used in the COPY FROM command."""
         column_names = chain(SYSTEM_COLUMNS, self.attribute_names)
 
@@ -91,8 +97,13 @@ class DataPackage(object):
         return "COPY {0}({1}) FROM STDIN".format(
             table.render(), ",".join(map(quote, column_names)))
 
-    def create_copy_from_file(self, data_types):
-        """Return StringIO instance to use with COPY FROM command."""
+    def _create_copy_from_file(self, data_types):
+        """
+        Return StringIO instance to use with COPY FROM command.
+
+        :param data_types: A list of datatypes that determine how the values
+        should be rendered.
+        """
         copy_from_file = StringIO.StringIO()
 
         lines = self._create_copy_from_lines(data_types)
@@ -156,10 +167,10 @@ def create_copy_from_line(timestamp, data_types, row):
 
 def value_to_string(value):
     """Return PostgreSQL compatible string for ARRAY-like variable."""
-    if isinstance(value, Iterable):
-        return "{" + ",".join(map(str, value)) + "}"
-    elif isinstance(value, str):
+    if isinstance(value, str):
         return "{" + value + "}"
+    elif isinstance(value, Iterable):
+        return "{" + ",".join(map(str, value)) + "}"
     else:
         raise Exception("Unexpected type '{}'".format(type(value)))
 
