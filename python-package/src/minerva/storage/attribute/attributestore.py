@@ -207,7 +207,7 @@ class AttributeStore(object):
 
     def store_txn(self, datapackage):
         """Return transaction to store the data in the attributestore."""
-        return DbTransaction(Insert(self, datapackage))
+        return DbTransaction(StoreBatch(self, datapackage))
 
     @translate_postgresql_exceptions
     def store_batch(self, cursor, datapackage):
@@ -284,7 +284,11 @@ def fetch_one(cursor):
     return cursor.fetch_one()
 
 
-class Insert(DbAction):
+class StoreBatch(DbAction):
+    """
+    A DbAction subclass that calls the 'store_batch' method on the
+    attributestore and creates corrective actions if a known error occurs.
+    """
     def __init__(self, attributestore, datapackage):
         self.attributestore = attributestore
         self.datapackage = datapackage
@@ -318,20 +322,11 @@ class Insert(DbAction):
             return insert_before(fix)
 
 
-class Update(DbAction):
-    def __init__(self, attributestore, datapackage):
-        self.attributestore = attributestore
-        self.datapackage = datapackage
-
-    def execute(self, cursor, state):
-        for entity_id, values in self.datapackage.rows:
-            self.attributestore.update_row(cursor,
-                                           self.datapackage.attribute_names,
-                                           self.datapackage.timestamp,
-                                           entity_id, values)
-
-
 class CheckAttributesExist(DbAction):
+    """
+    A DbAction subclass that calls the 'check_attributes_exist' method on the
+    attributestore.
+    """
     def __init__(self, attributestore):
         self.attributestore = attributestore
 
@@ -340,6 +335,10 @@ class CheckAttributesExist(DbAction):
 
 
 class CheckAttributeTypes(DbAction):
+    """
+    A DbAction subclass that calls the 'check_attributes_exist' method on the
+    attributestore.
+    """
     def __init__(self, attributestore):
         self.attributestore = attributestore
 
