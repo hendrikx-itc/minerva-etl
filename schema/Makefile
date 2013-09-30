@@ -1,35 +1,91 @@
 #!/usr/bin/make
 
-all:
+BIN_DIR=$(DESTDIR)/usr/bin
+MINERVA_SHARE_DIR=$(DESTDIR)/usr/share/minerva
 
+SCRIPTS=$(addprefix $(BIN_DIR)/,init-minerva-db)
+CONF_FILES=$(addprefix $(DESTDIR)/etc/,$(wildcard *.conf))
+SQL_SCRIPTS=$(addprefix $(MINERVA_SHARE_DIR)/,$(wildcard *.sql))
+SQL_SCRIPTS_PUBLIC=$(addprefix $(MINERVA_SHARE_DIR)/,$(wildcard public/*.sql))
+SQL_SCRIPTS_DIRECTORY=$(addprefix $(MINERVA_SHARE_DIR)/,$(wildcard directory/*.sql))
+SQL_SCRIPTS_SYSTEM=$(addprefix $(MINERVA_SHARE_DIR)/,$(wildcard system/*.sql))
+SQL_SCRIPTS_RELATION=$(addprefix $(MINERVA_SHARE_DIR)/,$(wildcard relation/*.sql))
+SQL_SCRIPTS_DIMENSION=$(addprefix $(MINERVA_SHARE_DIR)/,$(wildcard dimension/*.sql))
+SQL_SCRIPTS_STORAGE_TREND=$(addprefix $(MINERVA_SHARE_DIR)/,$(wildcard storage/trend/*.sql))
+SQL_SCRIPTS_STORAGE_ATTRIBUTE=$(addprefix $(MINERVA_SHARE_DIR)/,$(wildcard storage/attribute/*.sql))
+SQL_SCRIPTS_STORAGE_GEOSPATIAL=$(addprefix $(MINERVA_SHARE_DIR)/,$(wildcard storage/geospatial/*.sql))
+SQL_SCRIPTS_STORAGE_NOTIFICATION=$(addprefix $(MINERVA_SHARE_DIR)/,$(wildcard storage/notification/*.sql))
+
+DIRS=\
+	 $(DESTDIR)/etc \
+	 $(BIN_DIR) \
+	 $(MINERVA_SHARE_DIR) \
+	 $(MINERVA_SHARE_DIR)/public \
+	 $(MINERVA_SHARE_DIR)/directory \
+	 $(MINERVA_SHARE_DIR)/system \
+	 $(MINERVA_SHARE_DIR)/relation \
+	 $(MINERVA_SHARE_DIR)/dimension \
+	 $(MINERVA_SHARE_DIR)/storage/trend \
+	 $(MINERVA_SHARE_DIR)/storage/attribute \
+	 $(MINERVA_SHARE_DIR)/storage/geospatial \
+	 $(MINERVA_SHARE_DIR)/storage/notification \
+	 $(MINERVA_SHARE_DIR)/extensions
+
+all:
 
 clean:
 
+install:\
+	$(DIRS) \
+	$(SQL_SCRIPTS) \
+	$(SQL_SCRIPTS_PUBLIC) \
+	$(SQL_SCRIPTS_DIRECTORY) \
+	$(SQL_SCRIPTS_SYSTEM) \
+	$(SQL_SCRIPTS_RELATION) \
+	$(SQL_SCRIPTS_DIMENSION) \
+	$(SQL_SCRIPTS_STORAGE_TREND) \
+	$(SQL_SCRIPTS_STORAGE_ATTRIBUTE) \
+	$(SQL_SCRIPTS_STORAGE_GEOSPATIAL) \
+	$(SQL_SCRIPTS_STORAGE_NOTIFICATION) \
+	$(SCRIPTS) \
+	$(CONF_FILES)
 
-install:
-	install -d $(DESTDIR)/usr/share/minerva/
-	install -m 0644 *.sql $(DESTDIR)/usr/share/minerva/
-	install -d $(DESTDIR)/usr/share/minerva/public/
-	install -m 0644 public/*.sql $(DESTDIR)/usr/share/minerva/public/
-	install -d $(DESTDIR)/usr/share/minerva/directory/
-	install -m 0644 directory/*.sql $(DESTDIR)/usr/share/minerva/directory/
-	install -d $(DESTDIR)/usr/share/minerva/system/
-	install -m 0644 system/*.sql $(DESTDIR)/usr/share/minerva/system/
-	install -d $(DESTDIR)/usr/share/minerva/relation/
-	install -m 0644 relation/*.sql $(DESTDIR)/usr/share/minerva/relation/
-	install -d $(DESTDIR)/usr/share/minerva/dimension/
-	install -m 0644 dimension/*.sql $(DESTDIR)/usr/share/minerva/dimension/
-	install -d $(DESTDIR)/usr/share/minerva/storage/
-	install -d $(DESTDIR)/usr/share/minerva/storage/trend
-	install -m 0644 storage/trend/*.sql $(DESTDIR)/usr/share/minerva/storage/trend
-	install -d $(DESTDIR)/usr/share/minerva/storage/attribute
-	install -m 0644 storage/attribute/*.sql $(DESTDIR)/usr/share/minerva/storage/attribute
-	install -d $(DESTDIR)/usr/share/minerva/storage/geospatial
-	install -m 0644 storage/geospatial/* $(DESTDIR)/usr/share/minerva/storage/geospatial
-	install -d $(DESTDIR)/usr/share/minerva/storage/notification
-	install -m 0644 storage/notification/*.sql $(DESTDIR)/usr/share/minerva/storage/notification
-	install -d $(DESTDIR)/usr/share/minerva/extensions/
-	install -d $(DESTDIR)/usr/bin/
-	install -m 0755 init-minerva-db $(DESTDIR)/usr/bin/
-	install -d $(DESTDIR)/etc/
-	install -m 0600 minerva_db.conf $(DESTDIR)/etc/
+
+$(DIRS):
+	mkdir -p $@
+
+$(SCRIPTS):
+	install -m 0755 $(@F) $(@)
+
+$(CONF_FILES):
+	install -m 0600 $(@F) $(@)
+
+$(SQL_SCRIPTS): | $(MINERVA_SHARE_DIR)
+	install -m 0644 $(@F) $(@)
+
+$(SQL_SCRIPTS_PUBLIC): | $(MINERVA_SHARE_DIR)/public
+	install -m 0644 public/$(@F) $(@)
+
+$(SQL_SCRIPTS_DIRECTORY): | $(MINERVA_SHARE_DIR)/directory
+	install -m 0644 directory/$(@F) $(@)
+
+$(SQL_SCRIPTS_SYSTEM): | $(MINERVA_SHARE_DIR)/system
+	install -m 0644 system/$(@F) $(@)
+
+$(SQL_SCRIPTS_RELATION): | $(MINERVA_SHARE_DIR)/relation
+	install -m 0644 relation/$(@F) $(@)
+
+$(SQL_SCRIPTS_DIMENSION): | $(MINERVA_SHARE_DIR)/dimension
+	install -m 0644 dimension/$(@F) $(@)
+
+$(SQL_SCRIPTS_STORAGE_TREND): | $(MINERVA_SHARE_DIR)/storage/trend
+	install -m 0644 storage/trend/$(@F) $(@)
+
+$(SQL_SCRIPTS_STORAGE_ATTRIBUTE): | $(MINERVA_SHARE_DIR)/storage/attribute
+	install -m 0644 storage/attribute/$(@F) $(@)
+
+$(SQL_SCRIPTS_STORAGE_GEOSPATIAL): | $(MINERVA_SHARE_DIR)/storage/geospatial
+	install -m 0644 storage/geospatial/$(@F) $(@)
+
+$(SQL_SCRIPTS_STORAGE_NOTIFICATION): | $(MINERVA_SHARE_DIR)/storage/notification
+	install -m 0644 storage/notification/$(@F) $(@)
