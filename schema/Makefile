@@ -13,7 +13,7 @@ SQL_SCRIPTS_RELATION=$(addprefix $(MINERVA_SHARE_DIR)/,$(wildcard relation/*.sql
 SQL_SCRIPTS_DIMENSION=$(addprefix $(MINERVA_SHARE_DIR)/,$(wildcard dimension/*.sql))
 SQL_SCRIPTS_STORAGE_TREND=$(addprefix $(MINERVA_SHARE_DIR)/,$(wildcard storage/trend/*.sql))
 SQL_SCRIPTS_STORAGE_ATTRIBUTE=$(addprefix $(MINERVA_SHARE_DIR)/,$(wildcard storage/attribute/*.sql))
-SQL_SCRIPTS_STORAGE_GEOSPATIAL=$(addprefix $(MINERVA_SHARE_DIR)/,$(wildcard storage/geospatial/*.sql))
+SQL_SCRIPTS_STORAGE_GEOSPATIAL=$(addprefix $(MINERVA_SHARE_DIR)/,$(wildcard storage/geospatial/*))
 SQL_SCRIPTS_STORAGE_NOTIFICATION=$(addprefix $(MINERVA_SHARE_DIR)/,$(wildcard storage/notification/*.sql))
 
 DIRS=\
