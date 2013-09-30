@@ -65,6 +65,7 @@ def test_matches_integer():
     max_integer = pow(2, 31) - 1
 
     assert datatype.matches_integer("10")
+    assert not datatype.matches_integer("0,1,3,1,0")
     assert not datatype.matches_integer(12.4)
     assert datatype.matches_integer("-10")
     assert datatype.matches_integer(str(max_integer))

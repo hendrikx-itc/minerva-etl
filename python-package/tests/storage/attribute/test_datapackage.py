@@ -1,3 +1,4 @@
+# pylint: disable=W0212
 # -*- coding: utf-8 -*-
 """Tests for methods of the DataPackage class."""
 __docformat__ = "restructuredtext en"
@@ -32,6 +33,18 @@ def create_simple_package():
     return DataPackage(TIMESTAMP, attribute_names, rows)
 
 
+def create_package_array():
+    """Return new DataPackage instance with a simple set of data."""
+    attribute_names = ["curve"]
+    rows = [
+        (123001, ('0,1,2,4,7,4,2,1,0',)),
+        (123002, ('0,1,2,5,8,4,2,1,0',)),
+        (123003, ('0,1,3,5,7,4,3,1,0',)),
+        (123004, ('0,1,2,4,9,4,2,1,0',))]
+
+    return DataPackage(TIMESTAMP, attribute_names, rows)
+
+
 def test_constructor():
     """Test creation of a new DataPackage instance."""
     datapackage = create_simple_package()
@@ -56,6 +69,17 @@ def test_deduce_data_types():
     eq_(attr_type_dict["state"], "text")
     eq_(attr_type_dict["power"], "integer")
     eq_(attr_type_dict["height"], "real")
+
+
+def test_deduce_data_types_array():
+    """The max data types should be deduced from the package."""
+    datapackage = create_package_array()
+
+    data_types = datapackage.deduce_data_types()
+
+    attr_type_dict = dict(zip(datapackage.attribute_names, data_types))
+
+    eq_(attr_type_dict["curve"], "integer[]")
 
 
 def test_deduce_datatypes_empty():
@@ -110,7 +134,6 @@ def test_from_dict():
 def test_deduce_attributes():
     datapackage = create_simple_package()
 
-    print(datapackage.deduce_data_types())
     attributes = datapackage.deduce_attributes()
 
     attr_dict = dict((attribute.name, attribute)
@@ -119,3 +142,22 @@ def test_deduce_attributes():
     eq_(attr_dict["power"].datatype, "integer")
     eq_(attr_dict["height"].datatype, "real")
     eq_(attr_dict["state"].datatype, "text")
+
+
+def test_create_copy_from_lines():
+    """
+    The format of the copy-from-file should be acceptable by PostgreSQL.
+    """
+    datapackage = create_simple_package()
+    data_types = datapackage.deduce_data_types()
+
+    lines = datapackage._create_copy_from_lines(data_types)
+
+    eq_(lines[0], "123001\t2013-08-30 15:30:00+00:00\t405\t0.0\tenabled\n")
+
+    datapackage = create_package_array()
+    data_types = datapackage.deduce_data_types()
+
+    lines = datapackage._create_copy_from_lines(data_types)
+
+    eq_(lines[0], "123001\t2013-08-30 15:30:00+00:00\t{0,1,2,4,7,4,2,1,0}\n")

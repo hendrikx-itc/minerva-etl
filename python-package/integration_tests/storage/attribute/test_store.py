@@ -75,6 +75,8 @@ def test_array(conn):
         attributestore = AttributeStore(datasource, entitytype, attributes)
         attributestore.create(cursor)
 
+        conn.commit()
+
         attributestore.store_txn(datapackage).run(conn)
 
 
