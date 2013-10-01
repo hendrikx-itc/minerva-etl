@@ -15,7 +15,7 @@ from contextlib import closing
 
 from nose.tools import eq_
 from minerva.test import with_conn
-from minerva.directory.helpers_v4 import name_to_datasource, name_to_entitytype
+from minerva.directory.basetypes import DataSource, EntityType
 
 from minerva.storage.attribute import schema
 from minerva.storage.attribute.attribute import Attribute
@@ -29,8 +29,8 @@ from .minerva_db import clear_database
 def test_create(conn):
     """Test creation of a new attribute store."""
     with closing(conn.cursor()) as cursor:
-        datasource = name_to_datasource(cursor, "integration-test")
-        entitytype = name_to_entitytype(cursor, "UtranCell")
+        datasource = DataSource.from_name(cursor, "integration-test")
+        entitytype = EntityType.from_name(cursor, "UtranCell")
 
         attributes = [
             Attribute("cntr1", "integer", "description for this attribute"),
@@ -63,8 +63,8 @@ def test_create(conn):
 def test_from_attributes(conn):
     """Test creation of a new attribute store from attributes."""
     with closing(conn.cursor()) as cursor:
-        datasource = name_to_datasource(cursor, "integration-test")
-        entitytype = name_to_entitytype(cursor, "UtranCell")
+        datasource = DataSource.from_name(cursor, "integration-test")
+        entitytype = EntityType.from_name(cursor, "UtranCell")
 
         attributes = [
             Attribute("cntr1", "integer", "description for this attribute"),
@@ -100,8 +100,8 @@ def test_store_batch_simple(conn):
         attribute_names = ['CCR', 'Drops']
         data_rows = [(10023 + i, ('0.9919', '17')) for i in range(100)]
 
-        datasource = name_to_datasource(cursor, "integration-test")
-        entitytype = name_to_entitytype(cursor, "UtranCell")
+        datasource = DataSource.from_name(cursor, "integration-test")
+        entitytype = EntityType.from_name(cursor, "UtranCell")
 
         timestamp = datasource.tzinfo.localize(datetime.now())
         datapackage = DataPackage(timestamp, attribute_names, data_rows)
@@ -135,8 +135,8 @@ def test_store_batch_with_list(conn):
         data_rows = [(10023 + i, ('19.5', ['r34', 'r23', 'r33']))
                      for i in range(100)]
 
-        datasource = name_to_datasource(cursor, "integration-test")
-        entitytype = name_to_entitytype(cursor, "UtranCell")
+        datasource = DataSource.from_name(cursor, "integration-test")
+        entitytype = EntityType.from_name(cursor, "UtranCell")
 
         timestamp = datasource.tzinfo.localize(datetime.now())
         datapackage = DataPackage(timestamp, attribute_names, data_rows)
@@ -170,8 +170,8 @@ def test_store_batch_update(conn):
         data_rows = [(10023 + i, ('0.9919', '17')) for i in range(100)]
         update_data_rows = [(10023 + i, ('0.9918', '18')) for i in range(100)]
 
-        datasource = name_to_datasource(cursor, "integration-test")
-        entitytype = name_to_entitytype(cursor, "UtranCell")
+        datasource = DataSource.from_name(cursor, "integration-test")
+        entitytype = EntityType.from_name(cursor, "UtranCell")
 
         timestamp = datasource.tzinfo.localize(datetime.now())
         datapackage = DataPackage(timestamp, attribute_names, data_rows)
@@ -222,8 +222,8 @@ def test_store_empty(conn):
         attribute_names = ['CCR', 'Drops']
         data_rows = []
 
-        datasource = name_to_datasource(cursor, "integration-test")
-        entitytype = name_to_entitytype(cursor, "UtranCell")
+        datasource = DataSource.from_name(cursor, "integration-test")
+        entitytype = EntityType.from_name(cursor, "UtranCell")
 
         timestamp = datasource.tzinfo.localize(datetime.now())
         datapackage = DataPackage(timestamp, attribute_names, data_rows)
@@ -243,8 +243,8 @@ def test_compact(conn):
         attribute_names = ['CCR', 'Drops']
         data_rows = [(10023 + i, ('0.9919', '17')) for i in range(100)]
 
-        datasource = name_to_datasource(cursor, "integration-test")
-        entitytype = name_to_entitytype(cursor, "UtranCell")
+        datasource = DataSource.from_name(cursor, "integration-test")
+        entitytype = EntityType.from_name(cursor, "UtranCell")
 
         timestamp = datasource.tzinfo.localize(datetime.now())
 
