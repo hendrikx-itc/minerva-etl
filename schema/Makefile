@@ -1,4 +1,5 @@
 #!/usr/bin/make
+.SECONDEXPANSION:
 
 BIN_DIR=$(DESTDIR)/usr/bin
 MINERVA_SHARE_DIR=$(DESTDIR)/usr/share/minerva
@@ -54,38 +55,38 @@ install:\
 $(DIRS):
 	mkdir -p $@
 
-$(SCRIPTS):
+$(SCRIPTS): $$(@F)
 	install -m 0755 $(@F) $(@)
 
-$(CONF_FILES):
+$(CONF_FILES): $$(@F)
 	install -m 0600 $(@F) $(@)
 
-$(SQL_SCRIPTS): | $(MINERVA_SHARE_DIR)
+$(SQL_SCRIPTS): $$(@F) | $(MINERVA_SHARE_DIR)
 	install -m 0644 $(@F) $(@)
 
-$(SQL_SCRIPTS_PUBLIC): | $(MINERVA_SHARE_DIR)/public
+$(SQL_SCRIPTS_PUBLIC): public/$$(@F) | $(MINERVA_SHARE_DIR)/public
 	install -m 0644 public/$(@F) $(@)
 
-$(SQL_SCRIPTS_DIRECTORY): | $(MINERVA_SHARE_DIR)/directory
+$(SQL_SCRIPTS_DIRECTORY): directory/$$(@F) | $(MINERVA_SHARE_DIR)/directory
 	install -m 0644 directory/$(@F) $(@)
 
-$(SQL_SCRIPTS_SYSTEM): | $(MINERVA_SHARE_DIR)/system
+$(SQL_SCRIPTS_SYSTEM): system/$$(@F) | $(MINERVA_SHARE_DIR)/system
 	install -m 0644 system/$(@F) $(@)
 
-$(SQL_SCRIPTS_RELATION): | $(MINERVA_SHARE_DIR)/relation
+$(SQL_SCRIPTS_RELATION): relation/$$(@F) | $(MINERVA_SHARE_DIR)/relation
 	install -m 0644 relation/$(@F) $(@)
 
-$(SQL_SCRIPTS_DIMENSION): | $(MINERVA_SHARE_DIR)/dimension
+$(SQL_SCRIPTS_DIMENSION): dimension/$$(@F) | $(MINERVA_SHARE_DIR)/dimension
 	install -m 0644 dimension/$(@F) $(@)
 
-$(SQL_SCRIPTS_STORAGE_TREND): | $(MINERVA_SHARE_DIR)/storage/trend
+$(SQL_SCRIPTS_STORAGE_TREND): storage/trend/$$(@F) | $(MINERVA_SHARE_DIR)/storage/trend
 	install -m 0644 storage/trend/$(@F) $(@)
 
-$(SQL_SCRIPTS_STORAGE_ATTRIBUTE): | $(MINERVA_SHARE_DIR)/storage/attribute
+$(SQL_SCRIPTS_STORAGE_ATTRIBUTE): storage/attribute/$$(@F) | $(MINERVA_SHARE_DIR)/storage/attribute
 	install -m 0644 storage/attribute/$(@F) $(@)
 
-$(SQL_SCRIPTS_STORAGE_GEOSPATIAL): | $(MINERVA_SHARE_DIR)/storage/geospatial
+$(SQL_SCRIPTS_STORAGE_GEOSPATIAL): storage/geospatial/$$(@F) | $(MINERVA_SHARE_DIR)/storage/geospatial
 	install -m 0644 storage/geospatial/$(@F) $(@)
 
-$(SQL_SCRIPTS_STORAGE_NOTIFICATION): | $(MINERVA_SHARE_DIR)/storage/notification
+$(SQL_SCRIPTS_STORAGE_NOTIFICATION): storage/notification/$$(@F) | $(MINERVA_SHARE_DIR)/storage/notification
 	install -m 0644 storage/notification/$(@F) $(@)
