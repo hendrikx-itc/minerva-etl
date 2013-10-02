@@ -15,6 +15,7 @@ from functools import partial
 from operator import itemgetter
 from itertools import chain
 from collections import Iterable
+from datetime import datetime
 
 from dateutil.parser import parse as parse_timestamp
 
@@ -46,7 +47,13 @@ class DataPackage(object):
     +---------+----------+--------+---------+---------+
     """
     def __init__(self, timestamp, attribute_names, rows):
-        self.timestamp = timestamp
+        if isinstance(timestamp, str):
+            self.timestamp = parse_timestamp(timestamp)
+        elif isinstance(timestamp, datetime):
+            self.timestamp = timestamp
+        else:
+            raise Exception("{} is not a valid timestamp".format(timestamp))
+
         self.attribute_names = attribute_names
         self.rows = rows
 
