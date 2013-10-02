@@ -29,6 +29,7 @@ setup(
         "minerva.directory",
         "minerva.storage",
         "minerva.storage.trend",
+        "minerva.storage.trend.test",
         "minerva.storage.attribute",
         "minerva.storage.notification",
         "minerva.storage.delta",
