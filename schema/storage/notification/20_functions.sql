@@ -41,12 +41,10 @@ $$ LANGUAGE plpgsql VOLATILE;
 CREATE OR REPLACE FUNCTION table_name(notification.notificationstore)
 	RETURNS name
 AS $$
-	SELECT (ds.name || '_' || et.name)::name
-		FROM directory.datasource ds, directory.entitytype et
+	SELECT ds.name::name
+		FROM directory.datasource ds
 		WHERE
-			ds.id = $1.datasource_id
-				AND
-			et.id = $1.entitytype_id;
+			ds.id = $1.datasource_id;
 $$ LANGUAGE SQL STABLE;
 
 

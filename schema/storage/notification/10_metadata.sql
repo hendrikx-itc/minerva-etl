@@ -18,7 +18,6 @@ SET search_path = notification, pg_catalog;
 
 CREATE TABLE notificationstore (
 	id integer not null,
-	entitytype_id integer not null,
 	datasource_id integer not null,
 	version integer not null
 );
@@ -44,17 +43,12 @@ ALTER TABLE ONLY notificationstore
 	ADD CONSTRAINT notificationstore_pkey PRIMARY KEY (id);
 
 ALTER TABLE ONLY notificationstore
-	ADD CONSTRAINT notification_notificationstore_entitytype_id_fkey
-	FOREIGN KEY (entitytype_id) REFERENCES directory.entitytype(id)
-	ON DELETE CASCADE;
-
-ALTER TABLE ONLY notificationstore
 	ADD CONSTRAINT notification_notificationstore_datasource_id_fkey
 	FOREIGN KEY(datasource_id) REFERENCES directory.datasource(id)
 	ON DELETE CASCADE;
 
 CREATE UNIQUE INDEX ix_trend_notificationstore_uniqueness
-	ON notificationstore (entitytype_id, datasource_id);
+	ON notificationstore (datasource_id);
 
 GRANT ALL ON TABLE notificationstore TO minerva_admin;
 GRANT SELECT ON TABLE notificationstore TO minerva;

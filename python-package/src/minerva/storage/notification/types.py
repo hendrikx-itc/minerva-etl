@@ -49,30 +49,29 @@ class Attribute(object):
 
 
 class NotificationStore(object):
-    def __init__(self, datasource, entitytype, attributes):
+    def __init__(self, datasource, attributes):
         self.id = None
         self.version = 1
         self.datasource = datasource
-        self.entitytype = entitytype
         self.attributes = attributes
-        table_name = "{}_{}".format(datasource.name, entitytype.name)
+        table_name = datasource.name
         self.table = Table("notification", table_name)
 
     @staticmethod
-    def load(cursor, datasource, entitytype):
+    def load(cursor, datasource):
         query = (
-            "SELECT id, datasource_id, entitytype_id, version "
+            "SELECT id, datasource_id, version "
             "FROM notification.notificationstore "
-            "WHERE datasource_id = %s AND entitytype_id = %s")
+            "WHERE datasource_id = %s")
 
-        args = datasource.id, entitytype.id
+        args = datasource.id,
 
         cursor.execute(query, args)
 
         if cursor.rowcount == 1:
-            id, datasource_id, entitytype_id, version = cursor.fetchone()
+            id, datasource_id, version = cursor.fetchone()
 
-            return NotificationStore(datasource, entitytype, [])
+            return NotificationStore(datasource, [])
 
     def create(self, cursor):
         if self.id:
@@ -80,10 +79,10 @@ class NotificationStore(object):
         else:
             query = (
                 "INSERT INTO notification.notificationstore "
-                "(datasource_id, entitytype_id, version) "
-                "VALUES (%s, %s, %s) RETURNING id")
+                "(datasource_id, version) "
+                "VALUES (%s, %s) RETURNING id")
 
-            args = self.datasource.id, self.entitytype.id, self.version
+            args = self.datasource.id, self.version
 
             cursor.execute(query, args)
 
