@@ -46,6 +46,9 @@ smallint_regex = re.compile("-?[1-9][0-9]*")
 
 
 def matches_smallint(value):
+    if value == "":
+        return True
+
     if type(value) is float:
         return False
 

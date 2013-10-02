@@ -23,12 +23,11 @@ TIMESTAMP = pytz.utc.localize(datetime(2013, 8, 30, 15, 30))
 
 def create_simple_package():
     """Return new DataPackage instance with a simple set of data."""
-    attribute_names = ["power", "height", "state"]
+    attribute_names = ["power", "height", "state", "freetext"]
     rows = [
-        (123001, (405, 0.0, "enabled")),
-        (123002, (300, 10.5, "enabled")),
-        (123003, (41033, 22.3, "enabled")),
-        (123004, (880, 30.0, "enabled"))]
+        (123001, (405, 0.0, "enabled", "")),
+        (123003, (41033, 22.3, "enabled", "")),
+        (123004, (880, 30.0, "enabled", ""))]
 
     return DataPackage(TIMESTAMP, attribute_names, rows)
 
@@ -50,8 +49,8 @@ def test_constructor():
     datapackage = create_simple_package()
 
     eq_(datapackage.timestamp, TIMESTAMP)
-    eq_(len(datapackage.attribute_names), 3)
-    eq_(len(datapackage.rows), 4)
+    eq_(len(datapackage.attribute_names), 4)
+    eq_(len(datapackage.rows), 3)
 
 
 def test_deduce_data_types():
@@ -63,12 +62,7 @@ def test_deduce_data_types():
     eq_(data_types[0], "integer")
     eq_(data_types[1], "real")
     eq_(data_types[2], "text")
-
-    attr_type_dict = dict(zip(datapackage.attribute_names, data_types))
-
-    eq_(attr_type_dict["state"], "text")
-    eq_(attr_type_dict["power"], "integer")
-    eq_(attr_type_dict["height"], "real")
+    eq_(data_types[3], "smallint")
 
 
 def test_deduce_data_types_array():
@@ -154,7 +148,7 @@ def test_create_copy_from_lines():
 
     lines = datapackage._create_copy_from_lines(data_types)
 
-    eq_(lines[0], "123001\t2013-08-30 15:30:00+00:00\t405\t0.0\tenabled\n")
+    eq_(lines[0], "123001\t2013-08-30 15:30:00+00:00\t405\t0.0\tenabled\t\n")
 
     datapackage = create_package_array()
     data_types = datapackage.deduce_data_types()

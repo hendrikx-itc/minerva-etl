@@ -101,6 +101,7 @@ def test_matches_smallint():
     min_int16 = -pow(2, 15)
     max_int16 = pow(2, 15) - 1
 
+    assert datatype.matches_smallint("")
     assert datatype.matches_smallint("10")
     assert datatype.matches_smallint("-10")
     assert datatype.matches_smallint(str(max_int16))
@@ -266,6 +267,7 @@ def test_matches_array_of_integers():
 
 
 def test_extract_from_value():
+    eq_(datatype.extract_from_value(""), "smallint")
     eq_(datatype.extract_from_value("100"), "smallint")
     eq_(datatype.extract_from_value("100000"), "integer")
     eq_(datatype.extract_from_value("10,89"), "smallint[]")
