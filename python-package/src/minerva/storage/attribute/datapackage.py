@@ -119,29 +119,21 @@ class DataPackage(object):
                 for r in self.rows]
 
     def to_dict(self):
-        def row_to_list(row):
-            entity_id, values = row
-
-            result = [entity_id]
-            result.extend(values)
-
-            return result
-
+        """Return dictionary representing this package."""
         return {
             "timestamp": self.timestamp.isoformat(),
             "attribute_names": list(self.attribute_names),
-            "rows": map(row_to_list, self.rows)
+            "rows": self.rows
         }
 
     @classmethod
     def from_dict(cls, d):
-        def list_to_row(l):
-            return l[0], l[1:]
-
+        """Return DataPackage constructed from the dictionary."""
         return cls(
             timestamp=parse_timestamp(d["timestamp"]),
             attribute_names=d["attribute_names"],
-            rows=map(list_to_row, d["rows"]))
+            rows=d["rows"]
+        )
 
 
 snd = itemgetter(1)

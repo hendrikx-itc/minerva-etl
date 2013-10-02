@@ -163,6 +163,31 @@ def test_store_batch_with_list(conn):
 
 
 @with_conn(clear_database)
+def test_store_txn_with_list(conn):
+    """Test batch wise storing using staging table."""
+    with closing(conn.cursor()) as cursor:
+
+        datasource = DataSource.from_name(cursor, "integration-test")
+        entitytype = EntityType.from_name(cursor, "UtranCell")
+
+        datapackage = DataPackage(
+            timestamp=datasource.tzinfo.localize(datetime.now()),
+            attribute_names=['height', 'refs'],
+            rows=[
+                (10023 + i, ('19.5', ['e=r34,c=1', 'e=r23,c=1', 'e=r33,c=1']))
+                for i in range(100)
+            ]
+        )
+
+        attributestore = AttributeStore(datasource, entitytype)
+        attributestore.create(cursor)
+        conn.commit()
+
+        txn = attributestore.store_txn(datapackage)
+        txn.execute(conn)
+
+
+@with_conn(clear_database)
 def test_store_batch_update(conn):
     """Test batch wise storing with updates using staging table."""
     with closing(conn.cursor()) as cursor:

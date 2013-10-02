@@ -109,7 +109,7 @@ def test_to_dict():
         '{"timestamp": "2013-08-30T15:30:00+00:00", '
         '"attribute_names": ["height", "power"], '
         '"rows": ['
-        '[10034, "15.6", "68"]'
+        '[10034, ["15.6", "68"]]'
         ']'
         '}')
 
@@ -121,7 +121,7 @@ def test_from_dict():
         "timestamp": "2013-09-16T16:55:00+00:00",
         "attribute_names": ["tilt", "azimuth"],
         "rows": [
-            [13403, "4", "180"]
+            [13403, ["4", "180"]]
         ]
     }
 
@@ -129,6 +129,7 @@ def test_from_dict():
 
     eq_(datapackage.attribute_names[1], "azimuth")
     eq_(datapackage.rows[0][0], 13403)
+    eq_(datapackage.rows[0][1][1], "180")
 
 
 def test_deduce_attributes():
