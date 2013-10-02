@@ -183,7 +183,7 @@ def array_value_to_string(value):
     if isinstance(value, str):
         return "{" + value + "}"
     elif isinstance(value, Iterable):
-        return "{" + ",".join(map(str, value)) + "}"
+        return "{" + ",".join(map(value_to_string, value)) + "}"
     else:
         raise Exception("Unexpected type '{}'".format(type(value)))
 

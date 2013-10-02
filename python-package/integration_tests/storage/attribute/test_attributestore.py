@@ -128,7 +128,7 @@ def test_store_batch_simple(conn):
 
 
 @with_conn(clear_database)
-def test_store_batch_with_list(conn):
+def test_store_batch_with_list_a(conn):
     """Test batch wise storing using staging table."""
     with closing(conn.cursor()) as cursor:
         attribute_names = ['height', 'refs']
@@ -163,6 +163,30 @@ def test_store_batch_with_list(conn):
 
 
 @with_conn(clear_database)
+def test_store_batch_with_list_b(conn):
+    """Test batch wise storing using staging table."""
+    with closing(conn.cursor()) as cursor:
+        attribute_names = ['height', 'refs']
+        data_rows = [
+            (10023, ('19.5', ['1', '2', '3', ''])),
+            (10024, ('19.5', ['1', '1', '1', '']))
+        ]
+
+        datasource = DataSource.from_name(cursor, "integration-test")
+        entitytype = EntityType.from_name(cursor, "UtranCell")
+
+        timestamp = datasource.tzinfo.localize(datetime.now())
+        datapackage = DataPackage(timestamp, attribute_names, data_rows)
+
+        attributes = datapackage.deduce_attributes()
+        attributestore = AttributeStore(datasource, entitytype, attributes)
+        attributestore.create(cursor)
+
+        attributestore.store_batch(cursor, datapackage)
+        conn.commit()
+
+
+@with_conn(clear_database)
 def test_store_txn_with_empty(conn):
     """Test transactional storing with empty value."""
     with closing(conn.cursor()) as cursor:
@@ -178,10 +202,8 @@ def test_store_txn_with_empty(conn):
 
         attributes = datapackage.deduce_attributes()
         eq_(attributes[0].datatype, 'smallint')
-        #attributestore = AttributeStore(datasource, entitytype, attributes)
         attributestore = AttributeStore.from_attributes(
             cursor, datasource, entitytype, attributes)
-        #attributestore.create(cursor)
         conn.commit()
 
         attributestore.store_txn(datapackage).run(conn)
