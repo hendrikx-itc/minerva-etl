@@ -168,14 +168,24 @@ def create_copy_from_line(timestamp, data_types, row):
     return "\t".join(values) + "\n"
 
 
-def value_to_string(value):
-    """
-    Return \N if value is an empty string or the result of str(value).
-    """
-    if isinstance(value, (str, unicode)) and len(value) == 0:
-        return "\\N"
-    else:
-        return str(value)
+def value_to_string(null_value="\\N"):
+    def fn(value):
+        if isinstance(value, (str, unicode)) and len(value) == 0:
+            return null_value
+        else:
+            return str(value)
+
+    return fn
+
+
+def format_text_value(null_value="\\N"):
+    def fn(value):
+        if isinstance(value, (str, unicode)) and len(value) == 0:
+            return null_value
+        else:
+            return '"{}"'.format(value)
+
+    return fn
 
 
 def array_value_to_string(value):
@@ -183,25 +193,35 @@ def array_value_to_string(value):
     if isinstance(value, str):
         return "{" + value + "}"
     elif isinstance(value, Iterable):
-        return "{" + ",".join(map(value_to_string, value)) + "}"
+        return "{" + ",".join(map(value_to_string('NULL'), value)) + "}"
+    else:
+        raise Exception("Unexpected type '{}'".format(type(value)))
+
+
+def text_array_value_to_string(value):
+    """Return PostgreSQL compatible string for ARRAY-like variable."""
+    if isinstance(value, str):
+        return "{" + value + "}"
+    elif isinstance(value, Iterable):
+        return "{" + ",".join(map(format_text_value('NULL'), value)) + "}"
     else:
         raise Exception("Unexpected type '{}'".format(type(value)))
 
 
 value_mapper_by_type = {
-    "text": str,
+    "text": format_text_value(),
     "bigint[]": array_value_to_string,
     "integer[]": array_value_to_string,
     "smallint[]": array_value_to_string,
-    "text[]": array_value_to_string,
-    "bigint": value_to_string,
-    "integer": value_to_string,
-    "smallint": value_to_string,
-    "boolean": value_to_string,
-    "real": value_to_string,
-    "double precision": value_to_string,
-    "timestamp without time zone": value_to_string,
-    "numeric": value_to_string
+    "text[]": text_array_value_to_string,
+    "bigint": value_to_string(),
+    "integer": value_to_string(),
+    "smallint": value_to_string(),
+    "boolean": value_to_string(),
+    "real": value_to_string(),
+    "double precision": value_to_string(),
+    "timestamp without time zone": value_to_string(),
+    "numeric": value_to_string()
 }
 
 

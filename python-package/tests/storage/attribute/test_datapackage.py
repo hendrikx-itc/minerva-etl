@@ -44,13 +44,35 @@ def create_package_array():
     return DataPackage(TIMESTAMP, attribute_names, rows)
 
 
-def create_package_array_list():
+def create_package_array_list_a():
     """Return new DataPackage instance with array data as lists."""
     attribute_names = ["curve"]
     rows = [
         (123001, (['0', '1', '2'],)),
         (123002, (['0', '1', '2'],)),
         (123003, (['', '', ''],))
+    ]
+
+    return DataPackage(TIMESTAMP, attribute_names, rows)
+
+
+def create_package_array_list_b():
+    """Return new DataPackage instance with array data as lists."""
+    attribute_names = ["curve"]
+    rows = [
+        (123001, (['', ''],)),
+        (123002, (['', ''],))
+    ]
+
+    return DataPackage(TIMESTAMP, attribute_names, rows)
+
+
+def create_package_array_list_c():
+    """Return new DataPackage instance with array data as lists."""
+    attribute_names = ["curve"]
+    rows = [
+        (123001, (['e=34,c=1', 'e=45,c=3', 'e=33,c=2'],)),
+        (123002, (['', '', ''],))
     ]
 
     return DataPackage(TIMESTAMP, attribute_names, rows)
@@ -161,7 +183,7 @@ def test_create_copy_from_lines():
     lines = datapackage._create_copy_from_lines(data_types)
 
     eq_(lines[0],
-        "123001\t2013-08-30 15:30:00+00:00\t405\t0.0\tenabled\t\\N\n")
+        "123001\t2013-08-30 15:30:00+00:00\t405\t0.0\t\"enabled\"\t\\N\n")
 
     datapackage = create_package_array()
     data_types = datapackage.deduce_data_types()
@@ -170,10 +192,20 @@ def test_create_copy_from_lines():
 
     eq_(lines[0], "123001\t2013-08-30 15:30:00+00:00\t{0,1,2,4,7,4,2,1,0}\n")
 
-    datapackage = create_package_array_list()
+    datapackage = create_package_array_list_a()
     data_types = datapackage.deduce_data_types()
 
     lines = datapackage._create_copy_from_lines(data_types)
 
     eq_(lines[1], "123002\t2013-08-30 15:30:00+00:00\t{0,1,2}\n")
-    eq_(lines[2], "123003\t2013-08-30 15:30:00+00:00\t{\\N,\\N,\\N}\n")
+    eq_(lines[2], "123003\t2013-08-30 15:30:00+00:00\t{NULL,NULL,NULL}\n")
+
+    datapackage = create_package_array_list_b()
+    data_types = datapackage.deduce_data_types()
+
+    lines = datapackage._create_copy_from_lines(data_types)
+
+    eq_(lines[0], "123001\t2013-08-30 15:30:00+00:00\t{NULL,NULL}\n")
+    eq_(lines[1], "123002\t2013-08-30 15:30:00+00:00\t{NULL,NULL}\n")
+
+    f = datapackage._create_copy_from_file(data_types)
