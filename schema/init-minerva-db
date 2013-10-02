@@ -6,7 +6,7 @@ set -o pipefail
 usage()
 {
 cat << EOF
-usage: $0 options [database]
+usage: $0 options
 
 Initialize a Minerva database with installed modules.
 

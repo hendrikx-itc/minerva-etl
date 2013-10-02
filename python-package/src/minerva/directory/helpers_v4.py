@@ -41,135 +41,21 @@ class NoSuchRelationTypeError(Exception):
     pass
 
 
-def get_datasource_by_id(cursor, datasource_id):
-    """
-    Return the datasource with the specified Id.
-    """
-    query = (
-        "SELECT id, name, description, timezone "
-        "FROM directory.datasource "
-        "WHERE id=%s")
+create_datasource = DataSource.create
 
-    args = (datasource_id,)
+get_datasource_by_id = DataSource.get
 
-    cursor.execute(query, args)
+get_datasource = DataSource.get_by_name
 
-    if cursor.rowcount == 1:
-        return DataSource(*cursor.fetchone())
+name_to_datasource = DataSource.from_name
 
+create_entitytype = EntityType.create
 
-def get_datasource(cursor, name):
-    """
-    Return the datasource with the specified name.
-    """
-    query = (
-        "SELECT id, name, description, timezone "
-        "FROM directory.datasource "
-        "WHERE lower(name)=lower(%s)")
+get_entitytype_by_id = EntityType.get
 
-    args = (name,)
+get_entitytype = EntityType.get_by_name
 
-    cursor.execute(query, args)
-
-    if cursor.rowcount == 1:
-        return DataSource(*cursor.fetchone())
-
-
-def create_datasource(cursor, name, description, timezone):
-    """
-    Create new datasource
-    :param cursor: cursor instance used to store into the Minerva database.
-    :param name: identifying name of data source.
-    :param description: A short description.
-    :param timezone: Timezone of data originating from data source.
-    """
-    query = (
-        "INSERT INTO directory.datasource "
-        "(id, name, description, timezone) "
-        "VALUES (DEFAULT, %s, %s, %s) RETURNING *")
-
-    args = name, description, timezone
-
-    cursor.execute(query, args)
-
-    return DataSource(*cursor.fetchone())
-
-
-def name_to_datasource(cursor, name):
-    """
-    Return new or existing datasource with name `name`.
-    """
-    cursor.callproc("directory.name_to_datasource", (name,))
-
-    if cursor.rowcount == 1:
-        return DataSource(*cursor.fetchone())
-
-
-def create_entitytype(cursor, name, description):
-    """
-    Create a new entity type and add it to the database.
-    """
-    query = (
-        "INSERT INTO directory.entitytype (id, name, description) "
-        "VALUES (DEFAULT, %s, %s) "
-        "RETURNING *")
-
-    args = name, description
-
-    cursor.execute(query, args)
-
-    return EntityType(*cursor.fetchone())
-
-
-def get_entitytype_by_id(cursor, entitytype_id):
-    """
-    Return the entity type matching the specified Id.
-
-    :param cursor: A psycopg2 database cursor.
-    :param entitytype_id: Id of the entity type to return.
-    """
-    query = (
-        "SELECT id, name, description "
-        "FROM directory.entitytype "
-        "WHERE id = %s")
-
-    args = (entitytype_id,)
-
-    cursor.execute(query, args)
-
-    if cursor.rowcount > 0:
-        return EntityType(*cursor.fetchone())
-
-
-def get_entitytype(cursor, name):
-    """
-    Return the entitytype with name `name`.
-    """
-    sql = (
-        "SELECT id, name, description "
-        "FROM directory.entitytype "
-        "WHERE lower(name) = lower(%s)")
-
-    args = (name,)
-
-    cursor.execute(sql, args)
-
-    if cursor.rowcount > 0:
-        return EntityType(*cursor.fetchone())
-    else:
-        return None
-
-
-def name_to_entitytype(cursor, name):
-    """
-    Return new or existing entitytype with name `name`.
-    """
-    args = (name, )
-
-    cursor.callproc("directory.name_to_entitytype", args)
-
-    if cursor.rowcount == 1:
-        return EntityType(*cursor.fetchone())
+name_to_entitytype = EntityType.from_name
 
 
 def get_child_ids(cursor, base_entity, entitytype):
@@ -314,18 +200,7 @@ def get_relationtype_id(conn, name):
             raise NoSuchRelationTypeError()
 
 
-def get_entity_by_id(cursor, entity_id):
-    """
-    Return entity with specified distinguished name.
-    """
-    args = (entity_id,)
-
-    cursor.callproc("directory.getentitybyid", args)
-
-    if cursor.rowcount == 1:
-        (dn, entitytype_id, entity_name, parent_id) = cursor.fetchone()
-
-        return Entity(entity_id, entity_name, entitytype_id, dn, parent_id)
+get_entity_by_id = Entity.get
 
 
 def none_or(if_none=k(None), if_value=identity):
@@ -338,32 +213,9 @@ def none_or(if_none=k(None), if_value=identity):
     return fn
 
 
-def get_entity(cursor, dn):
-    """
-    Return entity with specified distinguished name.
-    """
-    args = (dn,)
+get_entity = Entity.get_by_dn
 
-    cursor.callproc("directory.getentitybydn", args)
-
-    if cursor.rowcount == 1:
-        (entity_id, entitytype_id, entity_name, parent_id) = cursor.fetchone()
-
-        return Entity(entity_id, entity_name, entitytype_id, dn, parent_id)
-
-
-def create_entity(cursor, dn):
-    """
-    :param conn: A cursor an a Minerva Directory database.
-    :param dn: The distinguished name of the entity.
-    """
-    cursor.callproc("directory.create_entity", (dn,))
-
-    row = cursor.fetchone()
-
-    id, first_appearance, name, entitytype_id, dn, parent_id = row
-
-    return Entity(id, name, entitytype_id, dn, parent_id)
+create_entity = Entity.create_from_dn
 
 
 def make_entitytaglinks(conn, entity_ids, tag_names):
@@ -419,11 +271,4 @@ def dns_to_entity_ids(cursor, dns):
     return map(head, cursor.fetchall())
 
 
-def dn_to_entity(cursor, dn):
-    cursor.callproc("directory.dn_to_entity", (dn,))
-
-    row = cursor.fetchone()
-
-    id, first_appearance, name, entitytype_id, _dn, parent_id = row
-
-    return Entity(id, name, entitytype_id, dn, parent_id)
+dn_to_entity = Entity.from_dn
