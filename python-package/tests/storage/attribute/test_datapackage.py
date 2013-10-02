@@ -148,7 +148,7 @@ def test_create_copy_from_lines():
 
     lines = datapackage._create_copy_from_lines(data_types)
 
-    eq_(lines[0], "123001\t2013-08-30 15:30:00+00:00\t405\t0.0\tenabled\t\n")
+    eq_(lines[0], "123001\t2013-08-30 15:30:00+00:00\t405\t0.0\tenabled\t\\N\n")
 
     datapackage = create_package_array()
     data_types = datapackage.deduce_data_types()

@@ -17,6 +17,7 @@ from itertools import chain
 from collections import Iterable
 from datetime import datetime
 
+import pytz
 from dateutil.parser import parse as parse_timestamp
 
 from minerva.util import compose, expand_args, zipapply
@@ -53,6 +54,9 @@ class DataPackage(object):
             self.timestamp = timestamp
         else:
             raise Exception("{} is not a valid timestamp".format(timestamp))
+
+        if not self.timestamp.tzinfo:
+            self.timestamp = pytz.utc.localize(self.timestamp)
 
         self.attribute_names = attribute_names
         self.rows = rows
@@ -165,6 +169,16 @@ def create_copy_from_line(timestamp, data_types, row):
 
 
 def value_to_string(value):
+    """
+    Return \N if value is an empty string or the result of str(value).
+    """
+    if isinstance(value, (str, unicode)) and len(value) == 0:
+        return "\\N"
+    else:
+        return str(value)
+
+
+def array_value_to_string(value):
     """Return PostgreSQL compatible string for ARRAY-like variable."""
     if isinstance(value, str):
         return "{" + value + "}"
@@ -176,18 +190,18 @@ def value_to_string(value):
 
 value_mapper_by_type = {
     "text": str,
-    "bigint[]": value_to_string,
-    "integer[]": value_to_string,
-    "smallint[]": value_to_string,
-    "text[]": value_to_string,
-    "bigint": str,
-    "integer": str,
-    "smallint": str,
-    "boolean": str,
-    "real": str,
-    "double precision": str,
-    "timestamp without time zone": str,
-    "numeric": str
+    "bigint[]": array_value_to_string,
+    "integer[]": array_value_to_string,
+    "smallint[]": array_value_to_string,
+    "text[]": array_value_to_string,
+    "bigint": value_to_string,
+    "integer": value_to_string,
+    "smallint": value_to_string,
+    "boolean": value_to_string,
+    "real": value_to_string,
+    "double precision": value_to_string,
+    "timestamp without time zone": value_to_string,
+    "numeric": value_to_string
 }
 
 

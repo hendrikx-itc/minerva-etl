@@ -164,7 +164,7 @@ def test_store_batch_with_list(conn):
 
 @with_conn(clear_database)
 def test_store_txn_with_empty(conn):
-    """Test batch wise storing using staging table."""
+    """Test transactional storing with empty value."""
     with closing(conn.cursor()) as cursor:
         datasource = DataSource.from_name(cursor, "integration-test")
         entitytype = EntityType.from_name(cursor, "UtranCell")
@@ -176,12 +176,15 @@ def test_store_txn_with_empty(conn):
             ]
         )
 
-        attributestore = AttributeStore(datasource, entitytype)
-        attributestore.create(cursor)
+        attributes = datapackage.deduce_attributes()
+        eq_(attributes[0].datatype, 'smallint')
+        #attributestore = AttributeStore(datasource, entitytype, attributes)
+        attributestore = AttributeStore.from_attributes(
+            cursor, datasource, entitytype, attributes)
+        #attributestore.create(cursor)
         conn.commit()
 
-        txn = attributestore.store_txn(datapackage)
-        txn.run(conn)
+        attributestore.store_txn(datapackage).run(conn)
 
 
 @with_conn(clear_database)
