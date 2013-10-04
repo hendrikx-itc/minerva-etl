@@ -20,17 +20,17 @@ class DataPackage(object):
 
     A graphical depiction of a DataPackage instance might be::
 
-    +-------------------------------------------------+
-    | '2013-08-30 15:00:00+02:00'                     | <- timestamp
-    |-------------------------------------------------+
-    | GranularitySeconds(900)                         | <- granularity
-    +-------------------------------------------------+
-    |         | "cntrA"  | "ctrB" | "cntrC" | "ctrD"  | <- trend_names
-    +---------+----------+--------+---------+---------+
-    | 1234001 |    15.6  |    10  |     90  | "on"    | <- rows
-    | 1234002 |    20.0  |     0  |     85  | "on"    |
-    | 1234003 |    22.5  |     3  |     90  | "on"    |
-    +---------+----------+--------+---------+---------+
+        +-------------------------------------------------+
+        | '2013-08-30 15:00:00+02:00'                     | <- timestamp
+        |-------------------------------------------------+
+        | GranularitySeconds(900)                         | <- granularity
+        +-------------------------------------------------+
+        |         | "cntrA"  | "ctrB" | "cntrC" | "ctrD"  | <- trend_names
+        +---------+----------+--------+---------+---------+
+        | 1234001 |    15.6  |    10  |     90  | "on"    | <- rows
+        | 1234002 |    20.0  |     0  |     85  | "on"    |
+        | 1234003 |    22.5  |     3  |     90  | "on"    |
+        +---------+----------+--------+---------+---------+
     """
     def __init__(self, granularity, timestamp, trend_names, rows):
         self.granularity = granularity
@@ -38,8 +38,14 @@ class DataPackage(object):
         self.trend_names = trend_names
         self.rows = rows
 
-    def extract_data_types(self):
+    def deduce_data_types(self):
+        """
+        Return a list of the minimal required datatypes to store the values in
+        this datapackage, in the same order as the values and thus matching the
+        order of attribute_names.
+        """
         return extract_data_types(self.rows)
 
     def is_empty(self):
+        """Return True if the package has no data rows."""
         return len(self.rows) == 0

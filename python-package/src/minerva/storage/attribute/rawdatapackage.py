@@ -17,7 +17,12 @@ from minerva.storage.attribute.datapackage import DataPackage
 
 class RawDataPackage(DataPackage):
 
-    """A DataPackage subclass with refining functionality."""
+    """
+    A datapackage class with refining functionality.
+
+    The RawDataPackage class just adds some helper functions to
+    :class:`~minerva.storage.attribute.datapackage.DataPackage`.
+    """
 
     def get_entitytype_name(self):
         """Return the entity type name from the first Distinguished Name."""

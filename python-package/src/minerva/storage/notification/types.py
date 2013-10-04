@@ -15,6 +15,7 @@ from minerva.db.error import translate_postgresql_exceptions
 
 
 class Record(object):
+    """Wraps all data for one notification."""
     def __init__(self, entity_id, timestamp, attribute_names, values):
         self.entity_id = entity_id
         self.timestamp = timestamp
@@ -23,6 +24,7 @@ class Record(object):
 
 
 class RawRecord(object):
+    """Wraps all data for one notification."""
     def __init__(self, dn, timestamp, attribute_names, values):
         self.dn = dn
         self.timestamp = timestamp
@@ -37,6 +39,7 @@ class Package(object):
 
 
 class Attribute(object):
+    """Describes the attribute of a specific NotificationStore."""
     def __init__(self, name, data_type, description):
         self.id = None
         self.notificationstore_id = None
@@ -59,6 +62,7 @@ class NotificationStore(object):
 
     @staticmethod
     def load(cursor, datasource):
+        """Load NotificationStore from database and return it."""
         query = (
             "SELECT id, datasource_id, version "
             "FROM notification.notificationstore "
@@ -74,6 +78,7 @@ class NotificationStore(object):
             return NotificationStore(datasource, [])
 
     def create(self, cursor):
+        """Create notification store in database in return itself."""
         if self.id:
             raise NotImplementedError()
         else:
@@ -101,6 +106,7 @@ class NotificationStore(object):
             return self
 
     def store_record(self, record):
+        """Return function that can store the data from a :class:`~minerva.storage.notification.types.Record`."""
         @translate_postgresql_exceptions
         def f(cursor):
             column_names = ["entity_id", "\"timestamp\""] + record.attribute_names
@@ -119,6 +125,7 @@ class NotificationStore(object):
         return f
 
     def store_rawrecord(self, rawrecord):
+        """Return function that can store the data from a :class:`~minerva.storage.notification.types.RawRecord`."""
         @translate_postgresql_exceptions
         def f(cursor):
             column_names = ["entity_id", "\"timestamp\""] + rawrecord.attribute_names
@@ -136,7 +143,10 @@ class NotificationStore(object):
 
         return f
 
-    def store_package(self, datarecord):
+    def store_package(self, package):
+        """
+        Return function that can store a package with multiple notifications.
+        """
         @translate_postgresql_exceptions
         def f(cursor):
             column_names = ["entity_id", "\"timestamp\""] + datarecord.attribute_names

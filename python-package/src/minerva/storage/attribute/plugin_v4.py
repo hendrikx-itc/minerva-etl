@@ -50,12 +50,12 @@ class AttributePlugin(object):
                         entities, timestamp)
 
     def retrieve_current(self, datasource, entitytype, attribute_names,
-                         entities, limit=None):
+                         entities):
 
         attributestore = AttributeStore(datasource, entitytype)
 
         return retrieve_current(self.conn, attributestore.table,
-                                attribute_names, entities, limit)
+                                attribute_names, entities)
 
     def store_raw(self, datasource, raw_datapackage):
         if not raw_datapackage.is_empty():

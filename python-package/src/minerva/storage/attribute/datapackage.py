@@ -37,15 +37,15 @@ class DataPackage(object):
 
     A graphical depiction of a DataPackage instance might be::
 
-    +-------------------------------------------------+
-    | '2013-08-30 15:00:00+02:00'                     | <- timestamp
-    +-------------------------------------------------+
-    |         | "height" | "tilt" | "power" | "state" | <- attribute_names
-    +---------+----------+--------+---------+---------+
-    | 1234001 |    15.6  |    10  |     90  | "on"    | <- rows
-    | 1234002 |    20.0  |     0  |     85  | "on"    |
-    | 1234003 |    22.5  |     3  |     90  | "on"    |
-    +---------+----------+--------+---------+---------+
+        +-------------------------------------------------+
+        | '2013-08-30 15:00:00+02:00'                     | <- timestamp
+        +-------------------------------------------------+
+        |         | "height" | "tilt" | "power" | "state" | <- attribute_names
+        +---------+----------+--------+---------+---------+
+        | 1234001 |    15.6  |    10  |     90  | "on"    | <- rows
+        | 1234002 |    20.0  |     0  |     85  | "on"    |
+        | 1234003 |    22.5  |     3  |     90  | "on"    |
+        +---------+----------+--------+---------+---------+
     """
     def __init__(self, timestamp, attribute_names, rows):
         if isinstance(timestamp, str):
@@ -89,7 +89,7 @@ class DataPackage(object):
         Return a function that can execute a COPY FROM query on a cursor.
 
         :param data_types: A list of datatypes that determine how the values
-        should be rendered.
+                           should be rendered.
         """
         def fn(cursor):
             cursor.copy_expert(

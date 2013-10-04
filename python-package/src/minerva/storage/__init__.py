@@ -1,6 +1,6 @@
 """
-Provides data schema related functionality for storing and retrieving trend
-data.
+Provides access and a location for storage class logic like 'trend',
+'attribute', etc..
 """
 __docformat__ = "restructuredtext en"
 
