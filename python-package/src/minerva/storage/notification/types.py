@@ -9,6 +9,9 @@ the Free Software Foundation; either version 3, or (at your option) any later
 version.  The full license is in the file COPYING, distributed as part of
 this software.
 """
+
+from functools import partial
+
 from minerva.util import first
 from minerva.db.query import Table
 from minerva.db.error import translate_postgresql_exceptions
@@ -109,8 +112,9 @@ class NotificationStore(object):
         """Return function that can store the data from a :class:`~minerva.storage.notification.types.Record`."""
         @translate_postgresql_exceptions
         def f(cursor):
-            column_names = ["entity_id", "\"timestamp\""] + record.attribute_names
-            columns_part = ",".join(column_names)
+            quote_column = partial(str.format, '"{}"')
+            column_names = ['entity_id', 'timestamp'] + record.attribute_names
+            columns_part = ','.join(map(quote_column, column_names))
             num_args = 2 + len(record.attribute_names)
             args_part = ",".join(["%s"] * num_args)
 
