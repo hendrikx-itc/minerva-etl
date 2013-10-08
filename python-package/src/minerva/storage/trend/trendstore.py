@@ -20,8 +20,8 @@ import pytz
 import psycopg2
 
 from minerva.util import k, first, compose, no_op
-from minerva.db.error import NoCopyInProgress, NoSuchTable, NoSuchColumnError, \
-    UniqueViolation, DataTypeMismatch, DuplicateTable
+from minerva.db.error import NoCopyInProgress, NoSuchTable, \
+    NoSuchColumnError, UniqueViolation, DataTypeMismatch, DuplicateTable
 from minerva.db.query import Table, Column, Eq, column_exists, ands
 from minerva.directory.helpers_v4 import get_datasource_by_id, \
     get_entitytype_by_id, get_entity, dns_to_entity_ids
@@ -33,7 +33,8 @@ from minerva.db.dbtransaction import DbTransaction, DbAction, \
 from minerva.storage.trend.tables import DATA_TABLE_POSTFIXES
 from minerva.storage.trend import schema
 from minerva.storage.trend.datapackage import DataPackage
-from minerva.storage.trend.granularity import create_granularity, ensure_granularity
+from minerva.storage.trend.granularity import create_granularity, \
+    ensure_granularity
 from minerva.storage.trend.tables import create_column
 from minerva.storage.trend.partition import Partition
 from minerva.storage.trend.partitioning import Partitioning
@@ -46,7 +47,7 @@ class TrendStore(object):
     All data belonging to a specific datasource, entitytype and granularity.
     """
     def __init__(self, datasource, entitytype, granularity, partition_size,
-            type):
+                 type):
         self.id = None
         self.datasource = datasource
         self.entitytype = entitytype
@@ -61,8 +62,8 @@ class TrendStore(object):
                 "{0.granularity.name}").format(self)
 
     def make_table_basename(self):
-        granularity_name = DATA_TABLE_POSTFIXES.get(self.granularity.name,
-                self.granularity.name)
+        granularity_name = DATA_TABLE_POSTFIXES.get(
+            self.granularity.name, self.granularity.name)
 
         return "{}_{}_{}".format(self.datasource.name, self.entitytype.name,
                 granularity_name)
@@ -482,12 +483,12 @@ class CopyFrom(DbAction):
         except NoCopyInProgress:
             return no_op
         except NoSuchTable:
-            data_types = compose(DataPackage.extract_data_types, self.datapackage)
+            data_types = compose(DataPackage.deduce_data_types, self.datapackage)
             trend_names = compose(attrgetter("trend_names"), self.datapackage)
             fix = CreatePartition(self.partition, trend_names, data_types)
             return insert_before(fix)
         except NoSuchColumnError:
-            data_types = compose(DataPackage.extract_data_types, self.datapackage)
+            data_types = compose(DataPackage.deduce_data_types, self.datapackage)
             trend_names = compose(attrgetter("trend_names"), self.datapackage)
             fix = CheckColumnsExist(self.partition, trend_names, data_types)
             return insert_before(fix)
@@ -495,7 +496,7 @@ class CopyFrom(DbAction):
             fix = Update(self.partition, self.datapackage)
             return replace(fix)
         except DataTypeMismatch:
-            data_types = compose(DataPackage.extract_data_types, self.datapackage)
+            data_types = compose(DataPackage.deduce_data_types, self.datapackage)
             trend_names = compose(attrgetter("trend_names"), self.datapackage)
             fix = CheckColumnTypes(self.partition, trend_names, data_types)
             return insert_before(fix)
@@ -518,12 +519,12 @@ class BatchInsert(DbAction):
                 logging.debug("exception: {}".format(type(exc).__name__))
                 raise exc
         except NoSuchTable:
-            data_types = compose(DataPackage.extract_data_types, self.datapackage)
+            data_types = compose(DataPackage.deduce_data_types, self.datapackage)
             trend_names = compose(attrgetter("trend_names"), self.datapackage)
             fix = CreatePartition(self.partition, trend_names, data_types)
             return insert_before(fix)
         except NoSuchColumnError:
-            data_types = compose(DataPackage.extract_data_types, self.datapackage)
+            data_types = compose(DataPackage.deduce_data_types, self.datapackage)
             trend_names = compose(attrgetter("trend_names"), self.datapackage)
             fix = CheckColumnsExist(self.partition, trend_names, data_types)
             return insert_before(fix)
@@ -531,7 +532,7 @@ class BatchInsert(DbAction):
             fix = Update(self.partition, self.datapackage)
             return replace(fix)
         except DataTypeMismatch:
-            data_types = compose(DataPackage.extract_data_types, self.datapackage)
+            data_types = compose(DataPackage.deduce_data_types, self.datapackage)
             trend_names = compose(attrgetter("trend_names"), self.datapackage)
             fix = CheckColumnTypes(self.partition, trend_names, data_types)
             return insert_before(fix)
@@ -549,17 +550,17 @@ class Update(DbAction):
         try:
             store_update(cursor, partition.table(), datapackage, state["modified"])
         except NoSuchTable:
-            data_types = compose(DataPackage.extract_data_types, self.datapackage)
+            data_types = compose(DataPackage.deduce_data_types, self.datapackage)
             trend_names = compose(attrgetter("trend_names"), self.datapackage)
             fix = CreatePartition(self.partition, trend_names, data_types)
             return insert_before(fix)
         except NoSuchColumnError:
-            data_types = compose(DataPackage.extract_data_types, self.datapackage)
+            data_types = compose(DataPackage.deduce_data_types, self.datapackage)
             trend_names = compose(attrgetter("trend_names"), self.datapackage)
             fix = CheckColumnsExist(self.partition, trend_names, data_types)
             return insert_before(fix)
         except DataTypeMismatch:
-            data_types = compose(DataPackage.extract_data_types, self.datapackage)
+            data_types = compose(DataPackage.deduce_data_types, self.datapackage)
             trend_names = compose(attrgetter("trend_names"), self.datapackage)
             fix = CheckColumnTypes(self.partition, trend_names, data_types)
             return insert_before(fix)
