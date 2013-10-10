@@ -199,6 +199,7 @@ ALTER TABLE ONLY modified
 ALTER TABLE ONLY modified
 	ADD CONSTRAINT modified_table_name_fkey
 	FOREIGN KEY (table_name) REFERENCES trend.partition(table_name)
+	ON UPDATE CASCADE
 	ON DELETE CASCADE;
 
 GRANT ALL ON TABLE modified TO minerva_admin;

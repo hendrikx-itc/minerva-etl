@@ -1069,6 +1069,13 @@ AS $$
 $$ LANGUAGE SQL VOLATILE;
 
 
+CREATE OR REPLACE FUNCTION mark_modified(table_name name, "timestamp" timestamp with time zone)
+	RETURNS trend.modified
+AS $$
+	SELECT COALESCE(trend.update_modified($1, $2, now()), trend.store_modified($1, $2, now()));
+$$ LANGUAGE SQL VOLATILE;
+
+
 CREATE OR REPLACE FUNCTION update_modified(table_name name, "timestamp" timestamp with time zone, modified timestamp with time zone)
 	RETURNS trend.modified
 AS $$
