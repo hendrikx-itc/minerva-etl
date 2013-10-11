@@ -10,12 +10,12 @@ version.  The full license is in the file COPYING, distributed as part of
 this software.
 """
 from contextlib import closing
-import time
 from decimal import Decimal
 
 from itertools import groupby
 from operator import itemgetter
 
+from minerva.util.timestamp import to_unix_timestamp
 from minerva.directory import helpers
 from minerva.directory.helpers import get_entitytype_by_id
 from minerva.storage.attribute import schema
@@ -159,10 +159,6 @@ def retrieve_related(conn, table_name, attribute_names, entities,
         return cursor.fetchall()
 
 
-def to_unix_timestamp(t):
-    return time.mktime(t.timetuple())
-
-
 def retrieve_attributes_for_entity(conn, entity_id, attribute_ids):
     query = (
         "SELECT a.id, a.name, a.table_name, et.name as entitytype_name "
@@ -182,9 +178,6 @@ def retrieve_attributes_for_entity(conn, entity_id, attribute_ids):
             if isinstance(value, Decimal):
                 value = float(value)
         return value
-
-    def is_native(attribute):
-        return attribute[3] == entity.entitytype_id
 
     with closing(conn.cursor()) as cursor:
         cursor.execute(query)

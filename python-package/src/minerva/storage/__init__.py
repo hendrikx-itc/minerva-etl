@@ -23,8 +23,8 @@ def load_plugins():
         'attribute': attribute.create,
         'trend': trend.create,
         'notification': notification.NotificationPlugin,
-        'geospatial': geospatial.create,
-        'delta': delta.create}
+        'geospatial': geospatial.create
+    }
 
 
 def get_plugin(name):

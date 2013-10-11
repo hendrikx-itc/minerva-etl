@@ -1,8 +1,4 @@
-import time
-import datetime
-from calendar import timegm
-
-import pytz
+from minerva.util.timestamp import to_unix_timestamp, from_unix_timestamp
 
 
 class Partitioning(object):
@@ -50,11 +46,3 @@ class Partitioning(object):
 #   86400 * 3 = 259200 = 1970-01-04 00:00:00+00
 #   86400 * 4 = 345600 = 1970-01-05 00:00:00+00
 #
-
-def to_unix_timestamp(t):
-    return timegm(t.utctimetuple())
-
-
-def from_unix_timestamp(ts):
-    timetuple = time.gmtime(ts)
-    return pytz.UTC.localize(datetime.datetime(*timetuple[:6]))
