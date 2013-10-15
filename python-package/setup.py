@@ -32,7 +32,6 @@ setup(
         "minerva.storage.trend.test",
         "minerva.storage.attribute",
         "minerva.storage.notification",
-        "minerva.storage.delta",
         "minerva.storage.geospatial",
         "minerva.xmldochandler",
         "minerva.xmldochandler.xmlschema",
@@ -44,8 +43,7 @@ setup(
         "minerva": ["defaults/*"],
         "minerva.storage.geospatial": ["defaults/*"],
         "minerva.storage.attribute": ["defaults/*"],
-        "minerva.storage.trend": ["defaults/*"],
-        "minerva.storage.delta": ["defaults/*"]
+        "minerva.storage.trend": ["defaults/*"]
     },
     scripts=[
         "scripts/create-relations",
