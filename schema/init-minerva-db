@@ -122,7 +122,9 @@ function timezone()
 
 function invoke_psql()
 {
-	psql --no-psqlrc --set ON_ERROR_STOP=1 "$@"
+	local cmd="psql --no-psqlrc --set ON_ERROR_STOP=1 $@"
+	log $cmd
+	$cmd
 }
 
 function log()
