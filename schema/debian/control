@@ -1,12 +1,12 @@
 Source: minerva-database
 Section: contrib/database
 Priority: extra
-Maintainer: Alfred Blokland <alfred.blokland@hendrikx-itc.nl>
+Maintainer: Hendrikx ITC <info@hendrikx-itc.nl>
 Build-Depends: debhelper (>= 8.0.0)
 Standards-Version: 3.9.2
-Homepage: <insert the upstream URL, if relevant>
-#Vcs-Git: git://git.debian.org/collab-maint/minerva-database.git
-#Vcs-Browser: http://git.debian.org/?p=collab-maint/minerva-database.git;a=summary
+Homepage: http://www.hendrikx-itc.nl
+Vcs-Git: http://github.com/hendrikx-itc/minerva.git
+Vcs-Browser: http://github.com/hendrikx-itc/minerva
 
 Package: minerva-database
 Architecture: all
