@@ -23,7 +23,7 @@ from minerva.storage import get_plugin
 from minerva.storage.geospatial.types import Site, Cell, Point
 
 
-package_name = "minerva.storage.geospatial"
+package_name = "minerva"
 script_name = os.path.basename(__file__)
 config_file = "{}.conf".format(script_name)
 

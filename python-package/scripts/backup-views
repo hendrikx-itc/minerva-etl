@@ -32,7 +32,7 @@ from minerva.storage.trend.types_v4 import View
 from minerva.storage.trend.helpers import get_trendstore_by_id
 
 
-package_name = "minerva.storage.trend"
+package_name = "minerva"
 script_name = os.path.basename(__file__)
 config_file = "{}.conf".format(script_name)
 
@@ -65,7 +65,7 @@ def main():
 
     if args.verbose:
         root_logger.setLevel(logging.DEBUG)
-        
+
         create_connection = partial(connect, config["db_uri"], root_logger)
     else:
         root_logger.setLevel(logging.INFO)

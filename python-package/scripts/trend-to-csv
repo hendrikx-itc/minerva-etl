@@ -29,7 +29,7 @@ from minerva.db import connect
 from minerva.storage.trend.plugin import TrendPlugin
 
 
-package_name = "minerva.storage.trend"
+package_name = "minerva"
 script_name = os.path.basename(__file__)
 config_file = "{}.conf".format(script_name)
 
