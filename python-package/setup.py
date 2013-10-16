@@ -59,5 +59,6 @@ setup(
         "scripts/load-datapackage",
         "scripts/query-entities",
         "scripts/load-elements",
-        "scripts/populate-gis"]
+        "scripts/populate-gis",
+        "scripts/cleanup-trend-data"]
 )

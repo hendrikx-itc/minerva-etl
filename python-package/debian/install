@@ -3,3 +3,4 @@ src/minerva/defaults/job.conf etc/minerva
 src/minerva/defaults/load-data.conf etc/minerva
 src/minerva/defaults/link-entity-tags.conf /etc/minerva
 src/minerva/defaults/create-relations.conf /etc/minerva
+src/minerva/defaults/cleanup-trend-data.conf /etc/minerva
