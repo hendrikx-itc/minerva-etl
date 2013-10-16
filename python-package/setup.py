@@ -18,7 +18,8 @@ setup(
     author_email="info@hendrikx-itc.nl",
     version="4.1.0",
     license="GPL",
-    install_requires=["pytz", "psycopg2>=2.2.1", "DBUtils", "PyYAML", "configobj", "python-dateutil"],
+    install_requires=["pytz", "psycopg2>=2.2.1", "DBUtils", "PyYAML",
+                      "configobj", "python-dateutil", "pyparsing"],
     test_suite="nose.collector",
     packages=[
         "minerva",
@@ -40,10 +41,7 @@ setup(
         "minerva.instance"],
     package_dir={"": "src"},
     package_data={
-        "minerva": ["defaults/*"],
-        "minerva.storage.geospatial": ["defaults/*"],
-        "minerva.storage.attribute": ["defaults/*"],
-        "minerva.storage.trend": ["defaults/*"]
+        "minerva": ["defaults/*"]
     },
     scripts=[
         "scripts/create-relations",
