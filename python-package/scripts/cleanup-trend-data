@@ -14,17 +14,10 @@ import os
 import sys
 import argparse
 import logging
-from operator import itemgetter
 from contextlib import closing
-import traceback
-import datetime
-from functools import partial
 
-import psycopg2.extras
-
-from minerva.db import parse_db_url, extract_safe_url
-from minerva.util.config import load_config, get_defaults, ConfigError
-from minerva.util import first
+from minerva.instance import MinervaInstance
+from minerva.util.config import get_defaults
 
 
 package_name = "minerva"
@@ -33,48 +26,52 @@ config_file = "{}.conf".format(script_name)
 
 
 def main():
+    default_minerva_instance = os.environ.get("DEFAULT_MINERVA_INSTANCE",
+                                              "default")
+
     config_file_path = os.path.join("/etc/minerva", config_file)
 
     parser = argparse.ArgumentParser(description="Cleanup trend data")
 
-    parser.add_argument("-c", "--configfile", dest="configfile",
-            default=config_file_path, help="the path to the config file")
+    parser.add_argument(
+        "-c", "--configfile", dest="configfile",
+        default=config_file_path, help="the path to the config file")
 
-    parser.add_argument("-v", "--verbose", action="store_true", default=False,
-            help="verbose output")
+    parser.add_argument(
+        "-i", "--instance", default=default_minerva_instance,
+        help="name of the target minerva instance")
 
-    parser.add_argument("--pretend", action="store_true", default=False,
-            help="don't really delete partitions")
+    parser.add_argument("-u", "--user", help="user to connect to database")
 
-    parser.add_argument("-g", "--granularity", default="900",
-            help="granularity of trendstores to clean")
+    parser.add_argument(
+        "-v", "--verbose", action="store_true", default=False,
+        help="verbose output")
 
-    parser.add_argument("-a", "--age", default="14 days",
-            help="minimum age of partitions to remove")
+    parser.add_argument(
+        "--pretend", action="store_true", default=False,
+        help="don't really delete partitions")
 
-    parser.add_argument("--generate-configfile", dest="generate_configfile",
-            action=GenerateConfigFileAction, nargs=0, help="generate base config file")
+    parser.add_argument(
+        "-g", "--granularity", default="900",
+        help="granularity of trendstores to clean")
 
-    root_logger = logging.getLogger("")
-    handler = logging.StreamHandler(sys.stdout)
-    root_logger.addHandler(handler)
+    parser.add_argument(
+        "-a", "--age", default="14 days",
+        help="minimum age of partitions to remove")
+
+    parser.add_argument(
+        "--generate-configfile", dest="generate_configfile",
+        action=GenerateConfigFileAction, nargs=0,
+        help="generate base config file")
 
     args = parser.parse_args()
 
-    try:
-        config = load_config(get_defaults(package_name, config_file), args.configfile)
-    except ConfigError as exc:
-        logging.error("error loading configuration: {}".format(exc))
-        return 1
+    logging.root.addHandler(logging.StreamHandler(sys.stdout))
 
     if args.verbose:
-        root_logger.setLevel(logging.DEBUG)
+        logging.root.setLevel(logging.INFO)
 
-        create_connection = partial(connect, config["db_uri"], root_logger)
-    else:
-        root_logger.setLevel(logging.INFO)
-
-        create_connection = partial(connect, config["db_uri"])
+    minerva_instance = MinervaInstance.load(args.instance)
 
     select_query = (
         "SELECT table_name, data_start, data_end "
@@ -89,7 +86,9 @@ def main():
         "DELETE FROM trend.partition "
         "WHERE table_name = %s")
 
-    with closing(create_connection()) as conn:
+    user = args.user or "minerva_admin"
+
+    with closing(minerva_instance.connect(user=user)) as conn:
         with closing(conn.cursor()) as cursor:
             cursor.execute(select_query, select_args)
 
@@ -97,27 +96,10 @@ def main():
                 if not args.pretend:
                     cursor.execute(delete_query, (table_name,))
                     conn.commit()
-                logging.info("dropped table {}, {} - {}".format(table_name, start, end))
+                logging.info("dropped table {}, {} - {}".format(
+                    table_name, start, end))
 
     return 0
-
-
-def connect(db_url, logger=None):
-    scheme, user, password, host, port, database = parse_db_url(db_url)
-
-    assert scheme == "postgresql", "Only PostgreSQL connections are supported"
-
-    create_connection = partial(psycopg2.connect, database=database, user=user,
-            password=password, host=host, port=port)
-
-    if logger:
-        conn = create_connection(connection_factory=psycopg2.extras.LoggingConnection)
-
-        conn.initialize(logger)
-    else:
-        conn = create_connection()
-
-    return conn
 
 
 class GenerateConfigFileAction(argparse.Action):
