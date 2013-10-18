@@ -15,7 +15,7 @@ this software.
 
 
 def load_plugins():
-    from minerva.storage import trend, attribute, geospatial, notification, delta
+    from minerva.storage import trend, attribute, geospatial, notification
     """
     Load and return a dictionary with plugins by their names.
     """
