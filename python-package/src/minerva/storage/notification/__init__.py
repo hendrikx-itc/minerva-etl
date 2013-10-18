@@ -10,3 +10,7 @@ version.  The full license is in the file COPYING, distributed as part of
 this software.
 """
 from plugin import NotificationPlugin
+
+
+def create(conn, api_version=4):
+    return NotificationPlugin()

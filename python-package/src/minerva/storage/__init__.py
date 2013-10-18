@@ -22,7 +22,7 @@ def load_plugins():
     return {
         'attribute': attribute.create,
         'trend': trend.create,
-        'notification': notification.NotificationPlugin,
+        'notification': notification.create,
         'geospatial': geospatial.create
     }
 
