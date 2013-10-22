@@ -178,12 +178,12 @@ def value_to_string(null_value="\\N"):
     return fn
 
 
-def format_text_value(null_value="\\N"):
+def format_text_value(null_value='\\N'):
     def fn(value):
         if isinstance(value, (str, unicode)) and len(value) == 0:
             return null_value
         else:
-            return '"{}"'.format(value)
+            return value.replace('\t', '\\\t')
 
     return fn
 
