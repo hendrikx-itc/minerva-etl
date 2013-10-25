@@ -24,7 +24,6 @@ CREATE OR REPLACE FUNCTION cleanup_attributestore_on_delete()
 AS $$
 BEGIN
 	EXECUTE format('DROP TABLE IF EXISTS attribute.%I CASCADE', attribute.to_table_name(OLD));
-	EXECUTE format('DROP TABLE IF EXISTS attribute.%I CASCADE', attribute.to_table_name(OLD) || '_staging');
 
 	RETURN OLD;
 END;

@@ -280,14 +280,12 @@ def memoize(f, timeout=4):
     return func
 
 
-def find(fn, iterable):
+def find(match_fn, iterable):
     """
-    Return first item in `iterable` for which function `fn` returns
+    Return first item in `iterable` for which function `match_fn` returns
     ``True``. If no items match, ``None`` is returned.
     """
-    for item in iterable:
-        if fn(item):
-            return item
+    return next(x for x in iterable if match_fn(x))
 
 
 def expand_args(fn):
