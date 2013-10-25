@@ -173,13 +173,27 @@ BEGIN
 	history_table_name = attribute.to_table_name($1) || '_history';
 	view_name = attribute.to_table_name($1) || '_curr';
 
-	view_sql = format('SELECT h.*
-		FROM attribute.%I h
-		JOIN (
-			SELECT max(timestamp) AS timestamp, entity_id
-			FROM attribute.%I
-			GROUP BY entity_id
-		) newest ON h.entity_id = newest.entity_id AND h.timestamp = newest.timestamp', history_table_name, history_table_name);
+	view_sql = format('
+
+		select distinct on (entity_id)
+		(
+			select min(timestamp)
+			from attribute.%I min_query
+			where min_query.entity_id = master.entity_id
+			and timestamp > coalesce((
+				select max(timestamp)
+				from attribute.%I this
+				where this.entity_id = master.entity_id
+				and hash != master.hash
+				group by this.entity_id
+			), \'0001-01-01\')
+			group by min_query.entity_id
+		) timestamp_of_change, *
+
+		from attribute.%I master
+		order by entity_id desc, timestamp desc
+
+		', history_table_name, history_table_name, history_table_name);
 
 	EXECUTE format('CREATE VIEW attribute.%I AS %s', view_name, view_sql);
 
