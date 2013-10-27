@@ -166,7 +166,7 @@ CREATE OR REPLACE FUNCTION create_curr_view(attribute_directory.attributestore)
 	RETURNS attribute_directory.attributestore
 AS $$
 DECLARE
-	history_table_name name;
+	table_name name;
 	view_name name;
 	view_sql text;
 BEGIN
@@ -193,7 +193,7 @@ BEGIN
 		from attribute_history.%I master
 		order by entity_id desc, timestamp desc
 
-		', history_table_name, history_table_name, history_table_name);
+		', table_name, table_name, table_name);
 
 	EXECUTE format('CREATE VIEW attribute_curr.%I AS %s', view_name, view_sql);
 
