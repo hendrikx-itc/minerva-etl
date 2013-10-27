@@ -5,7 +5,7 @@ SET check_function_bodies = false;
 SET client_min_messages = warning;
 SET escape_string_warning = off;
 
-SET search_path = attribute, pg_catalog;
+SET search_path = attribute_directory, pg_catalog;
 
 
 CREATE VIEW dependencies AS
@@ -19,7 +19,7 @@ CREATE VIEW dependencies AS
 			pg_depend.refobjid = pg_attribute.attrelid
 			AND
 			pg_depend.refobjsubid = pg_attribute.attnum
-	WHERE n.nspname = 'attribute' AND pg_attribute.attnum > 0;
+	WHERE n.nspname = 'attribute_directory' AND pg_attribute.attnum > 0;
 
 ALTER VIEW dependencies OWNER TO minerva_admin;
 
