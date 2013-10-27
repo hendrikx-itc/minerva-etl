@@ -56,17 +56,13 @@ class AttributeStore(object):
             attr.attributestore = self
 
         self.table = Table(schema.name, self.table_name())
-        self.history_table = Table(schema.name, self.table_name() + '_history')
-        self.staging_table = Table(schema.name, self.table_name() + '_staging')
-        self.table_curr = Table(schema.name, self.table_name_curr())
+        self.history_table = Table("attribute_history", self.table_name())
+        self.staging_table = Table("attribute_staging", self.table_name())
+        self.table_curr = Table("attribute_curr", self.table_name())
 
     def table_name(self):
         """Return the table name for this attributestore."""
         return "{0}_{1}".format(self.datasource.name, self.entitytype.name)
-
-    def table_name_curr(self):
-        """Return the table name for this attributestore's current values."""
-        return "{0}_curr".format(self.table_name())
 
     def update_attributes(self, attributes):
         """Add to, or update current attributes."""
@@ -89,8 +85,8 @@ class AttributeStore(object):
         """Load associated attributes from database and return them."""
         query = (
             "SELECT id, name, datatype, description "
-            "FROM {}.attribute "
-            "WHERE attributestore_id = %s").format(schema.name)
+            "FROM attribute_directory.attribute "
+            "WHERE attributestore_id = %s")
         args = self.id,
 
         cursor.execute(query, args)
@@ -114,7 +110,7 @@ class AttributeStore(object):
 
         """
         query = (
-            "SELECT ({}.to_attributestore(%s, %s)).*").format(schema.name)
+            "SELECT (attribute_directory.to_attributestore(%s, %s)).*")
 
         args = datasource.id, entitytype.id
 
@@ -132,9 +128,9 @@ class AttributeStore(object):
         """Load and return AttributeStore with specified attributes."""
         query = (
             "SELECT id "
-            "FROM {}.attributestore "
+            "FROM attribute_directory.attributestore "
             "WHERE datasource_id = %s "
-            "AND entitytype_id = %s").format(schema.name)
+            "AND entitytype_id = %s")
         args = datasource.id, entitytype.id
         cursor.execute(query, args)
 
@@ -151,7 +147,7 @@ class AttributeStore(object):
         """Load and return attributestore by its Id."""
         query = (
             "SELECT datasource_id, entitytype_id "
-            "FROM attributestore "
+            "FROM attribute_directory.attributestore "
             "WHERE id = %s")
         args = id,
         cursor.execute(query, args)
@@ -170,10 +166,10 @@ class AttributeStore(object):
     def create(self, cursor):
         """Create, initialize and return the attributestore."""
         query = (
-            "INSERT INTO {}.attributestore"
+            "INSERT INTO attribute_directory.attributestore"
             "(datasource_id, entitytype_id) "
             "VALUES (%s, %s) "
-            "RETURNING id").format(schema.name)
+            "RETURNING id")
         args = self.datasource.id, self.entitytype.id
         cursor.execute(query, args)
         self.id = head(cursor.fetchone())
@@ -186,9 +182,9 @@ class AttributeStore(object):
     def init(self, cursor):
         """Create corresponding database table and return self."""
         query = (
-            "SELECT {}.init(attributestore) "
-            "FROM {}.attributestore "
-            "WHERE id = %s").format(schema.name, schema.name)
+            "SELECT attribute_directory.init(attributestore) "
+            "FROM attribute_directory.attributestore "
+            "WHERE id = %s")
 
         args = self.id,
 
@@ -199,9 +195,9 @@ class AttributeStore(object):
     def compact(self, cursor):
         """Combine subsequent records with the same data."""
         query = (
-            "SELECT {0.name}.compact(attributestore) "
-            "FROM {0.name}.attributestore "
-            "WHERE id = %s").format(schema)
+            "SELECT attribute_directory.compact(attributestore) "
+            "FROM attribute_directory.attributestore "
+            "WHERE id = %s")
         args = self.id,
         cursor.execute(query, args)
 
@@ -231,15 +227,15 @@ class AttributeStore(object):
     def _transfer_staged(self, cursor):
         """Transfer all records from staging to history table."""
         cursor.execute(
-            "SELECT attribute.transfer_staged(attributestore) "
-            "from attribute.attributestore WHERE id = %s", (self.id,))
+            "SELECT attribute_directory.transfer_staged(attributestore) "
+            "FROM attribute_directory.attributestore "
+            "WHERE id = %s", (self.id,))
 
     def check_attributes_exist(self, cursor):
         """Check if attributes exist and create missing."""
         query = (
-            "SELECT {schema.name}.check_attributes_exist("
-            "%s::{attribute}[])").format(
-            schema=schema, attribute=schema.attribute.render())
+            "SELECT attribute_directory.check_attributes_exist("
+            "%s::attribute_directory.attribute[])")
 
         args = self.attributes,
 
@@ -248,9 +244,8 @@ class AttributeStore(object):
     def check_attribute_types(self, cursor):
         """Check and correct attribute data types."""
         query = (
-            "SELECT {schema.name}.check_attribute_types("
-            "%s::{schema.name}.attribute[])").format(
-            schema=schema)
+            "SELECT attribute_directory.check_attribute_types("
+            "%s::attribute_directory.attribute[])")
 
         args = self.attributes,
 
