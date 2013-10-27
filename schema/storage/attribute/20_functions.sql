@@ -195,9 +195,9 @@ BEGIN
 
 		', table_name, table_name, table_name);
 
-	EXECUTE format('CREATE VIEW attribute_curr.%I AS %s', view_name, view_sql);
+	EXECUTE format('CREATE VIEW attribute.%I AS %s', view_name, view_sql);
 
-	EXECUTE format('ALTER TABLE attribute_curr.%I
+	EXECUTE format('ALTER TABLE attribute.%I
 		OWNER TO minerva_admin', view_name);
 
 	RETURN $1;
@@ -209,7 +209,7 @@ CREATE OR REPLACE FUNCTION drop_curr_view(attribute_directory.attributestore)
 	RETURNS attribute_directory.attributestore
 AS $$
 BEGIN
-	EXECUTE format('DROP VIEW attribute_curr.%I', attribute_directory.to_table_name($1));
+	EXECUTE format('DROP VIEW attribute.%I', attribute_directory.to_table_name($1));
 
 	RETURN $1;
 END;
