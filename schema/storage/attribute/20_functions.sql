@@ -186,7 +186,7 @@ BEGIN
 				where this.entity_id = master.entity_id
 				and hash != master.hash
 				group by this.entity_id
-			), \'0001-01-01\')
+			), ''0001-01-01'')
 			group by min_query.entity_id
 		) timestamp_of_change, *
 
