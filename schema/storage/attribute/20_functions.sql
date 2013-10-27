@@ -136,7 +136,7 @@ DECLARE
 	view_name name;
 	view_sql text;
 BEGIN
-	table_name = attribute_directory.to_table_name($1) || '_history';
+	table_name = attribute_directory.to_table_name($1);
 	view_name = table_name || '_changes';
 
 	view_sql = format('SELECT entity_id, timestamp, COALESCE(hash <> lag(hash) OVER w, true) AS change FROM attribute_history.%I WINDOW w AS (PARTITION BY entity_id ORDER BY timestamp asc)', table_name);
