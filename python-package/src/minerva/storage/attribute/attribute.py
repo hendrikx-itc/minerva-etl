@@ -12,8 +12,6 @@ this software.
 """
 from psycopg2.extensions import adapt, register_adapter
 
-from minerva.storage.attribute import schema
-
 
 class Attribute(object):
     """Describes one attribute of an atttributestore."""
@@ -29,7 +27,7 @@ class Attribute(object):
         """Load and return attribute by its Id."""
         query = (
             "SELECT name, datatype, description "
-            "FROM attribute.attribute "
+            "FROM attribute_directory.attribute "
             "WHERE id = %s")
         args = id,
         cursor.execute(query, args)
@@ -47,9 +45,9 @@ class Attribute(object):
             raise Exception("attributestore not set")
 
         query = (
-            "INSERT INTO {0.name}.attribute "
+            "INSERT INTO attribute_directory.attribute "
             "(attributestore_id, name, datatype, description) "
-            "VALUES (%s, %s, %s, %s)").format(schema)
+            "VALUES (%s, %s, %s, %s)")
 
         args = (self.attributestore.id, self.name, self.datatype,
                 self.description)
