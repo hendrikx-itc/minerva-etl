@@ -268,7 +268,7 @@ BEGIN
 
 	EXECUTE format('CREATE TRIGGER update_modified_modtime
 		BEFORE UPDATE ON attribute_history.%I
-		FOR EACH ROW EXECUTE PROCEDURE attribute_history.update_modified_column()', table_name);
+		FOR EACH ROW EXECUTE PROCEDURE attribute_directory.update_modified_column()', table_name);
 
 	EXECUTE format('ALTER TABLE attribute_history.%I
 		OWNER TO minerva_admin', table_name);
