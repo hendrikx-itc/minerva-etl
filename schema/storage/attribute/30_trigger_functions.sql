@@ -47,7 +47,7 @@ CREATE OR REPLACE FUNCTION set_hash()
 	RETURNS TRIGGER
 AS $$
 BEGIN
-	NEW.hash = attribute_directory.values_hash(NEW);
+	NEW.hash = attribute_history.values_hash(NEW);
 
 	RETURN NEW;
 END;
