@@ -13,11 +13,15 @@ import os
 
 import psycopg2
 from configobj import ConfigObj
+from DBUtils import SteadyDB
 
 from minerva.instance.error import ConfigurationError
 
 INSTANCES_PATH = "/etc/minerva/instances"
 CLASSES_PATH = "/usr/lib/minerva/classes"
+
+EXPECTED_EXCEPTIONS = (psycopg2.InterfaceError, psycopg2.InternalError,
+                       psycopg2.OperationalError)
 
 
 class MinervaInstance(object):
@@ -44,13 +48,14 @@ class MinervaInstance(object):
         db_conf = self.config["database"]
 
         merged_kwargs = {
+            "failures": EXPECTED_EXCEPTIONS,
             "database": db_conf.get("name"),
             "host": db_conf.get("host"),
             "port": db_conf.get("port")}
 
         merged_kwargs.update(kwargs)
 
-        return psycopg2.connect(**merged_kwargs)
+        return SteadyDB.connect(psycopg2, **kwargs)
 
     def connect_ro(self, **kwargs):
         """
@@ -62,13 +67,14 @@ class MinervaInstance(object):
         db_conf = self.config["database_ro"]
 
         merged_kwargs = {
+            "failures": EXPECTED_EXCEPTIONS,
             "database": db_conf.get("name"),
             "host": db_conf.get("host"),
             "port": db_conf.get("port")}
 
         merged_kwargs.update(kwargs)
 
-        return psycopg2.connect(**merged_kwargs)
+        return SteadyDB.connect(psycopg2, **kwargs)
 
     @staticmethod
     def load(name):
