@@ -55,7 +55,7 @@ class MinervaInstance(object):
 
         merged_kwargs.update(kwargs)
 
-        return SteadyDB.connect(psycopg2, **kwargs)
+        return SteadyDB.connect(psycopg2, **merged_kwargs)
 
     def connect_ro(self, **kwargs):
         """
@@ -74,7 +74,7 @@ class MinervaInstance(object):
 
         merged_kwargs.update(kwargs)
 
-        return SteadyDB.connect(psycopg2, **kwargs)
+        return SteadyDB.connect(psycopg2, **merged_kwargs)
 
     @staticmethod
     def load(name):
