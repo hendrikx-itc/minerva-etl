@@ -136,7 +136,7 @@ DECLARE
 	view_name name;
 	view_sql text;
 BEGIN
-	table_name = attribute_directory.to_table_name($1) || '_history';
+	table_name = attribute_directory.to_table_name($1);
 	view_name = table_name || '_changes';
 
 	view_sql = format('SELECT entity_id, timestamp, COALESCE(hash <> lag(hash) OVER w, true) AS change FROM attribute_history.%I WINDOW w AS (PARTITION BY entity_id ORDER BY timestamp asc)', table_name);
@@ -166,7 +166,7 @@ CREATE OR REPLACE FUNCTION create_curr_view(attribute_directory.attributestore)
 	RETURNS attribute_directory.attributestore
 AS $$
 DECLARE
-	history_table_name name;
+	table_name name;
 	view_name name;
 	view_sql text;
 BEGIN
@@ -186,18 +186,18 @@ BEGIN
 				where this.entity_id = master.entity_id
 				and hash != master.hash
 				group by this.entity_id
-			), \'0001-01-01\')
+			), ''0001-01-01'')
 			group by min_query.entity_id
 		) timestamp_of_change, *
 
 		from attribute_history.%I master
 		order by entity_id desc, timestamp desc
 
-		', history_table_name, history_table_name, history_table_name);
+		', table_name, table_name, table_name);
 
-	EXECUTE format('CREATE VIEW attribute_curr.%I AS %s', view_name, view_sql);
+	EXECUTE format('CREATE VIEW attribute.%I AS %s', view_name, view_sql);
 
-	EXECUTE format('ALTER TABLE attribute_curr.%I
+	EXECUTE format('ALTER TABLE attribute.%I
 		OWNER TO minerva_admin', view_name);
 
 	RETURN $1;
@@ -209,7 +209,7 @@ CREATE OR REPLACE FUNCTION drop_curr_view(attribute_directory.attributestore)
 	RETURNS attribute_directory.attributestore
 AS $$
 BEGIN
-	EXECUTE format('DROP VIEW attribute_curr.%I', attribute_directory.to_table_name($1));
+	EXECUTE format('DROP VIEW attribute.%I', attribute_directory.to_table_name($1));
 
 	RETURN $1;
 END;
@@ -268,7 +268,7 @@ BEGIN
 
 	EXECUTE format('CREATE TRIGGER update_modified_modtime
 		BEFORE UPDATE ON attribute_history.%I
-		FOR EACH ROW EXECUTE PROCEDURE attribute_history.update_modified_column()', table_name);
+		FOR EACH ROW EXECUTE PROCEDURE attribute_directory.update_modified_column()', table_name);
 
 	EXECUTE format('ALTER TABLE attribute_history.%I
 		OWNER TO minerva_admin', table_name);

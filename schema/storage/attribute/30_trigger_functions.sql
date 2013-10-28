@@ -35,7 +35,7 @@ CREATE OR REPLACE FUNCTION update_datatype_on_change()
 AS $$
 BEGIN
 	IF OLD.datatype <> NEW.datatype THEN
-		PERFORM attribute.modify_datatype(NEW);
+		PERFORM attribute_directory.modify_datatype(NEW);
 	END IF;
 
 	RETURN NEW;
@@ -47,7 +47,7 @@ CREATE OR REPLACE FUNCTION set_hash()
 	RETURNS TRIGGER
 AS $$
 BEGIN
-	NEW.hash = attribute.values_hash(NEW);
+	NEW.hash = attribute_history.values_hash(NEW);
 
 	RETURN NEW;
 END;
