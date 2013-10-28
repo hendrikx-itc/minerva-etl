@@ -144,7 +144,7 @@ BEGIN
 	EXECUTE format('CREATE VIEW attribute_history.%I AS %s', view_name, view_sql);
 
 	EXECUTE format('ALTER TABLE attribute_history.%I
-		OWNER TO minerva_admin', view_name);
+		OWNER TO minerva_writer', view_name);
 
 	RETURN $1;
 END;
@@ -198,7 +198,7 @@ BEGIN
 	EXECUTE format('CREATE VIEW attribute.%I AS %s', view_name, view_sql);
 
 	EXECUTE format('ALTER TABLE attribute.%I
-		OWNER TO minerva_admin', view_name);
+		OWNER TO minerva_writer', view_name);
 
 	RETURN $1;
 END;
@@ -239,7 +239,7 @@ BEGIN
 	)', table_name, columns_part);
 
 	EXECUTE format('ALTER TABLE attribute_base.%I
-		OWNER TO minerva_admin', table_name);
+		OWNER TO minerva_writer', table_name);
 
 	EXECUTE format('GRANT SELECT ON TABLE attribute_base.%I TO minerva', table_name);
 
@@ -271,7 +271,7 @@ BEGIN
 		FOR EACH ROW EXECUTE PROCEDURE attribute_directory.update_modified_column()', table_name);
 
 	EXECUTE format('ALTER TABLE attribute_history.%I
-		OWNER TO minerva_admin', table_name);
+		OWNER TO minerva_writer', table_name);
 
 	EXECUTE format('GRANT SELECT ON TABLE attribute_history.%I TO minerva', table_name);
 
@@ -306,7 +306,7 @@ BEGIN
 		USING btree (entity_id, timestamp)', table_name);
 
 	EXECUTE format('ALTER TABLE attribute_staging.%I
-		OWNER TO minerva_admin', table_name);
+		OWNER TO minerva_writer', table_name);
 
 	RETURN $1;
 END;
@@ -345,7 +345,7 @@ WHERE a.entity_id IS NULL
 GROUP BY s.entity_id, s.timestamp', view_name, columns_part, table_name, table_name);
 
 	EXECUTE format('ALTER TABLE attribute_staging.%I
-		OWNER TO minerva_admin', view_name);
+		OWNER TO minerva_writer', view_name);
 
 	RETURN $1;
 END;
@@ -379,7 +379,7 @@ AS SELECT s.* FROM attribute_staging.%I s
 JOIN attribute_history.%I a ON a.entity_id = s.entity_id AND a.timestamp = s.timestamp', view_name, table_name, table_name);
 
 	EXECUTE format('ALTER TABLE attribute_staging.%I
-		OWNER TO minerva_admin', view_name);
+		OWNER TO minerva_writer', view_name);
 
 	RETURN $1;
 END;
