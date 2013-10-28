@@ -46,6 +46,10 @@ GRANT ALL ON TABLE attributestore TO minerva_admin;
 GRANT SELECT ON TABLE attributestore TO minerva;
 GRANT INSERT,DELETE,UPDATE ON TABLE attributestore TO minerva_writer;
 
+GRANT ALL ON SEQUENCE attributestore_id_seq TO minerva_admin;
+GRANT SELECT ON SEQUENCE attributestore_id_seq TO minerva;
+GRANT UPDATE ON SEQUENCE attributestore_id_seq TO minerva_writer;
+
 -- Table 'attribute'
 
 CREATE TABLE attribute (
