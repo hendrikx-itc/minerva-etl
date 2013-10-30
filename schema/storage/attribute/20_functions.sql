@@ -93,6 +93,8 @@ BEGIN
 
 	PERFORM attribute_directory.create_changes_view($1);
 
+	PERFORM attribute_directory.create_run_length_view($1);
+
 	PERFORM attribute_directory.create_dependees($1);
 
 	RETURN $1;
@@ -149,6 +151,46 @@ BEGIN
 	RETURN $1;
 END;
 $$ LANGUAGE plpgsql VOLATILE;
+
+
+CREATE OR REPLACE FUNCTION create_run_length_view(attribute_directory.attributestore)
+	RETURNS attribute_directory.attributestore
+AS $$
+DECLARE
+	table_name name;
+	view_name name;
+	view_sql text;
+BEGIN
+	table_name = attribute_directory.to_table_name($1);
+	view_name = table_name || '_run_length';
+
+	view_sql = format('SELECT public.first(entity_id) AS entity_id, min(timestamp) AS "start", max(timestamp) AS "end", max(modified) AS modified, count(*) AS run_length
+FROM
+(
+	SELECT entity_id, timestamp, modified, sum(change) OVER w2 AS run
+	FROM
+	(
+		SELECT entity_id, timestamp, modified, CASE WHEN hash <> lag(hash) OVER w THEN 1 ELSE 0 END AS change
+		FROM attribute_history.%I
+		WINDOW w AS (PARTITION BY entity_id ORDER BY timestamp asc)
+	) t
+	WINDOW w2 AS (PARTITION BY entity_id ORDER BY timestamp ASC)
+) runs
+GROUP BY run;', table_name);
+
+	EXECUTE format('CREATE VIEW attribute_history.%I AS %s', view_name, view_sql);
+
+	EXECUTE format('ALTER TABLE attribute_history.%I
+		OWNER TO minerva_writer', view_name);
+
+	RETURN $1;
+END;
+$$ LANGUAGE plpgsql VOLATILE;
+
+COMMENT ON FUNCTION create_run_length_view(attribute_directory.attributestore) IS
+'Create a view on an attributestore''s history table that lists the runs of
+duplicate attribute data records by their entity Id and start-end. This can
+be used as a source for compacting actions.';
 
 
 CREATE OR REPLACE FUNCTION drop_changes_view(attribute_directory.attributestore)
@@ -265,10 +307,6 @@ BEGIN
 
 	EXECUTE format('CREATE INDEX ON attribute_history.%I
 		USING btree (modified)', table_name);
-
-	EXECUTE format('CREATE TRIGGER update_modified_modtime
-		BEFORE UPDATE ON attribute_history.%I
-		FOR EACH ROW EXECUTE PROCEDURE attribute_directory.update_modified_column()', table_name);
 
 	EXECUTE format('ALTER TABLE attribute_history.%I
 		OWNER TO minerva_writer', table_name);
@@ -460,18 +498,29 @@ $function$ LANGUAGE plpgsql VOLATILE;
 CREATE OR REPLACE FUNCTION compact(attribute_directory.attributestore)
 	RETURNS attribute_directory.attributestore
 AS $$
+DECLARE
+	table_name name;
+	run_length_view_name name;
+	r record;
 BEGIN
-	EXECUTE format(
-		'DELETE FROM attribute_history.%I d
-		USING attribute_history.%I changes
-		WHERE changes.entity_id = d.entity_id
-			AND changes.timestamp = d.timestamp
-			AND changes.change = false', attribute_directory.to_table_name($1), attribute_directory.to_table_name($1) || '_changes');
+	table_name = attribute_directory.to_table_name($1);
+	run_length_view_name = table_name || '_run_length';
+
+	FOR r IN EXECUTE format('SELECT entity_id, start, "end", modified FROM attribute_history.%I WHERE run_length > 1', run_length_view_name)
+	LOOP
+		EXECUTE format('DELETE FROM attribute_history.%I WHERE entity_id = $1 AND timestamp > $2 AND timestamp <= $3', table_name)
+		USING r.entity_id, r."start", r."end";
+
+		EXECUTE format('UPDATE attribute_history.%I SET modified = $1 WHERE entity_id = $2 AND timestamp = $3', table_name)
+		USING r.modified, r.entity_id, r."start";
+	END LOOP;
 
 	RETURN $1;
 END;
 $$ LANGUAGE plpgsql VOLATILE;
 
+COMMENT ON FUNCTION create_run_length_view(attribute_directory.attributestore) IS
+'Remove all subsequent records with duplicate attribute values and update the modified of the first';
 
 CREATE OR REPLACE FUNCTION init(attribute_directory.attribute)
 	RETURNS attribute_directory.attribute
@@ -652,7 +701,7 @@ BEGIN
 	FROM attribute_directory.attribute
 	WHERE attributestore_id = $1.id;
 
-	EXECUTE format('UPDATE attribute_history.%I a SET %s FROM attribute_staging.%I m WHERE m.entity_id = a.entity_id AND m.timestamp = a.timestamp', table_name, set_columns_part, table_name || '_modified');
+	EXECUTE format('UPDATE attribute_history.%I a SET modified = now(), %s FROM attribute_staging.%I m WHERE m.entity_id = a.entity_id AND m.timestamp = a.timestamp', table_name, set_columns_part, table_name || '_modified');
 
 	EXECUTE format('TRUNCATE attribute_staging.%I', table_name);
 
