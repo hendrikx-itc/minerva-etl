@@ -46,9 +46,9 @@ def test_create(conn):
         conn.commit()
 
         query = (
-            "SELECT {0.name}.to_table_name(attributestore) "
-            "FROM {0.name}.attributestore "
-            "WHERE id = %s").format(schema)
+            "SELECT attribute_directory.to_table_name(attributestore) "
+            "FROM attribute_directory.attributestore "
+            "WHERE id = %s")
 
         args = attributestore.id,
 
@@ -80,9 +80,9 @@ def test_from_attributes(conn):
         conn.commit()
 
         query = (
-            "SELECT {0.name}.to_table_name(attributestore) "
-            "FROM {0.name}.attributestore "
-            "WHERE id = %s").format(schema)
+            "SELECT attribute_directory.to_table_name(attributestore) "
+            "FROM attribute_directory.attributestore "
+            "WHERE id = %s")
 
         args = attributestore.id,
 
@@ -238,16 +238,21 @@ def test_store_batch_update(conn):
     """Test batch wise storing with updates using staging table."""
     with closing(conn.cursor()) as cursor:
         attribute_names = ['CCR', 'Drops']
-        data_rows = [(10023 + i, ('0.9919', '17')) for i in range(100)]
-        update_data_rows = [(10023 + i, ('0.9918', '18')) for i in range(100)]
 
         datasource = DataSource.from_name(cursor, "integration-test")
         entitytype = EntityType.from_name(cursor, "UtranCell")
 
         timestamp = datasource.tzinfo.localize(datetime.now())
-        datapackage = DataPackage(timestamp, attribute_names, data_rows)
-        update_datapackage = DataPackage(timestamp, attribute_names,
-                                         update_data_rows)
+        datapackage = DataPackage(
+            timestamp,
+            attribute_names,
+            [(10023 + i, ('0.9919', '17')) for i in range(100)]
+        )
+        update_datapackage = DataPackage(
+            timestamp,
+            attribute_names,
+            [(10023 + i, ('0.9918', '18')) for i in range(100)]
+        )
 
         attributes = datapackage.deduce_attributes()
         attributestore = AttributeStore(datasource, entitytype, attributes)
@@ -256,8 +261,8 @@ def test_store_batch_update(conn):
         attributestore.store_batch(cursor, datapackage)
         conn.commit()
         modified_query = (
-            "SELECT modified FROM {0} "
-            "WHERE entity_id = 10023").format(
+            'SELECT modified FROM {0} '
+            'WHERE entity_id = 10023').format(
             attributestore.history_table.render())
 
         cursor.execute(modified_query)
@@ -272,8 +277,8 @@ def test_store_batch_update(conn):
         assert modified_b > modified_a
 
         query = (
-            "SELECT timestamp, \"Drops\" "
-            "FROM {0}").format(attributestore.table.render())
+            'SELECT timestamp, "Drops" '
+            'FROM {0}').format(attributestore.table.render())
 
         cursor.execute(query)
         # Row count should be the same as the stored batch size
@@ -309,10 +314,10 @@ def test_store_empty(conn):
 
 @with_conn(clear_database)
 def test_compact(conn):
-    """Test batch wise storing with updates using staging table."""
+    """Test compacting of redundant data."""
     with closing(conn.cursor()) as cursor:
         attribute_names = ['CCR', 'Drops']
-        data_rows = [(10023 + i, ('0.9919', '17')) for i in range(100)]
+        rows = [(10023 + i, ('0.9919', '17')) for i in range(100)]
 
         datasource = DataSource.from_name(cursor, "integration-test")
         entitytype = EntityType.from_name(cursor, "UtranCell")
@@ -322,12 +327,12 @@ def test_compact(conn):
         datapackage_a = DataPackage(
             timestamp=timestamp,
             attribute_names=attribute_names,
-            rows=data_rows
+            rows=rows
         )
         datapackage_b = DataPackage(
             timestamp=timestamp + timedelta(10),
             attribute_names=attribute_names,
-            rows=data_rows
+            rows=rows
         )
 
         attributes = datapackage_a.deduce_attributes()
@@ -342,7 +347,7 @@ def test_compact(conn):
 
         count_query = (
             "SELECT count(*) "
-            "FROM {0}").format(attributestore.table.render())
+            "FROM {0}").format(attributestore.history_table.render())
 
         cursor.execute(count_query)
 

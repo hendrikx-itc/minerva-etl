@@ -176,7 +176,7 @@ FROM
 	) t
 	WINDOW w2 AS (PARTITION BY entity_id ORDER BY timestamp ASC)
 ) runs
-GROUP BY run;', table_name);
+GROUP BY entity_id, run;', table_name);
 
 	EXECUTE format('CREATE VIEW attribute_history.%I AS %s', view_name, view_sql);
 

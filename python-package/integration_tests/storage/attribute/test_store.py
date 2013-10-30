@@ -205,8 +205,8 @@ def test_extra_column(conn):
         attributestore.store_txn(datapackage_b).run(conn)
 
         conn.commit()
-        column_names = get_column_names(conn, schema.name,
-                                        attributestore.history_table.name)
+        column_names = get_column_names(conn, 'attribute_history',
+                                        attributestore.table_name())
         eq_(len(column_names), 7)
 
 
@@ -245,6 +245,6 @@ def test_changing_datatype(conn):
         attributestore.store_txn(datapackage_b).run(conn)
 
         conn.commit()
-        column_names = get_column_names(conn, schema.name,
-                                        attributestore.history_table.name)
+        column_names = get_column_names(conn, "attribute_history",
+                                        attributestore.table_name())
         eq_(len(column_names), 6)

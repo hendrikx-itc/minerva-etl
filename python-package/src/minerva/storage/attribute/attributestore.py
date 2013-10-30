@@ -55,7 +55,7 @@ class AttributeStore(object):
         for attr in attributes:
             attr.attributestore = self
 
-        self.table = Table(schema.name, self.table_name())
+        self.table = Table("attribute", self.table_name())
         self.history_table = Table("attribute_history", self.table_name())
         self.staging_table = Table("attribute_staging", self.table_name())
         self.table_curr = Table("attribute_curr", self.table_name())
