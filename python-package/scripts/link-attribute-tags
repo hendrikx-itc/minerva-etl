@@ -18,8 +18,7 @@ from minerva.directory.tag import get_tag, create_tag, NoSuchTagError, \
 
 from minerva.storage.attribute.tag import tag_attributes, flush_tag_links
 
-CONFIG_DEFAULTS = resource_string("minerva.storage.attribute",
-                                  "defaults/link-attribute-tags.conf")
+CONFIG_DEFAULTS = resource_string("minerva", "defaults/link-attribute-tags.conf")
 
 
 def main():
