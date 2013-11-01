@@ -14,12 +14,12 @@ import json
 from contextlib import closing
 
 from minerva.directory.helpers import get_entity, get_entitytype_by_id
+from minerva.storage.attribute.attribute import Attribute
 from minerva.storage.attribute.attributestore import AttributeStore
 from minerva.storage.attribute.datapackage import DataPackage
 from minerva.storage.attribute.rawdatapackage import RawDataPackage
 from minerva.storage.attribute.retrieve import retrieve, retrieve_current, \
     retrieve_attributes_for_entity
-from minerva.storage.attribute.helpers import get_attribute_by_id
 
 
 class AttributePlugin(object):
@@ -71,7 +71,8 @@ class AttributePlugin(object):
             self.store(datasource, entitytype, datapackage)
 
     def get_attribute_by_id(self, attribute_id):
-        return get_attribute_by_id(self.conn, attribute_id)
+        with closing(self.conn.cursor()) as cursor:
+            return Attribute.get(cursor, attribute_id)
 
     @staticmethod
     def load_rawdatapackage(stream):

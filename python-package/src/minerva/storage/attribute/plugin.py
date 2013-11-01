@@ -1,8 +1,9 @@
 # -* -coding: utf - 8 -* -
+"""Provides the legacy AttributePlugin class."""
 __docformat__ = "restructuredtext en"
 
 __copyright__ = """
-Copyright (C) 2008-2012 Hendrikx-ITC B.V.
+Copyright (C) 2008-2013 Hendrikx-ITC B.V.
 
 Distributed under the terms of the GNU General Public License as published by
 the Free Software Foundation; either version 3, or (at your option) any later
@@ -13,18 +14,17 @@ from contextlib import closing
 
 from minerva.directory.helpers_v4 import get_entity, get_entitytype_by_id
 
-from minerva.storage.attribute.datapackage import DataPackage
-from minerva.storage.attribute.rawdatapackage import RawDataPackage
+from minerva.storage.attribute import datapackage as dp
+from minerva.storage.attribute import rawdatapackage as rdp
 from minerva.storage.attribute.attribute import Attribute
 from minerva.storage.attribute.attributestore import AttributeStore
 from minerva.storage.attribute.retrieve import retrieve, retrieve_current, \
     retrieve_attributes_for_entity
-from minerva.storage.attribute.helpers import get_attribute_by_id
 
 
 class AttributePlugin(object):
-    DataPackage = DataPackage
-    RawDataPackage = RawDataPackage
+    DataPackage = dp.DataPackage
+    RawDataPackage = rdp.RawDataPackage
 
     def __init__(self, conn):
         self.conn = conn
@@ -69,4 +69,5 @@ class AttributePlugin(object):
         self.store(datasource, entitytype, datapackage)
 
     def get_attribute_by_id(self, attribute_id):
-        return get_attribute_by_id(self.conn, attribute_id)
+        with closing(self.conn.cursor()) as cursor:
+            return Attribute.get(cursor, attribute_id)
