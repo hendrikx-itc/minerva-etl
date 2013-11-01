@@ -14,8 +14,6 @@ from contextlib import closing
 from minerva.db.util import create_temp_table, drop_table, \
     create_copy_from_file
 
-from minerva.storage.attribute import schema
-
 
 def tag_attributes(conn, tag_links):
     """
@@ -27,13 +25,13 @@ def tag_attributes(conn, tag_links):
     tmp_table_name = store_in_temp_table(conn, tag_links)
 
     query = (
-        "INSERT INTO {0}.attribute_tag_link (attribute_id, tag_id) "
+        "INSERT INTO attribute_directory.attribute_tag_link (attribute_id, tag_id) "
         "(SELECT tmp.attribute_id, tag.id "
-        "FROM {1} tmp "
+        "FROM {} tmp "
         "JOIN directory.tag tag ON tag.name = tmp.tag "
-        "LEFT JOIN {0}.attribute_tag_link ttl ON "
+        "LEFT JOIN attribute_directory.attribute_tag_link ttl ON "
         "ttl.attribute_id = tmp.attribute_id AND ttl.tag_id = tag.id "
-        "WHERE ttl.attribute_id IS NULL)").format(schema.name, tmp_table_name)
+        "WHERE ttl.attribute_id IS NULL)").format(tmp_table_name)
 
     with closing(conn.cursor()) as cursor:
         cursor.execute(query)
@@ -75,9 +73,9 @@ def flush_tag_links(conn, tag_name):
     :param tag_name: tag specifying attribute tags links that will be removed
     """
     query = (
-        "DELETE FROM {0}.attribute_tag_link atl "
+        "DELETE FROM attribute_directory.attribute_tag_link atl "
         "USING directory.tag tag "
-        "WHERE tag.id = atl.tag_id AND tag.name = %s").format(schema.name)
+        "WHERE tag.id = atl.tag_id AND tag.name = %s")
 
     args = (tag_name, )
 
