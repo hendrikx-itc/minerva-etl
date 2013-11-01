@@ -242,6 +242,8 @@ BEGIN
 	EXECUTE format('ALTER TABLE attribute.%I
 		OWNER TO minerva_writer', view_name);
 
+	EXECUTE format('GRANT SELECT ON TABLE attribute.%I TO minerva', view_name);
+
 	RETURN $1;
 END;
 $$ LANGUAGE plpgsql VOLATILE;
