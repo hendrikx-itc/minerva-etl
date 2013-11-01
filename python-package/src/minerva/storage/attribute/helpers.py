@@ -32,11 +32,8 @@ def get_attribute_by_id(conn, attribute_id):
     Return trend with specified id.
     """
     query = (
-        "SELECT a.id, a.name, a.description, astore.datasource_id, "
-            "astore.entitytype_id "
+        "SELECT a.name, a.datatype, a.description "
         "FROM attribute_directory.attribute a "
-        "JOIN attribute_directory.attributestore astore "
-            "ON astore.id = a.attributestore_id "
         "WHERE a.id = %s ")
 
     with closing(conn.cursor()) as cursor:
