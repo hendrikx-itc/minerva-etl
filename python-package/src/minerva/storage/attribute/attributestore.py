@@ -19,7 +19,6 @@ from minerva.directory.helpers_v4 import get_entitytype_by_id, \
 from minerva.db.error import NoSuchColumnError, DataTypeMismatch, \
     translate_postgresql_exception, translate_postgresql_exceptions
 from minerva.db.dbtransaction import DbTransaction, DbAction, insert_before
-from minerva.storage.attribute import schema
 from minerva.storage.attribute.attribute import Attribute
 
 MAX_RETRIES = 10
@@ -91,8 +90,9 @@ class AttributeStore(object):
 
         cursor.execute(query, args)
 
-        def row_to_attribute(attribute_id, name, datatype, description):
+        def row_to_attribute(row):
             """Create Attribute, link to this attributestore and return it."""
+            attribute_id, name, datatype, description = row
             attribute = Attribute(name, datatype, description)
             attribute.attributestore = self
             attribute.id = attribute_id
