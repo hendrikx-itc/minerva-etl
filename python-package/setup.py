@@ -48,6 +48,7 @@ setup(
         "scripts/load-tags",
         "scripts/link-entity-tags",
         "scripts/link-trend-tags",
+        "scripts/link-attribute-tags",
         "scripts/create-network",
         "scripts/create-virtual-entities",
         "scripts/create-csv",
