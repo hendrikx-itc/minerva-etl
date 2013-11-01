@@ -9,7 +9,6 @@ import argparse
 import traceback
 import logging
 from contextlib import closing
-from functools import partial
 from logging.handlers import RotatingFileHandler
 from pkg_resources import resource_string
 from StringIO import StringIO
@@ -18,9 +17,9 @@ import psycopg2.extras
 from configobj import ConfigObj
 
 from minerva.instance import MinervaInstance
-from minerva.directory.relation import add_relations, flush_relations, reverse_relations
+from minerva.directory.relation import add_relations, flush_relations, \
+    reverse_relations
 from minerva.util.config import parse_size
-from minerva.db import parse_db_url
 
 
 CONFIG_DEFAULTS = resource_string("minerva", "defaults/create-relations.conf")
@@ -38,44 +37,57 @@ LEVEL_MAP = {
     "ERROR": logging.ERROR,
     "CRITICAL": logging.CRITICAL}
 
+
 def main():
-    default_minerva_instance = os.environ.get("DEFAULT_MINERVA_INSTANCE",
-            "default")
+    default_minerva_instance = os.environ.get(
+        "DEFAULT_MINERVA_INSTANCE", "default")
 
     parser = argparse.ArgumentParser(
         description="Create relations between entities")
 
-    parser.add_argument("-i", "--instance", default=default_minerva_instance,
-            help="name of the target minerva instance")
+    parser.add_argument(
+        "-i", "--instance", default=default_minerva_instance,
+        help="name of the target minerva instance")
 
     parser.add_argument("-u", "--user", help="user to connect to database")
 
-    parser.add_argument("-t", "--relation-type",
+    parser.add_argument(
+        "-t", "--relation-type",
         help="name of the module containing the relation type definition")
 
-    parser.add_argument("-c", "--configfile", dest="configfile",
-        default="/etc/minerva/create-relations.conf", help="the path to the config file")
+    parser.add_argument(
+        "-c", "--configfile", dest="configfile",
+        default="/etc/minerva/create-relations.conf",
+        help="the path to the config file")
 
-    parser.add_argument("-v", "--verbose", action="store_true", default=False,
+    parser.add_argument(
+        "-v", "--verbose", action="store_true", default=False,
         help="verbose output")
 
-    parser.add_argument("--debug", action="store_true", default=False,
+    parser.add_argument(
+        "--debug", action="store_true", default=False,
         help="output for debugging purposes")
 
-    parser.add_argument("-f", "--flush", action="store_true", default=False,
+    parser.add_argument(
+        "-f", "--flush", action="store_true", default=False,
         help="flush current relations of specified type")
 
-    parser.add_argument("-p", "--pretend", action="store_true", default=False,
+    parser.add_argument(
+        "-p", "--pretend", action="store_true", default=False,
         help="determine relations, but don't store anything in database")
 
-    parser.add_argument("-r", "--reverse", action="store_true", default=False,
+    parser.add_argument(
+        "-r", "--reverse", action="store_true", default=False,
         help="generate reverse relations")
 
-    parser.add_argument("-b", "--bi-directional", action="store_true", default=False,
+    parser.add_argument(
+        "-b", "--bi-directional", action="store_true", default=False,
         help="generate bi-directional relations")
 
-    parser.add_argument("--generate-configfile",	dest="generate_configfile",
-        action=GenerateConfigFileAction, nargs=0, help="generate base config file")
+    parser.add_argument(
+        "--generate-configfile", dest="generate_configfile",
+        action=GenerateConfigFileAction, nargs=0,
+        help="generate base config file")
 
     args = parser.parse_args()
 
@@ -88,9 +100,10 @@ def main():
     config = ConfigObj(StringIO(CONFIG_DEFAULTS))
     config.merge(ConfigObj(args.configfile))
 
-    user = config.get("database", {}).get("user") or args.user or "minerva_admin"
-
-    db_uri = minerva_instance.get_db_uri(user)
+    user = (
+        args.user or
+        config.get("database", {}).get("user") or
+        "minerva_admin")
 
     log_level = LEVEL_MAP[config["log_level"]]
 
@@ -100,7 +113,7 @@ def main():
     setup_logging(log_level)
 
     setup_file_logging(config["log_directory"], config["log_filename"],
-        config["log_rotation_size"], log_level)
+                       config["log_rotation_size"], log_level)
 
     mode = NORMAL
     if args.reverse:
@@ -108,7 +121,8 @@ def main():
     if args.bi_directional:
         mode = BIDIRECTIONAL
 
-    module_directory = os.path.join(minerva_instance.minerva_class().path(), "relations")
+    module_directory = os.path.join(minerva_instance.minerva_class().path(),
+                                    "relations")
 
     sys.path.append(module_directory)
 
@@ -123,20 +137,17 @@ def main():
         print("no type specified")
         return 2
 
-    if args.debug:
-        create_connection = partial(connect, db_uri, logging.getLogger(""))
-    else:
-        create_connection = partial(connect, db_uri)
-
     try:
-        with closing(create_connection()) as conn:
+        with closing(minerva_instance.connect(user=user)) as conn:
             if hasattr(module, "get_relationtypes"):
                 for relationtype_name, generator in module.get_relationtypes(conn):
                     generate_relations(
-                        conn, relationtype_name, cardinality, generator, mode, args.flush)
+                        conn, relationtype_name, cardinality, generator, mode,
+                        args.flush)
             else:
-                generate_relations(conn, module.RELATIONTYPE_NAME, cardinality,
-                    module.get_relations, mode, args.flush)
+                generate_relations(conn, module.RELATIONTYPE_NAME,
+                                   cardinality, module.get_relations, mode,
+                                   args.flush)
 
             conn.commit()
     except Exception:
@@ -146,7 +157,8 @@ def main():
     return 0
 
 
-def generate_relations(conn, relationtype_name, relationtype_cardinality, generator, mode, flush):
+def generate_relations(conn, relationtype_name, relationtype_cardinality,
+                       generator, mode, flush):
     match = type_regex.match(relationtype_name)
 
     if not match is None:
@@ -166,7 +178,8 @@ def generate_relations(conn, relationtype_name, relationtype_cardinality, genera
 
     if mode == NORMAL or mode == BIDIRECTIONAL:
         if flush:
-            logging.info("flushing relations of type '{}'".format(relationtype_name))
+            logging.info("flushing relations of type '{}'".format(
+                relationtype_name))
 
             try:
                 flush_relations(conn, relationtype_name)
@@ -177,17 +190,22 @@ def generate_relations(conn, relationtype_name, relationtype_cardinality, genera
                 else:
                     raise
 
-        logging.info("storing {} relations of type '{}' cardinality '{}'".format(count, relationtype_name, relationtype_cardinality))
+        logging.info(
+            "storing {} relations of type '{}' cardinality '{}'".format(
+                count, relationtype_name, relationtype_cardinality))
 
-        add_relations(conn, relations, relationtype_name, relationtype_cardinality)
+        add_relations(conn, relations, relationtype_name,
+                      relationtype_cardinality)
         conn.commit()
 
     if reverseable and (mode == REVERSE or mode == BIDIRECTIONAL):
         relationtype_name = "{}->{}".format(target_type_name, source_type_name)
-        relationtype_cardinality = reverse_cardinality(relationtype_cardinality)
+        relationtype_cardinality = reverse_cardinality(
+            relationtype_cardinality)
 
         if flush:
-            logging.info("flushing relations of type '{}'".format(relationtype_name))
+            logging.info("flushing relations of type '{}'".format(
+                relationtype_name))
 
             try:
                 flush_relations(conn, relationtype_name)
@@ -211,24 +229,6 @@ def reverse_cardinality(cardinality_type):
         return 'one-to-many'
 
     return cardinality_type
-
-
-def connect(db_url, logger=None):
-    scheme, user, password, host, port, database = parse_db_url(db_url)
-
-    assert scheme == "postgresql", "Only PostgreSQL connections are supported"
-
-    create_connection = partial(psycopg2.connect, database=database, user=user,
-            password=password, host=host, port=port)
-
-    if logger:
-        conn = create_connection(connection_factory=psycopg2.extras.LoggingConnection)
-
-        conn.initialize(logger)
-    else:
-        conn = create_connection()
-
-    return conn
 
 
 def setup_logging(level):
