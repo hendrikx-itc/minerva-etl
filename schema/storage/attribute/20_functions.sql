@@ -461,7 +461,7 @@ CREATE OR REPLACE FUNCTION render_hash_query(attribute_directory.attributestore)
 AS $$
 	SELECT COALESCE(
 		'SELECT md5(' ||
-		array_to_string(array_agg(format('($1.%I)::text', name)), ' || ') ||
+		array_to_string(array_agg(format('COALESCE(($1.%I)::text, '''')', name)), ' || ') ||
 		')',
 		'SELECT ''''::text')
 	FROM attribute_directory.attribute
