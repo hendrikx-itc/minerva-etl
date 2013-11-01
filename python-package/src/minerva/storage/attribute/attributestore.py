@@ -58,7 +58,7 @@ class AttributeStore(object):
         self.table = Table(schema.name, self.table_name())
         self.history_table = Table("attribute_history", self.table_name())
         self.staging_table = Table("attribute_staging", self.table_name())
-        self.table_curr = Table("attribute_curr", self.table_name())
+        self.curr_table = Table("attribute", self.table_name())
 
     def table_name(self):
         """Return the table name for this attributestore."""

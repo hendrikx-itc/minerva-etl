@@ -54,7 +54,7 @@ class AttributePlugin(object):
 
         attributestore = AttributeStore(datasource, entitytype)
 
-        return retrieve_current(self.conn, attributestore.table,
+        return retrieve_current(self.conn, attributestore.curr_table,
                                 attribute_names, entities)
 
     def store_raw(self, datasource, raw_datapackage):
