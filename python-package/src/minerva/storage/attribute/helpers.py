@@ -27,20 +27,17 @@ class NoSuchAttributeError(Exception):
     pass
 
 
-class NoSuchAttributeTagError(Exception):
-    """
-    Exception raised when no matching AttributeTag is found.
-    """
-    pass
-
-
 def get_attribute_by_id(conn, attribute_id):
     """
     Return trend with specified id.
     """
     query = (
-        "SELECT a.id, a.name, a.description, a.datasource_id, a.entitytype_id "
-        "FROM {}.attribute a WHERE a.id = %s ").format(schema.name)
+        "SELECT a.id, a.name, a.description, astore.datasource_id, "
+            "astore.entitytype_id "
+        "FROM attribute_directory.attribute a "
+        "JOIN attribute_directory.attributestore astore "
+            "ON astore.id = a.attributestore_id "
+        "WHERE a.id = %s ")
 
     with closing(conn.cursor()) as cursor:
         cursor.execute(query, (attribute_id,))
@@ -51,57 +48,3 @@ def get_attribute_by_id(conn, attribute_id):
             raise NoSuchAttributeError("No attribute with id {0}".format(
                 attribute_id))
 
-
-def get_attributetag(conn, name):
-    """
-    Return attribute tag with specified name.
-    """
-    with closing(conn.cursor()) as cursor:
-        query = (
-            "SELECT id, name "
-            "FROM {}.tag "
-            "WHERE name=%s").format(schema.name)
-
-        cursor.execute(query, (name,))
-
-        if cursor.rowcount == 1:
-            id, name = cursor.fetchone()
-
-            return AttributeTag(id, name)
-        else:
-            raise NoSuchAttributeTagError(
-                "No attribute tag with name {0}".format(name))
-
-
-def create_attributetag(conn, name):
-    """
-    Create new attribute tag
-    :param conn: psycopg2 connection to Minerva database
-    :param name: tag name
-    """
-    with closing(conn.cursor()) as cursor:
-        try:
-            query = (
-                "INSERT INTO {}.tag (id, name) "
-                "VALUES (DEFAULT, %s) RETURNING id").format(schema.name)
-
-            cursor.execute(query, (name,))
-        except psycopg2.Error as exc:
-            conn.rollback()
-
-            if exc.pgcode == psycopg2.errorcodes.UNIQUE_VIOLATION:
-                query = (
-                    "SELECT id FROM {}.tag"
-                    "WHERE name=%s").format(schema.name)
-
-                cursor.execute(query, (name,))
-
-                (id,) = cursor.fetchone()
-            else:
-                raise exc
-        else:
-            (id,) = cursor.fetchone()
-
-            conn.commit()
-
-    return AttributeTag(id, name)
