@@ -117,3 +117,44 @@ ALTER TABLE ONLY attribute_tag_link
 GRANT ALL ON TABLE attribute_tag_link TO minerva_admin;
 GRANT SELECT ON TABLE attribute_tag_link TO minerva;
 GRANT INSERT,DELETE,UPDATE ON TABLE attribute_tag_link TO minerva_writer;
+
+-- Table 'attributestore_modified'
+
+CREATE TABLE attributestore_modified (
+    attributestore_id integer NOT NULL,
+    modified timestamp with time zone NOT NULL
+);
+
+ALTER TABLE attributestore_modified OWNER TO minerva_admin;
+
+ALTER TABLE ONLY attributestore_modified
+	ADD CONSTRAINT attributestore_modified_pkey PRIMARY KEY (attributestore_id);
+
+ALTER TABLE ONLY attributestore_modified
+	ADD CONSTRAINT attributestore_modified_attributestore_id_fkey FOREIGN KEY (attributestore_id) REFERENCES attribute_directory.attributestore(id)
+	ON DELETE CASCADE;
+
+GRANT ALL ON TABLE attributestore_modified TO minerva_admin;
+GRANT SELECT ON TABLE attributestore_modified TO minerva;
+GRANT INSERT,DELETE,UPDATE ON TABLE attributestore_modified TO minerva_writer;
+
+-- Table 'attributestore_curr_materialized'
+
+CREATE TABLE attributestore_curr_materialized (
+    attributestore_id integer NOT NULL,
+    materialized timestamp with time zone NOT NULL
+);
+
+ALTER TABLE attributestore_curr_materialized OWNER TO minerva_admin;
+
+ALTER TABLE ONLY attributestore_curr_materialized
+	ADD CONSTRAINT attributestore_curr_materialized_pkey PRIMARY KEY (attributestore_id);
+
+ALTER TABLE ONLY attributestore_curr_materialized
+	ADD CONSTRAINT attributestore_curr_materialized_attributestore_id_fkey FOREIGN KEY (attributestore_id) REFERENCES attribute_directory.attributestore(id)
+	ON DELETE CASCADE;
+
+GRANT ALL ON TABLE attributestore_curr_materialized TO minerva_admin;
+GRANT SELECT ON TABLE attributestore_curr_materialized TO minerva;
+GRANT INSERT,DELETE,UPDATE ON TABLE attributestore_curr_materialized TO minerva_writer;
+

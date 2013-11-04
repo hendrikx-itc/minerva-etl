@@ -91,6 +91,9 @@ BEGIN
 
 	PERFORM attribute_directory.create_hash_triggers($1);
 
+	PERFORM attribute_directory.create_modified_trigger_function($1);
+	PERFORM attribute_directory.create_modified_triggers($1);
+
 	PERFORM attribute_directory.create_changes_view($1);
 
 	PERFORM attribute_directory.create_run_length_view($1);
@@ -452,6 +455,83 @@ BEGIN
 	EXECUTE format('CREATE TRIGGER set_hash_on_insert
 		BEFORE INSERT ON attribute_history.%I
 		FOR EACH ROW EXECUTE PROCEDURE attribute_directory.set_hash()', table_name);
+
+	RETURN $1;
+END;
+$$ LANGUAGE plpgsql VOLATILE;
+
+
+CREATE OR REPLACE FUNCTION mark_modified(attributestore_id integer)
+	RETURNS attribute_directory.attributestore_modified
+AS $$
+	SELECT attribute_directory.mark_modified($1, now());
+$$ LANGUAGE SQL VOLATILE;
+
+
+CREATE OR REPLACE FUNCTION mark_modified(attributestore_id integer, modified timestamp with time zone)
+	RETURNS attribute_directory.attributestore_modified
+AS $$
+	SELECT COALESCE(attribute_directory.update_modified($1, $2), attribute_directory.store_modified($1, $2));
+$$ LANGUAGE SQL VOLATILE;
+
+
+CREATE OR REPLACE FUNCTION update_modified(attributestore_id integer, modified timestamp with time zone)
+	RETURNS attribute_directory.attributestore_modified
+AS $$
+	UPDATE attribute_directory.attributestore_modified
+	SET modified = greatest(modified, $2)
+	WHERE attributestore_id = $1
+	RETURNING attributestore_modified;
+$$ LANGUAGE SQL VOLATILE;
+
+
+CREATE OR REPLACE FUNCTION store_modified(attributestore_id integer, modified timestamp with time zone)
+	RETURNS attribute_directory.attributestore_modified
+AS $$
+	INSERT INTO attribute_directory.attributestore_modified (attributestore_id, modified)
+	VALUES ($1, $2)
+	RETURNING attributestore_modified;
+$$ LANGUAGE SQL VOLATILE;
+
+
+CREATE OR REPLACE FUNCTION create_modified_trigger_function(attribute_directory.attributestore)
+	RETURNS attribute_directory.attributestore
+AS $function$
+DECLARE
+	table_name name;
+BEGIN
+	table_name = attribute_directory.to_table_name($1);
+
+	EXECUTE format('CREATE FUNCTION attribute_history.mark_modified_%s()
+RETURNS TRIGGER
+AS $$
+BEGIN
+	PERFORM attribute_directory.mark_modified(%s);
+
+	RETURN NEW;
+END;
+$$ LANGUAGE plpgsql', $1.id, $1.id);
+
+	RETURN $1;
+END;
+$function$ LANGUAGE plpgsql VOLATILE;
+
+
+CREATE OR REPLACE FUNCTION create_modified_triggers(attribute_directory.attributestore)
+	RETURNS attribute_directory.attributestore
+AS $$
+DECLARE
+	table_name name;
+BEGIN
+	table_name = attribute_directory.to_table_name($1);
+
+	EXECUTE format('CREATE TRIGGER mark_modified_on_update
+		AFTER UPDATE ON attribute_history.%I
+		FOR EACH STATEMENT EXECUTE PROCEDURE attribute_history.mark_modified_%s()', table_name, $1.id);
+
+	EXECUTE format('CREATE TRIGGER mark_modified_on_insert
+		AFTER INSERT ON attribute_history.%I
+		FOR EACH STATEMENT EXECUTE PROCEDURE attribute_history.mark_modified_%s()', table_name, $1.id);
 
 	RETURN $1;
 END;
