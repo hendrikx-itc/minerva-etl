@@ -109,6 +109,27 @@ END;
 $$ LANGUAGE plpgsql VOLATILE;
 
 
+CREATE OR REPLACE FUNCTION upgrade_curr_view(attribute_directory.attributestore)
+	RETURNS attribute_directory.attributestore
+AS $$
+BEGIN
+	PERFORM attribute_directory.mark_modified($1.id);
+
+	PERFORM attribute_directory.create_curr_ptr_table($1);
+	PERFORM attribute_directory.create_curr_ptr_view($1);
+	PERFORM attribute_directory.materialize_curr_ptr($1);
+	PERFORM attribute_directory.drop_curr_view($1);
+	PERFORM attribute_directory.create_curr_view($1);
+
+	RETURN $1;
+END;
+$$ LANGUAGE plpgsql VOLATILE;
+
+COMMENT ON FUNCTION upgrade_curr_view(attribute_directory.attributestore) IS
+'Function only for the purpose of upgrading the attribute view to use a new
+materialization mechanism. Should soon be removed.';
+
+
 CREATE OR REPLACE FUNCTION create_dependees(attribute_directory.attributestore)
 	RETURNS attribute_directory.attributestore
 AS $$
@@ -154,6 +175,10 @@ BEGIN
 SELECT entity_id, timestamp FROM attribute_history.%I', table_name, view_name);
 
     GET DIAGNOSTICS row_count = ROW_COUNT;
+
+	PERFORM attribute_directory.mark_curr_materialized(attributestore_id, modified)
+	FROM attribute_directory.attributestore_modified
+	WHERE attributestore_id = $1.id;
 
     RETURN row_count;
 END;
@@ -261,6 +286,17 @@ END;
 $$ LANGUAGE plpgsql VOLATILE;
 
 
+CREATE OR REPLACE FUNCTION drop_curr_view(attribute_directory.attributestore)
+	RETURNS attribute_directory.attributestore
+AS $$
+BEGIN
+	EXECUTE format('DROP VIEW attribute.%I', attribute_directory.to_table_name($1));
+
+	RETURN $1;
+END;
+$$ LANGUAGE plpgsql VOLATILE;
+
+
 CREATE OR REPLACE FUNCTION create_curr_ptr_table(attribute_directory.attributestore)
 	RETURNS attribute_directory.attributestore
 AS $$
@@ -339,7 +375,7 @@ CREATE OR REPLACE FUNCTION drop_curr_ptr_view(attribute_directory.attributestore
 	RETURNS attribute_directory.attributestore
 AS $$
 BEGIN
-	EXECUTE format('DROP VIEW attribute.%I', attribute_directory.to_table_name($1));
+	EXECUTE format('DROP VIEW attribute_history.%I', attribute_directory.to_table_name($1) || '_curr_selection');
 
 	RETURN $1;
 END;
@@ -543,6 +579,37 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql VOLATILE;
 
+
+-- Curr materialization log functions
+
+
+CREATE OR REPLACE FUNCTION update_curr_materialized(attributestore_id integer, materialized timestamp with time zone)
+	RETURNS attribute_directory.attributestore_curr_materialized
+AS $$
+	UPDATE attribute_directory.attributestore_curr_materialized
+	SET materialized = greatest(materialized, $2)
+	WHERE attributestore_id = $1
+	RETURNING attributestore_curr_materialized;
+$$ LANGUAGE SQL VOLATILE;
+
+
+CREATE OR REPLACE FUNCTION store_curr_materialized(attributestore_id integer, materialized timestamp with time zone)
+	RETURNS attribute_directory.attributestore_curr_materialized
+AS $$
+	INSERT INTO attribute_directory.attributestore_curr_materialized (attributestore_id, materialized)
+	VALUES ($1, $2)
+	RETURNING attributestore_curr_materialized;
+$$ LANGUAGE SQL VOLATILE;
+
+
+CREATE OR REPLACE FUNCTION mark_curr_materialized(attributestore_id integer, materialized timestamp with time zone)
+	RETURNS attribute_directory.attributestore_curr_materialized
+AS $$
+	SELECT COALESCE(attribute_directory.update_curr_materialized($1, $2), attribute_directory.store_curr_materialized($1, $2));
+$$ LANGUAGE SQL VOLATILE;
+
+
+-- Modified log functions
 
 CREATE OR REPLACE FUNCTION mark_modified(attributestore_id integer)
 	RETURNS attribute_directory.attributestore_modified
