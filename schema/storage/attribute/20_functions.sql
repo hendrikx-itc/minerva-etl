@@ -305,7 +305,7 @@ BEGIN
 	view_sql = format('
 		SELECT DISTINCT ON (entity_id)
 		(
-			SELECT min(timestamp) AS timestamp
+			SELECT min(timestamp)
 			FROM attribute_history.%I min_query
 			WHERE min_query.entity_id = master.entity_id
 			AND timestamp > coalesce((
@@ -319,7 +319,7 @@ BEGIN
 		) "timestamp", entity_id
 
 		FROM attribute_history.%I master
-		ORDER BY entity_id desc, timestamp desc',
+		ORDER BY master.entity_id desc, master.timestamp desc',
         table_name, table_name, table_name
     );
 
