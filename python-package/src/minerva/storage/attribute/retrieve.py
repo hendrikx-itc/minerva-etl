@@ -122,7 +122,7 @@ def retrieve_related(conn, table_name, attribute_names, entities,
     where_parts = []
     join_parts = []
 
-    full_base_tbl_name = "attribute.\"{1}\"".format(table_name)
+    full_base_tbl_name = "attribute.\"{}\"".format(table_name)
 
     attr_columns = map(enquote_ident, attribute_names)
 
