@@ -17,7 +17,6 @@ from nose.tools import eq_
 from minerva.test import with_conn
 from minerva.directory.basetypes import DataSource, EntityType
 
-from minerva.storage.attribute import schema
 from minerva.storage.attribute.attribute import Attribute
 from minerva.storage.attribute.attributestore import AttributeStore
 from minerva.storage.attribute.datapackage import DataPackage
