@@ -113,6 +113,11 @@ def test_store_batch_simple(conn):
         attributestore.store_batch(cursor, datapackage)
         conn.commit()
 
+        cursor.execute(
+            "SELECT attribute_directory.materialize_curr_ptr(attributestore) "
+            "FROM attribute_directory.attributestore "
+            "WHERE id = %s", (attributestore.id,))
+
         query = (
             "SELECT timestamp, \"Drops\" "
             "FROM {0}").format(attributestore.table.render())
@@ -148,11 +153,17 @@ def test_store_batch_with_list_a(conn):
         attributestore.store_batch(cursor, datapackage)
         conn.commit()
 
+        cursor.execute(
+            "SELECT attribute_directory.materialize_curr_ptr(attributestore) "
+            "FROM attribute_directory.attributestore "
+            "WHERE id = %s", (attributestore.id,))
+
         query = (
             "SELECT timestamp, height "
             "FROM {0}").format(attributestore.table.render())
 
         cursor.execute(query)
+
         # Row count should be the same as the stored batch size
         eq_(cursor.rowcount, len(datapackage.rows))
 
@@ -275,6 +286,11 @@ def test_store_batch_update(conn):
         modified_b, = cursor.fetchone()
 
         assert modified_b > modified_a
+
+        cursor.execute(
+            "SELECT attribute_directory.materialize_curr_ptr(attributestore) "
+            "FROM attribute_directory.attributestore "
+            "WHERE id = %s", (attributestore.id,))
 
         query = (
             'SELECT timestamp, "Drops" '
