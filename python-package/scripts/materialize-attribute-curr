@@ -55,7 +55,9 @@ def materialize_changed(conn):
 
 def materialize(cursor, attributestore_id):
     query = (
-        "SELECT attribute_directory.materialize_curr_ptr(%s)"
+        "SELECT attribute_directory.materialize_curr_ptr(attributestore) "
+        "FROM attribute_directory.attributestore "
+        "WHERE id = %s"
     )
 
     args = (attributestore_id,)
