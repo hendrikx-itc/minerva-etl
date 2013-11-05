@@ -162,7 +162,8 @@ def retrieve_attributes_for_entity(conn, entity_id, attribute_ids):
     query = (
         "SELECT a.id, a.name, a.table_name, et.name as entitytype_name "
         "FROM attribute_directory.attribute a "
-        "JOIN directory.entitytype et ON et.id = a.entitytype_id "
+        "JOIN attribute_directory.attributestore as on a.attributestore_id = as.id " 
+        "JOIN directory.entitytype et ON et.id = as.entitytype_id "
         "WHERE a.id IN ({}) "
         "ORDER BY a.table_name").format(",".join(map(str, attribute_ids)))
 
