@@ -8,6 +8,15 @@ SET escape_string_warning = off;
 SET search_path = notification, pg_catalog;
 
 
+CREATE OR REPLACE FUNCTION to_char(notification.notificationstore)
+	RETURNS text
+AS $$
+	SELECT datasource.name
+	FROM directory.datasource
+	WHERE datasource.id = $1.datasource_id;
+$$ LANGUAGE SQL STABLE STRICT;
+
+
 CREATE OR REPLACE FUNCTION notification.create_table(name name)
 	RETURNS void
 AS $$
