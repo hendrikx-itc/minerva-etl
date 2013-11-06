@@ -132,19 +132,19 @@ def main():
 
             entitytype = helpers_v4.get_entitytype(cursor, args.entitytype)
             datasource = helpers_v4.get_datasource(cursor, args.datasource)
-            plugin = storage.get_plugin(args.storage_type)(conn)
 
             fields = module.fields()
             refined_data_rows = module.refined_data_rows(cursor, ts)
 
-            if args.storage_type == "attribute":
-                plugin.store(datasource, entitytype, ts, fields,
-                             refined_data_rows)
-            elif args.storage_type == "trend":
-                refined_data_rows = plugin.refine_data_rows(raw_data_rows)
+            plugin = storage.get_plugin(args.storage_type)(conn)
 
-                plugin.store(datasource, entitytype, granularity, ts, fields,
-                             refined_data_rows)
+            if args.storage_type == "attribute":
+                package = plugin.DataPackage(ts, fields, refined_data_rows)
+
+                plugin.store(datasource, entitytype, package)
+            else:
+                raise Exception(
+                    "Unsupported storage class: {}".format(args.storage_type))
 
 
 def connect(db_url, logger=None):
