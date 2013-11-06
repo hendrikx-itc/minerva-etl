@@ -170,7 +170,7 @@ def create_copy_from_line(timestamp, data_types, row):
 
 def value_to_string(null_value="\\N"):
     def fn(value):
-        if isinstance(value, (str, unicode)) and len(value) == 0:
+        if is_null_value(value):
             return null_value
         else:
             return str(value)
@@ -180,12 +180,19 @@ def value_to_string(null_value="\\N"):
 
 def format_text_value(null_value='\\N'):
     def fn(value):
-        if isinstance(value, (str, unicode)) and len(value) == 0:
+        if is_null_value(value):
             return null_value
         else:
             return value.replace('\t', '\\\t')
 
     return fn
+
+
+def is_null_value(value):
+    return (
+        value is None or
+        (isinstance(value, (str, unicode)) and len(value) == 0)
+    )
 
 
 def array_value_to_string(value):
