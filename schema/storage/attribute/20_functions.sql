@@ -98,11 +98,9 @@ BEGIN
 
 	PERFORM attribute_directory.create_run_length_view($1);
 
-	PERFORM attribute_directory.create_dependees($1);
-
     PERFORM attribute_directory.create_curr_ptr_table($1);
 
-    PERFORM attribute_directory.create_curr_view($1);
+	PERFORM attribute_directory.create_dependees($1);
 
 	RETURN $1;
 END;
@@ -134,10 +132,12 @@ CREATE OR REPLACE FUNCTION create_dependees(attribute_directory.attributestore)
 	RETURNS attribute_directory.attributestore
 AS $$
 	SELECT
-		attribute_directory.create_curr_ptr_view(
-			attribute_directory.create_staging_modified_view(
-				attribute_directory.create_staging_new_view(
-					attribute_directory.create_hash_function($1)
+		attribute_directory.create_curr_view(
+			attribute_directory.create_curr_ptr_view(
+				attribute_directory.create_staging_modified_view(
+					attribute_directory.create_staging_new_view(
+						attribute_directory.create_hash_function($1)
+					)
 				)
 			)
 		);
@@ -151,7 +151,9 @@ AS $$
 		attribute_directory.drop_hash_function(
 			attribute_directory.drop_staging_new_view(
 				attribute_directory.drop_staging_modified_view(
-					attribute_directory.drop_curr_ptr_view($1)
+					attribute_directory.drop_curr_ptr_view(
+						attribute_directory.drop_curr_view($1)
+					)
 				)
 			)
 		);
