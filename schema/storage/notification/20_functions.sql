@@ -25,16 +25,13 @@ DECLARE
 	full_table_name text;
 BEGIN
 	EXECUTE format('CREATE TABLE %I.%I (
+		id serial PRIMARY KEY,
 		entity_id integer NOT NULL,
 		"timestamp" timestamp with time zone NOT NULL
 		);', 'notification', name);
 
 	EXECUTE format('ALTER TABLE %I.%I OWNER TO minerva_writer;', 'notification',
 		name);
-
-	EXECUTE format('ALTER TABLE ONLY %I.%I
-		ADD CONSTRAINT %I
-		PRIMARY KEY (entity_id, "timestamp");', 'notification', name, name || '_pkey');
 
 	EXECUTE format('GRANT SELECT ON TABLE %I.%I TO minerva;', 'notification',
 		name);
