@@ -109,7 +109,8 @@ class NotificationStore(object):
             return self
 
     def store_record(self, record):
-        """Return function that can store the data from a :class:`~minerva.storage.notification.types.Record`."""
+        """Return function that can store the data from a
+        :class:`~minerva.storage.notification.types.Record`."""
         @translate_postgresql_exceptions
         def f(cursor):
             quote_column = partial(str.format, '"{}"')
@@ -122,7 +123,7 @@ class NotificationStore(object):
                 "INSERT INTO {} ({}) "
                 "VALUES ({})").format(self.table.render(), columns_part, args_part)
 
-            args = [record.entity_id, record.timestamp] + record.values
+            args = [record.entity_id, record.timestamp] + map(prepare_value, record.values)
 
             cursor.execute(query, args)
 
@@ -167,3 +168,10 @@ class NotificationStore(object):
             cursor.execute(query, args)
 
         return f
+
+
+def prepare_value(value):
+    if isinstance(value, dict):
+        return str(value)
+    else:
+        return value
