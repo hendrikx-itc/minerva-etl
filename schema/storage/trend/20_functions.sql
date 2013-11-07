@@ -815,6 +815,24 @@ END;
 $$ LANGUAGE plpgsql VOLATILE;
 
 
+CREATE OR REPLACE FUNCTION remove_trend_from_trendstore(trendstore trend.trendstore, trend_name character varying)
+	RETURNS void
+AS $$
+DECLARE
+BEGIN
+	DELETE FROM trend.trend USING trend.trendstore_trend_link ttl WHERE ttl.trend_id = trend.id AND trend.name = trend_name AND ttl.trendstore_id = trendstore.id;
+	EXECUTE format('ALTER TABLE trend.%I DROP COLUMN %I;', trend.to_base_table_name(trendstore), trend_name);
+END;
+$$ LANGUAGE plpgsql VOLATILE;
+
+
+CREATE OR REPLACE FUNCTION remove_trend_from_trendstore(trendstore text, trend_name character varying)
+	RETURNS void
+AS $$
+	SELECT trend.remove_trend_from_trendstore(trendstore, $2) from trend.trendstore where trendstore::text = $1;
+$$ LANGUAGE SQL VOLATILE;
+
+
 CREATE OR REPLACE FUNCTION column_exists(table_name character varying, column_name character varying)
 	RETURNS boolean
 AS $$
