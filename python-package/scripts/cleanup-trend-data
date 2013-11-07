@@ -53,6 +53,12 @@ def main():
         help="granularity of trendstores to clean")
 
     parser.add_argument(
+        "-d", "--datasource", help="datasource of trendstores to clean")
+
+    parser.add_argument(
+        "-e", "--entitytype", help="entitytype of trendstores to clean")
+
+    parser.add_argument(
         "-a", "--age", default="14 days",
         help="minimum age of partitions to remove")
 
@@ -76,14 +82,33 @@ def main():
 
     minerva_instance = MinervaInstance.load(minerva_instance_name)
 
+    joins = []
+    select_args = []
+
+    if args.datasource:
+        joins.append(
+            "JOIN directory.datasource "
+            "ON datasource.id = ts.datasource_id "
+            "AND datasource.name = %s")
+
+        select_args.append(args.datasource)
+
+    if args.entitytype:
+        joins.append(
+            "JOIN directory.entitytype "
+            "ON entitytype.id = ts.entitytype_id "
+            "AND entitytype.name = %s")
+
+        select_args.append(args.entitytype)
+
     select_query = (
         "SELECT table_name, data_start, data_end "
         "FROM trend.partition p "
-        "JOIN trend.trendstore ts ON ts.id = p.trendstore_id "
+        "JOIN trend.trendstore ts ON ts.id = p.trendstore_id {}"
         "WHERE ts.granularity = %s AND data_end < now() - interval %s "
-        "ORDER BY data_end, table_name")
+        "ORDER BY data_end, table_name").format("".join(joins))
 
-    select_args = args.granularity, args.age
+    select_args.extend((args.granularity, args.age))
 
     delete_query = (
         "DELETE FROM trend.partition "
