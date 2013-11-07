@@ -26,9 +26,6 @@ config_file = "{}.conf".format(script_name)
 
 
 def main():
-    default_minerva_instance = os.environ.get("DEFAULT_MINERVA_INSTANCE",
-                                              "default")
-
     config_file_path = os.path.join("/etc/minerva", config_file)
 
     parser = argparse.ArgumentParser(description="Cleanup trend data")
@@ -38,7 +35,7 @@ def main():
         default=config_file_path, help="the path to the config file")
 
     parser.add_argument(
-        "-i", "--instance", default=default_minerva_instance,
+        "-i", "--instance",
         help="name of the target minerva instance")
 
     parser.add_argument("-u", "--user", help="user to connect to database")
@@ -71,7 +68,13 @@ def main():
     if args.verbose:
         logging.root.setLevel(logging.INFO)
 
-    minerva_instance = MinervaInstance.load(args.instance)
+    minerva_instance_name = (
+        args.instance or
+        os.environ.get("MINERVA_INSTANCE") or
+        "default"
+    )
+
+    minerva_instance = MinervaInstance.load(minerva_instance_name)
 
     select_query = (
         "SELECT table_name, data_start, data_end "
