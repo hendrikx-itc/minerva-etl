@@ -11,6 +11,7 @@ the Free Software Foundation; either version 3, or (at your option) any later
 version.  The full license is in the file COPYING, distributed as part of
 this software.
 """
+import json
 
 
 class JobSource(object):
@@ -18,7 +19,7 @@ class JobSource(object):
         self.id = id
         self.name = name
         self.job_type = job_type
-        self.config = config
+        self.config = json.loads(config)
 
     @staticmethod
     def get_by_name(cursor, name):
@@ -40,7 +41,7 @@ class JobSource(object):
         """
         :param cursor: A psycopg2 cursor on a Minerva Directory database.
         """
-        args = self.name, self.job_type, self.config
+        args = self.name, self.job_type, json.dumps(self.config)
 
         cursor.callproc("system.add_job_source", args)
 
