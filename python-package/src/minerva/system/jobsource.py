@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
-"""
-Provides the JobSource class.
-"""
+"""Provides the JobSource class."""
 __docformat__ = "restructuredtext en"
 __copyright__ = """
 Copyright (C) 2008-2013 Hendrikx-ITC B.V.
@@ -13,19 +11,39 @@ this software.
 """
 import json
 
+from minerva.system.struct import Struct
+
 
 class JobSource(object):
+
+    """
+    Encapsulates job source and provides loading and creating functionality.
+
+    The default config serialization an deserialization functionality can be
+    overridden in sub-classes to provide more elegant access to the type
+    specific configuration.
+
+    """
+
     def __init__(self, id, name, job_type, config):
         self.id = id
         self.name = name
         self.job_type = job_type
-        self.config = json.loads(config)
+        self.config = self.deserialize_config(config)
+
+    @staticmethod
+    def deserialize_config(config):
+        """Parse as JSON and return dictionary wrappend in Struct."""
+        return Struct(json.loads(config))
+
+    @staticmethod
+    def serialize_config(config):
+        """Serialize as JSON and return string."""
+        return json.dumps(config)
 
     @staticmethod
     def get_by_name(cursor, name):
-        """
-        Retrieve the a job_source by its name.
-        """
+        """Retrieve the a job_source by its name and return Id."""
         query = "SELECT id FROM system.job_source WHERE name=%s"
 
         args = (name, )
@@ -39,9 +57,12 @@ class JobSource(object):
 
     def create(self, cursor):
         """
-        :param cursor: A psycopg2 cursor on a Minerva Directory database.
+        Create the job source in the database and return self.
+
+        :param cursor: A psycopg2 cursor on a Minerva database.
+
         """
-        args = self.name, self.job_type, json.dumps(self.config)
+        args = self.name, self.job_type, self.serialize_config(self.config)
 
         cursor.callproc("system.add_job_source", args)
 

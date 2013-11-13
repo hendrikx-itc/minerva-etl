@@ -1,0 +1,75 @@
+#!/usr/bin/python
+"""Command line tool to compact attribute history tables."""
+import os
+import argparse
+from contextlib import closing
+
+from minerva.util import head
+from minerva.instance import MinervaInstance
+
+
+def main():
+    """Script entrypoint."""
+    parser = argparse.ArgumentParser(
+        description="Compact attribute history tables.")
+
+    parser.add_argument(
+        "-i", "--instance", help="name of the target minerva instance")
+
+    parser.add_argument(
+        "-u", "--user", help="user to connect to database")
+
+    args = parser.parse_args()
+
+    minerva_instance = MinervaInstance.load(
+        args.instance or
+        os.environ.get("MINERVA_INSTANCE") or
+        "default"
+    )
+
+    user = args.user or "minerva_admin"
+
+    with closing(minerva_instance.connect(user=user)) as conn:
+        compact_changed(conn)
+
+
+def compact_changed(conn):
+    """Compact all changed attributestores."""
+    with closing(conn.cursor()) as cursor:
+        attributestore_ids = get_changed_attributestore_ids(cursor)
+
+    for attributestore_id in attributestore_ids:
+        with closing(conn.cursor()) as cursor:
+            compact(cursor, attributestore_id)
+
+        conn.commit()
+
+        print("compacted {}".format(attributestore_id))
+
+
+def get_changed_attributestore_ids(cursor):
+    """Return Ids of all changed attributestores."""
+    cursor.execute(
+        "SELECT mod.attributestore_id "
+        "FROM attribute_directory.attributestore_modified mod "
+        "LEFT JOIN attribute_directory.attributestore_compacted comp "
+        "ON mod.attributestore_id = comp.attributestore_id "
+        "WHERE comp.compacted <> mod.modified OR comp.compacted IS NULL")
+
+    return map(head, cursor.fetchall())
+
+
+def compact(cursor, attributestore_id):
+    query = (
+        "SELECT attribute_directory.compact(attributestore) "
+        "FROM attribute_directory.attributestore "
+        "WHERE id = %s"
+    )
+
+    args = (attributestore_id,)
+
+    cursor.execute(query, args)
+
+
+if __name__ == "__main__":
+    main()

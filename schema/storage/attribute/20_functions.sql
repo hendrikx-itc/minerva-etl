@@ -584,7 +584,6 @@ $$ LANGUAGE plpgsql VOLATILE;
 
 -- Curr materialization log functions
 
-
 CREATE OR REPLACE FUNCTION update_curr_materialized(attributestore_id integer, materialized timestamp with time zone)
 	RETURNS attribute_directory.attributestore_curr_materialized
 AS $$
@@ -608,6 +607,34 @@ CREATE OR REPLACE FUNCTION mark_curr_materialized(attributestore_id integer, mat
 	RETURNS attribute_directory.attributestore_curr_materialized
 AS $$
 	SELECT COALESCE(attribute_directory.update_curr_materialized($1, $2), attribute_directory.store_curr_materialized($1, $2));
+$$ LANGUAGE SQL VOLATILE;
+
+
+-- Compacting log functions
+
+CREATE OR REPLACE FUNCTION update_compacted(attributestore_id integer, compacted timestamp with time zone)
+	RETURNS attribute_directory.attributestore_compacted
+AS $$
+	UPDATE attribute_directory.attributestore_compacted
+	SET compacted = greatest(compacted, $2)
+	WHERE attributestore_id = $1
+	RETURNING attributestore_compacted;
+$$ LANGUAGE SQL VOLATILE;
+
+
+CREATE OR REPLACE FUNCTION store_compacted(attributestore_id integer, compacted timestamp with time zone)
+	RETURNS attribute_directory.attributestore_compacted
+AS $$
+	INSERT INTO attribute_directory.attributestore_compacted (attributestore_id, compacted)
+	VALUES ($1, $2)
+	RETURNING attributestore_compacted;
+$$ LANGUAGE SQL VOLATILE;
+
+
+CREATE OR REPLACE FUNCTION mark_compacted(attributestore_id integer, compacted timestamp with time zone)
+	RETURNS attribute_directory.attributestore_compacted
+AS $$
+	SELECT COALESCE(attribute_directory.update_compacted($1, $2), attribute_directory.store_compacted($1, $2));
 $$ LANGUAGE SQL VOLATILE;
 
 
@@ -748,6 +775,10 @@ BEGIN
 		EXECUTE format('UPDATE attribute_history.%I SET modified = $1 WHERE entity_id = $2 AND timestamp = $3', table_name)
 		USING r.modified, r.entity_id, r."start";
 	END LOOP;
+
+	PERFORM attribute_directory.mark_compacted(attributestore_id, modified)
+	FROM attribute_directory.attributestore_modified
+	WHERE attributestore_id = $1.id;
 
 	RETURN $1;
 END;

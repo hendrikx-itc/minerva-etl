@@ -46,7 +46,8 @@ def materialize_changed(conn):
         attributestore_ids = map(head, cursor.fetchall())
 
     for attributestore_id in attributestore_ids:
-        materialize(cursor, attributestore_id)
+        with closing(conn.cursor()) as cursor:
+            materialize(cursor, attributestore_id)
 
         conn.commit()
 

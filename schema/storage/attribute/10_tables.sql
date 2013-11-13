@@ -158,3 +158,23 @@ GRANT ALL ON TABLE attributestore_curr_materialized TO minerva_admin;
 GRANT SELECT ON TABLE attributestore_curr_materialized TO minerva;
 GRANT INSERT,DELETE,UPDATE ON TABLE attributestore_curr_materialized TO minerva_writer;
 
+-- Table 'attributestore_compacted'
+
+CREATE TABLE attributestore_compacted (
+    attributestore_id integer NOT NULL,
+    compacted timestamp with time zone NOT NULL
+);
+
+ALTER TABLE attributestore_compacted OWNER TO minerva_admin;
+
+ALTER TABLE ONLY attributestore_compacted
+	ADD CONSTRAINT attributestore_compacted_pkey PRIMARY KEY (attributestore_id);
+
+ALTER TABLE ONLY attributestore_compacted
+	ADD CONSTRAINT attributestore_compacted_attributestore_id_fkey FOREIGN KEY (attributestore_id) REFERENCES attribute_directory.attributestore(id)
+	ON DELETE CASCADE;
+
+GRANT ALL ON TABLE attributestore_compacted TO minerva_admin;
+GRANT SELECT ON TABLE attributestore_compacted TO minerva;
+GRANT INSERT,DELETE,UPDATE ON TABLE attributestore_compacted TO minerva_writer;
+
