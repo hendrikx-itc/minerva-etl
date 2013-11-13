@@ -24,27 +24,24 @@ def main():
         "-u", "--user", default="minerva_admin",
         help="user to connect to database")
 
+    parser.add_argument(
+        "-a", "--all", help="materialize all current pointer tables")
+
     args = parser.parse_args()
 
     minerva_instance = MinervaInstance.load(args.instance)
 
     with closing(minerva_instance.connect(user=args.user)) as conn:
-        materialize_changed(conn)
+        with closing(conn.cursor()) as cursor:
+            if args.all:
+                attributestore_ids = get_all_attributestore_ids(cursor)
+            else:
+                attributestore_ids = get_changed_attributestore_ids(cursor)
+
+        materialize_attributestores(conn, attributestore_ids)
 
 
-def materialize_changed(conn):
-    query = (
-        "SELECT mod.attributestore_id "
-        "FROM attribute_directory.attributestore_modified mod "
-        "LEFT JOIN attribute_directory.attributestore_curr_materialized mat "
-        "ON mod.attributestore_id = mat.attributestore_id "
-        "WHERE mat.materialized <> mod.modified OR mat.materialized IS NULL")
-
-    with closing(conn.cursor()) as cursor:
-        cursor.execute(query)
-
-        attributestore_ids = map(head, cursor.fetchall())
-
+def materialize_attributestores(conn, attributestore_ids):
     for attributestore_id in attributestore_ids:
         with closing(conn.cursor()) as cursor:
             materialize(cursor, attributestore_id)
@@ -64,6 +61,25 @@ def materialize(cursor, attributestore_id):
     args = (attributestore_id,)
 
     cursor.execute(query, args)
+
+
+def get_all_attributestore_ids(cursor):
+    """Return Ids of all attributestores."""
+    cursor.execute("SELECT id FROM attribute_directory.attributestore")
+
+    return map(head, cursor.fetchall())
+
+
+def get_changed_attributestore_ids(cursor):
+    """Return Ids of all changed attributestores."""
+    cursor.execute(
+        "SELECT mod.attributestore_id "
+        "FROM attribute_directory.attributestore_modified mod "
+        "LEFT JOIN attribute_directory.attributestore_curr_materialized mat "
+        "ON mod.attributestore_id = mat.attributestore_id "
+        "WHERE mat.materialized <> mod.modified OR mat.materialized IS NULL")
+
+    return map(head, cursor.fetchall())
 
 
 if __name__ == "__main__":
