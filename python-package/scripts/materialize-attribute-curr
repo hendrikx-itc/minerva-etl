@@ -38,7 +38,7 @@ def materialize_changed(conn):
         "FROM attribute_directory.attributestore_modified mod "
         "LEFT JOIN attribute_directory.attributestore_curr_materialized mat "
         "ON mod.attributestore_id = mat.attributestore_id "
-        "WHERE mat.materialized <> mod.modified")
+        "WHERE mat.materialized <> mod.modified OR mat.materialized IS NULL")
 
     with closing(conn.cursor()) as cursor:
         cursor.execute(query)
