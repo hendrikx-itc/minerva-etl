@@ -16,8 +16,7 @@ from configobj import ConfigObj
 from minerva.db import connect
 
 from minerva.directory import create_entity
-from minerva.util import parse_size
-from minerva.util.config import load_config, get_defaults, ConfigError
+from minerva.util.config import load_config, get_defaults, ConfigError, parse_size
 
 package_name = "minerva"
 script_name = os.path.basename(__file__)
