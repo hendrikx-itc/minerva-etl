@@ -91,9 +91,14 @@ BEGIN
 
 	PERFORM attribute_directory.create_hash_triggers($1);
 
+	PERFORM attribute_directory.create_modified_trigger_function($1);
+	PERFORM attribute_directory.create_modified_triggers($1);
+
 	PERFORM attribute_directory.create_changes_view($1);
 
 	PERFORM attribute_directory.create_run_length_view($1);
+
+    PERFORM attribute_directory.create_curr_ptr_table($1);
 
 	PERFORM attribute_directory.create_dependees($1);
 
@@ -102,14 +107,37 @@ END;
 $$ LANGUAGE plpgsql VOLATILE;
 
 
+CREATE OR REPLACE FUNCTION upgrade_curr_view(attribute_directory.attributestore)
+	RETURNS attribute_directory.attributestore
+AS $$
+BEGIN
+	PERFORM attribute_directory.mark_modified($1.id);
+
+	PERFORM attribute_directory.create_curr_ptr_table($1);
+	PERFORM attribute_directory.create_curr_ptr_view($1);
+	PERFORM attribute_directory.materialize_curr_ptr($1);
+	PERFORM attribute_directory.drop_curr_view($1);
+	PERFORM attribute_directory.create_curr_view($1);
+
+	RETURN $1;
+END;
+$$ LANGUAGE plpgsql VOLATILE;
+
+COMMENT ON FUNCTION upgrade_curr_view(attribute_directory.attributestore) IS
+'Function only for the purpose of upgrading the attribute view to use a new
+materialization mechanism. Should soon be removed.';
+
+
 CREATE OR REPLACE FUNCTION create_dependees(attribute_directory.attributestore)
 	RETURNS attribute_directory.attributestore
 AS $$
 	SELECT
 		attribute_directory.create_curr_view(
-			attribute_directory.create_staging_modified_view(
-				attribute_directory.create_staging_new_view(
-					attribute_directory.create_hash_function($1)
+			attribute_directory.create_curr_ptr_view(
+				attribute_directory.create_staging_modified_view(
+					attribute_directory.create_staging_new_view(
+						attribute_directory.create_hash_function($1)
+					)
 				)
 			)
 		);
@@ -123,11 +151,40 @@ AS $$
 		attribute_directory.drop_hash_function(
 			attribute_directory.drop_staging_new_view(
 				attribute_directory.drop_staging_modified_view(
-					attribute_directory.drop_curr_view($1)
+					attribute_directory.drop_curr_ptr_view(
+						attribute_directory.drop_curr_view($1)
+					)
 				)
 			)
 		);
 $$ LANGUAGE SQL VOLATILE;
+
+
+CREATE OR REPLACE FUNCTION materialize_curr_ptr(attribute_directory.attributestore)
+    RETURNS integer
+AS $$
+DECLARE
+	table_name name;
+	view_name name;
+    row_count integer;
+BEGIN
+	table_name = attribute_directory.to_table_name($1) || '_curr_ptr';
+	view_name = attribute_directory.to_table_name($1) || '_curr_selection';
+
+    EXECUTE format('TRUNCATE attribute_history.%I', table_name);
+
+    EXECUTE format('INSERT INTO attribute_history.%I (entity_id, timestamp)
+SELECT entity_id, timestamp FROM attribute_history.%I', table_name, view_name);
+
+    GET DIAGNOSTICS row_count = ROW_COUNT;
+
+	PERFORM attribute_directory.mark_curr_materialized(attributestore_id, modified)
+	FROM attribute_directory.attributestore_modified
+	WHERE attributestore_id = $1.id;
+
+    RETURN row_count;
+END;
+$$ LANGUAGE plpgsql VOLATILE;
 
 
 CREATE OR REPLACE FUNCTION create_changes_view(attribute_directory.attributestore)
@@ -209,33 +266,15 @@ CREATE OR REPLACE FUNCTION create_curr_view(attribute_directory.attributestore)
 AS $$
 DECLARE
 	table_name name;
-	view_name name;
-	view_sql text;
+	curr_ptr_table_name name;
+    view_name name;
+    view_sql text;
 BEGIN
 	table_name = attribute_directory.to_table_name($1);
-	view_name = table_name;
+    curr_ptr_table_name = table_name || '_curr_ptr';
+    view_name = table_name;
 
-	view_sql = format('
-
-		select distinct on (entity_id)
-		(
-			select min(timestamp)
-			from attribute_history.%I min_query
-			where min_query.entity_id = master.entity_id
-			and timestamp > coalesce((
-				select max(timestamp)
-				from attribute_history.%I this
-				where this.entity_id = master.entity_id
-				and hash != master.hash
-				group by this.entity_id
-			), ''0001-01-01'')
-			group by min_query.entity_id
-		) timestamp_of_change, *
-
-		from attribute_history.%I master
-		order by entity_id desc, timestamp desc
-
-		', table_name, table_name, table_name);
+    view_sql = format('SELECT h.* FROM attribute_history.%I h JOIN attribute_history.%I c ON h.entity_id = c.entity_id AND h.timestamp = c.timestamp', table_name, curr_ptr_table_name);
 
 	EXECUTE format('CREATE VIEW attribute.%I AS %s', view_name, view_sql);
 
@@ -244,7 +283,7 @@ BEGIN
 
 	EXECUTE format('GRANT SELECT ON TABLE attribute.%I TO minerva', view_name);
 
-	RETURN $1;
+    RETURN $1;
 END;
 $$ LANGUAGE plpgsql VOLATILE;
 
@@ -254,6 +293,91 @@ CREATE OR REPLACE FUNCTION drop_curr_view(attribute_directory.attributestore)
 AS $$
 BEGIN
 	EXECUTE format('DROP VIEW attribute.%I', attribute_directory.to_table_name($1));
+
+	RETURN $1;
+END;
+$$ LANGUAGE plpgsql VOLATILE;
+
+
+CREATE OR REPLACE FUNCTION create_curr_ptr_table(attribute_directory.attributestore)
+	RETURNS attribute_directory.attributestore
+AS $$
+DECLARE
+	table_name name;
+	curr_ptr_table_name name;
+BEGIN
+	table_name = attribute_directory.to_table_name($1);
+    curr_ptr_table_name = table_name || '_curr_ptr';
+
+    EXECUTE format('CREATE TABLE attribute_history.%I (
+entity_id integer NOT NULL,
+timestamp timestamp with time zone NOT NULL,
+PRIMARY KEY (entity_id, timestamp))', curr_ptr_table_name);
+
+    EXECUTE format('ALTER TABLE ONLY attribute_history.%I
+ADD CONSTRAINT %I
+FOREIGN KEY (entity_id, timestamp) REFERENCES attribute_history.%I(entity_id, timestamp)
+ON DELETE CASCADE;', curr_ptr_table_name, curr_ptr_table_name || '_fk', table_name);
+
+	EXECUTE format('ALTER TABLE attribute_history.%I
+		OWNER TO minerva_writer', curr_ptr_table_name);
+
+	EXECUTE format('GRANT SELECT ON TABLE attribute_history.%I TO minerva', curr_ptr_table_name);
+
+    RETURN $1;
+END;
+$$ LANGUAGE plpgsql VOLATILE;
+
+
+CREATE OR REPLACE FUNCTION create_curr_ptr_view(attribute_directory.attributestore)
+	RETURNS attribute_directory.attributestore
+AS $$
+DECLARE
+	table_name name;
+	view_name name;
+	view_sql text;
+BEGIN
+	table_name = attribute_directory.to_table_name($1);
+	view_name = table_name || '_curr_selection';
+
+	view_sql = format('
+		SELECT DISTINCT ON (entity_id)
+		(
+			SELECT min(timestamp)
+			FROM attribute_history.%I min_query
+			WHERE min_query.entity_id = master.entity_id
+			AND timestamp > coalesce((
+				SELECT max(timestamp)
+				FROM attribute_history.%I this
+				WHERE this.entity_id = master.entity_id
+				AND hash != master.hash
+				GROUP BY this.entity_id
+			), ''0001-01-01'')
+			GROUP BY min_query.entity_id
+		) "timestamp", entity_id
+
+		FROM attribute_history.%I master
+		ORDER BY master.entity_id desc, master.timestamp desc',
+        table_name, table_name, table_name
+    );
+
+	EXECUTE format('CREATE VIEW attribute_history.%I AS %s', view_name, view_sql);
+
+	EXECUTE format('ALTER TABLE attribute_history.%I
+		OWNER TO minerva_writer', view_name);
+
+	EXECUTE format('GRANT SELECT ON TABLE attribute_history.%I TO minerva', view_name);
+
+	RETURN $1;
+END;
+$$ LANGUAGE plpgsql VOLATILE;
+
+
+CREATE OR REPLACE FUNCTION drop_curr_ptr_view(attribute_directory.attributestore)
+	RETURNS attribute_directory.attributestore
+AS $$
+BEGIN
+	EXECUTE format('DROP VIEW attribute_history.%I', attribute_directory.to_table_name($1) || '_curr_selection');
 
 	RETURN $1;
 END;
@@ -458,6 +582,141 @@ END;
 $$ LANGUAGE plpgsql VOLATILE;
 
 
+-- Curr materialization log functions
+
+CREATE OR REPLACE FUNCTION update_curr_materialized(attributestore_id integer, materialized timestamp with time zone)
+	RETURNS attribute_directory.attributestore_curr_materialized
+AS $$
+	UPDATE attribute_directory.attributestore_curr_materialized
+	SET materialized = greatest(materialized, $2)
+	WHERE attributestore_id = $1
+	RETURNING attributestore_curr_materialized;
+$$ LANGUAGE SQL VOLATILE;
+
+
+CREATE OR REPLACE FUNCTION store_curr_materialized(attributestore_id integer, materialized timestamp with time zone)
+	RETURNS attribute_directory.attributestore_curr_materialized
+AS $$
+	INSERT INTO attribute_directory.attributestore_curr_materialized (attributestore_id, materialized)
+	VALUES ($1, $2)
+	RETURNING attributestore_curr_materialized;
+$$ LANGUAGE SQL VOLATILE;
+
+
+CREATE OR REPLACE FUNCTION mark_curr_materialized(attributestore_id integer, materialized timestamp with time zone)
+	RETURNS attribute_directory.attributestore_curr_materialized
+AS $$
+	SELECT COALESCE(attribute_directory.update_curr_materialized($1, $2), attribute_directory.store_curr_materialized($1, $2));
+$$ LANGUAGE SQL VOLATILE;
+
+
+-- Compacting log functions
+
+CREATE OR REPLACE FUNCTION update_compacted(attributestore_id integer, compacted timestamp with time zone)
+	RETURNS attribute_directory.attributestore_compacted
+AS $$
+	UPDATE attribute_directory.attributestore_compacted
+	SET compacted = greatest(compacted, $2)
+	WHERE attributestore_id = $1
+	RETURNING attributestore_compacted;
+$$ LANGUAGE SQL VOLATILE;
+
+
+CREATE OR REPLACE FUNCTION store_compacted(attributestore_id integer, compacted timestamp with time zone)
+	RETURNS attribute_directory.attributestore_compacted
+AS $$
+	INSERT INTO attribute_directory.attributestore_compacted (attributestore_id, compacted)
+	VALUES ($1, $2)
+	RETURNING attributestore_compacted;
+$$ LANGUAGE SQL VOLATILE;
+
+
+CREATE OR REPLACE FUNCTION mark_compacted(attributestore_id integer, compacted timestamp with time zone)
+	RETURNS attribute_directory.attributestore_compacted
+AS $$
+	SELECT COALESCE(attribute_directory.update_compacted($1, $2), attribute_directory.store_compacted($1, $2));
+$$ LANGUAGE SQL VOLATILE;
+
+
+-- Modified log functions
+
+CREATE OR REPLACE FUNCTION mark_modified(attributestore_id integer)
+	RETURNS attribute_directory.attributestore_modified
+AS $$
+	SELECT attribute_directory.mark_modified($1, now());
+$$ LANGUAGE SQL VOLATILE;
+
+
+CREATE OR REPLACE FUNCTION mark_modified(attributestore_id integer, modified timestamp with time zone)
+	RETURNS attribute_directory.attributestore_modified
+AS $$
+	SELECT COALESCE(attribute_directory.update_modified($1, $2), attribute_directory.store_modified($1, $2));
+$$ LANGUAGE SQL VOLATILE;
+
+
+CREATE OR REPLACE FUNCTION update_modified(attributestore_id integer, modified timestamp with time zone)
+	RETURNS attribute_directory.attributestore_modified
+AS $$
+	UPDATE attribute_directory.attributestore_modified
+	SET modified = greatest(modified, $2)
+	WHERE attributestore_id = $1
+	RETURNING attributestore_modified;
+$$ LANGUAGE SQL VOLATILE;
+
+
+CREATE OR REPLACE FUNCTION store_modified(attributestore_id integer, modified timestamp with time zone)
+	RETURNS attribute_directory.attributestore_modified
+AS $$
+	INSERT INTO attribute_directory.attributestore_modified (attributestore_id, modified)
+	VALUES ($1, $2)
+	RETURNING attributestore_modified;
+$$ LANGUAGE SQL VOLATILE;
+
+
+CREATE OR REPLACE FUNCTION create_modified_trigger_function(attribute_directory.attributestore)
+	RETURNS attribute_directory.attributestore
+AS $function$
+DECLARE
+	table_name name;
+BEGIN
+	table_name = attribute_directory.to_table_name($1);
+
+	EXECUTE format('CREATE FUNCTION attribute_history.mark_modified_%s()
+RETURNS TRIGGER
+AS $$
+BEGIN
+	PERFORM attribute_directory.mark_modified(%s);
+
+	RETURN NEW;
+END;
+$$ LANGUAGE plpgsql', $1.id, $1.id);
+
+	RETURN $1;
+END;
+$function$ LANGUAGE plpgsql VOLATILE;
+
+
+CREATE OR REPLACE FUNCTION create_modified_triggers(attribute_directory.attributestore)
+	RETURNS attribute_directory.attributestore
+AS $$
+DECLARE
+	table_name name;
+BEGIN
+	table_name = attribute_directory.to_table_name($1);
+
+	EXECUTE format('CREATE TRIGGER mark_modified_on_update
+		AFTER UPDATE ON attribute_history.%I
+		FOR EACH STATEMENT EXECUTE PROCEDURE attribute_history.mark_modified_%s()', table_name, $1.id);
+
+	EXECUTE format('CREATE TRIGGER mark_modified_on_insert
+		AFTER INSERT ON attribute_history.%I
+		FOR EACH STATEMENT EXECUTE PROCEDURE attribute_history.mark_modified_%s()', table_name, $1.id);
+
+	RETURN $1;
+END;
+$$ LANGUAGE plpgsql VOLATILE;
+
+
 CREATE OR REPLACE FUNCTION render_hash_query(attribute_directory.attributestore)
 	RETURNS text
 AS $$
@@ -516,6 +775,10 @@ BEGIN
 		EXECUTE format('UPDATE attribute_history.%I SET modified = $1 WHERE entity_id = $2 AND timestamp = $3', table_name)
 		USING r.modified, r.entity_id, r."start";
 	END LOOP;
+
+	PERFORM attribute_directory.mark_compacted(attributestore_id, modified)
+	FROM attribute_directory.attributestore_modified
+	WHERE attributestore_id = $1.id;
 
 	RETURN $1;
 END;

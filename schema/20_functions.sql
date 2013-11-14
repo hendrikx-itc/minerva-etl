@@ -25,3 +25,19 @@ CREATE OR REPLACE FUNCTION public.snd(anyelement, anyelement)
 AS $$
 	SELECT $2;
 $$ LANGUAGE SQL IMMUTABLE STRICT;
+
+
+CREATE OR REPLACE FUNCTION public.wal_location_to_int(text)
+	RETURNS bigint
+AS $$
+	SELECT ('x' || lpad((regexp_split_to_array($1, '/'))[1] || lpad((regexp_split_to_array($1, '/'))[2], 8, '0'), 16, '0'))::bit(64)::bigint;
+$$ LANGUAGE SQL IMMUTABLE STRICT;
+
+COMMENT ON FUNCTION public.wal_location_to_int(text) IS
+'Convert a textual WAL location in the form of ''1752F/CDC6E050'' into a bigint.
+Use this function to monitor slave delay on the master:
+
+SELECT
+  client_addr,
+  (public.wal_location_to_int(pg_current_xlog_location()) - public.wal_location_to_int(replay_location)) / 2^20 AS distance_mb
+FROM pg_stat_replication;';

@@ -8,6 +8,15 @@ SET escape_string_warning = off;
 SET search_path = notification, pg_catalog;
 
 
+CREATE OR REPLACE FUNCTION to_char(notification.notificationstore)
+	RETURNS text
+AS $$
+	SELECT datasource.name
+	FROM directory.datasource
+	WHERE datasource.id = $1.datasource_id;
+$$ LANGUAGE SQL STABLE STRICT;
+
+
 CREATE OR REPLACE FUNCTION notification.create_table(name name)
 	RETURNS void
 AS $$
@@ -16,16 +25,13 @@ DECLARE
 	full_table_name text;
 BEGIN
 	EXECUTE format('CREATE TABLE %I.%I (
+		id serial PRIMARY KEY,
 		entity_id integer NOT NULL,
 		"timestamp" timestamp with time zone NOT NULL
 		);', 'notification', name);
 
 	EXECUTE format('ALTER TABLE %I.%I OWNER TO minerva_writer;', 'notification',
 		name);
-
-	EXECUTE format('ALTER TABLE ONLY %I.%I
-		ADD CONSTRAINT %I
-		PRIMARY KEY (entity_id, "timestamp");', 'notification', name, name || '_pkey');
 
 	EXECUTE format('GRANT SELECT ON TABLE %I.%I TO minerva;', 'notification',
 		name);

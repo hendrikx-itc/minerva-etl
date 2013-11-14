@@ -18,7 +18,6 @@ from operator import itemgetter
 from minerva.util.timestamp import to_unix_timestamp
 from minerva.directory import helpers
 from minerva.directory.helpers import get_entitytype_by_id
-from minerva.storage.attribute import schema
 
 
 def enquote_ident(ident):
@@ -123,7 +122,7 @@ def retrieve_related(conn, table_name, attribute_names, entities,
     where_parts = []
     join_parts = []
 
-    full_base_tbl_name = "{0}.\"{1}\"".format(schema.name, table_name)
+    full_base_tbl_name = "attribute.\"{}\"".format(table_name)
 
     attr_columns = map(enquote_ident, attribute_names)
 
@@ -161,12 +160,13 @@ def retrieve_related(conn, table_name, attribute_names, entities,
 
 def retrieve_attributes_for_entity(conn, entity_id, attribute_ids):
     query = (
-        "SELECT a.id, a.name, a.table_name, et.name as entitytype_name "
-        "FROM {}.attribute a "
-        "JOIN directory.entitytype et ON et.id = a.entitytype_id "
+        "SELECT a.id, a.name, attribute_directory.to_table_name(astore) "
+            "as table_name, et.name as entitytype_name "
+        "FROM attribute_directory.attribute a "
+        "JOIN attribute_directory.attributestore astore on a.attributestore_id = astore.id " 
+        "JOIN directory.entitytype et ON et.id = astore.entitytype_id "
         "WHERE a.id IN ({}) "
-        "ORDER BY a.table_name").format(
-        schema.name, ",".join(map(str, attribute_ids)))
+        "ORDER BY table_name").format(",".join(map(str, attribute_ids)))
 
     entity = helpers.get_entity_by_id(conn, entity_id)
 

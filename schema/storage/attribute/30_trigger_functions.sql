@@ -25,6 +25,10 @@ AS $$
 BEGIN
 	EXECUTE format('DROP TABLE IF EXISTS attribute_base.%I CASCADE', attribute_directory.to_table_name(OLD));
 
+	EXECUTE format('DROP FUNCTION attribute_history.mark_modified_%s()', OLD.id);
+
+	EXECUTE format('DROP TABLE IF EXISTS attribute_history.%I', attribute_directory.to_table_name(OLD) || '_curr_ptr');
+
 	RETURN OLD;
 END;
 $$ LANGUAGE plpgsql;

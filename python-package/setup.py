@@ -59,5 +59,7 @@ setup(
         "scripts/query-entities",
         "scripts/load-elements",
         "scripts/populate-gis",
-        "scripts/cleanup-trend-data"]
+        "scripts/cleanup-trend-data",
+        "scripts/materialize-attribute-curr",
+        "scripts/compact-attribute"]
 )

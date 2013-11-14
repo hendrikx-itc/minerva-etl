@@ -109,7 +109,8 @@ class NotificationStore(object):
             return self
 
     def store_record(self, record):
-        """Return function that can store the data from a :class:`~minerva.storage.notification.types.Record`."""
+        """Return function that can store the data from a
+        :class:`~minerva.storage.notification.types.Record`."""
         @translate_postgresql_exceptions
         def f(cursor):
             quote_column = partial(str.format, '"{}"')
@@ -120,26 +121,35 @@ class NotificationStore(object):
 
             query = (
                 "INSERT INTO {} ({}) "
-                "VALUES ({})").format(self.table.render(), columns_part, args_part)
+                "VALUES ({})"
+            ).format(self.table.render(), columns_part, args_part)
 
-            args = [record.entity_id, record.timestamp] + record.values
+            args = (
+                [record.entity_id, record.timestamp]
+                + map(prepare_value, record.values)
+            )
 
             cursor.execute(query, args)
 
         return f
 
     def store_rawrecord(self, rawrecord):
-        """Return function that can store the data from a :class:`~minerva.storage.notification.types.RawRecord`."""
+        """Return function that can store the data from a
+        :class:`~minerva.storage.notification.types.RawRecord`."""
         @translate_postgresql_exceptions
         def f(cursor):
-            column_names = ["entity_id", "\"timestamp\""] + rawrecord.attribute_names
+            column_names = (
+                ["entity_id", '"timestamp"']
+                + rawrecord.attribute_names
+            )
             columns_part = ",".join(column_names)
             num_args = 1 + len(rawrecord.attribute_names)
             args_part = ",".join(["%s"] * num_args)
 
             query = (
                 "INSERT INTO {} ({}) "
-                "VALUES ((directory.dn_to_entity(%s)).id, {})").format(self.table.render(), columns_part, args_part)
+                "VALUES ((directory.dn_to_entity(%s)).id, {})"
+            ).format(self.table.render(), columns_part, args_part)
 
             args = [rawrecord.dn, rawrecord.timestamp] + rawrecord.values
 
@@ -167,3 +177,10 @@ class NotificationStore(object):
             cursor.execute(query, args)
 
         return f
+
+
+def prepare_value(value):
+    if isinstance(value, dict):
+        return str(value)
+    else:
+        return value
