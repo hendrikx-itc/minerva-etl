@@ -1,16 +1,12 @@
 #!/usr/bin/python
-"""
-Load tags from txt file
-"""
+"""Load tags from txt file."""
 import sys
 import os
-import re
 import argparse
 import traceback
 import logging
 from contextlib import closing
 from logging.handlers import RotatingFileHandler
-from operator import itemgetter
 
 from configobj import ConfigObj
 
@@ -18,10 +14,11 @@ from minerva.db import connect
 
 from minerva.directory.helpers import get_entitytype
 
-from minerva.directory.tag import NoSuchTagError, tag_entities, flush_tag_links, \
-    get_tag, create_tag_group, create_tag
+from minerva.directory.tag import NoSuchTagError, tag_entities, \
+    flush_tag_links, get_tag, create_tag_group, create_tag
 from minerva.util.config import parse_size
-from minerva.db.util import create_copy_from_file, create_temp_table, drop_table
+from minerva.db.util import create_copy_from_file, create_temp_table, \
+    drop_table
 
 CONFIG_DEFAULTS = """\
 db_url = postgresql://minerva:minerva@localhost/minerva
@@ -35,30 +32,37 @@ script_name = os.path.basename(__file__)
 config_file = "{}.conf".format(script_name)
 
 
-
 def main():
     parser = argparse.ArgumentParser(
         description="Load tags from file")
 
-    parser.add_argument("file", metavar="FILE", nargs='*',
+    parser.add_argument(
+        "file", metavar="FILE", nargs='*',
         help="file containing entity aliases used for tagging")
 
-    parser.add_argument("-t", "--entity-type", default="cell",
+    parser.add_argument(
+        "-t", "--entity-type", default="cell",
         help="name of the entity type (default 'cell')")
 
-    parser.add_argument("-a", "--alias-type", default="name",
-        help= "name of alias type (default 'name')")
+    parser.add_argument(
+        "-a", "--alias-type", default="name",
+        help="name of alias type (default 'name')")
 
-    parser.add_argument("-c", "--configfile", dest="configfile",
-        default="/etc/minerva/load_tags.conf", help="the path to the config file")
+    parser.add_argument(
+        "-c", "--configfile", dest="configfile",
+        default="/etc/minerva/load_tags.conf",
+        help="the path to the config file")
 
-    parser.add_argument("-v", "--verbose", action="store_true", default=False,
+    parser.add_argument(
+        "-v", "--verbose", action="store_true", default=False,
         help="verbose output")
 
-    parser.add_argument("-f", "--flush", action="store_true", default=False,
+    parser.add_argument(
+        "-f", "--flush", action="store_true", default=False,
         help="flush current tags with specified name")
 
-    parser.add_argument("--generate-configfile", dest="generate_configfile",
+    parser.add_argument(
+        "--generate-configfile", dest="generate_configfile",
         default=False, action="store_true", help="generate base config file")
 
     args = parser.parse_args()
@@ -70,7 +74,8 @@ def main():
     config = ConfigObj(args.configfile)
 
     setup_logging(args.verbose)
-    setup_file_logging(config["log_directory"], config["log_filename"],
+    setup_file_logging(
+        config["log_directory"], config["log_filename"],
         config["log_rotation_size"], config["log_level"])
 
     try:
@@ -78,7 +83,8 @@ def main():
             entitytype = get_entitytype(conn, args.entity_type)
 
             for file_path in args.file:
-                load_tags(conn, entitytype, args.alias_type, file_path, args.flush)
+                load_tags(conn, entitytype, args.alias_type, file_path,
+                          args.flush)
     except Exception:
         traceback.print_exc()
         return 1
@@ -90,16 +96,16 @@ def load_tags(conn, entitytype, alias_type_name, file_path, flush):
     _directory, file_name = os.path.split(file_path)
     name, _ext = os.path.splitext(file_name)
 
-    logging.info("loading '{}' tags with name '{}' from {}".format(entitytype.name, name, file_path))
+    logging.info("loading '{}' tags with name '{}' from {}".format(
+        entitytype.name, name, file_path))
 
     try:
-        tag = get_tag(conn, name)
+        get_tag(conn, name)
     except NoSuchTagError:
-
         tag_group = create_tag_group(
             conn, "default", False)
 
-        tag = create_tag(conn, name, tag_group)
+        create_tag(conn, name, tag_group)
         logging.info("created tag '{}'".format(name))
     else:
         if flush:
@@ -107,7 +113,7 @@ def load_tags(conn, entitytype, alias_type_name, file_path, flush):
 
             flush_tag_links(conn, name)
 
-    with open(file_path, 'rt') as tags_file:
+    with open(file_path, 'r') as tags_file:
         aliases = [line.rstrip() for line in tags_file]
 
     unique_aliases = list(set(aliases))
@@ -173,9 +179,7 @@ def setup_logging(verbose):
 
 
 def setup_file_logging(directory, filename, rotation_size, level):
-    """
-    Setup rotating file logging.
-    """
+    """Setup rotating file logging."""
     level_map = {
         "DEBUG": logging.DEBUG,
         "INFO": logging.INFO,
@@ -186,7 +190,8 @@ def setup_file_logging(directory, filename, rotation_size, level):
     max_log_size = parse_size(rotation_size)
 
     filepath = os.path.join(directory, filename)
-    handler = RotatingFileHandler(filepath, maxBytes=max_log_size, backupCount=5)
+    handler = RotatingFileHandler(filepath, maxBytes=max_log_size,
+                                  backupCount=5)
     handler.setLevel(level_map[level])
 
     formatter = logging.Formatter("%(asctime)s %(levelname)s %(message)s")
