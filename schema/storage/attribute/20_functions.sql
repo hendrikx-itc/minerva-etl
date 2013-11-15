@@ -691,6 +691,9 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql', $1.id, $1.id);
 
+	EXECUTE format('ALTER FUNCTION attribute_history.mark_modified_%s()
+		OWNER TO minerva_writer', $1.id);
+
 	RETURN $1;
 END;
 $function$ LANGUAGE plpgsql VOLATILE;
@@ -750,6 +753,9 @@ RETURNS text
 AS $$
 	%s
 $$ LANGUAGE SQL STABLE', attribute_directory.to_table_name($1), attribute_directory.render_hash_query($1));
+
+	EXECUTE format('ALTER FUNCTION attribute_history.values_hash(attribute_history.%I)
+		OWNER TO minerva_writer', attribute_directory.to_table_name($1));
 
 	RETURN $1;
 END;
