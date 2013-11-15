@@ -20,7 +20,7 @@ from minerva.directory.helpers import get_entitytype
 
 from minerva.directory.tag import NoSuchTagError, tag_entities, flush_tag_links, \
     get_tag, create_tag_group, create_tag
-from minerva.util import parse_size
+from minerva.util.config import parse_size
 from minerva.db.util import create_copy_from_file, create_temp_table, drop_table
 
 CONFIG_DEFAULTS = """\
