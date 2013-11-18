@@ -65,8 +65,8 @@ class DataPackage(object):
         return str((self.timestamp, self.attribute_names, self.rows))
 
     def is_empty(self):
-        """Return True if the package has no data rows."""
-        return len(self.rows) == 0
+        """Return True if the package has no data."""
+        return len(self.rows) == 0 or len(self.attribute_names) == 0
 
     def deduce_data_types(self):
         """

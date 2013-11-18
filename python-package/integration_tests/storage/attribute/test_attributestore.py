@@ -307,7 +307,7 @@ def test_store_batch_update(conn):
 
 
 @with_conn(clear_database)
-def test_store_empty(conn):
+def test_store_empty_rows(conn):
     """Test storing of empty datapackage."""
     with closing(conn.cursor()) as cursor:
         attribute_names = ['CCR', 'Drops']
@@ -318,6 +318,27 @@ def test_store_empty(conn):
 
         timestamp = datasource.tzinfo.localize(datetime.now())
         datapackage = DataPackage(timestamp, attribute_names, data_rows)
+
+        attributes = datapackage.deduce_attributes()
+        attributestore = AttributeStore(datasource, entitytype, attributes)
+        attributestore.create(cursor)
+
+        attributestore.store_txn(datapackage).run(conn)
+        conn.commit()
+
+
+@with_conn(clear_database)
+def test_store_empty_attributes(conn):
+    """Test storing of empty datapackage."""
+    with closing(conn.cursor()) as cursor:
+        attribute_names = []
+        rows = [(10023 + i, tuple()) for i in range(100)]
+
+        datasource = DataSource.from_name(cursor, "integration-test")
+        entitytype = EntityType.from_name(cursor, "UtranCell")
+
+        timestamp = datasource.tzinfo.localize(datetime.now())
+        datapackage = DataPackage(timestamp, attribute_names, rows)
 
         attributes = datapackage.deduce_attributes()
         attributestore = AttributeStore(datasource, entitytype, attributes)
