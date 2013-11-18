@@ -149,7 +149,7 @@ class GranularityMonth(Granularity):
             year = curr_year
             month = curr_month + 1
 
-        return datetime.datetime(year, month, 1, tzinfo=x.tzinfo)
+        return x.tzinfo.localize(datetime.datetime(year, month, 1))
 
     def decr(self, x):
         curr_year = x.year
@@ -162,13 +162,13 @@ class GranularityMonth(Granularity):
             year = curr_year
             month = curr_month - 1
 
-        return datetime.datetime(year, month, 1, tzinfo=x.tzinfo)
+        return x.tzinfo.localize(datetime.datetime(year, month, 1))
 
     def truncate(self, timestamp):
         year = timestamp.year
         month = timestamp.month
 
-        return datetime.datetime(year, month, 1, tzinfo=timestamp.tzinfo)
+        return timestamp.tzinfo.localize(datetime.datetime(year, month, 1))
 
 
 def integer_from(str_val):

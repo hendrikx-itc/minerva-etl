@@ -64,3 +64,14 @@ def test_granularity_month():
             tzinfo.localize(datetime(2013, 3, 1))
         ]
     )
+
+
+def test_granularity_month_dst():
+    tzinfo = pytz.timezone('Europe/Amsterdam')
+
+    granularity = GranularityMonth()
+    timestamp = tzinfo.localize(datetime(2013, 11, 1))
+
+    before_dst_switch = granularity.decr(granularity.decr(timestamp))
+
+    assert_equal(before_dst_switch, tzinfo.localize(datetime(2013, 9, 1)))
