@@ -198,6 +198,8 @@ CREATE TABLE tag (
 CREATE UNIQUE INDEX ix_directory_tag_name
 	ON tag (lower(name));
 
+CREATE INDEX ON tag (lower(name), id);
+
 ALTER TABLE directory.tag OWNER TO minerva_admin;
 
 CREATE SEQUENCE tag_id_seq
