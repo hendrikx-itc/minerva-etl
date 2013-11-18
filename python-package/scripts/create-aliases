@@ -16,7 +16,7 @@ from configobj import ConfigObj
 from minerva.db import connect
 
 from minerva.directory.alias import flush, store
-from minerva.util import parse_size
+from minerva.util.configuration import parse_size
 
 
 CONFIG_DEFAULTS = """\
