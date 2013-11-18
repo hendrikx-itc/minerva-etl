@@ -208,6 +208,9 @@ class AttributeStore(object):
     @translate_postgresql_exceptions
     def store_batch(self, cursor, datapackage):
         """Write data in one batch using staging table."""
+        if datapackage.is_empty():
+            return
+
         data_types = self.get_data_types(datapackage.attribute_names)
 
         datapackage.copy_expert(self.staging_table, data_types)(cursor)
@@ -253,7 +256,9 @@ class AttributeStore(object):
 
 
 class Query(object):
+
     """Generic query wrapper."""
+
     __slots__ = 'sql',
 
     def __init__(self, sql):
@@ -318,10 +323,9 @@ class StoreBatch(DbAction):
 
 
 class CheckAttributesExist(DbAction):
-    """
-    A DbAction subclass that calls the 'check_attributes_exist' method on the
-    attributestore.
-    """
+
+    """Calls the 'check_attributes_exist' method on the attributestore."""
+
     def __init__(self, attributestore):
         self.attributestore = attributestore
 
@@ -330,10 +334,9 @@ class CheckAttributesExist(DbAction):
 
 
 class CheckAttributeTypes(DbAction):
-    """
-    A DbAction subclass that calls the 'check_attributes_exist' method on the
-    attributestore.
-    """
+
+    """Calls the 'check_attributes_exist' method on the attributestore."""
+
     def __init__(self, attributestore):
         self.attributestore = attributestore
 
