@@ -10,16 +10,15 @@ this software.
 """
 from datetime import datetime
 
+import pytz
 from nose.tools import assert_raises, assert_equal
 
 from minerva.storage.trend.granularity import Granularity, \
-        GranularitySeconds, GranularityMonth
+    GranularitySeconds, GranularityMonth
 
 
 def test_granularity():
-    """
-    Test Granularity base class.
-    """
+    """Test Granularity base class."""
     g = Granularity('900')
 
     timestamp = datetime.now()
@@ -28,9 +27,7 @@ def test_granularity():
 
 
 def test_granularity_seconds():
-    """
-    Test GranularitySeconds for generic sized granularities.
-    """
+    """Test GranularitySeconds for generic sized granularities."""
     g = GranularitySeconds('900')
 
     timestamp = datetime(2013, 3, 6, 13, 0)
@@ -41,24 +38,29 @@ def test_granularity_seconds():
 
 
 def test_granularity_month():
+    tzinfo = pytz.timezone('Europe/Amsterdam')
     g = GranularityMonth()
 
-    timestamp = datetime(2013, 1, 1)
+    timestamp = tzinfo.localize(datetime(2013, 1, 1))
 
     v = g.inc(timestamp)
 
-    assert_equal(v, datetime(2013, 2, 1))
+    assert_equal(v, tzinfo.localize(datetime(2013, 2, 1)))
 
     v = g.decr(timestamp)
 
-    assert_equal(v, datetime(2012, 12, 1))
+    assert_equal(v, tzinfo.localize(datetime(2012, 12, 1)))
 
-    start = datetime(2012, 12, 1)
-    end = datetime(2013, 3, 1)
+    start = tzinfo.localize(datetime(2012, 12, 1))
+    end = tzinfo.localize(datetime(2013, 3, 1))
 
     timestamps = list(g.range(start, end))
 
-    assert_equal(timestamps, [
-        datetime(2013, 1, 1),
-        datetime(2013, 2, 1),
-        datetime(2013, 3, 1)])
+    assert_equal(
+        timestamps,
+        [
+            tzinfo.localize(datetime(2013, 1, 1)),
+            tzinfo.localize(datetime(2013, 2, 1)),
+            tzinfo.localize(datetime(2013, 3, 1))
+        ]
+    )
