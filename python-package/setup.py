@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+"""Distutils install script."""
 __docformat__ = "restructuredtext en"
 
 __copyright__ = """

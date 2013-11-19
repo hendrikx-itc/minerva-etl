@@ -1,25 +1,18 @@
 #!/usr/bin/python
-"""
-Query Minerva entities using tags, aliases and relations.
-"""
+"""Query Minerva entities using tags, aliases and relations."""
 import sys
 import os
-import re
 import argparse
-import traceback
 import logging
 from contextlib import closing
-from logging.handlers import RotatingFileHandler
 from functools import partial
 
 import psycopg2
-from configobj import ConfigObj
 
 from minerva.db import parse_db_url
 from minerva.db.util import render_result
 from minerva.directory.query import parse
 from minerva.util.config import load_config, get_defaults, ConfigError
-from minerva.util.tabulate import render_table
 from minerva.util import unlines
 
 package_name = "minerva"
@@ -31,12 +24,14 @@ def main():
     parser = setup_args_parser()
     args = parser.parse_args()
 
+    config_defaults = get_defaults(package_name, config_file)
+
     if args.generate_configfile:
-        print(CONFIG_DEFAULTS)
+        print(config_defaults)
         return 0
 
     try:
-        config = load_config(get_defaults(package_name, config_file), args.configfile)
+        config = load_config(config_defaults, args.configfile)
     except ConfigError as exc:
         print("error loading configuration: {}".format(exc))
         return 1
@@ -71,17 +66,20 @@ def setup_args_parser():
 
     parser = argparse.ArgumentParser(description="query Minerva entities")
 
-    parser.add_argument("-c", "--configfile", dest="configfile",
-            default=config_file_path, help="the path to the config file")
+    parser.add_argument(
+        "-c", "--configfile", dest="configfile",
+        default=config_file_path, help="the path to the config file")
 
-    parser.add_argument("--generate-configfile", dest="generate_configfile",
-            action=GenerateConfigFileAction, nargs=0,
-            help="generate base config file")
+    parser.add_argument(
+        "--generate-configfile", dest="generate_configfile",
+        action=GenerateConfigFileAction, nargs=0,
+        help="generate base config file")
 
-    parser.add_argument("--limit", dest="limit", type=int, help="limit the number of results")
+    parser.add_argument(
+        "--limit", dest="limit", type=int, help="limit the number of results")
 
-    parser.add_argument("--debug", action="store_true", default=False,
-            help="debug logging")
+    parser.add_argument(
+        "--debug", action="store_true", default=False, help="debug logging")
 
     parser.add_argument("query", type=parse)
 
@@ -93,11 +91,13 @@ def connect(db_url, logger=None):
 
     assert scheme == "postgresql", "Only PostgreSQL connections are supported"
 
-    create_connection = partial(psycopg2.connect, database=database, user=user,
-            password=password, host=host, port=port)
+    create_connection = partial(
+        psycopg2.connect, database=database, user=user,
+        password=password, host=host, port=port)
 
     if logger:
-        conn = create_connection(connection_factory=psycopg2.extras.LoggingConnection)
+        conn = create_connection(
+            connection_factory=psycopg2.extras.LoggingConnection)
 
         conn.initialize(logger)
     else:

@@ -1,4 +1,5 @@
 #!/usr/bin/python
+"""Export attribute data as CSV."""
 # -*- coding: utf-8 -*-
 __docformat__ = "restructuredtext en"
 
@@ -21,10 +22,10 @@ from contextlib import closing
 from configobj import ConfigObj
 import csv
 
-from minerva.util import parse_size
+from minerva.util.config import parse_size
 from minerva.db import connect
 
-from minerva.storage.attribute.plugin import DeltaPlugin
+from minerva.storage.attribute.plugin import AttributePlugin
 
 
 CONFIG_DEFAULTS = """\
@@ -129,8 +130,7 @@ def main():
     logging.root.setLevel(config["log_level"])
 
     with closing(connect(config["db_uri"])) as conn:
-
-        plugin = DeltaPlugin(conn)
+        plugin = AttributePlugin(conn)
 
         rows = plugin.retrieve(args.datasource, args.entitytype,
                                args.attributes, None, timestamp)

@@ -7,7 +7,6 @@ import logging
 from contextlib import closing
 from functools import partial
 import json
-import pprint
 
 import psycopg2.extras
 import yaml
@@ -21,6 +20,7 @@ version = "3.0.0"
 package_name = "minerva"
 script_name = os.path.basename(__file__)
 config_file = "{}.conf".format(script_name)
+
 
 class JobInfo(object):
     def __init__(self, job_id, type, state, description):
@@ -47,16 +47,20 @@ def main():
     config_file_path = os.path.join("/etc/minerva/", config_file)
 
     parser = argparse.ArgumentParser(
-            description="Execute transforming module(s) and store results in Minerva")
+        description="Execute transforming module(s) and store results in "
+        "Minerva")
 
-    parser.add_argument("--version", dest="show_version", default=False,
+    parser.add_argument(
+        "--version", dest="show_version", default=False,
         action="store_true", help="display version information and exit")
 
-    parser.add_argument("-c", "--configfile",
-            default=config_file_path, help="path to config file")
+    parser.add_argument(
+        "-c", "--configfile", default=config_file_path,
+        help="path to config file")
 
-    parser.add_argument("--generate-configfile",
-            action=GenerateConfigFileAction, nargs=0, help="generate default config file")
+    parser.add_argument(
+        "--generate-configfile", action=GenerateConfigFileAction, nargs=0,
+        help="generate default config file")
 
     parser.add_argument("job", help="job Id", type=int)
 
@@ -67,7 +71,8 @@ def main():
         return 0
 
     try:
-        config = load_config(get_defaults(package_name, config_file), args.configfile)
+        config = load_config(get_defaults(package_name, config_file),
+                             args.configfile)
     except ConfigError as exc:
         print("error loading configuration: {}".format(exc))
         return 1
@@ -91,7 +96,10 @@ def main():
 
             job_info = expand_args(JobInfo)(cursor.fetchone())
 
-            query = "SELECT message FROM system.job_error_log WHERE job_id = %s"
+            query = (
+                "SELECT message "
+                "FROM system.job_error_log "
+                "WHERE job_id = %s")
             args = job_id,
 
             cursor.execute(query, args)
@@ -108,11 +116,13 @@ def connect(db_url, logger=None):
 
     assert scheme == "postgresql", "Only PostgreSQL connections are supported"
 
-    create_connection = partial(psycopg2.connect, database=database, user=user,
-            password=password, host=host, port=port)
+    create_connection = partial(
+        psycopg2.connect, database=database, user=user, password=password,
+        host=host, port=port)
 
     if logger:
-        conn = create_connection(connection_factory=psycopg2.extras.LoggingConnection)
+        conn = create_connection(
+            connection_factory=psycopg2.extras.LoggingConnection)
 
         conn.initialize(logger)
     else:

@@ -1,10 +1,7 @@
 #!/usr/bin/python
-"""
-Creates aliased based on modules found in module_directory
-"""
+"""Create aliases based on modules found in module_directory."""
 import sys
 import os
-import re
 import argparse
 import traceback
 import logging
@@ -16,7 +13,7 @@ from configobj import ConfigObj
 from minerva.db import connect
 
 from minerva.directory.alias import flush, store
-from minerva.util import parse_size
+from minerva.util.config import parse_size
 
 
 CONFIG_DEFAULTS = """\
@@ -31,20 +28,26 @@ log_level = INFO"""
 def setup_args_parser():
     parser = argparse.ArgumentParser(description="Create aliases")
 
-    parser.add_argument("-m", "--module",
+    parser.add_argument(
+        "-m", "--module",
         help="name of module containing the alias logic")
 
-    parser.add_argument("-f", "--flush", action="store_true", default=False,
+    parser.add_argument(
+        "-f", "--flush", action="store_true", default=False,
         help="flush current aliases of specified type")
 
-    parser.add_argument("-c", "--configfile", dest="configfile",
+    parser.add_argument(
+        "-c", "--configfile", dest="configfile",
         default="/etc/create-aliases.conf", help="path to the config file")
 
-    parser.add_argument("-v", "--verbose", action="store_true", default=False,
+    parser.add_argument(
+        "-v", "--verbose", action="store_true", default=False,
         help="verbose output")
 
-    parser.add_argument("--generate-configfile", 	dest="generate_configfile",
-        action=GenerateConfigFileAction, nargs=0, help="generate base config file")
+    parser.add_argument(
+        "--generate-configfile", dest="generate_configfile",
+        action=GenerateConfigFileAction, nargs=0,
+        help="generate base config file")
 
     return parser.parse_args()
 
@@ -59,7 +62,8 @@ def main():
     config = ConfigObj(args.configfile)
 
     setup_logging(args.verbose)
-    setup_file_logging(config["log_directory"], config["log_filename"],
+    setup_file_logging(
+        config["log_directory"], config["log_filename"],
         config["log_rotation_size"], config["log_level"])
 
     if args.module is None:
@@ -99,9 +103,7 @@ def setup_logging(verbose):
 
 
 def setup_file_logging(directory, filename, rotation_size, level):
-    """
-    Setup rotating file logging.
-    """
+    """Setup rotating file logging."""
     level_map = {
         "DEBUG": logging.DEBUG,
         "INFO": logging.INFO,
@@ -112,7 +114,8 @@ def setup_file_logging(directory, filename, rotation_size, level):
     max_log_size = parse_size(rotation_size)
 
     filepath = os.path.join(directory, filename)
-    handler = RotatingFileHandler(filepath, maxBytes=max_log_size, backupCount=5)
+    handler = RotatingFileHandler(
+        filepath, maxBytes=max_log_size, backupCount=5)
     handler.setLevel(level_map[level])
 
     formatter = logging.Formatter("%(asctime)s %(levelname)s %(message)s")

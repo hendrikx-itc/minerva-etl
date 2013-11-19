@@ -1,22 +1,18 @@
 #!/usr/bin/python
-"""
-Creates virtual entities based on modules found in module_directory
-"""
+"""Create virtual entities based on modules found in module_directory."""
 import sys
 import os
-import re
 import argparse
 import traceback
 import logging
 from contextlib import closing
 from logging.handlers import RotatingFileHandler
 
-from configobj import ConfigObj
-
 from minerva.db import connect
 
 from minerva.directory import create_entity
-from minerva.util.config import load_config, get_defaults, ConfigError, parse_size
+from minerva.util.config import load_config, get_defaults, ConfigError, \
+    parse_size
 
 package_name = "minerva"
 script_name = os.path.basename(__file__)
@@ -28,20 +24,26 @@ def setup_args_parser():
 
     parser = argparse.ArgumentParser(description="Create virtual entities")
 
-    parser.add_argument("-e", "--virtual-entity",
+    parser.add_argument(
+        "-e", "--virtual-entity",
         help="name of the module containing the Virtual Entities")
 
-    parser.add_argument("-c", "--configfile", dest="configfile",
+    parser.add_argument(
+        "-c", "--configfile", dest="configfile",
         default=config_file_path, help="the path to the config file")
 
-    parser.add_argument("-v", "--verbose", action="store_true", default=False,
+    parser.add_argument(
+        "-v", "--verbose", action="store_true", default=False,
         help="verbose output")
 
-    parser.add_argument("-p", "--pretend", action="store_true", default=False,
+    parser.add_argument(
+        "-p", "--pretend", action="store_true", default=False,
         help="determine relations, but don't store anything in database")
 
-    parser.add_argument("--generate-configfile", dest="generate_configfile",
-        action=GenerateConfigFileAction, nargs=0, help="generate base config file")
+    parser.add_argument(
+        "--generate-configfile", dest="generate_configfile",
+        action=GenerateConfigFileAction, nargs=0,
+        help="generate base config file")
 
     return parser
 
@@ -50,18 +52,21 @@ def main():
     parser = setup_args_parser()
     args = parser.parse_args()
 
+    config_defaults = get_defaults(package_name, config_file)
+
     if args.generate_configfile:
-        print(CONFIG_DEFAULTS)
+        print(config_defaults)
         return 0
 
     try:
-        config = load_config(get_defaults(package_name, config_file), args.configfile)
+        config = load_config(config_defaults, args.configfile)
     except ConfigError as exc:
         print("error loading configuration: {}".format(exc))
         return 1
 
     setup_logging(args.verbose)
-    setup_file_logging(config["log_directory"], config["log_filename"],
+    setup_file_logging(
+        config["log_directory"], config["log_filename"],
         config["log_rotation_size"], config["log_level"])
 
     if args.virtual_entity is None:
@@ -71,7 +76,8 @@ def main():
     sys.path.append(config["module_directory"])
     module = __import__(args.virtual_entity)
     try:
-        logging.info("generating virtual_entities: '{}'".format(args.virtual_entity))
+        logging.info("generating virtual_entities: '{}'".format(
+            args.virtual_entity))
 
         with closing(connect(config["db_uri"])) as conn:
             generate_virtual_entities(conn, module.get_virtual_entities)
@@ -106,9 +112,7 @@ def setup_logging(verbose):
 
 
 def setup_file_logging(directory, filename, rotation_size, level):
-    """
-    Setup rotating file logging.
-    """
+    """Setup rotating file logging."""
     level_map = {
         "DEBUG": logging.DEBUG,
         "INFO": logging.INFO,
@@ -119,7 +123,8 @@ def setup_file_logging(directory, filename, rotation_size, level):
     max_log_size = parse_size(rotation_size)
 
     filepath = os.path.join(directory, filename)
-    handler = RotatingFileHandler(filepath, maxBytes=max_log_size, backupCount=5)
+    handler = RotatingFileHandler(filepath, maxBytes=max_log_size,
+                                  backupCount=5)
     handler.setLevel(level_map[level])
 
     formatter = logging.Formatter("%(asctime)s %(levelname)s %(message)s")

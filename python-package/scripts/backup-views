@@ -14,22 +14,16 @@ import os
 import sys
 import argparse
 import logging
-from operator import itemgetter
 from contextlib import closing
-import traceback
-import datetime
 from functools import partial
 
 import psycopg2.extras
 
-from minerva.db import parse_db_url, extract_safe_url
+from minerva.db import parse_db_url
 from minerva.util.config import load_config, get_defaults, ConfigError
-from minerva.util import first
-from minerva.db.query import Table
-from minerva.directory.helpers import get_datasource, get_entitytype
 
 from minerva.storage.trend.types_v4 import View
-from minerva.storage.trend.helpers import get_trendstore_by_id
+from minerva.storage.trend.trendstore import TrendStore
 
 
 package_name = "minerva"
@@ -42,14 +36,18 @@ def main():
 
     parser = argparse.ArgumentParser(description="Backup Views")
 
-    parser.add_argument("-c", "--configfile", dest="configfile",
-            default=config_file_path, help="the path to the config file")
+    parser.add_argument(
+        "-c", "--configfile", dest="configfile",
+        default=config_file_path, help="the path to the config file")
 
-    parser.add_argument("-v", "--verbose", action="store_true", default=False,
-            help="verbose output")
+    parser.add_argument(
+        "-v", "--verbose", action="store_true", default=False,
+        help="verbose output")
 
-    parser.add_argument("--generate-configfile", dest="generate_configfile",
-            action=GenerateConfigFileAction, nargs=0, help="generate base config file")
+    parser.add_argument(
+        "--generate-configfile", dest="generate_configfile",
+        action=GenerateConfigFileAction, nargs=0,
+        help="generate base config file")
 
     root_logger = logging.getLogger("")
     handler = logging.StreamHandler(sys.stdout)
@@ -58,7 +56,8 @@ def main():
     args = parser.parse_args()
 
     try:
-        config = load_config(get_defaults(package_name, config_file), args.configfile)
+        config = load_config(get_defaults(package_name, config_file),
+                             args.configfile)
     except ConfigError as exc:
         logging.error("error loading configuration: {}".format(exc))
         return 1
@@ -78,25 +77,27 @@ def main():
 
             for view in views:
                 print(view)
-                trendstore = get_trendstore_by_id(cursor, view.trendstore_id)
+                trendstore = TrendStore.get_by_id(cursor, view.trendstore_id)
 
                 define_view_query = (
                     "INSERT INTO trend.view (trendstore_id, description, sql)\n"
                     "VALUES (\n"
-                        "\t(trend.attributes_to_view_trendstore('{}', '{}', '{}')).id,\n"
-                        "\t'{}',\n"
-                        "\t'{}'\n"
-                        ");\n").format(trendstore.datasource.name,
-                                trendstore.entitytype.name, trendstore.granularity,
-                                view.description, view.sql.replace("\r\n", "\n"))
+                    "\t(trend.attributes_to_view_trendstore('{}', '{}', '{}')).id,\n"
+                    "\t'{}',\n"
+                    "\t'{}'\n"
+                    ");\n"
+                ).format(trendstore.datasource.name,
+                         trendstore.entitytype.name, trendstore.granularity,
+                         view.description, view.sql.replace("\r\n", "\n"))
 
                 file_path = "{}.sql".format(trendstore.make_table_basename())
 
-                with open(file_path, 'wt') as view_backup:
+                with open(file_path, 'w') as view_backup:
                     view_backup.write(define_view_query)
 
                     for source_id in view.sources:
-                        source_trendstore = get_trendstore_by_id(cursor, source_id)
+                        source_trendstore = TrendStore.get_by_id(cursor,
+                                                                 source_id)
 
                         define_view_source_query = (
                             "\n"
@@ -115,11 +116,13 @@ def connect(db_url, logger=None):
 
     assert scheme == "postgresql", "Only PostgreSQL connections are supported"
 
-    create_connection = partial(psycopg2.connect, database=database, user=user,
-            password=password, host=host, port=port)
+    create_connection = partial(
+        psycopg2.connect, database=database, user=user,
+        password=password, host=host, port=port)
 
     if logger:
-        conn = create_connection(connection_factory=psycopg2.extras.LoggingConnection)
+        conn = create_connection(
+            connection_factory=psycopg2.extras.LoggingConnection)
 
         conn.initialize(logger)
     else:

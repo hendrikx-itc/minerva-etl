@@ -1,7 +1,5 @@
 #!/usr/bin/python
-"""
-Creates csv output based on modules found in module_directory
-"""
+"""Create CSV output based on modules found in module_directory."""
 import sys
 import os
 import argparse
@@ -47,7 +45,8 @@ def setup_args_parser():
 
     parser.add_argument(
         "-t", "--timestamp", help="Timestamp specifying data to "
-        "process (%%Y%%m%%d_%%H%%M%%S). When omitted, the current timestamp is used.")
+        "process (%%Y%%m%%d_%%H%%M%%S). When omitted, the current timestamp "
+        "is used.")
 
     parser.add_argument(
         "-v", "--verbose", action="store_true", default=False,
@@ -76,12 +75,14 @@ def setup_args_parser():
 def main():
     args = setup_args_parser()
 
+    config_defaults = get_defaults(package_name, config_file)
+
     if args.generate_configfile:
-        print(CONFIG_DEFAULTS)
+        print(config_defaults)
         return 0
 
     try:
-        config = load_config(get_defaults(package_name, config_file), args.configfile)
+        config = load_config(config_defaults, args.configfile)
     except ConfigError as exc:
         print("error loading configuration: {}".format(exc))
         return 1
@@ -122,7 +123,10 @@ def main():
         logging.info("processing create-csv module : '{}'".format(args.module))
 
         if args.to_file:
-            out = open(os.path.join(config["output_directory"], module.file_name(ts)), 'wb')
+            file_path = os.path.join(config["output_directory"],
+                                     module.file_name(ts))
+
+            out = open(file_path, 'wb')
         else:
             out = sys.stdout
 
@@ -135,7 +139,7 @@ def main():
             f.write(sep_char.join(module.fields(conn, ts)))
             f.write("\n")
             for record in records:
-                f.write(sep_char.join(map(str,record)))
+                f.write(sep_char.join(map(str, record)))
                 f.write("\n")
 
     except Exception:
@@ -152,13 +156,12 @@ def enable_console_logging(logger):
 
 
 def setup_file_logging(directory, filename, rotation_size, level):
-    """
-    Setup rotating file logging.
-    """
+    """Setup rotating file logging."""
     max_log_size = parse_size(rotation_size)
 
     filepath = os.path.join(directory, filename)
-    handler = RotatingFileHandler(filepath, maxBytes=max_log_size, backupCount=5)
+    handler = RotatingFileHandler(filepath, maxBytes=max_log_size,
+                                  backupCount=5)
     handler.setLevel(level)
 
     formatter = logging.Formatter("%(asctime)s %(levelname)s %(message)s")
@@ -175,11 +178,13 @@ def connect(db_url, logger=None):
 
     assert scheme == "postgresql", "Only PostgreSQL connections are supported"
 
-    create_connection = partial(psycopg2.connect, database=database, user=user,
-            password=password, host=host, port=port)
+    create_connection = partial(
+        psycopg2.connect, database=database, user=user,
+        password=password, host=host, port=port)
 
     if logger:
-        conn = create_connection(connection_factory=psycopg2.extras.LoggingConnection)
+        conn = create_connection(
+            connection_factory=psycopg2.extras.LoggingConnection)
 
         conn.initialize(logger)
     else:

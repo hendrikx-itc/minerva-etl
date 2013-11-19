@@ -11,9 +11,7 @@ Create network based on provided network file
 """
 import sys
 import os
-import re
 import argparse
-import traceback
 import logging
 from datetime import datetime, timedelta
 from contextlib import closing
@@ -27,16 +25,11 @@ from StringIO import StringIO
 from configobj import ConfigObj
 
 from minerva.db import connect
-
-from minerva.directory.relation import add_relations, \
-    reverse_relations
-
+from minerva.directory.relation import add_relations, reverse_relations
 from minerva.storage import get_plugin
-from minerva.directory.helpers import get_entitytype, \
-    create_entitytype, create_entity, NoSuchEntityTypeError, NoSuitablePluginError
-
-from minerva.util import parse_size, compose, zipapply, keys_to_values, \
-    reorderer
+from minerva.directory.helpers import create_entity
+from minerva.util.config import parse_size
+from minerva.util import compose, zipapply, keys_to_values, reorderer
 
 
 DEFAULT_CONFIG = """\
@@ -56,34 +49,42 @@ SRID = 28992"""
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Create network based on provided network file with columns "
-            "site cellid lat lon azimuth type ")
+        description="Create network based on provided network file with "
+        "columns site cellid lat lon azimuth type")
 
-    parser.add_argument("network_definition_file",
+    parser.add_argument(
+        "network_definition_file",
         help="Network defining csv-like file with columns site, "
-            "cellid, lat, lon, azimuth, type")
+        "cellid, lat, lon, azimuth, type")
 
-    parser.add_argument("-c", "--configfile", dest="configfile",
-        default="/etc/minerva/create-network/default.conf", help="path to config file")
+    parser.add_argument(
+        "-c", "--configfile", dest="configfile",
+        default="/etc/minerva/create-network/default.conf",
+        help="path to config file")
 
-    parser.add_argument("-p", "--profile", dest="profile",
+    parser.add_argument(
+        "-p", "--profile", dest="profile",
         default="default", help="default profile")
 
-    parser.add_argument("-v", "--verbose", action="store_true", default=False,
+    parser.add_argument(
+        "-v", "--verbose", action="store_true", default=False,
         help="verbose output")
 
-    parser.add_argument("--generate-configfile",
-        action=GenerateConfigFileAction, nargs=0, help="generate default config file")
+    parser.add_argument(
+        "--generate-configfile", action=GenerateConfigFileAction, nargs=0,
+        help="generate default config file")
 
-    parser.add_argument("--generate-profile",
-        action=GenerateProfileFileAction, nargs=0, help="generate default profile file")
+    parser.add_argument(
+        "--generate-profile", action=GenerateProfileFileAction, nargs=0,
+        help="generate default profile file")
 
     args = parser.parse_args()
 
     config = get_config(args)
 
     setup_logging(args.verbose)
-    setup_file_logging(config["log_directory"], config["log_filename"],
+    setup_file_logging(
+        config["log_directory"], config["log_filename"],
         config["log_rotation_size"], config["log_level"])
 
     profile = get_profile(args, config)
@@ -111,9 +112,11 @@ DEFAULT_COLUMN_ORDER = ["site", "cellid", "lat", "lon", "azi", "type"]
 def parse_network_file(conn, f, profile):
     """
     Parse network file.
+
     It is assumed that :
     - ';' is separation character
     - first line contains column headers: site;cellid;lat;lon;azi;type
+
     """
     # Stub timestamp
     utc_now = pytz.UTC.localize(datetime.utcnow() - timedelta(days=400))
@@ -155,8 +158,8 @@ def read_network_records(profile, stream):
 
     reorder_values = reorderer(DEFAULT_COLUMN_ORDER, column_headers)
 
-    value_mapping = identity, identity, multiply_lat, multiply_lon, \
-            identity, identity
+    value_mapping = (identity, identity, multiply_lat, multiply_lon,
+                     identity, identity)
     process_record = partial(zipapply, value_mapping)
 
     reorder_and_process = compose(process_record, reorder_values)
@@ -192,9 +195,7 @@ def setup_logging(verbose):
 
 
 def setup_file_logging(directory, filename, rotation_size, level):
-    """
-    Setup rotating file logging.
-    """
+    """Setup rotating file logging."""
     level_map = {
         "DEBUG": logging.DEBUG,
         "INFO": logging.INFO,
@@ -205,7 +206,8 @@ def setup_file_logging(directory, filename, rotation_size, level):
     max_log_size = parse_size(rotation_size)
 
     filepath = os.path.join(directory, filename)
-    handler = RotatingFileHandler(filepath, maxBytes=max_log_size, backupCount=5)
+    handler = RotatingFileHandler(filepath, maxBytes=max_log_size,
+                                  backupCount=5)
     handler.setLevel(level_map[level])
 
     formatter = logging.Formatter("%(asctime)s %(levelname)s %(message)s")
@@ -230,7 +232,8 @@ def get_config(args):
         custom_config = ConfigObj(args.configfile)
         config.merge(custom_config)
     else:
-        print("'{0}' doesn't exist. Using default config.".format(args.configfile))
+        print("'{0}' doesn't exist. Using default config.".format(
+            args.configfile))
 
     return config
 
@@ -242,7 +245,6 @@ class GenerateProfileFileAction(argparse.Action):
 
 
 def get_profile(args, config):
-
     profile = ConfigObj(StringIO(DEFAULT_PROFILE))
 
     profile_path = None

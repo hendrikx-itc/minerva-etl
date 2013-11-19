@@ -14,24 +14,16 @@ import os
 import sys
 import argparse
 import logging
-from operator import itemgetter
 from contextlib import closing
-import traceback
-import datetime
 from functools import partial
 
 import psycopg2.extras
 
-from minerva.db import parse_db_url, extract_safe_url
+from minerva.db import parse_db_url
 from minerva.util.config import load_config, get_defaults, ConfigError
 from minerva.util import first
 from minerva.db.query import Table
-from minerva.directory.helpers import get_datasource, get_entitytype
-
-from minerva.storage.trend.tables import resolve_table_name, InvalidTrendTableName, PARTITION_SIZES
-from minerva.storage.trend.helpers import get_trendstore_by_id
-from minerva.storage.trend.types_v4 import Partition, TrendStore
-from minerva.storage.trend.inference import populate, extract_partitions
+from minerva.storage.trend.types_v4 import TrendStore
 
 package_name = "minerva"
 script_name = os.path.basename(__file__)
@@ -41,32 +33,40 @@ config_file = "{}.conf".format(script_name)
 def main():
     config_file_path = os.path.join("/etc/minerva", config_file)
 
-    parser = argparse.ArgumentParser(
-            description="Edit partitions")
+    parser = argparse.ArgumentParser(description="Edit partitions")
 
-    parser.add_argument("trendstores", metavar="TRENDSTORES", type=int, nargs='+',
-            help="ids of trendstores to migrate")
+    parser.add_argument(
+        "trendstores", metavar="TRENDSTORES", type=int, nargs='+',
+        help="ids of trendstores to migrate")
 
-    parser.add_argument("-c", "--configfile", dest="configfile",
-            default=config_file_path, help="the path to the config file")
+    parser.add_argument(
+        "-c", "--configfile", dest="configfile",
+        default=config_file_path, help="the path to the config file")
 
-    parser.add_argument("-v", "--verbose", action="store_true", default=False,
-            help="verbose output")
+    parser.add_argument(
+        "-v", "--verbose", action="store_true", default=False,
+        help="verbose output")
 
-    parser.add_argument("--partition-size", dest="partition_size", default=None,
-            help="new partition size for trendstore")
+    parser.add_argument(
+        "--partition-size", dest="partition_size", default=None,
+        help="new partition size for trendstore")
 
-    parser.add_argument("--version", dest="version", default=None, type=int,
-            help="new version for trendstore")
+    parser.add_argument(
+        "--version", dest="version", default=None, type=int,
+        help="new version for trendstore")
 
-    parser.add_argument("--drop-old-partitions", action="store_true", default=False,
-            help="drop old partitions after migrating")
+    parser.add_argument(
+        "--drop-old-partitions", action="store_true", default=False,
+        help="drop old partitions after migrating")
 
-    parser.add_argument("--force", action="store_true", default=False,
-            help="force migrate even if there are no apparent changes")
+    parser.add_argument(
+        "--force", action="store_true", default=False,
+        help="force migrate even if there are no apparent changes")
 
-    parser.add_argument("--generate-configfile", dest="generate_configfile",
-            action=GenerateConfigFileAction, nargs=0, help="generate base config file")
+    parser.add_argument(
+        "--generate-configfile", dest="generate_configfile",
+        action=GenerateConfigFileAction, nargs=0,
+        help="generate base config file")
 
     root_logger = logging.getLogger("")
     handler = logging.StreamHandler(sys.stdout)
@@ -75,7 +75,8 @@ def main():
     args = parser.parse_args()
 
     try:
-        config = load_config(get_defaults(package_name, config_file), args.configfile)
+        config = load_config(get_defaults(package_name, config_file),
+                             args.configfile)
     except ConfigError as exc:
         logging.error("error loading configuration: {}".format(exc))
         return 1
@@ -90,21 +91,22 @@ def main():
         create_connection = partial(connect, config["db_uri"])
 
     tables_query = (
-                "SELECT table_name "
-                "FROM trend.partition "
-                "WHERE "
-                    "trendstore_id = %s "
-                        "AND "
-                    "version = %s "
-                "ORDER BY data_start")
+        "SELECT table_name "
+        "FROM trend.partition "
+        "WHERE "
+        "trendstore_id = %s "
+        "AND "
+        "version = %s "
+        "ORDER BY data_start")
 
     with closing(create_connection()) as conn:
         for trendstore_id in args.trendstores:
             with closing(conn.cursor()) as cursor:
-                trendstore = get_trendstore_by_id(cursor, trendstore_id)
+                trendstore = TrendStore.get_by_id(cursor, trendstore_id)
 
                 if trendstore is None:
-                    logging.info("no trendstore with id {}".format(trendstore_id))
+                    logging.info("no trendstore with id {}".format(
+                        trendstore_id))
                     continue
 
                 change = False
@@ -117,12 +119,15 @@ def main():
 
                 if args.partition_size:
                     if args.partition_size == 'auto':
-                        new_partition_size = default_partition_size(trendstore.granularity)
+                        new_partition_size = default_partition_size(
+                            trendstore.granularity)
                     else:
                         try:
                             new_partition_size = int(args.partition_size)
                         except ValueError:
-                            logging.error("{} is not a valid partition size".format(args.partition_size))
+                            logging.error(
+                                "{} is not a valid partition size".format(
+                                    args.partition_size))
                             return
 
                 if args.partition_size and new_partition_size != trendstore.partition_size:
@@ -130,7 +135,9 @@ def main():
                     change = True
 
                 if not change and not args.force:
-                    logging.info("no changes required for trendstore {}".format(trendstore))
+                    logging.info(
+                        "no changes required for trendstore {}".format(
+                            trendstore))
                     continue
 
                 trendstore.save(cursor)
@@ -158,24 +165,30 @@ def main():
 
                 for timestamp in timestamps:
                     with closing(conn.cursor()) as cursor:
-                        sys.stdout.write("{} - {}... ".format(table.name, timestamp))
+                        sys.stdout.write("{} - {}... ".format(table.name,
+                                                              timestamp))
                         sys.stdout.flush()
 
                         retries = 5
 
                         while retries:
                             try:
-                                record_count = migrate_chunk(trendstore_id, table.name, timestamp)(cursor)
+                                record_count = migrate_chunk(
+                                    trendstore_id, table.name, timestamp
+                                )(cursor)
                             except psycopg2.IntegrityError as exc:
-                                sys.stdout.write("failed: timestamp already exists\n")
+                                sys.stdout.write(
+                                    "failed: timestamp already exists\n")
                                 sys.stdout.flush()
                                 retries = 0
                             except psycopg2.DatabaseError as exc:
-                                sys.stdout.write("error: {}\n\nretrying...".format(exc))
+                                sys.stdout.write(
+                                    "error: {}\n\nretrying...".format(exc))
                                 sys.stdout.flush()
                                 retries -= 1
                             else:
-                                sys.stdout.write("{} records\n".format(record_count))
+                                sys.stdout.write(
+                                    "{} records\n".format(record_count))
                                 sys.stdout.flush()
                                 retries = 0
 
@@ -195,7 +208,9 @@ def main():
 
 
 def migrate_chunk(trendstore_id, table_name, timestamp):
-    query = "SELECT trend.migrate_chunk_to_v4(trendstore, %s, %s) FROM trend.trendstore WHERE id = %s"
+    query = (
+        "SELECT trend.migrate_chunk_to_v4(trendstore, %s, %s) "
+        "FROM trend.trendstore WHERE id = %s")
     args = table_name, timestamp, trendstore_id
 
     def f(cursor):
@@ -222,7 +237,8 @@ def default_partition_size(granularity):
     elif granularity.name == 'month':
         return 24 * 3600 * 7 * 24
     else:
-        raise Exception("granularity {} not supported".format(granularity.name))
+        raise Exception("granularity {} not supported".format(
+            granularity.name))
 
 
 def connect(db_url, logger=None):
@@ -230,11 +246,13 @@ def connect(db_url, logger=None):
 
     assert scheme == "postgresql", "Only PostgreSQL connections are supported"
 
-    create_connection = partial(psycopg2.connect, database=database, user=user,
-            password=password, host=host, port=port)
+    create_connection = partial(
+        psycopg2.connect, database=database, user=user,
+        password=password, host=host, port=port)
 
     if logger:
-        conn = create_connection(connection_factory=psycopg2.extras.LoggingConnection)
+        conn = create_connection(
+            connection_factory=psycopg2.extras.LoggingConnection)
 
         conn.initialize(logger)
     else:

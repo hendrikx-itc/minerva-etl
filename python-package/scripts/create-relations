@@ -1,7 +1,5 @@
 #!/usr/bin/python
-"""
-Creates relations between entities
-"""
+"""Create relations between entities."""
 import sys
 import os
 import re
@@ -90,10 +88,6 @@ def main():
         help="generate base config file")
 
     args = parser.parse_args()
-
-    if args.generate_configfile:
-        print(CONFIG_DEFAULTS)
-        return 0
 
     minerva_instance = MinervaInstance.load(args.instance)
 
@@ -216,9 +210,12 @@ def generate_relations(conn, relationtype_name, relationtype_cardinality,
                 else:
                     raise
 
-        logging.info("storing {} relations of type '{}' cardinality '{}'".format(count, relationtype_name, relationtype_cardinality))
+        logging.info(
+            "storing {} relations of type '{}' cardinality '{}'".format(
+                count, relationtype_name, relationtype_cardinality))
 
-        add_relations(conn, reverse_relations(relations), relationtype_name, relationtype_cardinality)
+        add_relations(conn, reverse_relations(relations), relationtype_name,
+                      relationtype_cardinality)
         conn.commit()
 
 
@@ -243,13 +240,12 @@ def setup_logging(level):
 
 
 def setup_file_logging(directory, filename, rotation_size, level):
-    """
-    Setup rotating file logging.
-    """
+    """Setup rotating file logging."""
     max_log_size = parse_size(rotation_size)
 
     filepath = os.path.join(directory, filename)
-    handler = RotatingFileHandler(filepath, maxBytes=max_log_size, backupCount=5)
+    handler = RotatingFileHandler(filepath, maxBytes=max_log_size,
+                                  backupCount=5)
     handler.setLevel(level)
 
     formatter = logging.Formatter("%(asctime)s %(levelname)s %(message)s")
