@@ -66,10 +66,8 @@ def main():
         return 1
 
     minerva_instance = MinervaInstance.load(args.instance)
-    user = config.get(
-        "database", {}).get("user") or args.user or "minerva_admin"
-
-    db_uri = minerva_instance.get_db_uri(user)
+    user = (args.user or config.get("database", {}).get("user")
+        or "minerva_admin")
 
     if args.verbose or args.debug:
         if args.debug:
@@ -77,7 +75,7 @@ def main():
         else:
             setup_logging(logging.INFO)
 
-    with closing(connect(db_uri)) as conn:
+    with closing(minerva_instance.connect(user=user)) as conn:
         with closing(conn.cursor()) as cursor:
             sites = get_sites(cursor)
             cells = get_cells(cursor)
@@ -100,7 +98,7 @@ def setup_logging(level):
 def get_sites(cursor):
     query = (
         "SELECT entity_id, timestamp, x_lon, y_lat, srid "
-        'FROM attribute."configuration_Site_curr"')
+        'FROM attribute."configuration_Site"')
 
     cursor.execute(query)
 
@@ -113,7 +111,7 @@ def get_sites(cursor):
 def get_cells(cursor):
     query = (
         "SELECT entity_id, timestamp, azimuth, type "
-        'FROM attribute."configuration_Cell_curr"')
+        'FROM attribute."configuration_Cell"')
 
     cursor.execute(query)
 

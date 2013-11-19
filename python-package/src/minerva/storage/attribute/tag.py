@@ -25,7 +25,8 @@ def tag_attributes(conn, tag_links):
     tmp_table_name = store_in_temp_table(conn, tag_links)
 
     query = (
-        "INSERT INTO attribute_directory.attribute_tag_link (attribute_id, tag_id) "
+        "INSERT INTO attribute_directory.attribute_tag_link "
+            "(attribute_id, tag_id) "
         "(SELECT tmp.attribute_id, tag.id "
         "FROM {} tmp "
         "JOIN directory.tag tag ON tag.name = tmp.tag "
@@ -77,7 +78,7 @@ def flush_tag_links(conn, tag_name):
         "USING directory.tag tag "
         "WHERE tag.id = atl.tag_id AND tag.name = %s")
 
-    args = (tag_name, )
+    args = (tag_name,)
 
     with closing(conn.cursor()) as cursor:
         cursor.execute(query, args)
