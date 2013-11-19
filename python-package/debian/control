@@ -1,0 +1,15 @@
+Source: python-minerva
+Section: contrib/python
+Priority: extra
+Maintainer: Alfred Blokland <a.j.n.blokland@hendrikx-itc.nl>
+Build-Depends: debhelper (>= 7), python-setuptools, python-sphinx
+Standards-Version: 3.8.3
+Homepage: http://hendrikx-itc.nl
+
+Package: python-minerva
+Section: contrib/python
+Architecture: all
+Depends: ${shlibs:Depends}, ${misc:Depends}, python (>=2.6.5), python-setuptools, python-psycopg2, python-tz, python-yaml, python-dateutil, python-configobj, python-pyparsing
+Description: Minerva Core Library
+ The Minerva Core Library provides core functionality for all Python based
+ Minerva solutions.
