@@ -38,7 +38,7 @@ def setup_args_parser():
 
     parser.add_argument(
         "-c", "--configfile", dest="configfile",
-        default="/etc/create-aliases.conf", help="path to the config file")
+        default="/etc/minerva/create-aliases.conf", help="path to the config file")
 
     parser.add_argument(
         "-v", "--verbose", action="store_true", default=False,
