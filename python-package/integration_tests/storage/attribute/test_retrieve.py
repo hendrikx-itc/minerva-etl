@@ -30,13 +30,13 @@ from minerva.storage.attribute.retrieve import retrieve
 @with_conn(clear_database)
 def test_retrieve(conn):
     with closing(conn.cursor()) as cursor:
-        time1 = pytz.UTC.localize(datetime.now())
+        time1 = pytz.utc.localize(datetime.utcnow())
         trend_names = ['CellID', 'CCR', 'Drops']
         data_rows = [
-            (10023, ('10023', '0.9919', '17')),
-            (10047, ('10047', '0.9963', '18'))
+            (10023, time1, ('10023', '0.9919', '17')),
+            (10047, time1, ('10047', '0.9963', '18'))
         ]
-        datapackage = DataPackage(time1, trend_names, data_rows)
+        datapackage = DataPackage(trend_names, data_rows)
 
         entitytype = name_to_entitytype(cursor, "UtranCell")
         datasource = name_to_datasource(cursor, "integration-test")
@@ -52,9 +52,9 @@ def test_retrieve(conn):
         attributestore.store_txn(datapackage).run(conn)
         time.sleep(5)
 
-        time2 = pytz.UTC.localize(datetime.now())
-        update_data_rows = [(10023, ('10023', '0.9919', '18'))]
-        update_datapackage = DataPackage(time2, trend_names, update_data_rows)
+        time2 = pytz.utc.localize(datetime.utcnow())
+        update_data_rows = [(10023, time2, ('10023', '0.9919', '18'))]
+        update_datapackage = DataPackage(trend_names, update_data_rows)
         attributestore.store_txn(update_datapackage).run(conn)
         conn.commit()
 

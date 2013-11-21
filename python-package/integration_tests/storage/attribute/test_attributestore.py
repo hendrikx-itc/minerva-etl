@@ -13,10 +13,11 @@ this software.
 from datetime import datetime, timedelta
 from contextlib import closing
 
+import pytz
 from nose.tools import eq_
+
 from minerva.test import with_conn
 from minerva.directory.basetypes import DataSource, EntityType
-
 from minerva.storage.attribute.attribute import Attribute
 from minerva.storage.attribute.attributestore import AttributeStore
 from minerva.storage.attribute.datapackage import DataPackage
@@ -97,13 +98,13 @@ def test_store_batch_simple(conn):
     """Test batch wise storing using staging table."""
     with closing(conn.cursor()) as cursor:
         attribute_names = ['CCR', 'Drops']
-        data_rows = [(10023 + i, ('0.9919', '17')) for i in range(100)]
+        timestamp = pytz.utc.localize(datetime.utcnow())
+        data_rows = [(10023 + i, timestamp, ('0.9919', '17')) for i in range(100)]
 
         datasource = DataSource.from_name(cursor, "integration-test")
         entitytype = EntityType.from_name(cursor, "UtranCell")
 
-        timestamp = datasource.tzinfo.localize(datetime.now())
-        datapackage = DataPackage(timestamp, attribute_names, data_rows)
+        datapackage = DataPackage(attribute_names, data_rows)
 
         attributes = datapackage.deduce_attributes()
         attributestore = AttributeStore(datasource, entitytype, attributes)
@@ -125,27 +126,27 @@ def test_store_batch_simple(conn):
         # Row count should be the same as the stored batch size
         eq_(cursor.rowcount, len(datapackage.rows))
 
-        timestamp, drops = cursor.fetchone()
+        stored_timestamp, drops = cursor.fetchone()
         # Timestamp should be the same as the stored batch timestamp
-        eq_(timestamp, datapackage.timestamp)
+        eq_(stored_timestamp, timestamp)
         eq_(drops, 17)
 
 
 @with_conn(clear_database)
 def test_store_batch_with_list_a(conn):
     """Test batch wise storing using staging table."""
-    with closing(conn.cursor()) as cursor:
-        attribute_names = ['height', 'refs']
-        data_rows = [(10023 + i, ('19.5', ['r34', 'r23', 'r33']))
-                     for i in range(100)]
+    attribute_names = ['height', 'refs']
+    timestamp = pytz.utc.localize(datetime.utcnow())
+    data_rows = [
+        (10023 + i, timestamp, ('19.5', ['r34', 'r23', 'r33']))
+        for i in range(100)]
+    datapackage = DataPackage(attribute_names, data_rows)
+    attributes = datapackage.deduce_attributes()
 
+    with closing(conn.cursor()) as cursor:
         datasource = DataSource.from_name(cursor, "integration-test")
         entitytype = EntityType.from_name(cursor, "UtranCell")
 
-        timestamp = datasource.tzinfo.localize(datetime.now())
-        datapackage = DataPackage(timestamp, attribute_names, data_rows)
-
-        attributes = datapackage.deduce_attributes()
         attributestore = AttributeStore(datasource, entitytype, attributes)
         attributestore.create(cursor)
 
@@ -166,27 +167,27 @@ def test_store_batch_with_list_a(conn):
         # Row count should be the same as the stored batch size
         eq_(cursor.rowcount, len(datapackage.rows))
 
-        timestamp, height = cursor.fetchone()
+        stored_timestamp, height = cursor.fetchone()
         # Timestamp should be the same as the stored batch timestamp
-        eq_(timestamp, datapackage.timestamp)
+        eq_(stored_timestamp, timestamp)
         eq_(height, 19.5)
 
 
 @with_conn(clear_database)
 def test_store_batch_with_list_b(conn):
     """Test batch wise storing using staging table."""
-    with closing(conn.cursor()) as cursor:
-        attribute_names = ['height', 'refs']
-        data_rows = [
-            (10023, ('19.5', ['1', '2', '3', ''])),
-            (10024, ('19.5', ['1', '1', '1', '']))
-        ]
+    attribute_names = ['height', 'refs']
+    timestamp = pytz.utc.localize(datetime.utcnow())
+    data_rows = [
+        (10023, timestamp, ('19.5', ['1', '2', '3', ''])),
+        (10024, timestamp, ('19.5', ['1', '1', '1', '']))
+    ]
 
+    with closing(conn.cursor()) as cursor:
         datasource = DataSource.from_name(cursor, "integration-test")
         entitytype = EntityType.from_name(cursor, "UtranCell")
 
-        timestamp = datasource.tzinfo.localize(datetime.now())
-        datapackage = DataPackage(timestamp, attribute_names, data_rows)
+        datapackage = DataPackage(attribute_names, data_rows)
 
         attributes = datapackage.deduce_attributes()
         attributestore = AttributeStore(datasource, entitytype, attributes)
@@ -199,20 +200,20 @@ def test_store_batch_with_list_b(conn):
 @with_conn(clear_database)
 def test_store_batch_with_list_c(conn):
     """Test batch wise storing using staging table."""
-    with closing(conn.cursor()) as cursor:
-        attribute_names = ['height', 'refs']
-        data_rows = [
-            (10023, ('19.5', ['', '', '', ''])),
-            (10024, ('19.3', ['', '', '', '']))
-        ]
+    attribute_names = ['height', 'refs']
+    timestamp = pytz.utc.localize(datetime.utcnow())
+    data_rows = [
+        (10023, timestamp, ('19.5', ['', '', '', ''])),
+        (10024, timestamp, ('19.3', ['', '', '', '']))
+    ]
 
+    datapackage = DataPackage(attribute_names, data_rows)
+    attributes = datapackage.deduce_attributes()
+
+    with closing(conn.cursor()) as cursor:
         datasource = DataSource.from_name(cursor, "integration-test")
         entitytype = EntityType.from_name(cursor, "UtranCell")
 
-        timestamp = datasource.tzinfo.localize(datetime.now())
-        datapackage = DataPackage(timestamp, attribute_names, data_rows)
-
-        attributes = datapackage.deduce_attributes()
         attributestore = AttributeStore(datasource, entitytype, attributes)
         attributestore.create(cursor)
 
@@ -226,11 +227,11 @@ def test_store_txn_with_empty(conn):
     with closing(conn.cursor()) as cursor:
         datasource = DataSource.from_name(cursor, "integration-test")
         entitytype = EntityType.from_name(cursor, "UtranCell")
+        timestamp = pytz.utc.localize(datetime.utcnow())
         datapackage = DataPackage(
-            timestamp=datasource.tzinfo.localize(datetime.now()),
             attribute_names=['freeText'],
             rows=[
-                (10023, ('',))
+                (10023, timestamp, ('',))
             ]
         )
 
@@ -248,20 +249,19 @@ def test_store_batch_update(conn):
     """Test batch wise storing with updates using staging table."""
     with closing(conn.cursor()) as cursor:
         attribute_names = ['CCR', 'Drops']
+        timestamp = pytz.utc.localize(datetime.utcnow())
 
         datasource = DataSource.from_name(cursor, "integration-test")
         entitytype = EntityType.from_name(cursor, "UtranCell")
 
-        timestamp = datasource.tzinfo.localize(datetime.now())
         datapackage = DataPackage(
-            timestamp,
             attribute_names,
-            [(10023 + i, ('0.9919', '17')) for i in range(100)]
+            [(10023 + i, timestamp, ('0.9919', '17')) for i in range(100)]
         )
+
         update_datapackage = DataPackage(
-            timestamp,
             attribute_names,
-            [(10023 + i, ('0.9918', '18')) for i in range(100)]
+            [(10023 + i, timestamp, ('0.9918', '18')) for i in range(100)]
         )
 
         attributes = datapackage.deduce_attributes()
@@ -299,10 +299,10 @@ def test_store_batch_update(conn):
         # Row count should be the same as the stored batch size
         eq_(cursor.rowcount, len(datapackage.rows))
 
-        timestamp, drops = cursor.fetchone()
+        stored_timestamp, drops = cursor.fetchone()
 
         # Timestamp should be the same as the stored batch timestamp
-        eq_(timestamp, datapackage.timestamp)
+        eq_(stored_timestamp, timestamp)
         eq_(drops, 18)
 
 
@@ -316,8 +316,7 @@ def test_store_empty_rows(conn):
         datasource = DataSource.from_name(cursor, "integration-test")
         entitytype = EntityType.from_name(cursor, "UtranCell")
 
-        timestamp = datasource.tzinfo.localize(datetime.now())
-        datapackage = DataPackage(timestamp, attribute_names, data_rows)
+        datapackage = DataPackage(attribute_names, data_rows)
 
         attributes = datapackage.deduce_attributes()
         attributestore = AttributeStore(datasource, entitytype, attributes)
@@ -332,13 +331,13 @@ def test_store_empty_attributes(conn):
     """Test storing of empty datapackage."""
     with closing(conn.cursor()) as cursor:
         attribute_names = []
-        rows = [(10023 + i, tuple()) for i in range(100)]
+        timestamp = pytz.utc.localize(datetime.utcnow())
+        rows = [(10023 + i, timestamp, tuple()) for i in range(100)]
 
         datasource = DataSource.from_name(cursor, "integration-test")
         entitytype = EntityType.from_name(cursor, "UtranCell")
 
-        timestamp = datasource.tzinfo.localize(datetime.now())
-        datapackage = DataPackage(timestamp, attribute_names, rows)
+        datapackage = DataPackage(attribute_names, rows)
 
         attributes = datapackage.deduce_attributes()
         attributestore = AttributeStore(datasource, entitytype, attributes)
@@ -351,24 +350,27 @@ def test_store_empty_attributes(conn):
 @with_conn(clear_database)
 def test_compact(conn):
     """Test compacting of redundant data."""
+    def make_rows(timestamp):
+        return [
+            (10023 + i, timestamp, ('0.9919', '17'))
+            for i in range(100)
+        ]
+
     with closing(conn.cursor()) as cursor:
         attribute_names = ['CCR', 'Drops']
-        rows = [(10023 + i, ('0.9919', '17')) for i in range(100)]
 
         datasource = DataSource.from_name(cursor, "integration-test")
         entitytype = EntityType.from_name(cursor, "UtranCell")
-
-        timestamp = datasource.tzinfo.localize(datetime.now())
+        timestamp = pytz.utc.localize(datetime.utcnow())
 
         datapackage_a = DataPackage(
-            timestamp=timestamp,
             attribute_names=attribute_names,
-            rows=rows
+            rows=make_rows(timestamp)
         )
+
         datapackage_b = DataPackage(
-            timestamp=timestamp + timedelta(10),
             attribute_names=attribute_names,
-            rows=rows
+            rows=make_rows(timestamp + timedelta(10))
         )
 
         attributes = datapackage_a.deduce_attributes()

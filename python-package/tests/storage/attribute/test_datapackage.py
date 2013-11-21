@@ -25,46 +25,46 @@ def create_simple_package():
     """Return new DataPackage instance with a simple set of data."""
     attribute_names = ["power", "height", "state", "freetext"]
     rows = [
-        (123001, (405, 0.0, "enabled", "")),
-        (123003, (41033, 22.3, "enabled", "")),
-        (123004, (880, 30.0, "enabled", ""))]
+        (123001, TIMESTAMP, (405, 0.0, "enabled", "")),
+        (123003, TIMESTAMP, (41033, 22.3, "enabled", "")),
+        (123004, TIMESTAMP, (880, 30.0, "enabled", ""))]
 
-    return DataPackage(TIMESTAMP, attribute_names, rows)
+    return DataPackage(attribute_names, rows)
 
 
 def create_package_array():
     """Return new DataPackage instance with a simple set of data."""
     attribute_names = ["curve"]
     rows = [
-        (123001, ('0,1,2,4,7,4,2,1,0',)),
-        (123002, ('0,1,2,5,8,4,2,1,0',)),
-        (123003, ('0,1,3,5,7,4,3,1,0',)),
-        (123004, ('0,1,2,4,9,4,2,1,0',))]
+        (123001, TIMESTAMP, ('0,1,2,4,7,4,2,1,0',)),
+        (123002, TIMESTAMP, ('0,1,2,5,8,4,2,1,0',)),
+        (123003, TIMESTAMP, ('0,1,3,5,7,4,3,1,0',)),
+        (123004, TIMESTAMP, ('0,1,2,4,9,4,2,1,0',))]
 
-    return DataPackage(TIMESTAMP, attribute_names, rows)
+    return DataPackage(attribute_names, rows)
 
 
 def create_package_array_list_a():
     """Return new DataPackage instance with array data as lists."""
     attribute_names = ["curve"]
     rows = [
-        (123001, (['0', '1', '2'],)),
-        (123002, (['0', '1', '2'],)),
-        (123003, (['', '', ''],))
+        (123001, TIMESTAMP, (['0', '1', '2'],)),
+        (123002, TIMESTAMP, (['0', '1', '2'],)),
+        (123003, TIMESTAMP, (['', '', ''],))
     ]
 
-    return DataPackage(TIMESTAMP, attribute_names, rows)
+    return DataPackage(attribute_names, rows)
 
 
 def create_package_array_list_b():
     """Return new DataPackage instance with array data as lists."""
     attribute_names = ["curve"]
     rows = [
-        (123001, (['', ''],)),
-        (123002, (['', ''],))
+        (123001, TIMESTAMP, (['', ''],)),
+        (123002, TIMESTAMP, (['', ''],))
     ]
 
-    return DataPackage(TIMESTAMP, attribute_names, rows)
+    return DataPackage(attribute_names, rows)
 
 
 def create_package_array_list_c():
@@ -82,7 +82,6 @@ def test_constructor():
     """Test creation of a new DataPackage instance."""
     datapackage = create_simple_package()
 
-    eq_(datapackage.timestamp, TIMESTAMP)
     eq_(len(datapackage.attribute_names), 4)
     eq_(len(datapackage.rows), 3)
 
@@ -112,7 +111,6 @@ def test_deduce_data_types_array():
 
 def test_deduce_datatypes_empty():
     datapackage = DataPackage(
-        timestamp=TIMESTAMP,
         attribute_names=('height', 'power', 'refs'),
         rows=[]
     )
@@ -124,20 +122,18 @@ def test_deduce_datatypes_empty():
 
 def test_to_dict():
     datapackage = DataPackage(
-        timestamp=TIMESTAMP,
         attribute_names=('height', 'power'),
         rows=[
-            (10034, ['15.6', '68'])
+            (10034, TIMESTAMP, ['15.6', '68'])
         ]
     )
 
     json_data = datapackage.to_dict()
 
     expected_json = (
-        '{"timestamp": "2013-08-30T15:30:00+00:00", '
-        '"attribute_names": ["height", "power"], '
+        '{"attribute_names": ["height", "power"], '
         '"rows": ['
-        '[10034, ["15.6", "68"]]'
+        '[10034, "2013-08-30T15:30:00+00:00", ["15.6", "68"]]'
         ']'
         '}')
 
@@ -183,7 +179,7 @@ def test_create_copy_from_lines():
     lines = datapackage._create_copy_from_lines(data_types)
 
     eq_(lines[0],
-        "123001\t2013-08-30 15:30:00+00:00\t405\t0.0\t\"enabled\"\t\\N\n")
+        "123001\t2013-08-30 15:30:00+00:00\t405\t0.0\tenabled\t\\N\n")
 
     datapackage = create_package_array()
     data_types = datapackage.deduce_data_types()
