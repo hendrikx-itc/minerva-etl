@@ -33,7 +33,7 @@ class RawDataPackage(DataPackage):
 
     def get_key(self):
         """Return key by which to merge this package with other packages."""
-        return self.timestamp, self.get_entitytype_name()
+        return self.get_entitytype_name()
 
     def refine(self, cursor):
         """
@@ -42,9 +42,9 @@ class RawDataPackage(DataPackage):
         This means that all distinguished names are translated to entity Ids.
 
         """
-        dns, value_rows = zip(*self.rows)
+        dns, timestamps, value_rows = zip(*self.rows)
 
         entity_ids = dns_to_entity_ids(cursor, list(dns))
 
-        rows = zip(entity_ids, value_rows)
-        return DataPackage(self.timestamp, self.attribute_names, rows)
+        rows = zip(entity_ids, timestamps, value_rows)
+        return DataPackage(self.attribute_names, rows)
