@@ -12,7 +12,7 @@ this software.
 import datetime
 from time import sleep
 from operator import itemgetter, attrgetter, eq
-from itertools import repeat
+from itertools import repeat, groupby
 from functools import partial
 
 
@@ -346,3 +346,7 @@ def unlines(lines):
 def show(value):
     """Write value to stdout."""
     print(str(value))
+
+
+def grouped_by(iterable, key):
+    return groupby(sorted(iterable, key=key), key)

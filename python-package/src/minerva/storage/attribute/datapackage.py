@@ -15,10 +15,6 @@ from functools import partial
 from operator import itemgetter
 from itertools import chain
 from collections import Iterable
-from datetime import datetime
-
-import pytz
-from dateutil.parser import parse as parse_timestamp
 
 from minerva.util import compose, expand_args, zipapply
 from minerva.storage import datatype
@@ -32,13 +28,11 @@ SYSTEM_COLUMNS = "entity_id", "timestamp"
 class DataPackage(object):
     """
     A DataPackage represents a batch of attribute records for the same
-    EntityType and timestamp. The EntityType is implicitly determined by the
+    EntityType. The EntityType is implicitly determined by the
     entities in the data package, and they must all be of the same EntityType.
 
     A graphical depiction of a DataPackage instance might be::
 
-        +-------------------------------------------------+
-        | '2013-08-30 15:00:00+02:00'                     | <- timestamp
         +-------------------------------------------------+
         |         | "height" | "tilt" | "power" | "state" | <- attribute_names
         +---------+----------+--------+---------+---------+
@@ -47,22 +41,12 @@ class DataPackage(object):
         | 1234003 |    22.5  |     3  |     90  | "on"    |
         +---------+----------+--------+---------+---------+
     """
-    def __init__(self, timestamp, attribute_names, rows):
-        if isinstance(timestamp, str):
-            self.timestamp = parse_timestamp(timestamp)
-        elif isinstance(timestamp, datetime):
-            self.timestamp = timestamp
-        else:
-            raise Exception("{} is not a valid timestamp".format(timestamp))
-
-        if not self.timestamp.tzinfo:
-            self.timestamp = pytz.utc.localize(self.timestamp)
-
+    def __init__(self, attribute_names, rows):
         self.attribute_names = attribute_names
         self.rows = rows
 
     def __str__(self):
-        return str((self.timestamp, self.attribute_names, self.rows))
+        return str((self.attribute_names, self.rows))
 
     def is_empty(self):
         """Return True if the package has no data."""
@@ -126,22 +110,23 @@ class DataPackage(object):
         return copy_from_file
 
     def _create_copy_from_lines(self, data_types):
-        return [create_copy_from_line(self.timestamp, data_types, r)
-                for r in self.rows]
+        return [create_copy_from_line(data_types, row)
+                for row in self.rows]
 
     def to_dict(self):
         """Return dictionary representing this package."""
+        def render_row(row):
+            return [row[0], row[1].isoformat()] + list(row[2:])
+
         return {
-            "timestamp": self.timestamp.isoformat(),
             "attribute_names": list(self.attribute_names),
-            "rows": self.rows
+            "rows": map(render_row, self.rows)
         }
 
     @classmethod
     def from_dict(cls, d):
         """Return DataPackage constructed from the dictionary."""
         return cls(
-            timestamp=parse_timestamp(d["timestamp"]),
             attribute_names=d["attribute_names"],
             rows=d["rows"]
         )
@@ -151,12 +136,12 @@ snd = itemgetter(1)
 
 types_from_values = partial(map, datatype.deduce_from_value)
 
-row_to_types = compose(types_from_values, snd)
+row_to_types = compose(types_from_values, itemgetter(2))
 
 
-def create_copy_from_line(timestamp, data_types, row):
+def create_copy_from_line(data_types, row):
     """Return line compatible with COPY FROM command."""
-    entity_id, attributes = row
+    entity_id, timestamp, attributes = row
 
     value_mappers = map(value_mapper_by_type.get, data_types)
 

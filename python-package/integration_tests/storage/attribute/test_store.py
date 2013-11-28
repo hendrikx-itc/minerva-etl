@@ -15,13 +15,14 @@ from datetime import datetime
 
 from nose.tools import eq_, ok_, assert_not_equal
 
+import pytz
+
 from minerva.directory.helpers_v4 import name_to_datasource, name_to_entitytype
 from minerva.db.postgresql import get_column_names
 from minerva.test import with_conn
 
 from .minerva_db import clear_database
 
-from minerva.storage.attribute import schema
 from minerva.storage.attribute.attributestore import AttributeStore, Query
 from minerva.storage.attribute.datapackage import DataPackage
 
@@ -30,19 +31,27 @@ from minerva.storage.attribute.datapackage import DataPackage
 def test_simple(conn):
     with closing(conn.cursor()) as cursor:
         attribute_names = ['CellID', 'CCR', 'Drops']
-        data_rows = [(10023, ('10023', '0.9919', '17'))]
 
         datasource = name_to_datasource(cursor, "integration-test")
         entitytype = name_to_entitytype(cursor, "UtranCell")
 
-        timestamp = datasource.tzinfo.localize(datetime.now())
-        datapackage = DataPackage(timestamp, attribute_names, data_rows)
+        timestamp = pytz.utc.localize(datetime.utcnow())
+        data_rows = [(10023, timestamp, ('10023', '0.9919', '17'))]
+
+        datapackage = DataPackage(attribute_names, data_rows)
 
         attributes = datapackage.deduce_attributes()
         attributestore = AttributeStore(datasource, entitytype, attributes)
         attributestore.create(cursor)
 
         attributestore.store_txn(datapackage).run(conn)
+
+        query = (
+            "SELECT attribute_directory.materialize_curr_ptr(attributestore) "
+            "FROM attribute_directory.attributestore "
+            "WHERE id = %s")
+
+        cursor.execute(query, (attributestore.id,))
 
         query = (
             "SELECT timestamp "
@@ -60,14 +69,13 @@ def test_array(conn):
     with closing(conn.cursor()) as cursor:
         datasource = name_to_datasource(cursor, "integration-test")
         entitytype = name_to_entitytype(cursor, "UtranCell")
+        timestamp = pytz.utc.localize(datetime.utcnow())
 
-        timestamp = datasource.tzinfo.localize(datetime.now())
         datapackage = DataPackage(
-            timestamp=timestamp,
             attribute_names=['channel', 'pwr'],
             rows=[
-                (10023, ('7', '0,0,0,2,5,12,87,34,5,0,0')),
-                (10024, ('9', '0,0,0,1,11,15,95,41,9,0,0'))
+                (10023, timestamp, ('7', '0,0,0,2,5,12,87,34,5,0,0')),
+                (10024, timestamp, ('9', '0,0,0,1,11,15,95,41,9,0,0'))
             ]
         )
 
@@ -84,23 +92,21 @@ def test_array(conn):
 def test_update_modified_column(conn):
     attribute_names = ['CCR', 'Drops']
 
-    rows = [
-        (10023, ('0.9919', '17')),
-        (10047, ('0.9963', '18'))
-    ]
-
     with closing(conn.cursor()) as cursor:
         datasource = name_to_datasource(cursor, "integration-test")
         entitytype = name_to_entitytype(cursor, "UtranCell")
         timestamp = datasource.tzinfo.localize(datetime.now())
 
+        rows = [
+            (10023, timestamp, ('0.9919', '17')),
+            (10047, timestamp, ('0.9963', '18'))
+        ]
+
         datapackage_a = DataPackage(
-            timestamp=timestamp,
             attribute_names=attribute_names,
             rows=rows)
 
         datapackage_b = DataPackage(
-            timestamp=timestamp,
             attribute_names=attribute_names,
             rows=rows[:1])
 
@@ -135,19 +141,20 @@ def test_update_modified_column(conn):
 def test_update(conn):
     with closing(conn.cursor()) as cursor:
         attribute_names = ['CellID', 'CCR', 'Drops']
-        data_rows = [
-            (10023, ('10023', '0.9919', '17')),
-            (10047, ('10047', '0.9963', '18'))
-        ]
-        update_data_rows = [
-            (10023, ('10023', '0.5555', '17'))
-        ]
 
         datasource = name_to_datasource(cursor, "integration-test")
         entitytype = name_to_entitytype(cursor, "UtranCell")
         time1 = datasource.tzinfo.localize(datetime.now())
 
-        datapackage = DataPackage(time1, attribute_names, data_rows)
+        data_rows = [
+            (10023, time1, ('10023', '0.9919', '17')),
+            (10047, time1, ('10047', '0.9963', '18'))
+        ]
+        update_data_rows = [
+            (10023, time1, ('10023', '0.5555', '17'))
+        ]
+
+        datapackage = DataPackage(attribute_names, data_rows)
         attributes = datapackage.deduce_attributes()
 
         attributestore = AttributeStore(datasource, entitytype, attributes)
@@ -157,7 +164,7 @@ def test_update(conn):
 
         time.sleep(1)
 
-        datapackage = DataPackage(time1, attribute_names, update_data_rows)
+        datapackage = DataPackage(attribute_names, update_data_rows)
         attributestore.store_txn(datapackage).run(conn)
 
         conn.commit()
@@ -177,21 +184,19 @@ def test_extra_column(conn):
     with closing(conn.cursor()) as cursor:
         datasource = name_to_datasource(cursor, "storagetest")
         entitytype = name_to_entitytype(cursor, "UtranCell")
-        timestamp = datasource.tzinfo.localize(datetime.now())
+        timestamp = pytz.utc.localize(datetime.utcnow())
 
         datapackage_a = DataPackage(
-            timestamp=timestamp,
             attribute_names=['test0', 'test1'],
             rows=[
-                (10023, ('10023', '0.9919'))
+                (10023, timestamp, ('10023', '0.9919'))
             ]
         )
 
         datapackage_b = DataPackage(
-            timestamp=timestamp,
             attribute_names=['test0', 'test1', "test2"],
             rows=[
-                (10023, ('10023', '0.9919', '17'))
+                (10023, timestamp, ('10023', '0.9919', '17'))
             ]
         )
 
@@ -215,22 +220,20 @@ def test_changing_datatype(conn):
     with closing(conn.cursor()) as cursor:
         datasource = name_to_datasource(cursor, "storagetest")
         entitytype = name_to_entitytype(cursor, "UtranCell")
-        timestamp = datasource.tzinfo.localize(datetime.now())
+        timestamp = pytz.utc.localize(datetime.utcnow())
         attribute_names = ['site_nr', 'height']
 
         datapackage_a = DataPackage(
-            timestamp=timestamp,
             attribute_names=attribute_names,
             rows=[
-                (10023, ('10023', '15'))
+                (10023, timestamp, ('10023', '15'))
             ]
         )
 
         datapackage_b = DataPackage(
-            timestamp=timestamp,
             attribute_names=attribute_names,
             rows=[
-                (10023, ('10023', '25.6'))
+                (10023, timestamp, ('10023', '25.6'))
             ]
         )
 

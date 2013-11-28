@@ -9,9 +9,8 @@ the Free Software Foundation; either version 3, or (at your option) any later
 version.  The full license is in the file COPYING, distributed as part of
 this software.
 """
-from itertools import groupby
-
 from minerva.directory.distinguishedname import explode
+from minerva.util import grouped_by
 
 
 class RawDataPackage(object):
@@ -48,10 +47,6 @@ class RawDataPackage(object):
             result.append(package_group(k, l))
 
         return result
-
-
-def grouped_by(iterable, key):
-    return groupby(sorted(iterable, key=key), key)
 
 
 def package_group(key, packages):
