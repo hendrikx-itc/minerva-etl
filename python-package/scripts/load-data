@@ -139,7 +139,7 @@ def main():
             plugin = storage.get_plugin(args.storage_type)(conn)
 
             if args.storage_type == "attribute":
-                package = plugin.DataPackage(ts, fields, refined_data_rows)
+                package = plugin.DataPackage(fields, refined_data_rows)
 
                 plugin.store(datasource, entitytype, package)
             else:
