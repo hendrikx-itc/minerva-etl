@@ -261,6 +261,15 @@ ALTER TABLE ONLY entitytaglink
 CREATE INDEX ix_directory_entitytaglink_entity_id
 	ON entitytaglink USING btree (entity_id);
 
+-- Table 'entitytaglink_tagarray'
+
+CREATE TABLE directory.entitytaglink_tagarray (
+	entity_id integer primary key not null,
+	tag_ids integer[] not null
+);
+
+ALTER TABLE directory.entitytaglink_tagarray OWNER TO minerva_admin;
+
 -- Table 'aliastype'
 
 CREATE TABLE aliastype
