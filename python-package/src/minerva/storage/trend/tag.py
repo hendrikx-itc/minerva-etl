@@ -29,12 +29,12 @@ def tag_trends(conn, tag_links):
     query = (
         "INSERT INTO {0}.trend_tag_link (trend_id, tag_id) "
         "("
-            "SELECT tmp.trend_id, tag.id "
-            "FROM {1} tmp "
-            "JOIN directory.tag tag ON tag.name = tmp.tag "
-            "LEFT JOIN {0}.trend_tag_link ttl ON "
-                "ttl.trend_id = tmp.trend_id AND ttl.tag_id = tag.id "
-            "WHERE ttl.trend_id IS NULL"
+        "   SELECT tmp.trend_id, tag.id "
+        "   FROM {1} tmp "
+        "   JOIN directory.tag tag ON lower(tag.name) = lower(tmp.tag) "
+        "   LEFT JOIN {0}.trend_tag_link ttl ON "
+        "       ttl.trend_id = tmp.trend_id AND ttl.tag_id = tag.id "
+        "   WHERE ttl.trend_id IS NULL"
         ")").format(schema.name, tmp_table_name)
 
     with closing(conn.cursor()) as cursor:
@@ -79,7 +79,7 @@ def flush_tag_links(conn, tag_name):
     query = (
         "DELETE FROM {0}.trend_tag_link ttl "
         "USING directory.tag tag "
-        "WHERE tag.id = ttl.tag_id AND tag.name = %s").format(schema.name)
+        "WHERE tag.id = ttl.tag_id AND lower(tag.name) = lower(%s)").format(schema.name)
 
     args = (tag_name, )
 
