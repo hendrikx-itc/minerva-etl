@@ -24,3 +24,9 @@ CREATE TRIGGER update_attribute_type
 	AFTER UPDATE ON attribute
 	FOR EACH ROW
 	EXECUTE PROCEDURE update_datatype_on_change();
+
+
+CREATE TRIGGER after_delete_attribute
+	AFTER DELETE ON attribute
+	FOR EACH ROW
+	EXECUTE PROCEDURE cleanup_attribute_after_delete();

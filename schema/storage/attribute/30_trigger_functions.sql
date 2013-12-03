@@ -23,11 +23,33 @@ CREATE OR REPLACE FUNCTION cleanup_attributestore_on_delete()
 	RETURNS TRIGGER
 AS $$
 BEGIN
+	PERFORM attribute_directory.drop_dependees(OLD);
+
 	EXECUTE format('DROP TABLE IF EXISTS attribute_base.%I CASCADE', attribute_directory.to_table_name(OLD));
 
 	EXECUTE format('DROP FUNCTION attribute_history.mark_modified_%s()', OLD.id);
 
 	EXECUTE format('DROP TABLE IF EXISTS attribute_history.%I', attribute_directory.to_table_name(OLD) || '_curr_ptr');
+
+	RETURN OLD;
+END;
+$$ LANGUAGE plpgsql;
+
+
+CREATE OR REPLACE FUNCTION cleanup_attribute_after_delete()
+	RETURNS TRIGGER
+AS $$
+DECLARE
+	table_name name;
+BEGIN
+	SELECT attribute_directory.to_table_name(attributestore) INTO table_name
+	FROM attribute_directory.attributestore WHERE id = OLD.attributestore_id;
+
+	PERFORM attribute_directory.drop_dependees(attributestore) FROM attribute_directory.attributestore WHERE id = OLD.attributestore_id;
+
+	EXECUTE format('ALTER TABLE attribute_base.%I DROP COLUMN %I', table_name, OLD.name);
+
+	PERFORM attribute_directory.create_dependees(attributestore) FROM attribute_directory.attributestore WHERE id = OLD.attributestore_id;
 
 	RETURN OLD;
 END;
