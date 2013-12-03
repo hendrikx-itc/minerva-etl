@@ -59,6 +59,7 @@ setup(
         "scripts/load-datapackage",
         "scripts/query-entities",
         "scripts/load-elements",
+        "scripts/populate-entity-tagarray",
         "scripts/populate-gis",
         "scripts/cleanup-trend-data",
         "scripts/materialize-attribute-curr",
