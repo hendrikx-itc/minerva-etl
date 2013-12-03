@@ -29,7 +29,7 @@ def tag_attributes(conn, tag_links):
             "(attribute_id, tag_id) "
         "(SELECT tmp.attribute_id, tag.id "
         "FROM {} tmp "
-        "JOIN directory.tag tag ON tag.name = tmp.tag "
+        "JOIN directory.tag tag ON lower(tag.name) = lower(tmp.tag) "
         "LEFT JOIN attribute_directory.attribute_tag_link ttl ON "
         "ttl.attribute_id = tmp.attribute_id AND ttl.tag_id = tag.id "
         "WHERE ttl.attribute_id IS NULL)").format(tmp_table_name)
@@ -76,7 +76,7 @@ def flush_tag_links(conn, tag_name):
     query = (
         "DELETE FROM attribute_directory.attribute_tag_link atl "
         "USING directory.tag tag "
-        "WHERE tag.id = atl.tag_id AND tag.name = %s")
+        "WHERE tag.id = atl.tag_id AND lower(tag.name) = lower(%s)")
 
     args = (tag_name,)
 
