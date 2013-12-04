@@ -17,7 +17,7 @@ setup(
     name="minerva",
     author="Hendrikx ITC",
     author_email="info@hendrikx-itc.nl",
-    version="4.5.1",
+    version="4.6.0",
     license="GPL",
     install_requires=["pytz", "psycopg2>=2.2.1", "DBUtils", "PyYAML",
                       "configobj", "python-dateutil", "pyparsing"],
