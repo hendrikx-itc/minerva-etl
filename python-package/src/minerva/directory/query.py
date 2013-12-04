@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+from future_builtins import map
+
 __docformat__ = "restructuredtext en"
 
 __copyright__ = """
@@ -74,32 +76,39 @@ def compile_sql(minerva_query, relation_group_name, entity_id_column=None):
     args = []
     query_parts = []
 
-    if minerva_query[0]["type"] != 'C':
+    if not minerva_query or minerva_query[0]["type"] != 'C':
         raise QueryError("query must start with a context(tag)")
 
-    for index, cs in enumerate(iter_cs(minerva_query)):
-        c, s = cs
+    first_component = minerva_query[0]
 
-        if index > 0:
-            sql, entity_id_column = make_relation_join(index, entity_id_column,
-                                                       relation_group_name)
+    if entity_id_column:
+        sql, entity_id_column = make_c_join(0, entity_id_column)
+    else:
+        sql, entity_id_column = make_c_from()
+
+    query_parts.append(sql)
+    args.append(tuple(map(str.lower, first_component['value'])))
+
+    for index, component in enumerate(minerva_query[1:], start=1):
+        if component['type'] == 'C':
+            sql, entity_id_column = make_relation_join(
+                index, entity_id_column, relation_group_name)
 
             query_parts.append(sql)
 
-        for tag_index, tag in enumerate(c):
-            if entity_id_column is None:
-                sql, entity_id_column = make_c_from(index, tag_index)
-            else:
-                sql, entity_id_column = make_c_join(index, entity_id_column,
-                                                    tag_index)
+            sql = make_c_join(index, entity_id_column)
 
             query_parts.append(sql)
-            args.append(tag)
+            args.append(tuple(map(str.lower, component['value'])))
 
-        if s is not None:
-            join, entity_id_column = make_s_join(index, entity_id_column)
-            query_parts.append(join)
-            args.append(s)
+        elif component['type'] == 'S':
+            sql = make_s_join(index, entity_id_column)
+
+            query_parts.append(sql)
+            args.append(component['value'].lower())
+
+        else:
+            raise QueryError('query contains unknown type ' + component['type'])
 
     sql = " ".join(query_parts)
 
@@ -181,62 +190,56 @@ def iter_cs(query):
 
 def make_relation_join(index, entity_id_column, relation_group_name):
     relation_alias = "r_{0}".format(index)
-    type_alias = "t_{0}".format(index)
+    type_alias = "type_{0}".format(index)
     group_alias = "g_{0}".format(index)
 
     sql = (
-        "JOIN relation.all {0} ON {0}.source_id = {1} "
-        "JOIN relation.type {2} ON {0}.type_id = {2}.id "
-        "JOIN relation.group {3} "
-        "ON {2}.group_id = {3}.id "
-        "AND {3}.name = '{4}'").format(relation_alias, entity_id_column,
-                                       type_alias, group_alias,
-                                       relation_group_name)
+        "\nJOIN relation.all_materialized {0} ON {0}.source_id = {1} "
+        "\nJOIN relation.type {2} ON {0}.type_id = {2}.id "
+        "\nJOIN relation.group {3} "
+        "\n    ON {2}.group_id = {3}.id "
+        "\n    AND {3}.name = '{4}'"
+    ).format(
+        relation_alias, entity_id_column, type_alias, group_alias,
+        relation_group_name
+    )
     entity_id_column = "{0}.target_id".format(relation_alias)
 
     return sql, entity_id_column
 
 
-def make_c_from(index, tag_index):
-    tag_alias = "t_{0}_{1}".format(index, tag_index)
-    taglink_alias = "tl_{0}_{1}".format(index, tag_index)
-
+def make_c_from():
     sql = (
-        "FROM directory.entitytaglink {0} "
-        "JOIN directory.tag {1} "
-        "ON {1}.id = {0}.tag_id "
-        "AND lower({1}.name) = lower(%s)".format(taglink_alias, tag_alias))
+        '\nFROM directory.entitytaglink_tagarray t_first'
+        '\nJOIN directory.tag tag_first'
+        '\n    ON ARRAY[tag_first.id] @> t_first.tag_ids'
+        '\n    AND lower(tag_first.name) IN %s'
+    )
 
-    entity_id_column = "{}.entity_id".format(taglink_alias)
-
-    return sql, entity_id_column
+    return sql, 't_first.entity_id'
 
 
-def make_c_join(index, entity_id_column, tag_index):
-    tag_alias = "t_{0}_{1}".format(index, tag_index)
-    taglink_alias = "tl_{0}_{1}".format(index, tag_index)
+def make_c_join(index, entity_id_column):
+    tag_alias = "t_{0}".format(index)
+    taglink_alias = "tl_{0}".format(index)
 
-    sql = (
-        "JOIN directory.entitytaglink {0} "
-        "ON {2} = {0}.entity_id "
-        "JOIN directory.tag {1} "
-        "ON {1}.id = {0}.tag_id "
-        "AND lower({1}.name) = lower(%s)".format(taglink_alias, tag_alias,
-                                                 entity_id_column))
-
-    return sql, entity_id_column
+    return (
+        '\nJOIN directory.entitytaglink_tagarray {0}'
+        '\n    ON {2} = {0}.entity_id'
+        '\nJOIN directory.tag {1}'
+        '\n    ON ARRAY[{1}.id] @> {0}.tag_ids'
+        '\n    AND lower({1}.name) IN %s'
+    ).format(taglink_alias, tag_alias, entity_id_column)
 
 
 def make_s_join(index, entity_id_column):
     alias_alias = "a_{}".format(index)
     aliastype_alias = "at_{}".format(index)
 
-    sql = (
-        "JOIN directory.alias {0} "
-        "ON {0}.entity_id = {1} AND lower({0}.name) = lower(%s) "
-        "JOIN directory.aliastype {2} "
-        "ON {2}.id = {0}.type_id "
-        "AND {2}.name = 'name'".format(alias_alias, entity_id_column,
-                                       aliastype_alias))
-
-    return sql, entity_id_column
+    return (
+        "\nJOIN directory.alias {0}"
+        "\n    ON {0}.entity_id = {1} AND lower({0}.name) = %s"
+        "\nJOIN directory.aliastype {2}"
+        "\n    ON {2}.id = {0}.type_id"
+        "\n    AND {2}.name = 'name'"
+    ).format(alias_alias, entity_id_column, aliastype_alias)
