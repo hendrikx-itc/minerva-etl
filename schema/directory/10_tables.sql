@@ -270,6 +270,8 @@ CREATE TABLE directory.entitytaglink_tagarray (
 
 ALTER TABLE directory.entitytaglink_tagarray OWNER TO minerva_admin;
 
+CREATE INDEX ON directory.entitytaglink_tagarray USING gin (tag_ids);
+
 -- Table 'aliastype'
 
 CREATE TABLE aliastype
