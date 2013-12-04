@@ -87,7 +87,7 @@ def compile_sql(minerva_query, relation_group_name, entity_id_column=None):
         sql, entity_id_column = make_c_from()
 
     query_parts.append(sql)
-    args.append(tuple(map(str.lower, first_component['value'])))
+    args.append(tuple(map(unicode.lower, first_component['value'])))
 
     for index, component in enumerate(minerva_query[1:], start=1):
         if component['type'] == 'C':
@@ -99,7 +99,7 @@ def compile_sql(minerva_query, relation_group_name, entity_id_column=None):
             sql = make_c_join(index, entity_id_column)
 
             query_parts.append(sql)
-            args.append(tuple(map(str.lower, component['value'])))
+            args.append(tuple(map(unicode.lower, component['value'])))
 
         elif component['type'] == 'S':
             sql = make_s_join(index, entity_id_column)
