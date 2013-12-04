@@ -212,7 +212,7 @@ def make_c_from():
     sql = (
         '\nFROM directory.entitytaglink_tagarray t_first'
         '\nJOIN directory.tag tag_first'
-        '\n    ON ARRAY[tag_first.id] @> t_first.tag_ids'
+        '\n    ON ARRAY[tag_first.id] <@ t_first.tag_ids'
         '\n    AND lower(tag_first.name) IN %s'
     )
 
@@ -227,7 +227,7 @@ def make_c_join(index, entity_id_column):
         '\nJOIN directory.entitytaglink_tagarray {0}'
         '\n    ON {2} = {0}.entity_id'
         '\nJOIN directory.tag {1}'
-        '\n    ON ARRAY[{1}.id] @> {0}.tag_ids'
+        '\n    ON ARRAY[{1}.id] <@ {0}.tag_ids'
         '\n    AND lower({1}.name) IN %s'
     ).format(taglink_alias, tag_alias, entity_id_column)
 
