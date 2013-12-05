@@ -113,7 +113,7 @@ CREATE TABLE "all" (
 ALTER TABLE "all" OWNER TO minerva_admin;
 
 ALTER TABLE ONLY "all"
-	ADD CONSTRAINT "primary" PRIMARY KEY (source_id, target_id);
+	ADD PRIMARY KEY (source_id, target_id);
 
 ALTER TABLE ONLY "all"
 	ADD CONSTRAINT source_id_fkey
@@ -134,7 +134,26 @@ ALTER TABLE ONLY "all"
 	FOREIGN KEY (type_id) REFERENCES "type"(id)
 	ON DELETE CASCADE;
 
-CREATE INDEX ix_target_id ON "all" USING btree (target_id);
-CREATE INDEX ix_type_id on "all" USING btree (type_id);
+CREATE INDEX ON "all" USING btree (target_id);
+CREATE INDEX ON "all" USING btree (type_id);
 
+-- Table 'all_materialized'
+
+CREATE TABLE all_materialized (
+	source_id integer NOT NULL,
+	target_id integer NOT NULL,
+	type_id integer NOT NULL
+);
+
+ALTER TABLE "all_materialized" OWNER TO minerva_admin;
+
+ALTER TABLE "all_materialized"
+	ADD PRIMARY KEY (source_id, target_id, type_id);
+
+GRANT ALL ON TABLE "all_materialized" TO minerva_admin;
+GRANT SELECT ON TABLE "all_materialized" TO minerva;
+GRANT INSERT,DELETE,UPDATE ON TABLE "all_materialized" TO minerva_writer;
+
+CREATE INDEX ON "all_materialized" USING btree (target_id);
+CREATE INDEX ON "all_materialized" USING btree (type_id);
 

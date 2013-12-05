@@ -107,16 +107,12 @@ END;
 $$ LANGUAGE plpgsql VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION upgrade_curr_view(attribute_directory.attributestore)
+CREATE OR REPLACE FUNCTION upgrade_attribute_table(attribute_directory.attributestore)
 	RETURNS attribute_directory.attributestore
 AS $$
 BEGIN
-	PERFORM attribute_directory.mark_modified($1.id);
-
-	PERFORM attribute_directory.create_curr_ptr_table($1);
-	PERFORM attribute_directory.create_curr_ptr_view($1);
-	PERFORM attribute_directory.materialize_curr_ptr($1);
 	PERFORM attribute_directory.drop_curr_view($1);
+	PERFORM attribute_directory.add_first_appearance_to_attribute_table($1);
 	PERFORM attribute_directory.create_curr_view($1);
 
 	RETURN $1;
@@ -221,13 +217,13 @@ BEGIN
 	table_name = attribute_directory.to_table_name($1);
 	view_name = table_name || '_run_length';
 
-	view_sql = format('SELECT public.first(entity_id) AS entity_id, min(timestamp) AS "start", max(timestamp) AS "end", max(modified) AS modified, count(*) AS run_length
+	view_sql = format('SELECT public.first(entity_id) AS entity_id, min(timestamp) AS "start", max(timestamp) AS "end", min(first_appearance) AS first_appearance, max(modified) AS modified, count(*) AS run_length
 FROM
 (
-	SELECT entity_id, timestamp, modified, sum(change) OVER w2 AS run
+	SELECT entity_id, timestamp, first_appearance, modified, sum(change) OVER w2 AS run
 	FROM
 	(
-		SELECT entity_id, timestamp, modified, CASE WHEN hash <> lag(hash) OVER w THEN 1 ELSE 0 END AS change
+		SELECT entity_id, timestamp, first_appearance, modified, CASE WHEN hash <> lag(hash) OVER w THEN 1 ELSE 0 END AS change
 		FROM attribute_history.%I
 		WINDOW w AS (PARTITION BY entity_id ORDER BY timestamp asc)
 	) t
@@ -416,23 +412,44 @@ END;
 $$ LANGUAGE plpgsql VOLATILE;
 
 
+CREATE OR REPLACE FUNCTION add_first_appearance_to_attribute_table(attribute_directory.attributestore)
+	RETURNS attribute_directory.attributestore
+AS $$
+DECLARE
+	table_name name;
+BEGIN
+	table_name = attribute_directory.to_table_name($1);
+
+	EXECUTE format('ALTER TABLE attribute_base.%I ADD COLUMN
+		first_appearance timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP', table_name);
+
+	EXECUTE format('UPDATE attribute_history.%I SET first_appearance = modified', table_name);
+
+	EXECUTE format('CREATE INDEX ON attribute_history.%I (first_appearance)', table_name);
+
+	RETURN $1;
+END;
+$$ LANGUAGE plpgsql VOLATILE;
+
+
 CREATE OR REPLACE FUNCTION create_history_table(attribute_directory.attributestore)
 	RETURNS attribute_directory.attributestore
 AS $$
 DECLARE
 	table_name name;
-	columns_part text;
 BEGIN
 	table_name = attribute_directory.to_table_name($1);
 
 	EXECUTE format('CREATE TABLE attribute_history.%I (
-		"modified" timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+		first_appearance timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+		modified timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
 		hash character varying,
 		PRIMARY KEY (entity_id, timestamp)
 	) INHERITS (attribute_base.%I)', table_name, table_name);
 
-	EXECUTE format('CREATE INDEX ON attribute_history.%I
-		USING btree (modified)', table_name);
+	EXECUTE format('CREATE INDEX ON attribute_history.%I (first_appearance)', table_name);
+
+	EXECUTE format('CREATE INDEX ON attribute_history.%I (modified)', table_name);
 
 	EXECUTE format('ALTER TABLE attribute_history.%I
 		OWNER TO minerva_writer', table_name);
@@ -773,13 +790,13 @@ BEGIN
 	table_name = attribute_directory.to_table_name($1);
 	run_length_view_name = table_name || '_run_length';
 
-	FOR r IN EXECUTE format('SELECT entity_id, start, "end", modified FROM attribute_history.%I WHERE run_length > 1', run_length_view_name)
+	FOR r IN EXECUTE format('SELECT entity_id, start, "end", first_appearance, modified FROM attribute_history.%I WHERE run_length > 1', run_length_view_name)
 	LOOP
 		EXECUTE format('DELETE FROM attribute_history.%I WHERE entity_id = $1 AND timestamp > $2 AND timestamp <= $3', table_name)
 		USING r.entity_id, r."start", r."end";
 
-		EXECUTE format('UPDATE attribute_history.%I SET modified = $1 WHERE entity_id = $2 AND timestamp = $3', table_name)
-		USING r.modified, r.entity_id, r."start";
+		EXECUTE format('UPDATE attribute_history.%I SET modified = $1, first_appearance = $4 WHERE entity_id = $2 AND timestamp = $3', table_name)
+		USING r.modified, r.entity_id, r."start", r.first_appearance;
 	END LOOP;
 
 	PERFORM attribute_directory.mark_compacted(attributestore_id, modified)
