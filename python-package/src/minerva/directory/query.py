@@ -210,7 +210,7 @@ def make_relation_join(index, entity_id_column, relation_group_name):
 
 def make_c_from():
     sql = (
-        '\nFROM (VALUES(NULL))'
+        '\nFROM (VALUES(NULL)) dummy'
         '\nJOIN directory.entitytaglink_tagarray t_first'
         '\n    ON ('
         '\n        SELECT array_agg(id) FROM directory.tag WHERE lower(name) IN %s'
