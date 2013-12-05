@@ -210,26 +210,26 @@ def make_relation_join(index, entity_id_column, relation_group_name):
 
 def make_c_from():
     sql = (
-        '\nFROM directory.entitytaglink_tagarray t_first'
-        '\nJOIN directory.tag tag_first'
-        '\n    ON ARRAY[tag_first.id] <@ t_first.tag_ids'
-        '\n    AND lower(tag_first.name) IN %s'
+        '\nFROM (VALUES(NULL))'
+        '\nJOIN directory.entitytaglink_tagarray t_first'
+        '\n    ON ('
+        '\n        SELECT array_agg(id) FROM directory.tag WHERE lower(name) IN %s'
+        '\n    ) <@ t_first.tag_ids'
     )
 
     return sql, 't_first.entity_id'
 
 
 def make_c_join(index, entity_id_column):
-    tag_alias = "t_{0}".format(index)
     taglink_alias = "tl_{0}".format(index)
 
     return (
         '\nJOIN directory.entitytaglink_tagarray {0}'
-        '\n    ON {2} = {0}.entity_id'
-        '\nJOIN directory.tag {1}'
-        '\n    ON ARRAY[{1}.id] <@ {0}.tag_ids'
-        '\n    AND lower({1}.name) IN %s'
-    ).format(taglink_alias, tag_alias, entity_id_column)
+        '\n    ON {1} = {0}.entity_id'
+        '\n    AND ('
+        '\n        SELECT array_agg(id) FROM directory.tag WHERE lower(name) IN %s'
+        '\n    ) <@ {0}.tag_ids'
+    ).format(taglink_alias, entity_id_column)
 
 
 def make_s_join(index, entity_id_column):

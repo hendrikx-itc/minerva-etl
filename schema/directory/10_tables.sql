@@ -335,7 +335,9 @@ ALTER TABLE ONLY alias
 	FOREIGN KEY (type_id) REFERENCES aliastype(id)
 	ON DELETE CASCADE;
 
-CREATE INDEX ix_directory_alias_name ON alias USING btree (name);
+CREATE INDEX ON alias USING btree (name);
+
+CREATE INDEX ON alias (lower(name));
 
 GRANT ALL ON TABLE alias TO minerva_admin;
 GRANT SELECT ON TABLE alias TO minerva;
