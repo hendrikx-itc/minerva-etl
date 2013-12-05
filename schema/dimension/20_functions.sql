@@ -90,3 +90,20 @@ AS $$
 			'15 minute'::interval) AS timestamp
 	) timestamps;
 $$ LANGUAGE SQL;
+
+
+CREATE OR REPLACE FUNCTION update_5m()
+	RETURNS void
+AS $$
+	TRUNCATE dimension."5m";
+	INSERT INTO dimension."5m" SELECT
+		timestamp,
+		timestamp - '5 minute'::interval,
+		timestamp
+	FROM (
+		SELECT generate_series(
+			date_trunc('hour', now()) - '1 year'::interval,
+			date_trunc('hour', now()) + '1 year'::interval,
+			'5 minute'::interval) AS timestamp
+	) timestamps;
+$$ LANGUAGE SQL;

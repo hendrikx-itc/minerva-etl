@@ -72,3 +72,15 @@ CREATE TABLE quarter (
 GRANT ALL ON TABLE quarter TO minerva_admin;
 GRANT SELECT ON TABLE quarter TO minerva;
 GRANT INSERT,DELETE,UPDATE ON TABLE quarter TO minerva_writer;
+
+-- Table '5m'
+
+CREATE TABLE "5m" (
+	timestamp timestamp with time zone PRIMARY KEY,
+	start timestamp with time zone,
+	"end" timestamp with time zone
+);
+
+GRANT ALL ON TABLE "5m" TO minerva_admin;
+GRANT SELECT ON TABLE "5m" TO minerva;
+GRANT INSERT,DELETE,UPDATE ON TABLE "5m" TO minerva_writer;
