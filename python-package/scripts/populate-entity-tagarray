@@ -30,5 +30,6 @@ JOIN directory.entitytaglink etl ON etl.entity_id = entity.id
 JOIN directory.tag ON tag.id = etl.tag_id
 GROUP BY entity.id;
 COMMIT;
+CLUSTER directory.entity_link_denorm USING entity_link_denorm_name_idx;
 ANALYZE directory.entity_link_denorm;
 '

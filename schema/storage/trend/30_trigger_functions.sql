@@ -101,7 +101,7 @@ BEGIN
 	SELECT INTO kind relkind FROM pg_class WHERE relname = OLD.table_name;
 
 	IF kind = 'r' THEN
-		EXECUTE format('DROP TABLE trend.%I CASCADE', OLD.table_name);
+		EXECUTE format('DROP TABLE IF EXISTS trend.%I CASCADE', OLD.table_name);
 	ELSIF kind = 'v' THEN
 		EXECUTE format('DROP VIEW trend.%I', OLD.table_name);
 	END IF;

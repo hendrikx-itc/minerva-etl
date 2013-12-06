@@ -11,7 +11,7 @@ this software.
 """
 import os
 
-import psycopg2
+import psycopg2.extras
 from configobj import ConfigObj
 from DBUtils import SteadyDB
 
@@ -37,6 +37,23 @@ class MinervaInstance(object):
             host=self.config["database"]["host"],
             port=self.config["database"]["port"],
             name=self.config["database"]["name"])
+
+    def connect_logging(self, logger, **kwargs):
+        db_conf = self.config["database"]
+
+        merged_kwargs = {
+            "database": db_conf.get("name"),
+            "host": db_conf.get("host"),
+            "port": db_conf.get("port")}
+
+        merged_kwargs.update(kwargs)
+
+        merged_kwargs["connection_factory"] = psycopg2.extras.LoggingConnection
+
+        conn = psycopg2.connect(**merged_kwargs)
+        conn.initialize(logger)
+
+        return conn
 
     def connect(self, **kwargs):
         """
