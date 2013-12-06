@@ -261,16 +261,18 @@ ALTER TABLE ONLY entitytaglink
 CREATE INDEX ix_directory_entitytaglink_entity_id
 	ON entitytaglink USING btree (entity_id);
 
--- Table 'entitytaglink_tagarray'
+-- Table 'entity_link_denorm'
 
-CREATE TABLE directory.entitytaglink_tagarray (
+CREATE TABLE directory.entity_link_denorm (
 	entity_id integer primary key not null,
-	tag_ids integer[] not null
+	tags text[] not null,
+	name text not null
 );
 
-ALTER TABLE directory.entitytaglink_tagarray OWNER TO minerva_admin;
+ALTER TABLE directory.entity_link_denorm OWNER TO minerva_admin;
 
-CREATE INDEX ON directory.entitytaglink_tagarray USING gin (tag_ids);
+CREATE INDEX ON directory.entity_link_denorm USING gin (tags);
+CREATE INDEX ON directory.entity_link_denorm (name);
 
 -- Table 'aliastype'
 
@@ -335,7 +337,9 @@ ALTER TABLE ONLY alias
 	FOREIGN KEY (type_id) REFERENCES aliastype(id)
 	ON DELETE CASCADE;
 
-CREATE INDEX ix_directory_alias_name ON alias USING btree (name);
+CREATE INDEX ON alias USING btree (name);
+
+CREATE INDEX ON alias (lower(name));
 
 GRANT ALL ON TABLE alias TO minerva_admin;
 GRANT SELECT ON TABLE alias TO minerva;

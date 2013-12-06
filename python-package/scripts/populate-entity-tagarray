@@ -20,9 +20,14 @@ db=$(get_conf_value "$instance_conf_file" name)
 psql -h $host -p $port $db minerva_admin -c '
 BEGIN;
 TRUNCATE TABLE directory.entitytaglink_tagarray;
-INSERT INTO directory.entitytaglink_tagarray
-    SELECT entity_id, array_agg(tag_id)
+INSERT INTO directory.entity_link_denorm
+SELECT entity.id, (
+    SELECT array_agg(lower(tag.name))
     FROM directory.entitytaglink
-    GROUP BY entity_id;
+    INNER JOIN directory.tag ON tag_id = tag.id
+    WHERE entity_id = entity.id
+), entity.name
+FROM directory.entity;
 COMMIT;
+ANALYZE directory.entity_link_denorm;
 '

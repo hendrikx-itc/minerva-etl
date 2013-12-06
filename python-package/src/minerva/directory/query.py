@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from future_builtins import map
-
 __docformat__ = "restructuredtext en"
 
 __copyright__ = """
@@ -82,12 +80,12 @@ def compile_sql(minerva_query, relation_group_name, entity_id_column=None):
     first_component = minerva_query[0]
 
     if entity_id_column:
-        sql, entity_id_column = make_c_join(0, entity_id_column)
+        sql, eld_alias = make_c_join(0, entity_id_column)
     else:
-        sql, entity_id_column = make_c_from()
+        sql, entity_id_column, eld_alias = make_c_from()
 
     query_parts.append(sql)
-    args.append(tuple(map(str.lower, first_component['value'])))
+    args.append(map(unicode.lower, first_component['value']))
 
     for index, component in enumerate(minerva_query[1:], start=1):
         if component['type'] == 'C':
@@ -96,13 +94,13 @@ def compile_sql(minerva_query, relation_group_name, entity_id_column=None):
 
             query_parts.append(sql)
 
-            sql = make_c_join(index, entity_id_column)
+            sql, eld_alias = make_c_join(index, entity_id_column)
 
             query_parts.append(sql)
-            args.append(tuple(map(str.lower, component['value'])))
+            args.append(map(unicode.lower, component['value']))
 
         elif component['type'] == 'S':
-            sql = make_s_join(index, entity_id_column)
+            sql = make_s_join(index, eld_alias)
 
             query_parts.append(sql)
             args.append(component['value'].lower())
@@ -210,36 +208,26 @@ def make_relation_join(index, entity_id_column, relation_group_name):
 
 def make_c_from():
     sql = (
-        '\nFROM directory.entitytaglink_tagarray t_first'
-        '\nJOIN directory.tag tag_first'
-        '\n    ON ARRAY[tag_first.id] @> t_first.tag_ids'
-        '\n    AND lower(tag_first.name) IN %s'
+        '\nFROM (VALUES(NULL)) dummy'
+        '\nJOIN directory.entity_link_denorm eld'
+        '\n    ON %s <@ eld.tags'
     )
 
-    return sql, 't_first.entity_id'
+    return sql, 'eld.entity_id', 'eld'
 
 
 def make_c_join(index, entity_id_column):
-    tag_alias = "t_{0}".format(index)
-    taglink_alias = "tl_{0}".format(index)
+    taglink_alias = "eld_{0}".format(index)
 
     return (
-        '\nJOIN directory.entitytaglink_tagarray {0}'
-        '\n    ON {2} = {0}.entity_id'
-        '\nJOIN directory.tag {1}'
-        '\n    ON ARRAY[{1}.id] @> {0}.tag_ids'
-        '\n    AND lower({1}.name) IN %s'
-    ).format(taglink_alias, tag_alias, entity_id_column)
+        (
+            '\nJOIN directory.entity_link_denorm {0}'
+            '\n    ON {1} = {0}.entity_id'
+            '\n    AND %s <@ {0}.tags'
+        ).format(taglink_alias, entity_id_column),
+        taglink_alias
+    )
 
 
-def make_s_join(index, entity_id_column):
-    alias_alias = "a_{}".format(index)
-    aliastype_alias = "at_{}".format(index)
-
-    return (
-        "\nJOIN directory.alias {0}"
-        "\n    ON {0}.entity_id = {1} AND lower({0}.name) = %s"
-        "\nJOIN directory.aliastype {2}"
-        "\n    ON {2}.id = {0}.type_id"
-        "\n    AND {2}.name = 'name'"
-    ).format(alias_alias, entity_id_column, aliastype_alias)
+def make_s_join(index, eld_alias):
+    return '\n    AND {0}.name = %s'.format(eld_alias)
