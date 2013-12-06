@@ -1,6 +1,6 @@
 #!/bin/bash
 
-DEFAULT_INSTANCE=${DEFAULT_MINERVA_INSTANCE:-default}
+DEFAULT_INSTANCE=${MINERVA_INSTANCE:-default}
 
 INSTANCE=${1:-$DEFAULT_INSTANCE}
 instance_conf_file="/etc/minerva/instances/$INSTANCE.conf"
@@ -21,13 +21,14 @@ psql -h $host -p $port $db minerva_admin -c '
 BEGIN;
 TRUNCATE TABLE directory.entity_link_denorm;
 INSERT INTO directory.entity_link_denorm
-SELECT entity.id, (
-    SELECT array_agg(lower(tag.name))
-    FROM directory.entitytaglink
-    INNER JOIN directory.tag ON tag_id = tag.id
-    WHERE entity_id = entity.id
-), entity.name
-FROM directory.entity;
+SELECT
+	entity.id,
+	array_agg(lower(tag.name)),
+	lower(entity.name)
+FROM directory.entity
+JOIN directory.entitytaglink etl ON etl.entity_id = entity.id
+JOIN directory.tag ON tag.id = etl.tag_id
+GROUP BY entity.id;
 COMMIT;
 ANALYZE directory.entity_link_denorm;
 '
