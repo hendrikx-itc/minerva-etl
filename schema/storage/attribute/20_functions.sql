@@ -157,28 +157,30 @@ $$ LANGUAGE SQL VOLATILE;
 
 
 CREATE OR REPLACE FUNCTION materialize_curr_ptr(attribute_directory.attributestore)
-    RETURNS integer
+	RETURNS integer
 AS $$
 DECLARE
 	table_name name;
 	view_name name;
-    row_count integer;
+	row_count integer;
 BEGIN
 	table_name = attribute_directory.to_table_name($1) || '_curr_ptr';
+	temp_table_name = attribute_directory.to_table_name($1) || '_curr_ptr_temp';
 	view_name = attribute_directory.to_table_name($1) || '_curr_selection';
 
-    EXECUTE format('TRUNCATE attribute_history.%I', table_name);
+	PERFORM attribute_directory.create_curr_ptr_table($1, '_curr_ptr_temp')
 
-    EXECUTE format('INSERT INTO attribute_history.%I (entity_id, timestamp)
-SELECT entity_id, timestamp FROM attribute_history.%I', table_name, view_name);
+	EXECUTE format('INSERT INTO attribute_history.%I (entity_id, timestamp) SELECT entity_id, timestamp FROM attribute_history.%I', temp_table_name, view_name);
+	GET DIAGNOSTICS row_count = ROW_COUNT;
 
-    GET DIAGNOSTICS row_count = ROW_COUNT;
+	EXECUTE format('DROP TABLE attribute_history.%I', table_name);
+	EXECUTE format('ALTER TABLE attribute_history.%I RENAME TO %I', temp_table_name, table_name);
 
 	PERFORM attribute_directory.mark_curr_materialized(attributestore_id, modified)
 	FROM attribute_directory.attributestore_modified
 	WHERE attributestore_id = $1.id;
 
-    RETURN row_count;
+	RETURN row_count;
 END;
 $$ LANGUAGE plpgsql VOLATILE;
 
@@ -295,7 +297,10 @@ END;
 $$ LANGUAGE plpgsql VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION create_curr_ptr_table(attribute_directory.attributestore)
+CREATE OR REPLACE FUNCTION create_curr_ptr_table(
+	attribute_directory.attributestore,
+	table_suffix name DEFAULT '_curr_ptr'
+)
 	RETURNS attribute_directory.attributestore
 AS $$
 DECLARE
@@ -303,7 +308,7 @@ DECLARE
 	curr_ptr_table_name name;
 BEGIN
 	table_name = attribute_directory.to_table_name($1);
-    curr_ptr_table_name = table_name || '_curr_ptr';
+    curr_ptr_table_name = table_name || table_suffix;
 
     EXECUTE format('CREATE TABLE attribute_history.%I (
 entity_id integer NOT NULL,
