@@ -311,24 +311,21 @@ DECLARE
 	curr_ptr_table_name name;
 BEGIN
 	table_name = attribute_directory.to_table_name($1);
-    curr_ptr_table_name = table_name || table_suffix;
+	curr_ptr_table_name = table_name || table_suffix;
 
-    EXECUTE format('CREATE TABLE attribute_history.%I (
+	EXECUTE format('CREATE TABLE attribute_history.%I (
 entity_id integer NOT NULL,
 timestamp timestamp with time zone NOT NULL,
 PRIMARY KEY (entity_id, timestamp))', curr_ptr_table_name);
 
-    EXECUTE format('ALTER TABLE ONLY attribute_history.%I
-ADD CONSTRAINT %I
-FOREIGN KEY (entity_id, timestamp) REFERENCES attribute_history.%I(entity_id, timestamp)
-ON DELETE CASCADE;', curr_ptr_table_name, curr_ptr_table_name || '_fk', table_name);
+	EXECUTE format('CREATE INDEX ON attribute_history.%I (entity_id, timestamp)', curr_ptr_table_name);
 
 	EXECUTE format('ALTER TABLE attribute_history.%I
 		OWNER TO minerva_writer', curr_ptr_table_name);
 
 	EXECUTE format('GRANT SELECT ON TABLE attribute_history.%I TO minerva', curr_ptr_table_name);
 
-    RETURN $1;
+	RETURN $1;
 END;
 $$ LANGUAGE plpgsql VOLATILE;
 
