@@ -124,7 +124,10 @@ def compact(conn, attributestore_id):
 
             conn.commit()
 
-        cursor.execute('VACUUM ANALYZE ' + table)
+        old_isolation_level = conn.isolation_level
+        conn.set_isolation_level(0)
+        cursor.execute('vacuum analyze ' + table)
+        conn.set_isolation_level(old_isolation_level)
 
 
 def materialize(cursor, attributestore_id):
