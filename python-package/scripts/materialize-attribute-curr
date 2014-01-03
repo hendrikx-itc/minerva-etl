@@ -61,7 +61,7 @@ def compact(conn, attributestore_id):
     with closing(conn.cursor()) as cursor:
         cursor.execute(
             ' SELECT quote_ident(store::text)'
-            ' FROM attributestore store WHERE id = %s',
+            ' FROM attribute_directory.attributestore store WHERE id = %s',
             (attributestore_id,))
 
         table = 'attribute_history.' + cursor.fetchone()[0]
