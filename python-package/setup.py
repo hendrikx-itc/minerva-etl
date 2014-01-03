@@ -62,6 +62,5 @@ setup(
         "scripts/populate-entity-tagarray",
         "scripts/populate-gis",
         "scripts/cleanup-trend-data",
-        "scripts/materialize-attribute-curr",
-        "scripts/compact-attribute"]
+        "scripts/materialize-attribute-curr"]
 )
