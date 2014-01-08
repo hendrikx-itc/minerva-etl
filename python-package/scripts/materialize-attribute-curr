@@ -37,6 +37,8 @@ def main():
     with closing(minerva_instance.connect(user=args.user)) as conn:
         with closing(conn.cursor()) as cursor:
             cursor.execute('set statement_timeout = 0')
+            cursor.execute('set minerva.trigger_mark_modified = off')
+
             if args.all:
                 attributestore_ids = get_all_attributestore_ids(cursor)
             else:
@@ -75,6 +77,8 @@ def compact(conn, attributestore_id):
         conn.commit()
 
         for entity_id in entity_ids:
+            entity_id = entity_id[0]
+
             first_timestamp = None
             current_hash = None
             max_modified = datetime.datetime.min.replace(tzinfo=pytz.UTC)

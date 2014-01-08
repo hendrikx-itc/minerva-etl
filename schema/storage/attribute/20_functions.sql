@@ -665,7 +665,14 @@ $$ LANGUAGE SQL VOLATILE;
 CREATE OR REPLACE FUNCTION mark_modified(attributestore_id integer)
 	RETURNS attribute_directory.attributestore_modified
 AS $$
-	SELECT attribute_directory.mark_modified($1, now());
+	SELECT CASE
+		WHEN current_setting('minerva.trigger_mark_modified') = 'off' THEN
+			(SELECT asm FROM attribute_directory.attributestore_modified asm WHERE asm.attributestore_id = $1)
+
+		ELSE
+			attribute_directory.mark_modified($1, now())
+
+		END;
 $$ LANGUAGE SQL VOLATILE;
 
 
