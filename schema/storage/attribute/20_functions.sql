@@ -119,10 +119,6 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql VOLATILE;
 
-COMMENT ON FUNCTION upgrade_curr_view(attribute_directory.attributestore) IS
-'Function only for the purpose of upgrading the attribute view to use a new
-materialization mechanism. Should soon be removed.';
-
 
 CREATE OR REPLACE FUNCTION create_dependees(attribute_directory.attributestore)
 	RETURNS attribute_directory.attributestore
