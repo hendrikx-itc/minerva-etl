@@ -63,5 +63,6 @@ setup(
         "scripts/populate-gis",
         "scripts/cleanup-trend-data",
         "scripts/materialize-attribute-curr",
-        "scripts/compact-attribute"]
+        "scripts/compact-attribute",
+        "scripts/cleanup-orphaned-data"]
 )
