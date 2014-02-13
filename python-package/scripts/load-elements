@@ -22,6 +22,7 @@ from StringIO import StringIO
 
 from configobj import ConfigObj
 
+from minerva import __version__ as version
 from minerva.instance import MinervaInstance
 from minerva.directory.helpers_v4 import dns_to_entity_ids
 
@@ -36,6 +37,10 @@ def main():
         "DEFAULT_MINERVA_INSTANCE", "default")
 
     parser = argparse.ArgumentParser()
+
+    parser.add_argument(
+        "--version", action="version", version=version,
+        help="display version information and exit")
 
     parser.add_argument(
         "-i", "--instance", default=default_minerva_instance,

@@ -16,6 +16,7 @@ import argparse
 import logging
 from contextlib import closing
 
+from minerva import __version__ as version
 from minerva.instance import MinervaInstance
 from minerva.util.config import get_defaults
 
@@ -29,6 +30,10 @@ def main():
     config_file_path = os.path.join("/etc/minerva", config_file)
 
     parser = argparse.ArgumentParser(description="Cleanup trend data")
+
+    parser.add_argument(
+        "--version", action="version", version=version,
+        help="display version information and exit")
 
     parser.add_argument(
         "-c", "--configfile", dest="configfile",

@@ -16,6 +16,7 @@ import argparse
 import logging
 from contextlib import closing
 
+from minerva import __version__ as version
 from minerva.util.config import load_config, get_defaults, ConfigError
 from minerva.db import connect
 from minerva.instance import MinervaInstance
@@ -36,6 +37,10 @@ def main():
 
     parser = argparse.ArgumentParser(
         description="Populate GIS Site/Cell tables from configuration data")
+
+    parser.add_argument(
+        "--version", action="version", version=version,
+        help="display version information and exit")
 
     parser.add_argument("-i", "--instance", default=default_minerva_instance,
                         help="name of the target minerva instance")

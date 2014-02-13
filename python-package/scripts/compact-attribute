@@ -4,6 +4,7 @@ import os
 import argparse
 from contextlib import closing
 
+from minerva import __version__ as version
 from minerva.util import head
 from minerva.instance import MinervaInstance
 
@@ -12,6 +13,10 @@ def main():
     """Script entrypoint."""
     parser = argparse.ArgumentParser(
         description="Compact attribute history tables.")
+
+    parser.add_argument(
+        "--version", action="version", version=version,
+        help="display version information and exit")
 
     parser.add_argument(
         "-i", "--instance", help="name of the target minerva instance")

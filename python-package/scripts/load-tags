@@ -10,6 +10,7 @@ from logging.handlers import RotatingFileHandler
 
 from configobj import ConfigObj
 
+from minerva import __version__ as version
 from minerva.db import connect
 
 from minerva.directory.helpers import get_entitytype
@@ -35,6 +36,10 @@ config_file = "{}.conf".format(script_name)
 def main():
     parser = argparse.ArgumentParser(
         description="Load tags from file")
+
+    parser.add_argument(
+        "--version", action="version", version=version,
+        help="display version information and exit")
 
     parser.add_argument(
         "file", metavar="FILE", nargs='*',

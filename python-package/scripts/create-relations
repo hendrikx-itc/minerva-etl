@@ -14,6 +14,7 @@ from StringIO import StringIO
 import psycopg2.extras
 from configobj import ConfigObj
 
+from minerva import __version__ as version
 from minerva.instance import MinervaInstance
 from minerva.directory.relation import add_relations, flush_relations, \
     reverse_relations
@@ -42,6 +43,10 @@ def main():
 
     parser = argparse.ArgumentParser(
         description="Create relations between entities")
+
+    parser.add_argument(
+        "--version", action="version", version=version,
+        help="display version information and exit")
 
     parser.add_argument(
         "-i", "--instance", default=default_minerva_instance,

@@ -12,6 +12,7 @@ from pkg_resources import resource_string
 
 from configobj import ConfigObj
 
+from minerva import __version__ as version
 from minerva.db import connect
 from minerva.directory.tag import get_tag, create_tag, NoSuchTagError, \
     create_tag_group
@@ -24,6 +25,10 @@ CONFIG_DEFAULTS = resource_string("minerva", "defaults/link-attribute-tags.conf"
 def main():
     parser = argparse.ArgumentParser(
         description="Create tags for attributes")
+
+    parser.add_argument(
+        "--version", action="version", version=version,
+        help="display version information and exit")
 
     parser.add_argument("-t", "--tag-type",
                         help="name of module containing tag type definition")

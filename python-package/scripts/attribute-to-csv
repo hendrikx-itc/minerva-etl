@@ -22,9 +22,9 @@ from contextlib import closing
 from configobj import ConfigObj
 import csv
 
+from minerva import __version__ as version
 from minerva.util.config import parse_size
 from minerva.db import connect
-
 from minerva.storage.attribute.plugin import AttributePlugin
 
 
@@ -82,6 +82,10 @@ class GenerateConfigFileAction(Action):
 def main():
     parser = ArgumentParser(
         description="Script for exporting specific attribute data")
+
+    parser.add_argument(
+        "--version", action="version", version=version,
+        help="display version information and exit")
 
     parser.add_argument("datasource",
                         help="data source of attribute data to export")

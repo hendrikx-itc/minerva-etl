@@ -19,6 +19,7 @@ from functools import partial
 
 import psycopg2.extras
 
+from minerva import __version__ as version
 from minerva.db import parse_db_url
 from minerva.util.config import load_config, get_defaults, ConfigError
 
@@ -35,6 +36,10 @@ def main():
     config_file_path = os.path.join("/etc/minerva", config_file)
 
     parser = argparse.ArgumentParser(description="Backup Views")
+
+    parser.add_argument(
+        "--version", action="version", version=version,
+        help="display version information and exit")
 
     parser.add_argument(
         "-c", "--configfile", dest="configfile",

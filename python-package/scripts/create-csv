@@ -14,6 +14,7 @@ import pytz
 import psycopg2.errorcodes
 import psycopg2.extras
 
+from minerva import __version__ as version
 from minerva.db import parse_db_url
 
 from minerva.util.config import parse_size, load_config, get_defaults, \
@@ -33,6 +34,10 @@ LEVEL_MAP = {
 
 def setup_args_parser():
     parser = argparse.ArgumentParser(description="Create CSV")
+
+    parser.add_argument(
+        "--version", action="version", version=version,
+        help="display version information and exit")
 
     parser.add_argument(
         "-m", "--module",

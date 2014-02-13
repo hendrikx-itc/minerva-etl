@@ -10,6 +10,7 @@ from logging.handlers import RotatingFileHandler
 
 from configobj import ConfigObj
 
+from minerva import __version__ as version
 from minerva.db import connect
 
 from minerva.directory.alias import flush, store
@@ -27,6 +28,10 @@ log_level = INFO"""
 
 def setup_args_parser():
     parser = argparse.ArgumentParser(description="Create aliases")
+
+    parser.add_argument(
+        "--version", action="version", version=version,
+        help="display version information and exit")
 
     parser.add_argument(
         "-m", "--module",

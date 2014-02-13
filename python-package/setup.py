@@ -45,6 +45,8 @@ setup(
         "minerva": ["defaults/*"]
     },
     scripts=[
+        "scripts/attribute-to-csv",
+        "scripts/backup-views",
         "scripts/create-relations",
         "scripts/load-tags",
         "scripts/link-entity-tags",
@@ -64,5 +66,7 @@ setup(
         "scripts/cleanup-trend-data",
         "scripts/materialize-attribute-curr",
         "scripts/compact-attribute",
-        "scripts/cleanup-orphaned-data"]
+        "scripts/cleanup-orphaned-data",
+        "scripts/migrate-trendstore",
+        "scripts/trend-to-csv"]
 )
