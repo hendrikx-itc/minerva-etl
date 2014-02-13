@@ -12,9 +12,7 @@ from configobj import ConfigObj
 
 from minerva import __version__ as version
 from minerva.db import connect
-
 from minerva.directory.helpers import get_entitytype
-
 from minerva.directory.tag import NoSuchTagError, tag_entities, \
     flush_tag_links, get_tag, create_tag_group, create_tag
 from minerva.util.config import parse_size

@@ -22,7 +22,6 @@ import psycopg2.extras
 from minerva import __version__ as version
 from minerva.db import parse_db_url
 from minerva.util.config import load_config, get_defaults, ConfigError
-
 from minerva.storage.trend.types_v4 import View
 from minerva.storage.trend.trendstore import TrendStore
 

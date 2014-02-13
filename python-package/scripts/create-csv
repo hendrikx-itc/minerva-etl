@@ -16,7 +16,6 @@ import psycopg2.extras
 
 from minerva import __version__ as version
 from minerva.db import parse_db_url
-
 from minerva.util.config import parse_size, load_config, get_defaults, \
     ConfigError
 

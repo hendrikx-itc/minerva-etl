@@ -13,7 +13,6 @@ from minerva.directory.tag import get_tag, create_tag, NoSuchTagError, \
     create_tag_group
 from minerva.util.config import load_config, get_defaults, ConfigError
 from minerva.instance import MinervaInstance
-
 from minerva.storage.trend.tag import tag_trends, flush_tag_links
 
 package_name = "minerva"

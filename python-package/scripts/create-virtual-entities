@@ -10,7 +10,6 @@ from logging.handlers import RotatingFileHandler
 
 from minerva import __version__ as version
 from minerva.db import connect
-
 from minerva.directory import create_entity
 from minerva.util.config import load_config, get_defaults, ConfigError, \
     parse_size

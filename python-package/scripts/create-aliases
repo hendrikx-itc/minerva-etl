@@ -12,7 +12,6 @@ from configobj import ConfigObj
 
 from minerva import __version__ as version
 from minerva.db import connect
-
 from minerva.directory.alias import flush, store
 from minerva.util.config import parse_size
 

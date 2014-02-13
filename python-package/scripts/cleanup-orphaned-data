@@ -5,7 +5,6 @@ import argparse
 from contextlib import closing
 
 from minerva import __version__ as version
-from minerva.util import head
 from minerva.instance import MinervaInstance
 from minerva.storage.attribute.attributestore import AttributeStore
 

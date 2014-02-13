@@ -87,32 +87,42 @@ def main():
         "--version", action="version", version=version,
         help="display version information and exit")
 
-    parser.add_argument("datasource",
-                        help="data source of attribute data to export")
+    parser.add_argument(
+        "datasource", help="data source of attribute data to export")
 
-    parser.add_argument("entitytype",
-                        help="entity type (e.g UtranCell, Cell, BTS)")
+    parser.add_argument(
+        "entitytype", help="entity type (e.g UtranCell, Cell, BTS)")
 
-    parser.add_argument("--timestamp", dest="timestamp",
-                        help="timestamp of attribute data to export "
-                        "[YYYYmmdd_HHMMSS]. When not specified, current data"
-                        " is returned.")
+    parser.add_argument(
+        "--timestamp", dest="timestamp",
+        help="timestamp of attribute data to export "
+        "[YYYYmmdd_HHMMSS]. When not specified, current data"
+        " is returned.")
 
-    parser.add_argument("-c", "--configfile", dest="configfile",
-                        default="/etc/minerva/attribute-to-csv.conf",
-                        help="path to config file")
-    parser.add_argument("--generate-configfile",
-                        action=GenerateConfigFileAction, nargs=0,
-                        help="generate base config file and exit")
-    parser.add_argument("-v", "--verbose", action="store_true", dest="verbose",
-                        default=False, help="Produce verbose output")
-    parser.add_argument("-q", "--quiet", action="store_true", dest="quiet",
-                        default=False, help="Produce output to log file")
-    parser.add_argument("--timezone", dest="timezone",
-                        default="Europe/Amsterdam",
-                        help="timezone of data timestamps")
-    parser.add_argument("--attributes", dest="attributes", default=[],
-                        nargs="+", help="Attributes to export.")
+    parser.add_argument(
+        "-c", "--configfile", dest="configfile",
+        default="/etc/minerva/attribute-to-csv.conf",
+        help="path to config file")
+
+    parser.add_argument(
+        "--generate-configfile", action=GenerateConfigFileAction, nargs=0,
+        help="generate base config file and exit")
+
+    parser.add_argument(
+        "-v", "--verbose", action="store_true", dest="verbose", default=False,
+        help="Produce verbose output")
+
+    parser.add_argument(
+        "-q", "--quiet", action="store_true", dest="quiet", default=False,
+        help="Produce output to log file")
+
+    parser.add_argument(
+        "--timezone", dest="timezone", default="Europe/Amsterdam",
+        help="timezone of data timestamps")
+
+    parser.add_argument(
+        "--attributes", dest="attributes", default=[], nargs="+",
+        help="Attributes to export.")
 
     args = parser.parse_args()
 
