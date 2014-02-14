@@ -24,6 +24,7 @@ from StringIO import StringIO
 
 from configobj import ConfigObj
 
+from minerva import __version__ as version
 from minerva.db import connect
 from minerva.directory.relation import add_relations, reverse_relations
 from minerva.storage import get_plugin
@@ -51,6 +52,10 @@ def main():
     parser = argparse.ArgumentParser(
         description="Create network based on provided network file with "
         "columns site cellid lat lon azimuth type")
+
+    parser.add_argument(
+        "--version", action="version", version=version,
+        help="display version information and exit")
 
     parser.add_argument(
         "network_definition_file",

@@ -270,6 +270,7 @@ CREATE TABLE directory.entity_link_denorm (
 );
 
 ALTER TABLE directory.entity_link_denorm OWNER TO minerva_admin;
+GRANT SELECT ON SEQUENCE entity_link_denorm TO minerva;
 
 CREATE INDEX ON directory.entity_link_denorm USING gin (tags);
 CREATE INDEX ON directory.entity_link_denorm (name);
