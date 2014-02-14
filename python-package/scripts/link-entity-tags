@@ -14,6 +14,7 @@ from StringIO import StringIO
 
 from configobj import ConfigObj
 
+from minerva import __version__ as version
 from minerva.instance import MinervaInstance
 from minerva.directory.tag import NoSuchTagError, get_tag, create_tag, \
     tag_entities, flush_tag_links, create_tag_group
@@ -27,6 +28,10 @@ def main():
 
     parser = argparse.ArgumentParser(
         description="Create tags between entities")
+
+    parser.add_argument(
+        "--version", action="version", version=version,
+        help="display version information and exit")
 
     parser.add_argument(
         "-i", "--instance", default=default_minerva_instance,

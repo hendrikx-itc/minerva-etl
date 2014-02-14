@@ -8,11 +8,11 @@ import logging
 from contextlib import closing
 from operator import itemgetter
 
+from minerva import __version__ as version
 from minerva.directory.tag import get_tag, create_tag, NoSuchTagError, \
     create_tag_group
 from minerva.util.config import load_config, get_defaults, ConfigError
 from minerva.instance import MinervaInstance
-
 from minerva.storage.trend.tag import tag_trends, flush_tag_links
 
 package_name = "minerva"
@@ -25,6 +25,10 @@ def setup_args_parser():
 
     parser = argparse.ArgumentParser(
         description="Create tags for trends")
+
+    parser.add_argument(
+        "--version", action="version", version=version,
+        help="display version information and exit")
 
     parser.add_argument(
         "-i", "--instance", help="name of the minerva instance")

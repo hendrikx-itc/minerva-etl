@@ -21,6 +21,7 @@ from contextlib import closing
 from configobj import ConfigObj
 import csv
 
+from minerva import __version__ as version
 from minerva.util.config import load_config, get_defaults, ConfigError, \
     parse_size
 from minerva.directory.helpers import get_datasource, \
@@ -72,6 +73,10 @@ def main():
 
     parser = ArgumentParser(
         description="Script for exporting specific trend data")
+
+    parser.add_argument(
+        "--version", action="version", version=version,
+        help="display version information and exit")
 
     parser.add_argument(
         "datasource", help="data source of trend data to export")

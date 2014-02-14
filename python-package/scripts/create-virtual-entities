@@ -8,8 +8,8 @@ import logging
 from contextlib import closing
 from logging.handlers import RotatingFileHandler
 
+from minerva import __version__ as version
 from minerva.db import connect
-
 from minerva.directory import create_entity
 from minerva.util.config import load_config, get_defaults, ConfigError, \
     parse_size
@@ -23,6 +23,10 @@ def setup_args_parser():
     config_file_path = os.path.join("/etc/minerva", config_file)
 
     parser = argparse.ArgumentParser(description="Create virtual entities")
+
+    parser.add_argument(
+        "--version", action="version", version=version,
+        help="display version information and exit")
 
     parser.add_argument(
         "-e", "--virtual-entity",

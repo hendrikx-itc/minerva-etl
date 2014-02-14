@@ -14,8 +14,7 @@ import yaml
 from minerva.util import unlines, expand_args
 from minerva.util.config import load_config, get_defaults, ConfigError
 from minerva.db import parse_db_url
-
-version = "3.0.0"
+from minerva import __version__ as version
 
 package_name = "minerva"
 script_name = os.path.basename(__file__)
@@ -51,8 +50,8 @@ def main():
         "Minerva")
 
     parser.add_argument(
-        "--version", dest="show_version", default=False,
-        action="store_true", help="display version information and exit")
+        "--version", action="version", version=version,
+        help="display version information and exit")
 
     parser.add_argument(
         "-c", "--configfile", default=config_file_path,

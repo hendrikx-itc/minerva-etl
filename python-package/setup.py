@@ -10,14 +10,18 @@ the Free Software Foundation; either version 3, or (at your option) any later
 version.  The full license is in the file COPYING, distributed as part of
 this software.
 """
+import sys
 
 from setuptools import setup
+
+sys.path.insert(0, "src")
+from minerva import __version__
 
 setup(
     name="minerva",
     author="Hendrikx ITC",
     author_email="info@hendrikx-itc.nl",
-    version="4.6.8",
+    version=__version__,
     license="GPL",
     install_requires=["pytz", "psycopg2>=2.2.1", "DBUtils", "PyYAML",
                       "configobj", "python-dateutil", "pyparsing"],
@@ -45,6 +49,8 @@ setup(
         "minerva": ["defaults/*"]
     },
     scripts=[
+        "scripts/attribute-to-csv",
+        "scripts/backup-views",
         "scripts/create-relations",
         "scripts/load-tags",
         "scripts/link-entity-tags",
@@ -62,5 +68,13 @@ setup(
         "scripts/populate-entity-tagarray",
         "scripts/populate-gis",
         "scripts/cleanup-trend-data",
+<<<<<<< HEAD
         "scripts/materialize-attribute-curr"]
+=======
+        "scripts/materialize-attribute-curr",
+        "scripts/compact-attribute",
+        "scripts/cleanup-orphaned-data",
+        "scripts/migrate-trendstore",
+        "scripts/trend-to-csv"]
+>>>>>>> origin/develop
 )

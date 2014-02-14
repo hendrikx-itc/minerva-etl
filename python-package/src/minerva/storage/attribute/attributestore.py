@@ -10,9 +10,11 @@ the Free Software Foundation; either version 3, or (at your option) any later
 version.  The full license is in the file COPYING, distributed as part of
 this software.
 """
+from functools import partial
+
 import psycopg2
 
-from minerva.util import head
+from minerva.util import head, expand_args
 from minerva.db.query import Table
 from minerva.directory.helpers_v4 import get_entitytype_by_id, \
     get_datasource_by_id
@@ -156,6 +158,31 @@ class AttributeStore(object):
 
         entitytype = get_entitytype_by_id(cursor, entitytype_id)
         datasource = get_datasource_by_id(cursor, datasource_id)
+
+        attributestore = AttributeStore(datasource, entitytype)
+        attributestore.id = id
+        attributestore.attributes = attributestore.load_attributes(cursor)
+
+        return attributestore
+
+    @classmethod
+    def get_all(cls, cursor):
+        """Load and return all attributestores."""
+        query = (
+            "SELECT id, datasource_id, entitytype_id "
+            "FROM attribute_directory.attributestore"
+        )
+
+        cursor.execute(query)
+
+        load = expand_args(partial(cls.load_attributestore, cursor))
+
+        return map(load, cursor.fetchall())
+
+    @classmethod
+    def load_attributestore(cls, cursor, id, datasource_id, entitytype_id):
+        datasource = get_datasource_by_id(cursor, datasource_id)
+        entitytype = get_entitytype_by_id(cursor, entitytype_id)
 
         attributestore = AttributeStore(datasource, entitytype)
         attributestore.id = id

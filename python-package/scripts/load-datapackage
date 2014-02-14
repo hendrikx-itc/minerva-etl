@@ -6,6 +6,7 @@ import argparse
 from contextlib import closing
 from functools import partial
 
+from minerva import __version__ as version
 from minerva.util import k
 from minerva.directory.helpers_v4 import name_to_datasource, \
     get_entity_by_id, get_entitytype_by_id
@@ -20,6 +21,10 @@ def main():
 
     parser = argparse.ArgumentParser(
         description="Load data package")
+
+    parser.add_argument(
+        "--version", action="version", version=version,
+        help="display version information and exit")
 
     parser.add_argument(
         "files", nargs="*", help="files with data packages")
