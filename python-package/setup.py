@@ -68,13 +68,8 @@ setup(
         "scripts/populate-entity-tagarray",
         "scripts/populate-gis",
         "scripts/cleanup-trend-data",
-<<<<<<< HEAD
-        "scripts/materialize-attribute-curr"]
-=======
         "scripts/materialize-attribute-curr",
-        "scripts/compact-attribute",
         "scripts/cleanup-orphaned-data",
         "scripts/migrate-trendstore",
         "scripts/trend-to-csv"]
->>>>>>> origin/develop
 )
