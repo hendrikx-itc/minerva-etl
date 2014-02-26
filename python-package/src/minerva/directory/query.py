@@ -132,6 +132,27 @@ def get_entities_by_query(conn, minerva_query, relation_group_name):
     return [dict(zip(attr_names, row)) for row in rows]
 
 
+def get_entitytags_by_query(cursor, minerva_query, relation_group_name):
+    if len(minerva_query) == 0:
+        return []
+
+    query_part, args, entity_id_column = compile_sql(
+        minerva_query, relation_group_name)
+
+    sql = (
+        "SELECT etl.tag_id "
+        "{0} "
+        "JOIN directory.entitytaglink etl ON etl.entity_id = {1} "
+        "GROUP BY etl.tag_id"
+    ).format(query_part, entity_id_column)
+
+    cursor.execute(sql, args)
+
+    rows = cursor.fetchall()
+
+    return [entitytag for entitytag, in rows]
+
+
 def get_related_entities_by_query(conn, minerva_query, relation_group_name,
                                   target_entitytype_id):
     # Quick Hack: get_entities_by_query -> get_related_entities on result

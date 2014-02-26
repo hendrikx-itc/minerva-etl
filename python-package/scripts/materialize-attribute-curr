@@ -1,9 +1,13 @@
 #!/usr/bin/python
 """Command line tool materialize attribute current 'pointer' view."""
-import os
 import argparse
+import datetime
+import os
 from contextlib import closing
 
+import pytz
+
+from minerva import __version__ as version
 from minerva.util import head
 from minerva.instance import MinervaInstance
 
@@ -15,6 +19,10 @@ def main():
 
     parser = argparse.ArgumentParser(
         description="Materialize attribute current pointer views.")
+
+    parser.add_argument(
+        "--version", action="version", version=version,
+        help="display version information and exit")
 
     parser.add_argument(
         "-i", "--instance", default=default_instance_name,
@@ -33,6 +41,9 @@ def main():
 
     with closing(minerva_instance.connect(user=args.user)) as conn:
         with closing(conn.cursor()) as cursor:
+            cursor.execute('set statement_timeout = 0')
+            cursor.execute('set minerva.trigger_mark_modified = off')
+
             if args.all:
                 attributestore_ids = get_all_attributestore_ids(cursor)
             else:
@@ -43,12 +54,89 @@ def main():
 
 def materialize_attributestores(conn, attributestore_ids):
     for attributestore_id in attributestore_ids:
+        compact(conn, attributestore_id)
+
         with closing(conn.cursor()) as cursor:
             materialize(cursor, attributestore_id)
 
         conn.commit()
 
         print("materialized {}".format(attributestore_id))
+
+
+def compact(conn, attributestore_id):
+    with closing(conn.cursor()) as cursor:
+        cursor.execute(
+            ' SELECT quote_ident(store::text)'
+            ' FROM attribute_directory.attributestore store WHERE id = %s',
+            (attributestore_id,))
+
+        table = 'attribute_history.' + cursor.fetchone()[0]
+
+        cursor.execute(
+            ' SELECT entity_id FROM ' + table + ''
+            ' GROUP BY entity_id'
+        )
+
+        entity_ids = cursor.fetchall()
+        conn.commit()
+
+        for entity_id in entity_ids:
+            entity_id = entity_id[0]
+
+            first_timestamp = None
+            current_hash = None
+            max_modified = datetime.datetime.min.replace(tzinfo=pytz.UTC)
+            duplicate = False
+
+            cursor.execute(
+                ' SELECT timestamp, hash, modified'
+                ' FROM ' + table + ''
+                ' WHERE entity_id = %s'
+                ' ORDER BY timestamp',
+                (entity_id,)
+            )
+
+            for timestamp, hash, modified in cursor.fetchall():
+
+                if hash == current_hash:
+                    max_modified = max(modified, max_modified)
+                    duplicate = True
+
+                    cursor.execute(
+                        ' DELETE FROM ' + table + ''
+                        ' WHERE entity_id = %s AND timestamp = %s',
+                        (entity_id, timestamp)
+                    )
+
+                else:
+                    if duplicate:
+                        cursor.execute(
+                            ' UPDATE ' + table + ''
+                            ' SET modified = %s'
+                            ' WHERE entity_id = %s AND timestamp = %s',
+                            (max_modified, entity_id, first_timestamp)
+                        )
+
+                    first_timestamp = timestamp
+                    current_hash = hash
+                    max_modified = max(modified, max_modified)
+                    duplicate = False
+
+            if duplicate:
+                cursor.execute(
+                    ' UPDATE ' + table + ''
+                    ' SET modified = %s'
+                    ' WHERE entity_id = %s AND timestamp = %s',
+                    (max_modified, entity_id, first_timestamp)
+                )
+
+            conn.commit()
+
+        old_isolation_level = conn._con.isolation_level
+        conn._con.set_isolation_level(0)
+        cursor.execute('vacuum analyze ' + table)
+        conn._con.set_isolation_level(old_isolation_level)
 
 
 def materialize(cursor, attributestore_id):

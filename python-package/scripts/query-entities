@@ -5,15 +5,17 @@ import os
 import argparse
 import logging
 from contextlib import closing
+import json
 from functools import partial
 
 import psycopg2
 
+from minerva import __version__ as version
 from minerva.db import parse_db_url
 from minerva.db.util import render_result
-from minerva.directory.query import parse
-from minerva.util.config import load_config, get_defaults, ConfigError
+from minerva.directory.query import compile_sql, get_entitytags_by_query
 from minerva.util import unlines
+from minerva.instance import MinervaInstance
 
 package_name = "minerva"
 script_name = os.path.basename(__file__)
@@ -22,58 +24,69 @@ config_file = "{}.conf".format(script_name)
 
 def main():
     parser = setup_args_parser()
+
     args = parser.parse_args()
 
-    config_defaults = get_defaults(package_name, config_file)
+    minerva_instance = MinervaInstance.load(
+        args.instance or
+        os.environ.get('MINERVA_INSTANCE') or
+        'default'
+    )
 
-    if args.generate_configfile:
-        print(config_defaults)
-        return 0
-
-    try:
-        config = load_config(config_defaults, args.configfile)
-    except ConfigError as exc:
-        print("error loading configuration: {}".format(exc))
-        return 1
+    user = (
+        args.user or
+        'minerva_admin'
+    )
 
     query = args.query[0]
 
-    select, select_args = query.compile()
-
-    if args.limit:
-        select = select.limit(args.limit)
-
-    db_uri = config["db_uri"]
+    #query_part, query_args, entity_id_column = compile_sql(query, 'AWACS')
 
     if args.debug:
-        db_logger = logging.getLogger("")
+        logging.root.setLevel(logging.DEBUG)
+        logging.root.addHandler(logging.StreamHandler(sys.stdout))
+
+        connect = partial(minerva_instance.connect_logging, logging.root,
+                          user=user)
     else:
-        db_logger = None
+        connect = partial(minerva_instance.connect, user=user)
 
-    with closing(connect(db_uri, db_logger)) as conn:
+    with closing(connect()) as conn:
         with closing(conn.cursor()) as cursor:
-            print(cursor.mogrify(select.render(), select_args))
 
-            select.execute(cursor, select_args)
+            #query = (
+            #    "SELECT etl.tag_id "
+            #    "{0} "
+            #    "JOIN directory.entitytaglink etl ON etl.entity_id = {1} "
+            #    "GROUP BY etl.tag_id"
+            #).format(query_part, entity_id_column)
 
-            print(unlines(render_result(cursor)))
+            #query = "SELECT * {}".format(select)
+            #print(cursor.mogrify(query, query_args))
+
+            tag_ids = get_entitytags_by_query(cursor, query, 'AWACS')
+
+            print(tag_ids)
+
+            #select.execute(cursor, select_args)
+
+            #print(unlines(render_result(cursor)))
 
     return 0
 
 
 def setup_args_parser():
-    config_file_path = os.path.join("/etc/minerva", config_file)
-
     parser = argparse.ArgumentParser(description="query Minerva entities")
 
     parser.add_argument(
-        "-c", "--configfile", dest="configfile",
-        default=config_file_path, help="the path to the config file")
+        "-i", "--instance", help="name of the target minerva instance")
 
     parser.add_argument(
-        "--generate-configfile", dest="generate_configfile",
-        action=GenerateConfigFileAction, nargs=0,
-        help="generate base config file")
+        "--version", action="version", version=version,
+        help="display version information and exit")
+
+    parser.add_argument(
+        "-u", "--user", help="user to connect to database")
 
     parser.add_argument(
         "--limit", dest="limit", type=int, help="limit the number of results")
@@ -81,35 +94,9 @@ def setup_args_parser():
     parser.add_argument(
         "--debug", action="store_true", default=False, help="debug logging")
 
-    parser.add_argument("query", type=parse)
+    parser.add_argument("query", nargs=1, type=json.loads)
 
     return parser
-
-
-def connect(db_url, logger=None):
-    scheme, user, password, host, port, database = parse_db_url(db_url)
-
-    assert scheme == "postgresql", "Only PostgreSQL connections are supported"
-
-    create_connection = partial(
-        psycopg2.connect, database=database, user=user,
-        password=password, host=host, port=port)
-
-    if logger:
-        conn = create_connection(
-            connection_factory=psycopg2.extras.LoggingConnection)
-
-        conn.initialize(logger)
-    else:
-        conn = create_connection()
-
-    return conn
-
-
-class GenerateConfigFileAction(argparse.Action):
-    def __call__(self, parser, namespace, values, option_string=None):
-        sys.stdout.write(get_defaults(package_name, config_file))
-        sys.exit(0)
 
 
 if __name__ == "__main__":

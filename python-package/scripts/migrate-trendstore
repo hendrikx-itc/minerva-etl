@@ -19,6 +19,7 @@ from functools import partial
 
 import psycopg2.extras
 
+from minerva import __version__ as version
 from minerva.db import parse_db_url
 from minerva.util.config import load_config, get_defaults, ConfigError
 from minerva.util import first
@@ -34,6 +35,10 @@ def main():
     config_file_path = os.path.join("/etc/minerva", config_file)
 
     parser = argparse.ArgumentParser(description="Edit partitions")
+
+    parser.add_argument(
+        "--version", action="version", version=version,
+        help="display version information and exit")
 
     parser.add_argument(
         "trendstores", metavar="TRENDSTORES", type=int, nargs='+',
@@ -52,7 +57,7 @@ def main():
         help="new partition size for trendstore")
 
     parser.add_argument(
-        "--version", dest="version", default=None, type=int,
+        "--new-version", default=None, type=int,
         help="new version for trendstore")
 
     parser.add_argument(
@@ -113,8 +118,8 @@ def main():
 
                 current_version = trendstore.version
 
-                if args.version and args.version != trendstore.version:
-                    trendstore.version = args.version
+                if args.new_version and args.new_version != trendstore.version:
+                    trendstore.version = args.new_version
                     change = True
 
                 if args.partition_size:
