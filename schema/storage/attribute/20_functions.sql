@@ -156,24 +156,13 @@ CREATE OR REPLACE FUNCTION materialize_curr_ptr(attribute_directory.attributesto
 	RETURNS integer
 AS $$
 DECLARE
-	table_name name;
-	temp_table_name name;
-	view_name name;
+	table_name name := attribute_directory.to_table_name($1) || '_curr_ptr';
+	view_name name := attribute_directory.to_table_name($1) || '_curr_selection';
 	row_count integer;
 BEGIN
-	table_name = attribute_directory.to_table_name($1) || '_curr_ptr';
-	temp_table_name = attribute_directory.to_table_name($1) || '_curr_ptr_temp';
-	view_name = attribute_directory.to_table_name($1) || '_curr_selection';
-
-	PERFORM attribute_directory.create_curr_ptr_table($1, '_curr_ptr_temp');
-
-	EXECUTE format('INSERT INTO attribute_history.%I (entity_id, timestamp) SELECT entity_id, timestamp FROM attribute_history.%I', temp_table_name, view_name);
+	EXECUTE format('TRUNCATE attribute_history.%I', table_name);
+	EXECUTE format('INSERT INTO attribute_history.%I (entity_id, timestamp) SELECT entity_id, timestamp FROM attribute_history.%I', table_name, view_name);
 	GET DIAGNOSTICS row_count = ROW_COUNT;
-
-	PERFORM attribute_directory.drop_curr_view($1);
-	EXECUTE format('DROP TABLE attribute_history.%I', table_name);
-	EXECUTE format('ALTER TABLE attribute_history.%I RENAME TO %I', temp_table_name, table_name);
-	PERFORM attribute_directory.create_curr_view($1);
 
 	PERFORM attribute_directory.mark_curr_materialized(attributestore_id, modified)
 		FROM attribute_directory.attributestore_modified
