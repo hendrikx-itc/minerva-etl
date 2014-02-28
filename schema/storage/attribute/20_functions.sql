@@ -160,13 +160,20 @@ DECLARE
 	view_name name := attribute_directory.to_table_name($1) || '_curr_selection';
 	row_count integer;
 BEGIN
+	IF attribute_directory.requires_compacting($1) THEN
+		PERFORM attribute_directory.compact($1);
+	END IF;
+
 	EXECUTE format('TRUNCATE attribute_history.%I', table_name);
-	EXECUTE format('INSERT INTO attribute_history.%I (entity_id, timestamp) SELECT entity_id, timestamp FROM attribute_history.%I', table_name, view_name);
+	EXECUTE format(
+		'INSERT INTO attribute_history.%I (entity_id, timestamp) '
+		'SELECT entity_id, timestamp '
+		'FROM attribute_history.%I', table_name, view_name
+	);
+
 	GET DIAGNOSTICS row_count = ROW_COUNT;
 
-	PERFORM attribute_directory.mark_curr_materialized(attributestore_id, modified)
-		FROM attribute_directory.attributestore_modified
-		WHERE attributestore_id = $1.id;
+	PERFORM attribute_directory.mark_curr_materialized($1.id);
 
 	RETURN row_count;
 END;
@@ -319,38 +326,24 @@ CREATE OR REPLACE FUNCTION create_curr_ptr_view(attribute_directory.attributesto
 	RETURNS attribute_directory.attributestore
 AS $$
 DECLARE
-	table_name name;
-	view_name name;
+	table_name name := attribute_directory.to_table_name($1);
+	view_name name := table_name || '_curr_selection';
 	view_sql text;
 BEGIN
-	table_name = attribute_directory.to_table_name($1);
-	view_name = table_name || '_curr_selection';
-
-	view_sql = format('
-		SELECT DISTINCT ON (entity_id)
-		(
-			SELECT min(timestamp)
-			FROM attribute_history.%I min_query
-			WHERE min_query.entity_id = master.entity_id
-			AND timestamp > coalesce((
-				SELECT max(timestamp)
-				FROM attribute_history.%I this
-				WHERE this.entity_id = master.entity_id
-				AND hash != master.hash
-				GROUP BY this.entity_id
-			), ''0001-01-01'')
-			GROUP BY min_query.entity_id
-		) "timestamp", entity_id
-
-		FROM attribute_history.%I master
-		ORDER BY master.entity_id desc, master.timestamp desc',
-        table_name, table_name, table_name
+	view_sql = format(
+		'SELECT max(timestamp) AS timestamp, entity_id '
+		'FROM attribute_history.%I '
+		'GROUP BY entity_id',
+        table_name
     );
 
-	EXECUTE format('CREATE VIEW attribute_history.%I AS %s', view_name, view_sql);
+	EXECUTE format('CREATE OR REPLACE VIEW attribute_history.%I AS %s', view_name, view_sql);
 
-	EXECUTE format('ALTER TABLE attribute_history.%I
-		OWNER TO minerva_writer', view_name);
+	EXECUTE format(
+		'ALTER TABLE attribute_history.%I '
+		'OWNER TO minerva_writer',
+		view_name
+	);
 
 	EXECUTE format('GRANT SELECT ON TABLE attribute_history.%I TO minerva', view_name);
 
@@ -617,6 +610,15 @@ AS $$
 $$ LANGUAGE SQL VOLATILE;
 
 
+CREATE OR REPLACE FUNCTION mark_curr_materialized(attributestore_id integer)
+	RETURNS attribute_directory.attributestore_curr_materialized
+AS $$
+	SELECT attribute_directory.mark_curr_materialized(attributestore_id, modified)
+	FROM attribute_directory.attributestore_modified
+	WHERE attributestore_id = $1;
+$$ LANGUAGE SQL VOLATILE;
+
+
 -- Compacting log functions
 
 CREATE OR REPLACE FUNCTION update_compacted(attributestore_id integer, compacted timestamp with time zone)
@@ -642,6 +644,15 @@ CREATE OR REPLACE FUNCTION mark_compacted(attributestore_id integer, compacted t
 	RETURNS attribute_directory.attributestore_compacted
 AS $$
 	SELECT COALESCE(attribute_directory.update_compacted($1, $2), attribute_directory.store_compacted($1, $2));
+$$ LANGUAGE SQL VOLATILE;
+
+
+CREATE OR REPLACE FUNCTION mark_compacted(attributestore_id integer)
+	RETURNS attribute_directory.attributestore_compacted
+AS $$
+	SELECT attribute_directory.mark_compacted(attributestore_id, modified)
+	FROM attribute_directory.attributestore_modified
+	WHERE attributestore_id = $1;
 $$ LANGUAGE SQL VOLATILE;
 
 
@@ -804,8 +815,9 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql VOLATILE;
 
-COMMENT ON FUNCTION create_run_length_view(attribute_directory.attributestore) IS
+COMMENT ON FUNCTION compact(attribute_directory.attributestore) IS
 'Remove all subsequent records with duplicate attribute values and update the modified of the first';
+
 
 CREATE OR REPLACE FUNCTION init(attribute_directory.attribute)
 	RETURNS attribute_directory.attribute
@@ -994,3 +1006,215 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql VOLATILE;
 
+
+CREATE OR REPLACE FUNCTION create_compacted_tmp_table(attribute_directory.attributestore)
+	RETURNS attribute_directory.attributestore
+AS $$
+DECLARE
+	table_name name := attribute_directory.to_table_name($1);
+	compacted_tmp_table_name name := table_name || '_compacted_tmp';
+BEGIN
+	EXECUTE format(
+		'CREATE UNLOGGED TABLE attribute_history.%I ('
+		'    "end" timestamp with time zone,'
+		'    modified timestamp with time zone,'
+		'    hash text'
+		') INHERITS (attribute_base.%I)',
+		compacted_tmp_table_name, table_name
+	);
+
+	EXECUTE format(
+		'CREATE INDEX ON attribute_history.%I '
+		'USING btree (entity_id, timestamp)',
+		compacted_tmp_table_name
+	);
+
+	EXECUTE format(
+		'ALTER TABLE attribute_history.%I '
+		'OWNER TO minerva_writer',
+		compacted_tmp_table_name
+	);
+
+	RETURN $1;
+END;
+$$ LANGUAGE plpgsql VOLATILE;
+
+
+CREATE OR REPLACE FUNCTION compacted_view_query(attribute_directory.attributestore)
+	RETURNS text
+AS $$
+DECLARE
+	table_name name := attribute_directory.to_table_name($1);
+	default_columns text[] := ARRAY['rl.entity_id', 'rl.start AS timestamp', 'rl."end"', 'rl.modified', 'history.hash'];
+	run_length_view_name name := table_name || '_run_length';
+	columns_part text;
+BEGIN
+	SELECT array_to_string(default_columns || array_agg(quote_ident(name)), ', ') INTO columns_part
+	FROM attribute_directory.attribute
+	WHERE attributestore_id = $1.id;
+
+	RETURN format(
+		'SELECT %s '
+		'FROM attribute_history.%I rl '
+		'JOIN attribute_history.%I history ON history.entity_id = rl.entity_id AND history.timestamp = rl.start '
+		'WHERE run_length > 1',
+		columns_part, run_length_view_name, table_name
+	);
+END;
+$$ LANGUAGE plpgsql STABLE;
+
+
+CREATE OR REPLACE FUNCTION compacted_view_name(attribute_directory.attributestore)
+	RETURNS name
+AS $$
+	SELECT (attribute_directory.to_table_name($1) || '_compacted')::name;
+$$ LANGUAGE SQL STABLE;
+
+
+CREATE OR REPLACE FUNCTION create_compacted_view(attribute_directory.attributestore)
+	RETURNS attribute_directory.attributestore
+AS $$
+DECLARE
+	view_name name := attribute_directory.compacted_view_name($1);
+BEGIN
+	EXECUTE format(
+		'CREATE OR REPLACE VIEW attribute_history.%I AS %s',
+		view_name,
+		attribute_directory.compacted_view_query($1)
+	);
+
+	EXECUTE format(
+		'ALTER TABLE attribute_history.%I OWNER TO minerva_writer',
+		view_name
+	);
+
+	RETURN $1;
+END;
+$$ LANGUAGE plpgsql VOLATILE;
+
+
+CREATE OR REPLACE FUNCTION requires_compacting(attributestore_id integer)
+	RETURNS boolean
+AS $$
+	SELECT modified <> compacted OR compacted IS NULL
+	FROM attribute_directory.attributestore_modified mod
+	LEFT JOIN attribute_directory.attributestore_compacted cmp ON mod.attributestore_id = cmp.attributestore_id
+	WHERE mod.attributestore_id = $1;
+$$ LANGUAGE SQL STABLE;
+
+
+CREATE OR REPLACE FUNCTION requires_compacting(attribute_directory.attributestore)
+	RETURNS boolean
+AS $$
+	SELECT attribute_directory.requires_compacting($1.id);
+$$ LANGUAGE SQL STABLE;
+
+
+CREATE OR REPLACE FUNCTION compact(attribute_directory.attributestore)
+	RETURNS attribute_directory.attributestore
+AS $$
+DECLARE
+	table_name name := attribute_directory.to_table_name($1);
+	compacted_tmp_table_name name := table_name || '_compacted_tmp';
+	compacted_view_name name := attribute_directory.compacted_view_name($1);
+	default_columns text[] := ARRAY['entity_id', 'timestamp', '"end"', 'hash', 'modified'];
+	attribute_columns text[];
+	columns_part text;
+	row_count integer;
+BEGIN
+	SELECT array_agg(quote_ident(name)) INTO attribute_columns
+	FROM attribute_directory.attribute
+	WHERE attributestore_id = $1.id;
+
+	columns_part = array_to_string(default_columns || attribute_columns, ',');
+
+	EXECUTE format(
+		'TRUNCATE attribute_history.%I',
+		compacted_tmp_table_name
+	);
+
+	EXECUTE format(
+		'INSERT INTO attribute_history.%I(%s) '
+		'SELECT %s FROM attribute_history.%I;',
+		compacted_tmp_table_name, columns_part,
+		columns_part, compacted_view_name
+	);
+
+	GET DIAGNOSTICS row_count = ROW_COUNT;
+
+	RAISE NOTICE 'compacted % rows', row_count;
+
+	EXECUTE format(
+		'DELETE FROM attribute_history.%I history '
+		'USING attribute_history.%I tmp '
+		'WHERE '
+		'	history.entity_id = tmp.entity_id AND '
+		'	history.timestamp >= tmp.timestamp AND '
+		'	history.timestamp <= tmp."end";',
+		table_name, compacted_tmp_table_name
+	);
+
+	columns_part = array_to_string(
+		ARRAY['entity_id', 'timestamp', 'modified', 'hash'] || attribute_columns,
+		','
+	);
+
+	EXECUTE format(
+		'INSERT INTO attribute_history.%I(%s) '
+		'SELECT %s '
+		'FROM attribute_history.%I',
+		table_name, columns_part,
+		columns_part,
+		compacted_tmp_table_name
+	);
+
+	PERFORM attribute_directory.mark_compacted($1.id);
+
+	RETURN $1;
+END;
+$$ LANGUAGE plpgsql VOLATILE;
+
+
+CREATE OR REPLACE FUNCTION direct_dependers(name text)
+	RETURNS SETOF name
+AS $$
+	SELECT dependee.relname AS name
+	FROM pg_depend
+	JOIN pg_rewrite ON pg_depend.objid = pg_rewrite.oid
+	JOIN pg_class as dependee ON pg_rewrite.ev_class = dependee.oid
+	JOIN pg_class as dependent ON pg_depend.refobjid = dependent.oid
+	JOIN pg_namespace as n ON dependent.relnamespace = n.oid
+	JOIN pg_attribute ON
+			pg_depend.refobjid = pg_attribute.attrelid
+			AND
+			pg_depend.refobjsubid = pg_attribute.attnum
+	WHERE pg_attribute.attnum > 0 AND dependent.relname = $1;
+$$ LANGUAGE SQL STABLE;
+
+
+CREATE OR REPLACE FUNCTION dependers(name name, level integer)
+	RETURNS TABLE(name name, level integer)
+AS $$
+-- Stub function to be able to create a recursive one.
+	SELECT $1, $2;
+$$ LANGUAGE SQL STABLE;
+
+
+CREATE OR REPLACE FUNCTION dependers(name name, level integer)
+	RETURNS TABLE(name name, level integer)
+AS $$
+	SELECT (d.dependers).* FROM (
+		SELECT dependers(depender, $2 + 1)
+		FROM direct_dependers($1) depender 
+	) d
+	UNION ALL
+	SELECT depender, $2
+	FROM direct_dependers($1) depender;
+$$ LANGUAGE SQL STABLE;
+
+
+CREATE OR REPLACE FUNCTION dependers(name name)
+	RETURNS TABLE(name name, level integer)
+AS $$
+	SELECT * FROM dependers($1, 1);
+$$ LANGUAGE SQL STABLE;
