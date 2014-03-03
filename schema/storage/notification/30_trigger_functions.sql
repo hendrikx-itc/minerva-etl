@@ -53,3 +53,14 @@ BEGIN
 	RETURN NEW;
 END;
 $$ LANGUAGE plpgsql VOLATILE;
+
+
+CREATE OR REPLACE FUNCTION cleanup_on_datasource_delete()
+	RETURNS TRIGGER
+AS $$
+BEGIN
+	DELETE FROM notification.notificationstore WHERE datasource_id = OLD.id;
+
+	RETURN OLD;
+END;
+$$ LANGUAGE plpgsql VOLATILE;

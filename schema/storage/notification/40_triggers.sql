@@ -15,7 +15,7 @@ CREATE TRIGGER create_table_on_insert
 
 
 CREATE TRIGGER drop_table_on_delete
-	AFTER DELETE ON notificationstore
+	BEFORE DELETE ON notificationstore
 	FOR EACH ROW
 	EXECUTE PROCEDURE drop_table_on_delete();
 
@@ -24,3 +24,9 @@ CREATE TRIGGER create_column_on_insert
 	BEFORE INSERT ON attribute
 	FOR EACH ROW
 	EXECUTE PROCEDURE create_attribute_column_on_insert();
+
+
+CREATE TRIGGER delete_notificationstores_on_datasource_delete
+	BEFORE DELETE ON directory.datasource
+	FOR EACH ROW
+	EXECUTE PROCEDURE cleanup_on_datasource_delete();
