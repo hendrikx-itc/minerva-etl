@@ -124,11 +124,13 @@ CREATE OR REPLACE FUNCTION create_dependees(attribute_directory.attributestore)
 	RETURNS attribute_directory.attributestore
 AS $$
 	SELECT
-		attribute_directory.create_curr_view(
-			attribute_directory.create_curr_ptr_view(
-				attribute_directory.create_staging_modified_view(
-					attribute_directory.create_staging_new_view(
-						attribute_directory.create_hash_function($1)
+		attribute_directory.create_compacted_view(
+			attribute_directory.create_curr_view(
+				attribute_directory.create_curr_ptr_view(
+					attribute_directory.create_staging_modified_view(
+						attribute_directory.create_staging_new_view(
+							attribute_directory.create_hash_function($1)
+						)
 					)
 				)
 			)
@@ -144,7 +146,9 @@ AS $$
 			attribute_directory.drop_staging_new_view(
 				attribute_directory.drop_staging_modified_view(
 					attribute_directory.drop_curr_ptr_view(
-						attribute_directory.drop_curr_view($1)
+						attribute_directory.drop_curr_view(
+							attribute_directory.drop_compacted_view($1)
+						)
 					)
 				)
 			)
@@ -1087,6 +1091,17 @@ BEGIN
 		'ALTER TABLE attribute_history.%I OWNER TO minerva_writer',
 		view_name
 	);
+
+	RETURN $1;
+END;
+$$ LANGUAGE plpgsql VOLATILE;
+
+
+CREATE OR REPLACE FUNCTION drop_compacted_view(attribute_directory.attributestore)
+	RETURNS attribute_directory.attributestore
+AS $$
+BEGIN
+	EXECUTE format('DROP VIEW attribute_history.%I', attribute_directory.compacted_view_name($1));
 
 	RETURN $1;
 END;
