@@ -40,6 +40,17 @@ END;
 $$ LANGUAGE plpgsql VOLATILE;
 
 
+CREATE OR REPLACE FUNCTION drop_notificationsetstore_table_on_delete()
+	RETURNS TRIGGER
+AS $$
+BEGIN
+	EXECUTE format('DROP TABLE IF EXISTS notification.%I', OLD.name);
+
+	RETURN OLD;
+END;
+$$ LANGUAGE plpgsql VOLATILE;
+
+
 CREATE OR REPLACE FUNCTION create_attribute_column_on_insert()
 	RETURNS TRIGGER
 AS $$

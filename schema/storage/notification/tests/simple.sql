@@ -46,3 +46,25 @@ BEGIN
 	);
 END;
 $$ LANGUAGE plpgsql;
+
+
+CREATE OR REPLACE FUNCTION test_example_notificationsetstore()
+	RETURNS SETOF text
+AS $$
+DECLARE
+	notificationstore notification.notificationstore;
+BEGIN
+	notificationstore = notification.create_notificationstore('state_changes');
+
+	RETURN NEXT isa_ok(
+		notification.create_notificationsetstore('ticket'::name, notificationstore.id, 'tmp'::name),
+		'notification.notificationsetstore',
+		'the result of create_notificationsetstore'
+	);
+
+	RETURN NEXT has_table(
+		'notification'::name, 'ticket'::name,
+		'table with name of notificationsetstore should exist'
+	);
+END;
+$$ LANGUAGE plpgsql;

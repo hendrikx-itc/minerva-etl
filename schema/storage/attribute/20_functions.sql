@@ -874,6 +874,22 @@ AS $$
 $$ LANGUAGE SQL VOLATILE;
 
 
+CREATE OR REPLACE FUNCTION define_attributestore(datasource_name text, entitytype_name text)
+	RETURNS attribute_directory.attributestore
+AS $$
+	INSERT INTO attribute_directory.attributestore(datasource_id, entitytype_id)
+    VALUES ((directory.name_to_datasource($1)).id, (directory.name_to_entitytype($2)).id)
+	RETURNING attributestore;
+$$ LANGUAGE SQL VOLATILE;
+
+
+CREATE OR REPLACE FUNCTION create_attributestore(datasource_name text, entitytype_name text)
+	RETURNS attribute_directory.attributestore
+AS $$
+	SELECT attribute_directory.init(attribute_directory.define_attributestore($1, $2));
+$$ LANGUAGE SQL VOLATILE;
+
+
 CREATE OR REPLACE FUNCTION get_attribute(attributestore, name)
 	RETURNS attribute_directory.attribute
 AS $$

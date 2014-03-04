@@ -100,3 +100,27 @@ GRANT ALL ON SEQUENCE attribute_id_seq TO minerva_admin;
 GRANT SELECT ON SEQUENCE attribute_id_seq TO minerva;
 GRANT UPDATE ON SEQUENCE attribute_id_seq TO minerva_writer;
 
+
+-- Table 'notificationsetstore'
+
+CREATE TABLE notificationsetstore (
+	id integer not null,
+	name name not null,
+	notificationstore_id integer REFERENCES notification.notificationstore ON DELETE CASCADE,
+	set_column name not null
+);
+
+ALTER TABLE notificationsetstore OWNER TO minerva_admin;
+
+CREATE SEQUENCE notificationsetstore_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+ALTER TABLE notificationsetstore_id_seq OWNER TO minerva_admin;
+
+ALTER TABLE notificationsetstore ALTER COLUMN id SET DEFAULT nextval('notificationsetstore_id_seq'::regclass);
+
+ALTER SEQUENCE notificationsetstore_id_seq OWNED BY notificationsetstore.id;

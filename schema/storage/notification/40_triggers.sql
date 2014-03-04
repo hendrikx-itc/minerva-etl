@@ -20,6 +20,12 @@ CREATE TRIGGER drop_table_on_delete
 	EXECUTE PROCEDURE drop_table_on_delete();
 
 
+CREATE TRIGGER drop_notificationsetstore_table_on_delete
+	BEFORE DELETE ON notificationsetstore
+	FOR EACH ROW
+	EXECUTE PROCEDURE drop_notificationsetstore_table_on_delete();
+
+
 CREATE TRIGGER create_column_on_insert
 	BEFORE INSERT ON attribute
 	FOR EACH ROW
