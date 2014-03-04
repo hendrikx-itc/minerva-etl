@@ -48,16 +48,36 @@ END;
 $$ LANGUAGE plpgsql;
 
 
+CREATE OR REPLACE FUNCTION test_create_notificationstore_with_attrs()
+	RETURNS SETOF text
+AS $$
+BEGIN
+	RETURN NEXT isa_ok(
+		notification.create_notificationstore(
+			'some_datasource_name',
+			ARRAY[('NV_ALARM_ID', 'integer')]::notification.attr_def[]
+		),
+		'notification.notificationstore',
+		'the result of create_notificationstore'
+	);
+
+	RETURN NEXT has_column(
+		'notification'::name, 'some_datasource_name'::name, 'NV_ALARM_ID'::name,
+		'notification store table has a custom attribute column NV_ALARM_ID'
+	);
+END;
+$$ LANGUAGE plpgsql;
+
+
 CREATE OR REPLACE FUNCTION test_example_notificationsetstore()
 	RETURNS SETOF text
 AS $$
-DECLARE
-	notificationstore notification.notificationstore;
 BEGIN
-	notificationstore = notification.create_notificationstore('state_changes');
-
 	RETURN NEXT isa_ok(
-		notification.create_notificationsetstore('ticket'::name, notificationstore.id, 'tmp'::name),
+		notification.create_notificationsetstore(
+			'ticket'::name,
+			notification.create_notificationstore('state_changes')
+		),
 		'notification.notificationsetstore',
 		'the result of create_notificationsetstore'
 	);
@@ -65,6 +85,11 @@ BEGIN
 	RETURN NEXT has_table(
 		'notification'::name, 'ticket'::name,
 		'table with name of notificationsetstore should exist'
+	);
+
+	RETURN NEXT has_table(
+		'notification'::name, 'ticket_link'::name,
+		'link table for notificationsetstore should exist'
 	);
 END;
 $$ LANGUAGE plpgsql;

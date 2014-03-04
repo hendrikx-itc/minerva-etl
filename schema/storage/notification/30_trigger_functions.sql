@@ -33,7 +33,7 @@ DECLARE
 BEGIN
 	table_name = notification.table_name(OLD);
 
-	EXECUTE format('DROP TABLE notification.%I', table_name);
+	EXECUTE format('DROP TABLE IF EXISTS notification.%I CASCADE', table_name);
 
 	RETURN OLD;
 END;
@@ -44,6 +44,7 @@ CREATE OR REPLACE FUNCTION drop_notificationsetstore_table_on_delete()
 	RETURNS TRIGGER
 AS $$
 BEGIN
+	EXECUTE format('DROP TABLE IF EXISTS notification.%I', OLD.name || '_link');
 	EXECUTE format('DROP TABLE IF EXISTS notification.%I', OLD.name);
 
 	RETURN OLD;
