@@ -65,9 +65,11 @@ function get_conf_value()
 
 DATABASE=$(get_conf_value "$INSTANCE_CONF_FILE" "name")
 HOST=$(get_conf_value "$INSTANCE_CONF_FILE" "host")
+PORT=$(get_conf_value "$INSTANCE_CONF_FILE" "port")
 
 export PGHOST="$HOST"
 export PGUSER="$USER"
+export PGPORT="$PORT"
 
 function main()
 {
