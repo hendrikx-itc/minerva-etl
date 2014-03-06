@@ -288,6 +288,21 @@ def get_child_ids(conn, base_entity, entitytype):
 
         return (entity_id for entity_id, in cursor.fetchall())
 
+def get_related_entity_ids_for_relation(conn, base_entity_id, relation_name):
+    """
+    Return related entity ids for entitytype related to base_entity.
+    """
+    query = (
+        "SELECT target_id FROM relation.\"{0}\" "
+        "WHERE source_id = %s").format(relation_name)
+
+    with closing(conn.cursor()) as cursor:
+        cursor.execute(query, (base_entity_id, ))
+
+        return [target_id for target_id, in cursor.fetchall()]
+    
+    return []
+
 
 def get_related_entity_ids(conn, base_entity, entitytype):
     """

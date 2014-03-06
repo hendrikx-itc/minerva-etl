@@ -33,7 +33,19 @@ DECLARE
 BEGIN
 	table_name = notification.table_name(OLD);
 
-	EXECUTE format('DROP TABLE notification.%I', table_name);
+	EXECUTE format('DROP TABLE IF EXISTS notification.%I CASCADE', table_name);
+
+	RETURN OLD;
+END;
+$$ LANGUAGE plpgsql VOLATILE;
+
+
+CREATE OR REPLACE FUNCTION drop_notificationsetstore_table_on_delete()
+	RETURNS TRIGGER
+AS $$
+BEGIN
+	EXECUTE format('DROP TABLE IF EXISTS notification.%I', OLD.name || '_link');
+	EXECUTE format('DROP TABLE IF EXISTS notification.%I', OLD.name);
 
 	RETURN OLD;
 END;
@@ -51,5 +63,16 @@ BEGIN
 	EXECUTE format('ALTER TABLE notification.%I ADD COLUMN %I %s', table_name, NEW.name, NEW.data_type);
 
 	RETURN NEW;
+END;
+$$ LANGUAGE plpgsql VOLATILE;
+
+
+CREATE OR REPLACE FUNCTION cleanup_on_datasource_delete()
+	RETURNS TRIGGER
+AS $$
+BEGIN
+	DELETE FROM notification.notificationstore WHERE datasource_id = OLD.id;
+
+	RETURN OLD;
 END;
 $$ LANGUAGE plpgsql VOLATILE;

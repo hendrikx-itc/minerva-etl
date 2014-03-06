@@ -5,7 +5,6 @@ BIN_DIR=$(DESTDIR)/usr/bin
 MINERVA_SHARE_DIR=$(DESTDIR)/usr/share/minerva
 
 SCRIPTS=$(addprefix $(BIN_DIR)/,init-minerva-db)
-CONF_FILES=$(addprefix $(DESTDIR)/etc/,$(wildcard *.conf))
 SQL_SCRIPTS=$(addprefix $(MINERVA_SHARE_DIR)/,$(wildcard *.sql))
 SQL_SCRIPTS_PUBLIC=$(addprefix $(MINERVA_SHARE_DIR)/,$(wildcard public/*.sql))
 SQL_SCRIPTS_DIRECTORY=$(addprefix $(MINERVA_SHARE_DIR)/,$(wildcard directory/*.sql))
@@ -18,7 +17,6 @@ SQL_SCRIPTS_STORAGE_GEOSPATIAL=$(addprefix $(MINERVA_SHARE_DIR)/,$(wildcard stor
 SQL_SCRIPTS_STORAGE_NOTIFICATION=$(addprefix $(MINERVA_SHARE_DIR)/,$(wildcard storage/notification/*.sql))
 
 DIRS=\
-	 $(DESTDIR)/etc \
 	 $(BIN_DIR) \
 	 $(MINERVA_SHARE_DIR) \
 	 $(MINERVA_SHARE_DIR)/public \
