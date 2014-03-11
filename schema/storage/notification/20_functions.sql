@@ -211,3 +211,13 @@ CREATE OR REPLACE FUNCTION get_column_type_name(notification.notificationstore, 
 AS $$
 	SELECT notification.get_column_type_name('notification', notification.table_name($1), $2);
 $$ LANGUAGE SQL STABLE;
+
+
+CREATE OR REPLACE FUNCTION get_notificationstore(datasource_name name)
+	RETURNS notificationstore
+AS $$
+	SELECT ns
+	FROM notification.notificationstore ns
+	JOIN directory.datasource ds ON ds.id = ns.datasource_id
+	WHERE ds.name = $1;
+$$ LANGUAGE SQL STABLE;
