@@ -17,6 +17,10 @@ import re
 explode_regex = re.compile("([^,]+)=([^,]+)")
 
 
+class InvalidDistinguishedNameError(Exception):
+    pass
+
+
 def explode(distinguished_name):
     return explode_regex.findall(distinguished_name)
 
