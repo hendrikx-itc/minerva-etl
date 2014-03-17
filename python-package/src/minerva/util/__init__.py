@@ -132,8 +132,10 @@ def last(iterable):
     return iterable[-1]
 
 
-def snd(iterable):
-    return iterable[1]
+fst = itemgetter(0)
+
+
+snd = itemgetter(1)
 
 
 def left(left, _):
