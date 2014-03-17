@@ -16,80 +16,80 @@ SET search_path = notification_tests, pg_catalog;
 
 
 CREATE OR REPLACE FUNCTION test_create_notificationstore()
-	RETURNS SETOF text
+    RETURNS SETOF text
 AS $$
 BEGIN
-	RETURN NEXT isa_ok(
-		notification.create_notificationstore('some_datasource_name'),
-		'notification.notificationstore',
-		'the result of create_notificationstore'
-	);
+    RETURN NEXT isa_ok(
+        notification.create_notificationstore('some_datasource_name'),
+        'notification.notificationstore',
+        'the result of create_notificationstore'
+    );
 
-	RETURN NEXT has_table(
-		'notification'::name, 'some_datasource_name'::name,
-		'table with name of datasource should exist'
-	);
+    RETURN NEXT has_table(
+        'notification'::name, 'some_datasource_name'::name,
+        'table with name of datasource should exist'
+    );
 
-	RETURN NEXT has_column(
-		'notification'::name, 'some_datasource_name'::name, 'id'::name,
-		'notification store table has a column id'
-	);
+    RETURN NEXT has_column(
+        'notification'::name, 'some_datasource_name'::name, 'id'::name,
+        'notification store table has a column id'
+    );
 
-	RETURN NEXT has_column(
-		'notification'::name, 'some_datasource_name'::name, 'entity_id'::name,
-		'notification store table has a column entity_id'
-	);
+    RETURN NEXT has_column(
+        'notification'::name, 'some_datasource_name'::name, 'entity_id'::name,
+        'notification store table has a column entity_id'
+    );
 
-	RETURN NEXT has_column(
-		'notification'::name, 'some_datasource_name'::name, 'timestamp'::name,
-		'notification store table has a column timestamp'
-	);
+    RETURN NEXT has_column(
+        'notification'::name, 'some_datasource_name'::name, 'timestamp'::name,
+        'notification store table has a column timestamp'
+    );
 END;
 $$ LANGUAGE plpgsql;
 
 
 CREATE OR REPLACE FUNCTION test_create_notificationstore_with_attrs()
-	RETURNS SETOF text
+    RETURNS SETOF text
 AS $$
 BEGIN
-	RETURN NEXT isa_ok(
-		notification.create_notificationstore(
-			'some_datasource_name',
-			ARRAY[('NV_ALARM_ID', 'integer')]::notification.attr_def[]
-		),
-		'notification.notificationstore',
-		'the result of create_notificationstore'
-	);
+    RETURN NEXT isa_ok(
+        notification.create_notificationstore(
+            'some_datasource_name',
+            ARRAY[('NV_ALARM_ID', 'integer')]::notification.attr_def[]
+        ),
+        'notification.notificationstore',
+        'the result of create_notificationstore'
+    );
 
-	RETURN NEXT has_column(
-		'notification'::name, 'some_datasource_name'::name, 'NV_ALARM_ID'::name,
-		'notification store table has a custom attribute column NV_ALARM_ID'
-	);
+    RETURN NEXT has_column(
+        'notification'::name, 'some_datasource_name'::name, 'NV_ALARM_ID'::name,
+        'notification store table has a custom attribute column NV_ALARM_ID'
+    );
 END;
 $$ LANGUAGE plpgsql;
 
 
 CREATE OR REPLACE FUNCTION test_example_notificationsetstore()
-	RETURNS SETOF text
+    RETURNS SETOF text
 AS $$
 BEGIN
-	RETURN NEXT isa_ok(
-		notification.create_notificationsetstore(
-			'ticket'::name,
-			notification.create_notificationstore('state_changes')
-		),
-		'notification.notificationsetstore',
-		'the result of create_notificationsetstore'
-	);
+    RETURN NEXT isa_ok(
+        notification.create_notificationsetstore(
+            'ticket'::name,
+            notification.create_notificationstore('state_changes')
+        ),
+        'notification.notificationsetstore',
+        'the result of create_notificationsetstore'
+    );
 
-	RETURN NEXT has_table(
-		'notification'::name, 'ticket'::name,
-		'table with name of notificationsetstore should exist'
-	);
+    RETURN NEXT has_table(
+        'notification'::name, 'ticket'::name,
+        'table with name of notificationsetstore should exist'
+    );
 
-	RETURN NEXT has_table(
-		'notification'::name, 'ticket_link'::name,
-		'link table for notificationsetstore should exist'
-	);
+    RETURN NEXT has_table(
+        'notification'::name, 'ticket_link'::name,
+        'link table for notificationsetstore should exist'
+    );
 END;
 $$ LANGUAGE plpgsql;

@@ -9,33 +9,33 @@ SET search_path = relation, pg_catalog;
 
 
 CREATE OR REPLACE FUNCTION create_relation_table_on_insert()
-	RETURNS TRIGGER
+    RETURNS TRIGGER
 AS $$
 BEGIN
-	PERFORM relation.create_relation_table(NEW.name, NEW.id);
+    PERFORM relation.create_relation_table(NEW.name, NEW.id);
 
-	RETURN NEW;
+    RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
 
 
 CREATE OR REPLACE FUNCTION drop_table_on_type_delete()
-	RETURNS TRIGGER
+    RETURNS TRIGGER
 AS $$
 BEGIN
-	EXECUTE format('DROP TABLE IF EXISTS %I.%I', 'relation', OLD.name);
+    EXECUTE format('DROP TABLE IF EXISTS %I.%I', 'relation', OLD.name);
 
-	RETURN OLD;
+    RETURN OLD;
 END;
 $$ LANGUAGE plpgsql;
 
 
 CREATE OR REPLACE FUNCTION create_self_relation()
-	RETURNS TRIGGER
+    RETURNS TRIGGER
 AS $$
 BEGIN
-	INSERT INTO relation.self (source_id, target_id, type_id) SELECT NEW.id, NEW.id, "type".id FROM relation."type" WHERE name = 'self';
+    INSERT INTO relation.self (source_id, target_id, type_id) SELECT NEW.id, NEW.id, "type".id FROM relation."type" WHERE name = 'self';
 
-	RETURN NEW;
+    RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;

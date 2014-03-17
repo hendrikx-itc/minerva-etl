@@ -9,13 +9,13 @@ SET search_path = directory, pg_catalog;
 
 
 CREATE OR REPLACE FUNCTION directory."create alias for new entity (func)"()
-	RETURNS trigger
+    RETURNS trigger
 AS $$
 BEGIN
-	INSERT INTO directory.alias (entity_id, name, type_id)
-		SELECT NEW.id, NEW.name, id FROM directory.aliastype WHERE name = 'name';
+    INSERT INTO directory.alias (entity_id, name, type_id)
+        SELECT NEW.id, NEW.name, id FROM directory.aliastype WHERE name = 'name';
 
-	RETURN NEW;
+    RETURN NEW;
 END;
 $$ LANGUAGE plpgsql VOLATILE;
 
@@ -23,16 +23,16 @@ ALTER FUNCTION directory."create alias for new entity (func)"() OWNER TO postgre
 
 
 CREATE OR REPLACE FUNCTION directory."create tag for new entitytypes (func)"()
-	RETURNS trigger
+    RETURNS trigger
 AS $$
 BEGIN
-	BEGIN
-		INSERT INTO directory.tag (name, taggroup_id) SELECT NEW.name, id FROM directory.taggroup WHERE directory.taggroup.name = 'entitytype';
-	EXCEPTION WHEN unique_violation THEN
-		UPDATE directory.tag SET taggroup_id = (SELECT id FROM directory.taggroup WHERE directory.taggroup.name = 'entitytype') WHERE tag.name = NEW.name;
-	END;
+    BEGIN
+        INSERT INTO directory.tag (name, taggroup_id) SELECT NEW.name, id FROM directory.taggroup WHERE directory.taggroup.name = 'entitytype';
+    EXCEPTION WHEN unique_violation THEN
+        UPDATE directory.tag SET taggroup_id = (SELECT id FROM directory.taggroup WHERE directory.taggroup.name = 'entitytype') WHERE tag.name = NEW.name;
+    END;
 
-	RETURN NEW;
+    RETURN NEW;
 END;
 $$ LANGUAGE plpgsql VOLATILE;
 
@@ -40,16 +40,16 @@ ALTER FUNCTION directory."create tag for new entitytypes (func)"() OWNER TO post
 
 
 CREATE OR REPLACE FUNCTION directory."create entitytaglink for new entity (func)"()
-	RETURNS trigger
+    RETURNS trigger
 AS $$
 BEGIN
-	INSERT INTO directory.entitytaglink (entity_id, tag_id) VALUES (NEW.id, (
-	SELECT tag.id FROM directory.tag
-	INNER JOIN directory.entitytype ON tag.name = entitytype.name
-	WHERE entitytype.id = NEW.entitytype_id
-	));
+    INSERT INTO directory.entitytaglink (entity_id, tag_id) VALUES (NEW.id, (
+    SELECT tag.id FROM directory.tag
+    INNER JOIN directory.entitytype ON tag.name = entitytype.name
+    WHERE entitytype.id = NEW.entitytype_id
+    ));
 
-	RETURN NEW;
+    RETURN NEW;
 END;
 $$ LANGUAGE plpgsql VOLATILE;
 
