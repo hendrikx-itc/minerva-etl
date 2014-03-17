@@ -29,15 +29,6 @@ class RawDataPackage(object):
     def get_key(self):
         return self.timestamp, self.get_entitytype_name(), self.granularity
 
-    def as_tuple(self):
-        """
-        Return the legacy tuple (granularity, timestamp, trend_names, rows)
-        """
-        return self.granularity, self.timestamp, self.trend_names, self.rows
-
-    def is_empty(self):
-        return len(self.rows) == 0
-
     @staticmethod
     def merge_packages(packages):
         result = []
