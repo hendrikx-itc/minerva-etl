@@ -9,19 +9,19 @@ SET search_path = public, pg_catalog;
 
 
 CREATE OR REPLACE FUNCTION integer_to_array(value integer)
-	RETURNS integer[]
+    RETURNS integer[]
 AS $$
 BEGIN
-	RETURN ARRAY[value];
+    RETURN ARRAY[value];
 END;
 $$ LANGUAGE plpgsql STABLE STRICT;
 
 
 CREATE OR REPLACE FUNCTION smallint_to_array(value smallint)
-	RETURNS smallint[]
+    RETURNS smallint[]
 AS $$
 BEGIN
-	RETURN ARRAY[value];
+    RETURN ARRAY[value];
 END;
 $$ LANGUAGE plpgsql STABLE STRICT;
 
@@ -31,19 +31,19 @@ $$ LANGUAGE plpgsql STABLE STRICT;
 -- values to NULL when converting a column from smallint to timestamp without
 -- time zone.
 CREATE OR REPLACE FUNCTION smallint_to_timestamp_without_time_zone (smallint)
-	RETURNS timestamp without time zone AS
+    RETURNS timestamp without time zone AS
 $$
 BEGIN
-	RETURN NULL;
+    RETURN NULL;
 END;
 $$ LANGUAGE plpgsql STABLE STRICT;
 
 
 -- Same 'cast' support for timestamp with time zone
 CREATE OR REPLACE FUNCTION smallint_to_timestamp_with_time_zone (smallint)
-	RETURNS timestamp with time zone
+    RETURNS timestamp with time zone
 AS $$
 BEGIN
-	RETURN NULL;
+    RETURN NULL;
 END;
 $$ LANGUAGE plpgsql STABLE STRICT;

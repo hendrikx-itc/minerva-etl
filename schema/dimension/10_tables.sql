@@ -16,9 +16,9 @@ SET search_path = dimension, pg_catalog;
 -- Table '"month"'
 
 CREATE TABLE "month" (
-	timestamp timestamp with time zone PRIMARY KEY,
-	start timestamp with time zone,
-	"end" timestamp with time zone
+    timestamp timestamp with time zone PRIMARY KEY,
+    start timestamp with time zone,
+    "end" timestamp with time zone
 );
 
 GRANT ALL ON TABLE "month" TO minerva_admin;
@@ -28,9 +28,9 @@ GRANT INSERT,DELETE,UPDATE ON TABLE "month" TO minerva_writer;
 -- Table 'week'
 
 CREATE TABLE week (
-	timestamp timestamp with time zone PRIMARY KEY,
-	start timestamp with time zone,
-	"end" timestamp with time zone
+    timestamp timestamp with time zone PRIMARY KEY,
+    start timestamp with time zone,
+    "end" timestamp with time zone
 );
 
 GRANT ALL ON TABLE week TO minerva_admin;
@@ -40,9 +40,9 @@ GRANT INSERT,DELETE,UPDATE ON TABLE week TO minerva_writer;
 -- Table '"day"'
 
 CREATE TABLE "day" (
-	timestamp timestamp with time zone PRIMARY KEY,
-	start timestamp with time zone,
-	"end" timestamp with time zone
+    timestamp timestamp with time zone PRIMARY KEY,
+    start timestamp with time zone,
+    "end" timestamp with time zone
 );
 
 GRANT ALL ON TABLE "day" TO minerva_admin;
@@ -52,9 +52,9 @@ GRANT INSERT,DELETE,UPDATE ON TABLE "day" TO minerva_writer;
 -- Table 'hour'
 
 CREATE TABLE hour (
-	timestamp timestamp with time zone PRIMARY KEY,
-	start timestamp with time zone,
-	"end" timestamp with time zone
+    timestamp timestamp with time zone PRIMARY KEY,
+    start timestamp with time zone,
+    "end" timestamp with time zone
 );
 
 GRANT ALL ON TABLE hour TO minerva_admin;
@@ -64,9 +64,9 @@ GRANT INSERT,DELETE,UPDATE ON TABLE hour TO minerva_writer;
 -- Table 'quarter'
 
 CREATE TABLE quarter (
-	timestamp timestamp with time zone PRIMARY KEY,
-	start timestamp with time zone,
-	"end" timestamp with time zone
+    timestamp timestamp with time zone PRIMARY KEY,
+    start timestamp with time zone,
+    "end" timestamp with time zone
 );
 
 GRANT ALL ON TABLE quarter TO minerva_admin;
@@ -76,9 +76,9 @@ GRANT INSERT,DELETE,UPDATE ON TABLE quarter TO minerva_writer;
 -- Table '5m'
 
 CREATE TABLE "5m" (
-	timestamp timestamp with time zone PRIMARY KEY,
-	start timestamp with time zone,
-	"end" timestamp with time zone
+    timestamp timestamp with time zone PRIMARY KEY,
+    start timestamp with time zone,
+    "end" timestamp with time zone
 );
 
 GRANT ALL ON TABLE "5m" TO minerva_admin;
