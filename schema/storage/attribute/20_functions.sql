@@ -1249,3 +1249,156 @@ CREATE OR REPLACE FUNCTION dependers(name name)
 AS $$
     SELECT * FROM dependers($1, 1);
 $$ LANGUAGE SQL STABLE;
+
+
+CREATE OR REPLACE FUNCTION action(attributestore, sql text)
+    RETURNS attributestore
+AS $$
+BEGIN
+    EXECUTE sql;
+
+    RETURN $1;
+END;
+$$ LANGUAGE plpgsql VOLATILE;
+
+
+CREATE OR REPLACE FUNCTION at_ptr_function_name(attributestore)
+    RETURNS name
+AS $$
+    SELECT (attribute_directory.to_table_name($1) || '_at_ptr')::name;
+$$ LANGUAGE SQL IMMUTABLE;
+
+
+CREATE OR REPLACE FUNCTION create_at_func_ptr(attribute_directory.attributestore)
+    RETURNS attribute_directory.attributestore
+AS $$
+    SELECT attribute_directory.action(
+        $1,
+        format(
+            'CREATE FUNCTION attribute_history.%I(timestamp with time zone)
+RETURNS TABLE(entity_id integer, "timestamp" timestamp with time zone)
+AS $$
+    SELECT entity_id, max(timestamp)
+    FROM
+        attribute_history.%I
+    WHERE timestamp <= $1
+    GROUP BY entity_id;
+$$ LANGUAGE SQL STABLE',
+            attribute_directory.at_ptr_function_name($1),
+            attribute_directory.to_table_name($1)
+        )
+    );
+
+    SELECT attribute_directory.action(
+        $1,
+        format(
+            'ALTER FUNCTION attribute_history.%I(timestamp with time zone) '
+            'OWNER TO minerva_writer',
+            attribute_directory.at_ptr_function_name($1)
+        )
+    );
+$$ LANGUAGE SQL VOLATILE;
+
+
+CREATE OR REPLACE FUNCTION create_entity_at_func_ptr(attribute_directory.attributestore)
+    RETURNS attribute_directory.attributestore
+AS $function$
+    SELECT attribute_directory.action(
+        $1,
+        format(
+            'CREATE FUNCTION attribute_history.%I(entity_id integer, timestamp with time zone)
+RETURNS timestamp with time zone
+AS $$
+    SELECT max(timestamp)
+    FROM
+        attribute_history.%I
+    WHERE timestamp <= $2 AND entity_id = $1;
+$$ LANGUAGE SQL STABLE',
+            attribute_directory.at_ptr_function_name($1),
+            attribute_directory.to_table_name($1)
+        )
+    );
+
+    SELECT attribute_directory.action(
+        $1,
+        format(
+            'ALTER FUNCTION attribute_history.%I(entity_id integer, timestamp with time zone) '
+            'OWNER TO minerva_writer',
+            attribute_directory.at_ptr_function_name($1)
+        )
+    );
+$function$ LANGUAGE SQL VOLATILE;
+
+
+CREATE OR REPLACE FUNCTION at_function_name(attributestore)
+    RETURNS name
+AS $$
+    SELECT (attribute_directory.to_table_name($1) || '_at')::name;
+$$ LANGUAGE SQL IMMUTABLE;
+
+
+CREATE OR REPLACE FUNCTION create_at_func(attribute_directory.attributestore)
+    RETURNS attribute_directory.attributestore
+AS $$
+    SELECT attribute_directory.action(
+        $1,
+        format(
+            'CREATE OR REPLACE FUNCTION attribute_history.%I(timestamp with time zone)
+    RETURNS SETOF attribute_history.%I
+AS $$
+SELECT a.*
+FROM
+    attribute_history.%I a
+JOIN
+    attribute_history.%I($1) at
+ON at.entity_id = a.entity_id AND at.timestamp = a.timestamp;
+$$ LANGUAGE SQL STABLE;',
+            attribute_directory.at_function_name($1),
+            attribute_directory.to_table_name($1),
+            attribute_directory.to_table_name($1),
+            attribute_directory.at_ptr_function_name($1)
+        )
+    );
+
+    SELECT attribute_directory.action(
+        $1,
+        format(
+            'ALTER FUNCTION attribute_history.%I(timestamp with time zone) '
+            'OWNER TO minerva_writer',
+            attribute_directory.at_function_name($1)
+        )
+    );
+$$ LANGUAGE SQL VOLATILE;
+
+
+CREATE OR REPLACE FUNCTION create_entity_at_func(attribute_directory.attributestore)
+    RETURNS attribute_directory.attributestore
+AS $function$
+    SELECT attribute_directory.action(
+        $1,
+        format(
+            'CREATE OR REPLACE FUNCTION attribute_history.%I(entity_id integer, timestamp with time zone)
+    RETURNS SETOF attribute_history.%I
+AS $$
+SELECT *
+FROM
+    attribute_history.%I
+WHERE timestamp = attribute_history.%I($1, $2) AND entity_id = $1;
+$$ LANGUAGE SQL STABLE;',
+            attribute_directory.at_function_name($1),
+            attribute_directory.to_table_name($1),
+            attribute_directory.to_table_name($1),
+            attribute_directory.at_ptr_function_name($1)
+        )
+    );
+
+    SELECT attribute_directory.action(
+        $1,
+        format(
+            'ALTER FUNCTION attribute_history.%I(entity_id integer, timestamp with time zone) '
+            'OWNER TO minerva_writer',
+            attribute_directory.at_function_name($1)
+        )
+    );
+$function$ LANGUAGE SQL VOLATILE;
+
