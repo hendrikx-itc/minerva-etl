@@ -1306,7 +1306,7 @@ AS $function$
     SELECT attribute_directory.action(
         $1,
         format(
-            'CREATE FUNCTION attribute_history.%I(entity_id integer, timestamp with time zone)
+            'CREATE OR REPLACE FUNCTION attribute_history.%I(entity_id integer, timestamp with time zone)
 RETURNS timestamp with time zone
 AS $$
     SELECT max(timestamp)
