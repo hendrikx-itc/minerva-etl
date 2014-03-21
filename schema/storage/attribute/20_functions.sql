@@ -1271,7 +1271,7 @@ $$ LANGUAGE SQL IMMUTABLE;
 
 CREATE OR REPLACE FUNCTION create_at_func_ptr(attribute_directory.attributestore)
     RETURNS attribute_directory.attributestore
-AS $$
+AS $function$
     SELECT attribute_directory.action(
         $1,
         format(
@@ -1297,7 +1297,7 @@ $$ LANGUAGE SQL STABLE',
             attribute_directory.at_ptr_function_name($1)
         )
     );
-$$ LANGUAGE SQL VOLATILE;
+$function$ LANGUAGE SQL VOLATILE;
 
 
 CREATE OR REPLACE FUNCTION create_entity_at_func_ptr(attribute_directory.attributestore)
@@ -1339,7 +1339,7 @@ $$ LANGUAGE SQL IMMUTABLE;
 
 CREATE OR REPLACE FUNCTION create_at_func(attribute_directory.attributestore)
     RETURNS attribute_directory.attributestore
-AS $$
+AS $function$
     SELECT attribute_directory.action(
         $1,
         format(
@@ -1368,7 +1368,7 @@ $$ LANGUAGE SQL STABLE;',
             attribute_directory.at_function_name($1)
         )
     );
-$$ LANGUAGE SQL VOLATILE;
+$function$ LANGUAGE SQL VOLATILE;
 
 
 CREATE OR REPLACE FUNCTION create_entity_at_func(attribute_directory.attributestore)
