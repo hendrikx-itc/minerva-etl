@@ -11,13 +11,13 @@ SET search_path = notification, pg_catalog;
 CREATE OR REPLACE FUNCTION create_table_on_insert()
     RETURNS TRIGGER
 AS $$
-DECLARE
-    table_name name;
 BEGIN
-    table_name = notification.table_name(NEW);
+    IF NOT notification.table_exists(notification.table_name(NEW)) THEN
+        PERFORM notification.create_table(NEW);
+    END IF;
 
-    IF NOT notification.table_exists(table_name) THEN
-        PERFORM notification.create_table(table_name);
+    IF NOT notification.table_exists(notification.staging_table_name(NEW)) THEN
+        PERFORM notification.create_staging_table(NEW);
     END IF;
 
     RETURN NEW;
@@ -55,12 +55,8 @@ $$ LANGUAGE plpgsql VOLATILE;
 CREATE OR REPLACE FUNCTION create_attribute_column_on_insert()
     RETURNS TRIGGER
 AS $$
-DECLARE
-    table_name character varying;
 BEGIN
-    SELECT notification.table_name(notificationstore) INTO table_name FROM notification.notificationstore WHERE id = NEW.notificationstore_id;
-
-    EXECUTE format('ALTER TABLE notification.%I ADD COLUMN %I %s', table_name, NEW.name, NEW.data_type);
+    PERFORM notification.create_attribute_column(NEW);
 
     RETURN NEW;
 END;

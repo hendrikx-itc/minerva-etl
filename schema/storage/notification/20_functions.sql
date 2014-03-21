@@ -8,6 +8,17 @@ SET escape_string_warning = off;
 SET search_path = notification, pg_catalog;
 
 
+CREATE OR REPLACE FUNCTION action(anyelement, text)
+    RETURNS anyelement
+AS $$
+BEGIN
+    EXECUTE $2;
+
+    RETURN $1;
+END;
+$$ LANGUAGE plpgsql VOLATILE;
+
+
 CREATE OR REPLACE FUNCTION to_char(notification.notificationstore)
     RETURNS text
 AS $$
@@ -27,34 +38,6 @@ AS $$
 $$ LANGUAGE SQL STABLE;
 
 
-CREATE OR REPLACE FUNCTION notification.create_table(name name)
-    RETURNS void
-AS $$
-BEGIN
-    EXECUTE format(
-        'CREATE TABLE %I.%I ('
-        '  id serial PRIMARY KEY,'
-        '  entity_id integer NOT NULL,'
-        '  "timestamp" timestamp with time zone NOT NULL'
-        ');', 'notification', name);
-
-    EXECUTE format('ALTER TABLE %I.%I OWNER TO minerva_writer;', 'notification',
-        name);
-
-    EXECUTE format('GRANT SELECT ON TABLE %I.%I TO minerva;', 'notification',
-        name);
-
-    EXECUTE format(
-        'GRANT INSERT,DELETE,UPDATE '
-        'ON TABLE %I.%I TO minerva_writer;',
-        'notification', name);
-
-    EXECUTE format('CREATE INDEX %I ON %I.%I USING btree (timestamp);',
-        'idx_notification_' || name || '_timestamp', 'notification', name);
-END;
-$$ LANGUAGE plpgsql VOLATILE;
-
-
 CREATE OR REPLACE FUNCTION table_name(notification.notificationstore)
     RETURNS name
 AS $$
@@ -63,6 +46,69 @@ AS $$
         WHERE
             ds.id = $1.datasource_id;
 $$ LANGUAGE SQL STABLE;
+
+
+CREATE OR REPLACE FUNCTION staging_table_name(notification.notificationstore)
+    RETURNS name
+AS $$
+    SELECT (notification.table_name($1) || '_staging')::name;
+$$ LANGUAGE SQL STABLE;
+
+
+CREATE OR REPLACE FUNCTION notification.create_table(notificationstore)
+    RETURNS notificationstore
+AS $$
+BEGIN
+    EXECUTE format(
+        'CREATE TABLE notification.%I ('
+        '  id serial PRIMARY KEY,'
+        '  entity_id integer NOT NULL,'
+        '  "timestamp" timestamp with time zone NOT NULL'
+        ');', notification.table_name($1));
+
+    EXECUTE format('ALTER TABLE notification.%I OWNER TO minerva_writer;',
+        notification.table_name($1));
+
+    EXECUTE format('GRANT SELECT ON TABLE notification.%I TO minerva;',
+        notification.table_name($1));
+
+    EXECUTE format(
+        'GRANT INSERT,DELETE,UPDATE '
+        'ON TABLE notification.%I TO minerva_writer;',
+        notification.table_name($1));
+
+    EXECUTE format('CREATE INDEX %I ON notification.%I USING btree (timestamp);',
+        'idx_notification_' || notification.table_name($1) || '_timestamp', notification.table_name($1));
+
+    RETURN $1;
+END;
+$$ LANGUAGE plpgsql VOLATILE;
+
+
+CREATE OR REPLACE FUNCTION notification.create_staging_table(notificationstore)
+    RETURNS notificationstore
+AS $$
+BEGIN
+    EXECUTE format(
+        'CREATE UNLOGGED TABLE notification.%I ('
+        '  entity_id integer NOT NULL,'
+        '  "timestamp" timestamp with time zone NOT NULL'
+        ');', notification.staging_table_name($1));
+
+    EXECUTE format('ALTER TABLE notification.%I OWNER TO minerva_writer;',
+        notification.staging_table_name($1));
+
+    EXECUTE format('GRANT SELECT ON TABLE notification.%I TO minerva;',
+        notification.staging_table_name($1));
+
+    EXECUTE format(
+        'GRANT INSERT,DELETE,UPDATE '
+        'ON TABLE notification.%I TO minerva_writer;',
+        notification.staging_table_name($1));
+
+    RETURN $1;
+END;
+$$ LANGUAGE plpgsql VOLATILE;
 
 
 CREATE OR REPLACE FUNCTION table_exists(schema_name name, table_name name)
@@ -220,4 +266,68 @@ CREATE OR REPLACE FUNCTION get_column_type_name(notification.notificationstore, 
     RETURNS name
 AS $$
     SELECT notification.get_column_type_name('notification', notification.table_name($1), $2);
+$$ LANGUAGE SQL STABLE;
+
+
+CREATE OR REPLACE FUNCTION add_attribute_column_sql(name, attribute)
+    RETURNS text 
+AS $$
+    SELECT format(
+        'ALTER TABLE notification.%I ADD COLUMN %I %s',
+        $1, $2.name, $2.data_type
+    );
+$$ LANGUAGE SQL STABLE;
+
+
+CREATE OR REPLACE FUNCTION add_staging_attribute_column_sql(attribute)
+    RETURNS text 
+AS $$
+    SELECT
+        format(
+            'ALTER TABLE notification.%I ADD COLUMN %I %s',
+            notification.staging_table_name(notificationstore), $1.name, $1.data_type
+        )
+    FROM notification.notificationstore WHERE id = $1.notificationstore_id;
+$$ LANGUAGE SQL STABLE;
+
+
+CREATE OR REPLACE FUNCTION create_attribute_column(attribute)
+    RETURNS attribute    
+AS $$
+SELECT
+    notification.action(
+        $1,
+        notification.add_attribute_column_sql(
+            notification.table_name(notificationstore),
+            $1
+        )
+    )
+FROM notification.notificationstore WHERE id = $1.notificationstore_id;
+
+SELECT
+    notification.action(
+        $1,
+        notification.add_attribute_column_sql(
+            notification.staging_table_name(notificationstore),
+            $1
+        )
+    )
+FROM notification.notificationstore WHERE id = $1.notificationstore_id;
+$$ LANGUAGE SQL VOLATILE;
+
+
+CREATE OR REPLACE FUNCTION get_attr_defs(notificationstore)
+    RETURNS SETOF attr_def AS
+$$
+    SELECT (attname, typname)::notification.attr_def
+    FROM pg_type
+    JOIN pg_attribute ON pg_attribute.atttypid = pg_type.oid
+    JOIN pg_class ON pg_class.oid = pg_attribute.attrelid
+    JOIN pg_namespace ON pg_namespace.oid = pg_class.relnamespace
+    WHERE
+    nspname = 'notification' AND
+    relname = notification.table_name($1) AND
+    attnum > 0 AND
+    NOT attname IN ('id', 'entity_id', 'timestamp') AND
+    NOT pg_attribute.attisdropped;
 $$ LANGUAGE SQL STABLE;
