@@ -60,7 +60,8 @@ CREATE TABLE trendstore (
     granularity varchar not null,
     partition_size integer not null,
     type storetype not null DEFAULT 'table',
-    version integer not null DEFAULT 4
+    version integer not null DEFAULT 4,
+    retention_period interval not null DEFAULT interval '1 month'
 );
 
 ALTER TABLE trendstore OWNER TO minerva_admin;
