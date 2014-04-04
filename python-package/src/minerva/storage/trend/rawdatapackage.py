@@ -9,11 +9,13 @@ the Free Software Foundation; either version 3, or (at your option) any later
 version.  The full license is in the file COPYING, distributed as part of
 this software.
 """
+from minerva.storage.trend.datapackage import DataPackage
+
 from minerva.directory.distinguishedname import explode
 from minerva.util import grouped_by
 
 
-class RawDataPackage(object):
+class RawDataPackage(DataPackage):
     def __init__(self, granularity, timestamp, trend_names, rows):
         self.granularity = granularity
         self.timestamp = timestamp
