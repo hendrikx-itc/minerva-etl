@@ -49,3 +49,17 @@ class DataPackage(object):
     def is_empty(self):
         """Return True if the package has no data rows."""
         return len(self.rows) == 0
+
+    def as_tuple(self):
+        """
+        Return the legacy tuple (granularity, timestamp, trend_names, rows)
+        """
+        return self.granularity, self.timestamp, self.trend_names, self.rows
+
+    def transform_rows(self, transformer):
+        return self.__class__(
+            self.granularity,
+            self.timestamp,
+            self.trend_names,
+            map(transformer, self.rows)
+        )
