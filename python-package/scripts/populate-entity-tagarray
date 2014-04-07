@@ -10,7 +10,7 @@ function get_conf_value()
     local filepath=$1
     local name=$2
 
-    grep -e "^$name\s*=.*" $filepath | sed -re "s/^$name\s*=\s*(.*)/\1/g"
+    grep -e "^$name\s*=.*" $filepath | head -n 1 | sed -re "s/^$name\s*=\s*(.*)/\1/g"
 }
 
 host=$(get_conf_value "$instance_conf_file" host)
