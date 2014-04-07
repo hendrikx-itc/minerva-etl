@@ -274,6 +274,11 @@ ALTER TABLE directory.entity_link_denorm OWNER TO minerva_admin;
 CREATE INDEX ON directory.entity_link_denorm USING gin (tags);
 CREATE INDEX ON directory.entity_link_denorm (name);
 
+GRANT SELECT ON TABLE directory.entity_link_denorm TO minerva;
+GRANT UPDATE, INSERT, DELETE ON TABLE directory.entity_link_denorm TO minerva_writer;
+GRANT ALL ON TABLE directory.entity_link_denorm TO minerva_admin;
+
+
 -- Table 'aliastype'
 
 CREATE TABLE aliastype
