@@ -69,6 +69,7 @@ setup(
         "scripts/populate-gis",
         "scripts/cleanup-trend-data",
         "scripts/materialize-attribute-curr",
+        "scripts/materialize-relation-all",
         "scripts/cleanup-orphaned-data",
         "scripts/migrate-trendstore",
         "scripts/trend-to-csv"]
