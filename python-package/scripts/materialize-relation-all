@@ -27,8 +27,6 @@ package_name = "minerva"
 script_name = os.path.basename(__file__)
 config_file = "{}.conf".format(script_name)
 
-default_temporary_table_name = "relation.all_materialize_temp" 
-
 
 def main():
     default_minerva_instance = os.environ.get(
@@ -86,15 +84,11 @@ def main():
             setup_logging(logging.INFO)
 
     with closing(minerva_instance.connect(user=user)) as conn:
-        if table_exists(conn, default_temporary_table_name):
-            drop_table(conn, default_temporary_table_name)
-        
-        materialize(conn, "relation.all", default_temporary_table_name)
-
-        if table_exists(conn, "relation.all_materialized"):
-            drop_table(conn, "relation.all_materialized")
-        
-        rename_table(conn, default_temporary_table_name, "all_materialized")
+        drop_if_exists(conn, "relation.all_materialized_temp")
+        create_temporary_table(conn)
+        materialize(conn)
+        drop_if_exists(conn, "relation.all_materialized")
+        rename_temporary_table(conn)
 
     return 0
 
@@ -104,6 +98,45 @@ def setup_logging(level):
 
     root_logger.addHandler(logging.StreamHandler())
     root_logger.setLevel(level)
+
+
+def create_temporary_table(conn):
+    query = """
+CREATE TABLE relation.all_materialized_temp
+(
+  source_id integer NOT NULL,
+  target_id integer NOT NULL,
+  type_id integer NOT NULL,
+  CONSTRAINT all_materialized_temp_pkey PRIMARY KEY (source_id, target_id, type_id)
+)
+WITH (
+  OIDS=FALSE
+);
+ALTER TABLE relation.all_materialized_temp OWNER TO minerva_admin;
+GRANT ALL ON TABLE relation.all_materialized_temp TO minerva_admin;
+GRANT SELECT ON TABLE relation.all_materialized_temp TO minerva;
+GRANT UPDATE, INSERT, DELETE ON TABLE relation.all_materialized_temp TO minerva_writer;
+CREATE INDEX all_materialized_temp_target_id_idx ON relation.all_materialized_temp USING btree (target_id);
+CREATE INDEX all_materialized_temp_type_id_idx ON relation.all_materialized_temp USING btree (type_id);
+"""
+    with closing(conn.cursor()) as cursor:
+        cursor.execute(query)
+    
+    conn.commit()
+
+
+def rename_temporary_table(conn):
+    query = """
+ALTER TABLE relation.all_materialized_temp RENAME TO all_materialized;
+ALTER INDEX relation.all_materialized_temp_pkey RENAME TO all_materialized_pkey;
+ALTER INDEX relation.all_materialized_temp_target_id_idx RENAME TO all_materialized_target_id_idx;
+ALTER INDEX relation.all_materialized_temp_type_id_idx RENAME TO all_materialized_type_id_idx;
+"""
+
+    with closing(conn.cursor()) as cursor:
+        cursor.execute(query)
+    
+    conn.commit()
 
 
 def table_exists(conn, tablename):
@@ -128,31 +161,22 @@ WHERE table_schema = %s AND table_name = %s)"""
     return exist
 
 
-def drop_table(conn, tablename):
-    query = "DROP TABLE {}".format(tablename)
+def drop_if_exists(conn, tablename):
+    if table_exists(conn, tablename):
+        query = "DROP TABLE {}".format(tablename)
+        with closing(conn.cursor()) as cursor:
+            cursor.execute(query)
+        conn.commit()
+
+
+def materialize(conn):
+    query = "INSERT INTO relation.all_materialized_temp SELECT * FROM relation.all" 
     
     with closing(conn.cursor()) as cursor:
         cursor.execute(query)
     
     conn.commit()
 
-
-def materialize(conn, original_tablename, new_tablename):
-    query = "SELECT * INTO {} FROM {}".format(new_tablename, original_tablename) 
-    
-    with closing(conn.cursor()) as cursor:
-        cursor.execute(query)
-    
-    conn.commit()
-
-
-def rename_table(conn, old_tablename, new_tablename):
-    query = "ALTER TABLE {} RENAME TO {}".format(old_tablename, new_tablename)
-
-    with closing(conn.cursor()) as cursor:
-        cursor.execute(query)
-    
-    conn.commit()
 
 
 class GenerateConfigFileAction(argparse.Action):
