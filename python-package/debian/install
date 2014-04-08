@@ -4,6 +4,4 @@ src/minerva/defaults/load-data.conf etc/minerva
 src/minerva/defaults/link-entity-tags.conf /etc/minerva
 src/minerva/defaults/create-relations.conf /etc/minerva
 src/minerva/defaults/cleanup-trend-data.conf /etc/minerva
-
 src/minerva/defaults/materialize-relation-all.conf /etc/minerva
-
