@@ -1,0 +1,165 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+__docformat__ = "restructuredtext en"
+
+__copyright__ = """
+Copyright (C) 2008-2013 Hendrikx-ITC B.V.
+
+Distributed under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 3, or (at your option) any later
+version.  The full license is in the file COPYING, distributed as part of
+this software.
+"""
+import os
+import sys
+import argparse
+import logging
+from contextlib import closing
+
+from minerva import __version__ as version
+from minerva.util.config import load_config, get_defaults, ConfigError
+from minerva.instance import MinervaInstance
+from minerva.storage import get_plugin
+from minerva.storage.geospatial.types import Site, Cell, Point
+
+
+package_name = "minerva"
+script_name = os.path.basename(__file__)
+config_file = "{}.conf".format(script_name)
+
+default_temporary_table_name = "relation.all_materialize_temp" 
+
+
+def main():
+    default_minerva_instance = os.environ.get(
+        "DEFAULT_MINERVA_INSTANCE", "default")
+
+    config_file_path = os.path.join("/etc/minerva", config_file)
+
+    parser = argparse.ArgumentParser(
+        description="Populate relation.all_materialized")
+
+    parser.add_argument(
+        "--version", action="version", version=version,
+        help="display version information and exit")
+
+    parser.add_argument(
+        "-i", "--instance", default=default_minerva_instance,
+        help="name of the target minerva instance")
+
+    parser.add_argument("-u", "--user", help="user to connect to database")
+
+    parser.add_argument(
+        "-c", "--configfile", dest="configfile", default=config_file_path,
+        help="the path to the config file")
+
+    parser.add_argument(
+        "-v", "--verbose", action="store_true", default=False,
+        help="verbose output")
+
+    parser.add_argument(
+        "-d", "--debug", action="store_true", default=False,
+        help="debug output")
+
+    parser.add_argument(
+        "--generate-configfile", dest="generate_configfile",
+        action=GenerateConfigFileAction, nargs=0,
+        help="generate base config file")
+
+    args = parser.parse_args()
+
+    try:
+        config = load_config(get_defaults(package_name, config_file),
+                             args.configfile)
+    except ConfigError as exc:
+        print("error loading configuration: {}".format(exc))
+        return 1
+
+    minerva_instance = MinervaInstance.load(args.instance)
+    user = (args.user or config.get("database", {}).get("user")
+        or "minerva_admin")
+
+    if args.verbose or args.debug:
+        if args.debug:
+            setup_logging(logging.DEBUG)
+        else:
+            setup_logging(logging.INFO)
+
+    with closing(minerva_instance.connect(user=user)) as conn:
+        if table_exists(conn, default_temporary_table_name):
+            drop_table(conn, default_temporary_table_name)
+        
+        materialize(conn, "relation.all", default_temporary_table_name)
+
+        if table_exists(conn, "relation.all_materialized"):
+            drop_table(conn, "relation.all_materialized")
+        
+        rename_table(conn, default_temporary_table_name, "all_materialized")
+
+    return 0
+
+
+def setup_logging(level):
+    root_logger = logging.getLogger("")
+
+    root_logger.addHandler(logging.StreamHandler())
+    root_logger.setLevel(level)
+
+
+def table_exists(conn, tablename):
+    values = tablename.split(".")
+    if len(values) == 1:
+        s = "public"
+        t = values[0]
+    elif len(values) > 1:
+        s = values[0]
+        t = ".".join(values[1:])
+    else:
+        return False
+    
+    query = """
+SELECT EXISTS( SELECT * FROM information_schema.tables 
+WHERE table_schema = %s AND table_name = %s)"""
+
+    with closing(conn.cursor()) as cursor:
+        cursor.execute(query, (s, t))
+        exist, = cursor.fetchone()
+    
+    return exist
+
+
+def drop_table(conn, tablename):
+    query = "DROP TABLE {}".format(tablename)
+    
+    with closing(conn.cursor()) as cursor:
+        cursor.execute(query)
+    
+    conn.commit()
+
+
+def materialize(conn, original_tablename, new_tablename):
+    query = "SELECT * INTO {} FROM {}".format(new_tablename, original_tablename) 
+    
+    with closing(conn.cursor()) as cursor:
+        cursor.execute(query)
+    
+    conn.commit()
+
+
+def rename_table(conn, old_tablename, new_tablename):
+    query = "ALTER TABLE {} RENAME TO {}".format(old_tablename, new_tablename)
+
+    with closing(conn.cursor()) as cursor:
+        cursor.execute(query)
+    
+    conn.commit()
+
+
+class GenerateConfigFileAction(argparse.Action):
+    def __call__(self, parser, namespace, values, option_string=None):
+        sys.stdout.write(get_defaults(package_name, config_file))
+        sys.exit(0)
+
+
+if __name__ == "__main__":
+    main()
