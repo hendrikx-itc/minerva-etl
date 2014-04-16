@@ -7,7 +7,6 @@ import argparse
 import traceback
 import logging
 from contextlib import closing
-from logging.handlers import RotatingFileHandler
 from pkg_resources import resource_string
 from StringIO import StringIO
 
@@ -110,9 +109,6 @@ def main():
         log_level = logging.DEBUG
 
     setup_logging(log_level)
-
-    setup_file_logging(config["log_directory"], config["log_filename"],
-                       config["log_rotation_size"], log_level)
 
     mode = NORMAL
     if args.reverse:
@@ -242,23 +238,6 @@ def setup_logging(level):
         root_logger.addHandler(handler)
 
     root_logger.setLevel(logging.INFO)
-
-
-def setup_file_logging(directory, filename, rotation_size, level):
-    """Setup rotating file logging."""
-    max_log_size = parse_size(rotation_size)
-
-    filepath = os.path.join(directory, filename)
-    handler = RotatingFileHandler(filepath, maxBytes=max_log_size,
-                                  backupCount=5)
-    handler.setLevel(level)
-
-    formatter = logging.Formatter("%(asctime)s %(levelname)s %(message)s")
-    handler.setFormatter(formatter)
-
-    rootlogger = logging.getLogger("")
-    rootlogger.setLevel(level)
-    rootlogger.addHandler(handler)
 
 
 class GenerateConfigFileAction(argparse.Action):
