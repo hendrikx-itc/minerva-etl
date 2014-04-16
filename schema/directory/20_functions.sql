@@ -49,6 +49,25 @@ AS $$
 $$ LANGUAGE SQL STABLE;
 
 
+CREATE OR REPLACE FUNCTION entities_by_type(character varying)
+    RETURNS SETOF directory.entity
+AS $$
+    SELECT e.*
+    FROM directory.entity e
+    JOIN directory.entitytype et ON et.id = e.entitytype_id
+    WHERE et.name = $1;
+$$ LANGUAGE SQL STABLE;
+
+
+CREATE OR REPLACE FUNCTION entities_by_type(integer)
+    RETURNS SETOF directory.entity
+AS $$
+    SELECT *
+    FROM directory.entity
+    WHERE entitytype_id = $1;
+$$ LANGUAGE SQL STABLE;
+
+
 CREATE OR REPLACE FUNCTION get_entitytype(character varying)
     RETURNS directory.entitytype
 AS $$
