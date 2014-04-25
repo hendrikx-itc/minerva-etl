@@ -12,8 +12,11 @@ version.  The full license is in the file COPYING, distributed as part of
 this software.
 """
 from xml.sax.handler import ContentHandler
-from xmlelementtype import XmlElementType
+from minerva.xmldochandler.xmlelementtype import XmlElementType
 import logging
+
+
+BREAK_ON_MISSING_HANDLER = False
 
 
 class XmlDocHandler(ContentHandler):
@@ -24,16 +27,16 @@ class XmlDocHandler(ContentHandler):
         self.schemacontext = None
         self.onstartprefixmapping = None
 
-    def startElementNS(self, name, qname, attrs):
+    def get_handler(self, name):
         if len(self._stack) > 0:
-            elementtype = self._stack[-1][0].elementtype
-
-            matching_handler = elementtype.get_child_elementhandler(name[1])
-        else:
-            matching_handler = self.schemacontext.get_elementhandler(
-                name[0],
+            return self._stack[-1][0].elementtype.get_child_elementhandler(
                 name[1]
             )
+        else:
+            return self.schemacontext.get_elementhandler(name[0], name[1])
+
+    def startElementNS(self, name, qname, attrs):
+        matching_handler = self.get_handler(name)
 
         if matching_handler:
             attributes = matching_handler.elementtype.get_attributes()
@@ -57,8 +60,12 @@ class XmlDocHandler(ContentHandler):
 
             self._stack.append((matching_handler, context))
         else:
-            # No matching element handler for the current element.
-            # Should not occur often, so performance is not an issue here.
+            self.handle_unknown_element(name, qname, attrs)
+
+    def handle_unknown_element(self, name, qname, attrs):
+        # No matching element handler for the current element.
+        # Should not occur often, so performance is not an issue here.
+        if BREAK_ON_MISSING_HANDLER:
             if len(self._stack) > 0:
                 parent_handler, context = self._stack[-1]
                 raise Exception(
@@ -69,13 +76,13 @@ class XmlDocHandler(ContentHandler):
                 raise Exception(
                     "No handler found for root element '{0}'".format(name[1])
                 )
-
-            dummy_elementhandler = XmlElementHandler(
+        else:
+            dummy_elementhandler = XmlElementType.XmlElementHandler(
                 name[1], XmlElementType(None, None)
             )
 
             if len(self._stack) > 0:
-                self._stack[-1][0].elementtype.addchildelementhandlers(
+                self._stack[-1][0].elementtype.add_child_elementhandlers(
                     dummy_elementhandler
                 )
 
