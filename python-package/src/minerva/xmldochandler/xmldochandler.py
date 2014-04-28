@@ -16,16 +16,18 @@ from minerva.xmldochandler.xmlelementtype import XmlElementType
 import logging
 
 
-BREAK_ON_MISSING_HANDLER = False
-
-
 class XmlDocHandler(ContentHandler):
 
-    def __init__(self):
+    def __init__(self, break_on_missing_handler=False):
         ContentHandler.__init__(self)
         self._stack = []
         self.schemacontext = None
         self.onstartprefixmapping = None
+
+        if break_on_missing_handler:
+            self.handle_unknown_element = self.break_on_missing_handler
+        else:
+            self.handle_unknown_element = self.log_on_missing_handler
 
     def get_handler(self, name):
         if len(self._stack) > 0:
@@ -62,38 +64,36 @@ class XmlDocHandler(ContentHandler):
         else:
             self.handle_unknown_element(name, qname, attrs)
 
-    def handle_unknown_element(self, name, qname, attrs):
-        # No matching element handler for the current element.
-        # Should not occur often, so performance is not an issue here.
-        if BREAK_ON_MISSING_HANDLER:
-            if len(self._stack) > 0:
-                parent_handler, context = self._stack[-1]
-                raise Exception(
-                    "No handler found for element '{0}' under parent element "
-                    "handler '{1}'".format(name[1], parent_handler.name)
-                )
-            else:
-                raise Exception(
-                    "No handler found for root element '{0}'".format(name[1])
-                )
+    def break_on_missing_handler(self, name, qname, attrs):
+        if len(self._stack) > 0:
+            parent_handler, context = self._stack[-1]
+            raise Exception(
+                "No handler found for element '{0}' under parent element "
+                "handler '{1}'".format(name[1], parent_handler.name)
+            )
         else:
-            dummy_elementhandler = XmlElementType.XmlElementHandler(
-                name[1], XmlElementType(None, None)
+            raise Exception(
+                "No handler found for root element '{0}'".format(name[1])
             )
 
-            if len(self._stack) > 0:
-                self._stack[-1][0].elementtype.add_child_elementhandlers(
-                    dummy_elementhandler
-                )
+    def log_on_missing_handler(self, name, qname, attrs):
+        dummy_elementhandler = XmlElementType.XmlElementHandler(
+            name[1], XmlElementType(None, None)
+        )
 
-            self._stack.append((dummy_elementhandler, None))
-
-            logging.debug(
-                "Start of unregistered handler {0!s}\n{1:s}".format(
-                    name,
-                    "->".join(str(handler) for handler, context in self._stack)
-                )
+        if len(self._stack) > 0:
+            self._stack[-1][0].elementtype.add_child_elementhandlers(
+                dummy_elementhandler
             )
+
+        self._stack.append((dummy_elementhandler, None))
+
+        logging.debug(
+            "Start of unregistered handler {0!s}\n{1:s}".format(
+                name,
+                "->".join(str(handler) for handler, context in self._stack)
+            )
+        )
 
     def endElementNS(self, name, qname):
         (handler, context) = self._stack.pop()
