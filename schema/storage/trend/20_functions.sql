@@ -321,20 +321,24 @@ END;
 $$ LANGUAGE plpgsql VOLATILE STRICT;
 
 
-CREATE OR REPLACE FUNCTION transfer_staged(trendstore trend.trendstore)
+CREATE OR REPLACE FUNCTION trend.transfer_staged(trendstore trendstore)
     RETURNS void
+    LANGUAGE plpgsql
 AS $$
 DECLARE
     ts timestamp with time zone;
+    partition trend.partition;
 BEGIN
     FOR ts IN EXECUTE format('SELECT timestamp FROM trend.%I GROUP BY timestamp', trend.staging_table_name(trendstore))
     LOOP
-        EXECUTE format('INSERT INTO trend.%I SELECT * FROM trend.%I WHERE timestamp = $1', trend.partition_name(trendstore, ts), trend.staging_table_name(trendstore)) USING ts;
+        partition = trend.attributes_to_partition(trendstore, trend.timestamp_to_index(trendstore.partition_size, ts));
+
+        EXECUTE format('INSERT INTO trend.%I SELECT * FROM trend.%I WHERE timestamp = $1', partition.table_name, trend.staging_table_name(trendstore)) USING ts;
     END LOOP;
 
     EXECUTE format('TRUNCATE trend.%I', trend.staging_table_name(trendstore));
 END;
-$$ LANGUAGE plpgsql VOLATILE;
+$$;
 
 
 CREATE OR REPLACE FUNCTION cluster_table_on_timestamp(name text)
