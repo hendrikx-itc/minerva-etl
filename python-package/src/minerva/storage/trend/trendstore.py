@@ -25,7 +25,7 @@ from minerva.db.error import NoCopyInProgress, NoSuchTable, \
 from minerva.db.query import Table, Column, Eq, column_exists, ands
 from minerva.directory.helpers_v4 import get_datasource_by_id, \
     get_entitytype_by_id, get_entity, dns_to_entity_ids
-from minerva.storage.generic import datatype, format_value
+from minerva.storage.generic import datatype, format_value, escape_value
 from minerva.db.error import translate_postgresql_exception, \
     translate_postgresql_exceptions
 from minerva.db.dbtransaction import DbTransaction, DbAction, \
@@ -58,8 +58,7 @@ class TrendStore(object):
         self.partitioning = Partitioning(partition_size)
 
     def __str__(self):
-        return ("{0.datasource.name}_{0.entitytype.name}_"
-                "{0.granularity.name}").format(self)
+        return self.make_table_basename()
 
     def make_table_basename(self):
         granularity_name = DATA_TABLE_POSTFIXES.get(
@@ -252,8 +251,6 @@ class TrendStore(object):
             trendstore_id, datasource_id, entitytype_id, granularity_str, \
                     partition_size, type, version = cursor.fetchone()
 
-            granularity = create_granularity(granularity_str)
-
             trendstore = TrendStore(datasource, entitytype, granularity,
                     partition_size, type)
 
@@ -301,6 +298,24 @@ class TrendStore(object):
         else:
             partition = self.partition(datapackage.timestamp)
             return store(partition, datapackage)
+
+    def store_raw(self, raw_datapackage):
+        if raw_datapackage.is_empty():
+            return DbTransaction()
+
+        if len(raw_datapackage.rows) <= LARGE_BATCH_THRESHOLD:
+            insert_action = BatchInsert
+        else:
+            insert_action = CopyFrom
+
+        return DbTransaction(
+            RefineRawDataPackage(k(raw_datapackage)),
+            SetTimestamp(read("datapackage")),
+            SetPartition(self),
+            GetTimestamp(),
+            insert_action(read("partition"), read("datapackage")),
+            MarkModified(read("partition"), read("timestamp"))
+        )
 
     def clear_timestamp(self, timestamp):
         def f(cursor):
@@ -395,6 +410,16 @@ class RefineRawDataPackage(DbAction):
             state["datapackage"] = refine_datapackage(cursor, raw_datapackage)
         except UniqueViolation:
             return no_op
+
+
+class SetPartition(DbAction):
+    def __init__(self, trendstore):
+        self.trendstore = trendstore
+
+    def execute(self, cursor, state):
+        timestamp = state["timestamp"]
+
+        state["partition"] = self.trendstore.partition(timestamp)
 
 
 class ExtractPartition(DbAction):
@@ -596,8 +621,7 @@ class CreatePartition(DbAction):
         except DuplicateTable:
             return drop_action()
 
-        partition.check_columns_exist(trend_names,
-                data_types)(cursor)
+        partition.check_columns_exist(trend_names, data_types)(cursor)
 
 
 class CheckColumnTypes(DbAction):
@@ -695,7 +719,7 @@ def create_copy_from_lines(timestamp, modified, data_rows):
 def create_copy_from_line(timestamp, modified, data_row):
     entity_id, values = data_row
 
-    trend_value_part = "\t".join(format_value(value) for value in values)
+    trend_value_part = "\t".join(escape_value(format_value(value)) for value in values)
 
     return u"{0:d}\t'{1!s}'\t'{2!s}'\t{3}\n".format(entity_id,
             timestamp.isoformat(), modified.isoformat(), trend_value_part)
