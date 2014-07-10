@@ -13,22 +13,28 @@ postgresql-9.3-postgis-scripts:
     - installed
 
 postgresql-server-dev-9.3:
-  pkg.installed
+  pkg:
+    - installed
 
 libpq-dev:
-  pkg.installed
+  pkg:
+    - installed
 
 vim:
-  pkg.installed
+  pkg:
+    - installed
 
 zsh:
-  pkg.installed
+  pkg:
+    - installed
 
 python-virtualenv:
-  pkg.installed
+  pkg:
+    - installed
 
 language-pack-nl:
-  pkg.installed
+  pkg:
+    - installed
 
 python-package:
   pip.installed:
@@ -37,12 +43,14 @@ python-package:
 # Psycopg2 requires compilation, so it is easier to use the standard Ubuntu
 # package
 python-psycopg2:
-  pkg.installed
+  pkg:
+    - installed
 
 # python_dateutil from pypi currently has permission issues with some files
 # after installation, so use the standard Ubuntu package
 python-dateutil:
-  pkg.installed
+  pkg:
+    - installed
 
 vagrant:
   user.present:
@@ -55,7 +63,8 @@ vagrant:
       - service: postgresql
 
 minerva:
-  postgres_database.present
+  postgres_database:
+    - present
 
 /home/vagrant/.zshrc:
   file.managed:
@@ -73,9 +82,9 @@ init-minerva-db:
     - watch:
       - postgres_database: minerva
 
-
 git:
-  pkg.installed
+  pkg:
+    - installed
 
 install-pgtap:
   cmd.wait:
@@ -85,7 +94,6 @@ install-pgtap:
       - cmd: init-minerva-db
     - require:
       - pkg: git
-
 
 /etc/minerva/instances/default.conf:
   file.copy:
