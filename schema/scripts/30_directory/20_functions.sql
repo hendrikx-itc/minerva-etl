@@ -411,3 +411,20 @@ BEGIN
         format(' JOIN directory.aliastype %I ON %I.id = %I.type_id and %I.name = %L AND lower(%I.name) = lower(%L)', aliastype_alias, aliastype_alias, alias_alias, aliastype_alias, 'name', alias_alias, alias);
 END;
 $$ LANGUAGE plpgsql STABLE STRICT;
+
+
+CREATE OR REPLACE FUNCTION tag_entity(entity_id integer, tag character varying)
+    RETURNS integer 
+AS $$
+    INSERT INTO directory.entitytaglink(tag_id, entity_id) SELECT id, $1 FROM directory.tag WHERE name = $2 RETURNING $1;
+$$ LANGUAGE SQL VOLATILE;
+
+
+CREATE OR REPLACE FUNCTION tag_entity(dn character varying, tag character varying)
+    RETURNS character varying 
+AS $$
+    INSERT INTO directory.entitytaglink(tag_id, entity_id)
+    SELECT tag.id, entity.id
+    FROM directory.tag, directory.entity
+    WHERE tag.name = $2 AND entity.dn = $1 RETURNING $1;
+$$ LANGUAGE SQL VOLATILE;

@@ -100,6 +100,8 @@ BEGIN
 
     PERFORM attribute_directory.create_curr_ptr_table($1);
 
+    PERFORM attribute_directory.create_compacted_tmp_table($1);
+
     PERFORM attribute_directory.create_dependees($1);
 
     RETURN $1;

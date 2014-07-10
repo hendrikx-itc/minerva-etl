@@ -58,6 +58,10 @@ def format_value(value, encoding="utf-8"):
         return unicode(value)
 
 
+def escape_value(value):
+    return value.replace('\\', '\\\\').replace('\r', '\\r').replace('\n', '\\n')
+
+
 def create_column(conn, schema, table, column_name, data_type):
     """
     Create a new column with matching datatype for the specified trend.
