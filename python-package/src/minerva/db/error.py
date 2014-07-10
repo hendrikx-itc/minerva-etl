@@ -61,7 +61,12 @@ postgresql_exception_mapping = {
 
 
 def translate_postgresql_exception(exc):
-    return postgresql_exception_mapping.get(exc.pgcode, exc)
+    exc_type = postgresql_exception_mapping.get(exc.pgcode)
+
+    if exc_type is None:
+        return exc
+    else:
+        return exc_type(exc.pgerror)
 
 
 def translate_postgresql_exceptions(f):

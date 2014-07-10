@@ -103,10 +103,10 @@ def main():
         config.get("database", {}).get("user") or
         "minerva_admin")
 
-    log_level = LEVEL_MAP[config["log_level"]]
-
     if args.debug:
         log_level = logging.DEBUG
+    else:
+        log_level = logging.INFO
 
     setup_logging(log_level)
 

@@ -64,10 +64,6 @@ def main():
         "-e", "--entitytype", help="entitytype of trendstores to clean")
 
     parser.add_argument(
-        "-a", "--age", default="14 days",
-        help="minimum age of partitions to remove")
-
-    parser.add_argument(
         "--generate-configfile", dest="generate_configfile",
         action=GenerateConfigFileAction, nargs=0,
         help="generate base config file")
@@ -110,10 +106,10 @@ def main():
         "SELECT table_name, data_start, data_end "
         "FROM trend.partition p "
         "JOIN trend.trendstore ts ON ts.id = p.trendstore_id {}"
-        "WHERE ts.granularity = %s AND data_end < now() - interval %s "
+        "WHERE ts.granularity = %s AND data_end < now() - ts.retention_period "
         "ORDER BY data_end, table_name").format("".join(joins))
 
-    select_args.extend((args.granularity, args.age))
+    select_args.append(args.granularity)
 
     delete_query = (
         "DELETE FROM trend.partition "
@@ -131,8 +127,6 @@ def main():
                     conn.commit()
                 logging.info("dropped table {}, {} - {}".format(
                     table_name, start, end))
-
-    return 0
 
 
 class GenerateConfigFileAction(argparse.Action):

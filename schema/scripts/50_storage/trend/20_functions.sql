@@ -290,6 +290,57 @@ END;
 $$ LANGUAGE plpgsql VOLATILE STRICT;
 
 
+CREATE OR REPLACE FUNCTION staging_table_name(trend.trendstore)
+    RETURNS name
+AS $$
+    SELECT (trend.to_base_table_name($1) || '_staging')::name;
+$$ LANGUAGE SQL STABLE;
+
+
+CREATE OR REPLACE FUNCTION create_staging_table(trendstore trend.trendstore)
+    RETURNS void
+AS $$
+DECLARE
+    base_name name;
+    name name;
+BEGIN
+    base_name = to_base_table_name(trendstore);
+    name = base_name || '_staging';
+
+    EXECUTE format('CREATE UNLOGGED TABLE trend.%I (
+    ) INHERITS (trend.%I);', name, base_name);
+
+    EXECUTE format('ALTER TABLE ONLY trend.%I
+    ADD PRIMARY KEY (entity_id, "timestamp");', name);
+
+    EXECUTE format('ALTER TABLE trend.%I OWNER TO minerva_writer;', name);
+
+    EXECUTE format('GRANT SELECT ON TABLE trend.%I TO minerva;', name);
+    EXECUTE format('GRANT INSERT,DELETE,UPDATE ON TABLE trend.%I TO minerva_writer;', name);
+END;
+$$ LANGUAGE plpgsql VOLATILE STRICT;
+
+
+CREATE OR REPLACE FUNCTION trend.transfer_staged(trendstore trendstore)
+    RETURNS void
+    LANGUAGE plpgsql
+AS $$
+DECLARE
+    ts timestamp with time zone;
+    partition trend.partition;
+BEGIN
+    FOR ts IN EXECUTE format('SELECT timestamp FROM trend.%I GROUP BY timestamp', trend.staging_table_name(trendstore))
+    LOOP
+        partition = trend.attributes_to_partition(trendstore, trend.timestamp_to_index(trendstore.partition_size, ts));
+
+        EXECUTE format('INSERT INTO trend.%I SELECT * FROM trend.%I WHERE timestamp = $1', partition.table_name, trend.staging_table_name(trendstore)) USING ts;
+    END LOOP;
+
+    EXECUTE format('TRUNCATE trend.%I', trend.staging_table_name(trendstore));
+END;
+$$;
+
+
 CREATE OR REPLACE FUNCTION cluster_table_on_timestamp(name text)
     RETURNS void
 AS $$

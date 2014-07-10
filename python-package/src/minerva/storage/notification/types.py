@@ -9,27 +9,16 @@ the Free Software Foundation; either version 3, or (at your option) any later
 version.  The full license is in the file COPYING, distributed as part of
 this software.
 """
-
-from functools import partial
-
 from minerva.util import first
-from minerva.db.query import Table
+from minerva.db.query import Table, smart_quote
 from minerva.db.error import translate_postgresql_exceptions
 
 
 class Record(object):
     """Wraps all data for one notification."""
-    def __init__(self, entity_id, timestamp, attribute_names, values):
-        self.entity_id = entity_id
-        self.timestamp = timestamp
-        self.attribute_names = attribute_names
-        self.values = values
 
-
-class RawRecord(object):
-    """Wraps all data for one notification."""
-    def __init__(self, dn, timestamp, attribute_names, values):
-        self.dn = dn
+    def __init__(self, entity_ref, timestamp, attribute_names, values):
+        self.entity_ref = entity_ref
         self.timestamp = timestamp
         self.attribute_names = attribute_names
         self.values = values
@@ -43,6 +32,7 @@ class Package(object):
 
 class Attribute(object):
     """Describes the attribute of a specific NotificationStore."""
+
     def __init__(self, name, data_type, description):
         self.id = None
         self.notificationstore_id = None
@@ -67,7 +57,7 @@ class NotificationStore(object):
     def load(cursor, datasource):
         """Load NotificationStore from database and return it."""
         query = (
-            "SELECT id, datasource_id, version "
+            "SELECT id "
             "FROM notification.notificationstore "
             "WHERE datasource_id = %s")
 
@@ -76,9 +66,27 @@ class NotificationStore(object):
         cursor.execute(query, args)
 
         if cursor.rowcount == 1:
-            id, datasource_id, version = cursor.fetchone()
+            notificationstore_id, = cursor.fetchone()
 
-            return NotificationStore(datasource, [])
+            notificationstore = NotificationStore(datasource, [])
+            notificationstore.id = notificationstore_id
+
+            query = (
+                "SELECT id, name, data_type, description "
+                "FROM notification.attribute "
+                "WHERE notificationstore_id = %s"
+            )
+
+            args = (notificationstore_id, )
+
+            cursor.execute(query, args)
+
+            for attribute_id, name, data_type, description in cursor.fetchall():
+                attribute = Attribute(name, data_type, description)
+                attribute.id = attribute_id
+                notificationstore.attributes.append(attribute)
+
+            return notificationstore
 
     def create(self, cursor):
         """Create notification store in database in return itself."""
@@ -103,7 +111,8 @@ class NotificationStore(object):
                     "VALUES (%s, %s, %s, %s) "
                     "RETURNING id")
 
-                args = (self.id, attribute.name, attribute.data_type, attribute.description)
+                args = (self.id, attribute.name, attribute.data_type,
+                        attribute.description)
                 cursor.execute(query, args)
 
             return self
@@ -111,68 +120,28 @@ class NotificationStore(object):
     def store_record(self, record):
         """Return function that can store the data from a
         :class:`~minerva.storage.notification.types.Record`."""
+
         @translate_postgresql_exceptions
         def f(cursor):
-            quote_column = partial(str.format, '"{}"')
             column_names = ['entity_id', 'timestamp'] + record.attribute_names
-            columns_part = ','.join(map(quote_column, column_names))
-            num_args = 2 + len(record.attribute_names)
-            args_part = ",".join(["%s"] * num_args)
+            columns_part = ','.join(map(smart_quote, column_names))
+
+            entity_placeholder, entity_value = record.entity_ref.to_argument()
+
+            placeholders = (
+                [entity_placeholder, "%s"] +
+                (["%s"] * len(record.attribute_names))
+            )
 
             query = (
                 "INSERT INTO {} ({}) "
                 "VALUES ({})"
-            ).format(self.table.render(), columns_part, args_part)
+            ).format(self.table.render(), columns_part, ",".join(placeholders))
 
             args = (
-                [record.entity_id, record.timestamp]
+                [entity_value, record.timestamp]
                 + map(prepare_value, record.values)
             )
-
-            cursor.execute(query, args)
-
-        return f
-
-    def store_rawrecord(self, rawrecord):
-        """Return function that can store the data from a
-        :class:`~minerva.storage.notification.types.RawRecord`."""
-        @translate_postgresql_exceptions
-        def f(cursor):
-            column_names = (
-                ["entity_id", '"timestamp"']
-                + rawrecord.attribute_names
-            )
-            columns_part = ",".join(column_names)
-            num_args = 1 + len(rawrecord.attribute_names)
-            args_part = ",".join(["%s"] * num_args)
-
-            query = (
-                "INSERT INTO {} ({}) "
-                "VALUES ((directory.dn_to_entity(%s)).id, {})"
-            ).format(self.table.render(), columns_part, args_part)
-
-            args = [rawrecord.dn, rawrecord.timestamp] + rawrecord.values
-
-            cursor.execute(query, args)
-
-        return f
-
-    def store_package(self, package):
-        """
-        Return function that can store a package with multiple notifications.
-        """
-        @translate_postgresql_exceptions
-        def f(cursor):
-            column_names = ["entity_id", "\"timestamp\""] + datarecord.attribute_names
-            columns_part = ",".join(column_names)
-            num_args = 2 + len(datarecord.attribute_names)
-            args_part = ",".join(["%s"] * num_args)
-
-            query = (
-                "INSERT INTO {} ({}) "
-                "VALUES ({})").format(self.table.render(), columns_part, args_part)
-
-            args = [datarecord.entity_id, datarecord.timestamp] + datarecord.values
 
             cursor.execute(query, args)
 

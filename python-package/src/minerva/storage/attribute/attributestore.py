@@ -11,10 +11,11 @@ version.  The full license is in the file COPYING, distributed as part of
 this software.
 """
 from functools import partial
+from operator import methodcaller
 
 import psycopg2
 
-from minerva.util import head, expand_args
+from minerva.util import head, expand_args, k
 from minerva.db.query import Table
 from minerva.directory.helpers_v4 import get_entitytype_by_id, \
     get_datasource_by_id
@@ -230,7 +231,7 @@ class AttributeStore(object):
 
     def store_txn(self, datapackage):
         """Return transaction to store the data in the attributestore."""
-        return DbTransaction(StoreBatch(self, datapackage))
+        return DbTransaction(StoreBatch(self, k(datapackage)))
 
     @translate_postgresql_exceptions
     def store_batch(self, cursor, datapackage):
@@ -281,6 +282,28 @@ class AttributeStore(object):
 
         cursor.execute(query, args)
 
+    def store_raw(self, raw_datapackage):
+        if raw_datapackage.is_empty():
+            return DbTransaction()
+
+        return DbTransaction(
+            RefineRawDataPackage(k(raw_datapackage)),
+            StoreBatch(self, read("datapackage"))
+        )
+
+
+class RefineRawDataPackage(DbAction):
+    def __init__(self, raw_datapackage):
+        self.raw_datapackage = raw_datapackage
+
+    def execute(self, cursor, state):
+        raw_datapackage = self.raw_datapackage(state)
+
+        try:
+            state["datapackage"] = raw_datapackage.refine(cursor)
+        except UniqueViolation:
+            return no_op
+
 
 class Query(object):
 
@@ -321,11 +344,13 @@ class StoreBatch(DbAction):
         self.datapackage = datapackage
 
     def execute(self, cursor, state):
+        datapackage = self.datapackage(state)
+
         try:
-            self.attributestore.store_batch(cursor, self.datapackage)
+            self.attributestore.store_batch(cursor, datapackage)
         except psycopg2.DataError as exc:
             if exc.pgcode == psycopg2.errorcodes.BAD_COPY_FILE_FORMAT:
-                attributes = self.datapackage.deduce_attributes()
+                attributes = datapackage.deduce_attributes()
 
                 self.attributestore.update_attributes(attributes)
 
@@ -334,14 +359,14 @@ class StoreBatch(DbAction):
             else:
                 raise
         except DataTypeMismatch:
-            attributes = self.datapackage.deduce_attributes()
+            attributes = datapackage.deduce_attributes()
 
             self.attributestore.update_attributes(attributes)
 
             fix = CheckAttributeTypes(self.attributestore)
             return insert_before(fix)
         except (NoSuchColumnError, NoSuchAttributeError) as exc:
-            attributes = self.datapackage.deduce_attributes()
+            attributes = datapackage.deduce_attributes()
 
             self.attributestore.update_attributes(attributes)
 
@@ -369,3 +394,6 @@ class CheckAttributeTypes(DbAction):
 
     def execute(self, cursor, state):
         self.attributestore.check_attribute_types(cursor)
+
+
+read = partial(methodcaller, 'get')

@@ -10,12 +10,11 @@ version.  The full license is in the file COPYING, distributed as part of
 this software.
 """
 from minerva.storage.notification.types import NotificationStore, \
-    RawRecord, Record, Attribute
+    Record, Attribute
 
 
 class NotificationPlugin(object):
     Record = staticmethod(Record)
-    RawRecord = staticmethod(RawRecord)
     Attribute = staticmethod(Attribute)
     NotificationStore = staticmethod(NotificationStore)
 
