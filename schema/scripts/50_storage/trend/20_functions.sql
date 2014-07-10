@@ -297,7 +297,7 @@ AS $$
 $$ LANGUAGE SQL STABLE;
 
 
-CREATE OR REPLACE FUNCTION create_staging_table_v4(trendstore trend.trendstore)
+CREATE OR REPLACE FUNCTION create_staging_table(trendstore trend.trendstore)
     RETURNS void
 AS $$
 DECLARE
