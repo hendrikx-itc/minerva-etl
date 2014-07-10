@@ -3,7 +3,7 @@
 
 Vagrant.configure "2" do |config|
   config.vm.box = "puppetlabs/ubuntu-14.04-64-nocm"
-  config.vm.hostname = "vagrant-trigger-gui"
+  config.vm.hostname = "vagrant-minerva"
 
   config.vm.synced_folder '.', '/shared', type: 'nfs'
 
