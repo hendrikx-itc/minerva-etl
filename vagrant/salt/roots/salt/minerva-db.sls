@@ -30,13 +30,29 @@ python-virtualenv:
 language-pack-nl:
   pkg.installed
 
+python-package:
+  pip.installed:
+    - editable: /shared/python-package
+
+# Psycopg2 requires compilation, so it is easier to use the standard Ubuntu
+# package
+python-psycopg2:
+  pkg.installed
+
+# python_dateutil from pypi currently has permission issues with some files
+# after installation, so use the standard Ubuntu package
+python-dateutil:
+  pkg.installed
+
 vagrant:
   user.present:
     - shell: /bin/zsh
 
   postgres_user.present:
-    - login: true
-    - superuser: true
+    - login: True
+    - superuser: True
+    - require:
+      - service: postgresql
 
 minerva:
   postgres_database.present
@@ -57,9 +73,21 @@ init-minerva-db:
     - watch:
       - postgres_database: minerva
 
+
+git:
+  pkg.installed
+
 install-pgtap:
   cmd.wait:
     - name: '/shared/vagrant/install_pgtap'
     - user: vagrant
     - watch:
       - cmd: init-minerva-db
+    - require:
+      - pkg: git
+
+
+/etc/minerva/instances/default.conf:
+  file.copy:
+    - source: /shared/vagrant/minerva_instance.conf
+    - makedirs: True
