@@ -12,6 +12,12 @@ postgresql-9.3-postgis-scripts:
   pkg:
     - installed
 
+postgresql-server-dev-9.3:
+  pkg.installed
+
+libpq-dev:
+  pkg.installed
+
 vim:
   pkg.installed
 
@@ -50,3 +56,10 @@ init-minerva-db:
       - PGDATABASE: minerva
     - watch:
       - postgres_database: minerva
+
+install-pgtap:
+  cmd.wait:
+    - name: '/shared/vagrant/install_pgtap'
+    - user: vagrant
+    - watch:
+      - cmd: init-minerva-db

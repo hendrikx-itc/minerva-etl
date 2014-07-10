@@ -1,0 +1,6 @@
+#!/bin/bash
+git clone https://github.com/theory/pgtap.git
+pushd pgtap
+make && sudo make install && make installcheck
+psql -d minerva -c 'CREATE EXTENSION pgtap;'
+popd
