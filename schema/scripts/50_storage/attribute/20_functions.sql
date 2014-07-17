@@ -496,7 +496,7 @@ BEGIN
     view_name = table_name || '_new';
 
     SELECT
-        array_agg(format('last(s.%I) AS %I', name, name)) INTO column_expressions
+        array_agg(format('public.last(s.%I) AS %I', name, name)) INTO column_expressions
     FROM
         public.column_names('attribute_staging', table_name) name
     WHERE name NOT in ('entity_id', 'timestamp');
@@ -858,21 +858,11 @@ AS $$
 $$ LANGUAGE SQL VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION create_attributestore(datasource_id integer, entitytype_id integer)
+CREATE OR REPLACE FUNCTION define_attributestore(datasource_id integer, entitytype_id integer)
     RETURNS attribute_directory.attributestore
 AS $$
     INSERT INTO attribute_directory.attributestore(datasource_id, entitytype_id)
     VALUES ($1, $2) RETURNING attributestore;
-$$ LANGUAGE SQL VOLATILE;
-
-
-CREATE OR REPLACE FUNCTION to_attributestore(datasource_id integer, entitytype_id integer)
-    RETURNS attribute_directory.attributestore
-AS $$
-    SELECT COALESCE(
-        attribute_directory.get_attributestore($1, $2),
-        attribute_directory.init(attribute_directory.create_attributestore($1, $2))
-    );
 $$ LANGUAGE SQL VOLATILE;
 
 
@@ -885,10 +875,43 @@ AS $$
 $$ LANGUAGE SQL VOLATILE;
 
 
+CREATE OR REPLACE FUNCTION to_attributestore(datasource_id integer, entitytype_id integer)
+    RETURNS attribute_directory.attributestore
+AS $$
+    SELECT COALESCE(
+        attribute_directory.get_attributestore($1, $2),
+        attribute_directory.init(attribute_directory.define_attributestore($1, $2))
+    );
+$$ LANGUAGE SQL VOLATILE;
+
+
 CREATE OR REPLACE FUNCTION create_attributestore(datasource_name text, entitytype_name text)
     RETURNS attribute_directory.attributestore
 AS $$
     SELECT attribute_directory.init(attribute_directory.define_attributestore($1, $2));
+$$ LANGUAGE SQL VOLATILE;
+
+
+CREATE OR REPLACE FUNCTION add_attributes(attributestore, attributes attribute_descr[])
+    RETURNS attribute_directory.attributestore
+AS $$
+BEGIN
+    INSERT INTO attribute_directory.attribute(attributestore_id, name, datatype, description) (
+        SELECT $1.id, name, datatype, description
+	FROM unnest($2) atts
+    );
+
+    RETURN $1;
+END;
+$$ LANGUAGE plpgsql VOLATILE;
+
+
+CREATE OR REPLACE FUNCTION create_attributestore(datasource_name text, entitytype_name text, attributes attribute_descr[])
+    RETURNS attribute_directory.attributestore
+AS $$
+    SELECT attribute_directory.init(
+	attribute_directory.add_attributes(attribute_directory.define_attributestore($1, $2), $3)
+    );
 $$ LANGUAGE SQL VOLATILE;
 
 

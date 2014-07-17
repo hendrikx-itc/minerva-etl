@@ -53,6 +53,18 @@ GRANT ALL ON SEQUENCE attributestore_id_seq TO minerva_admin;
 GRANT SELECT ON SEQUENCE attributestore_id_seq TO minerva;
 GRANT UPDATE ON SEQUENCE attributestore_id_seq TO minerva_writer;
 
+
+-- Type 'attribute_descr'
+
+CREATE TYPE attribute_descr AS (
+    name name,
+    datatype varchar,
+    description text
+);
+
+ALTER TYPE attribute_descr OWNER TO minerva_admin;
+
+
 -- Table 'attribute'
 
 CREATE TABLE attribute (
