@@ -99,3 +99,7 @@ install-pgtap:
   file.copy:
     - source: /shared/vagrant/minerva_instance.conf
     - makedirs: True
+
+/etc/postgresql/9.3/main/postgresql.conf:
+  file.append:
+    - text: 'minerva.trigger_mark_modified = on'
