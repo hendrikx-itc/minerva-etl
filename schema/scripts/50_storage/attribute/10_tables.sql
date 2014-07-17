@@ -33,6 +33,9 @@ ALTER SEQUENCE attributestore_id_seq OWNED BY attributestore.id;
 ALTER TABLE ONLY attributestore
     ADD CONSTRAINT attributestore_pkey PRIMARY KEY (id);
 
+ALTER TABLE attributestore
+    ADD CONSTRAINT attributestore_uniqueness UNIQUE (datasource_id, entitytype_id);
+
 ALTER TABLE ONLY attributestore
     ADD CONSTRAINT attribute_attributestore_entitytype_id_fkey
     FOREIGN KEY (entitytype_id) REFERENCES directory.entitytype(id)
@@ -177,4 +180,3 @@ ALTER TABLE ONLY attributestore_compacted
 GRANT ALL ON TABLE attributestore_compacted TO minerva_admin;
 GRANT SELECT ON TABLE attributestore_compacted TO minerva;
 GRANT INSERT,DELETE,UPDATE ON TABLE attributestore_compacted TO minerva_writer;
-
