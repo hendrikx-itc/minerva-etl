@@ -59,7 +59,10 @@ def format_value(value, encoding="utf-8"):
 
 
 def escape_value(value):
-    return value.replace('\\', '\\\\').replace('\r', '\\r').replace('\n', '\\n')
+    if value == u"\\N":
+        return value
+    else:
+        return value.replace('\\', '\\\\').replace('\r', '\\r').replace('\n', '\\n')
 
 
 def create_column(conn, schema, table, column_name, data_type):

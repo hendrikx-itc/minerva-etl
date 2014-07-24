@@ -298,7 +298,7 @@ $$ LANGUAGE SQL STABLE;
 
 
 CREATE OR REPLACE FUNCTION create_staging_table(trendstore trend.trendstore)
-    RETURNS void
+    RETURNS trend.trendstore
 AS $$
 DECLARE
     base_name name;
@@ -317,6 +317,8 @@ BEGIN
 
     EXECUTE format('GRANT SELECT ON TABLE trend.%I TO minerva;', name);
     EXECUTE format('GRANT INSERT,DELETE,UPDATE ON TABLE trend.%I TO minerva_writer;', name);
+
+    RETURN $1;
 END;
 $$ LANGUAGE plpgsql VOLATILE STRICT;
 
