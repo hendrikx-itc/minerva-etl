@@ -730,7 +730,7 @@ def create_copy_from_query(table, trend_names):
 
     quote = partial(str.format, '"{}"')
 
-    query = "COPY {0}({1}) FROM STDIN".format(table.render(),
+    query = "COPY {0}({1}) FROM STDIN WITH NULL '\\N'".format(table.render(),
         ",".join(map(quote, column_names)))
 
     return query
