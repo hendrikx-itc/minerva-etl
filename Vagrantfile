@@ -5,8 +5,6 @@ Vagrant.configure "2" do |config|
   config.vm.box = "puppetlabs/ubuntu-14.04-64-nocm"
   config.vm.hostname = "vagrant-minerva"
 
-  config.vm.synced_folder '.', '/shared', type: 'nfs'
-
   config.vm.provider 'virtualbox' do |v|
     config.vm.network :private_network, ip: '10.11.12.13'
   end

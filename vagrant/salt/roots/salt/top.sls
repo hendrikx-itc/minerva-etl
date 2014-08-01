@@ -1,3 +1,4 @@
 base:
   '*':
     - minerva-db
+    - packaging

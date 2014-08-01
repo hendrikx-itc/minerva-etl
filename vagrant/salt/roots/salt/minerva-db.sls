@@ -38,7 +38,7 @@ language-pack-nl:
 
 python-package:
   pip.installed:
-    - editable: /shared/python-package
+    - editable: /vagrant/
 
 # Psycopg2 requires compilation, so it is easier to use the standard Ubuntu
 # package
@@ -75,7 +75,7 @@ minerva:
 
 init-minerva-db:
   cmd.wait:
-    - name: '/shared/schema/run-scripts /shared/schema/scripts'
+    - name: '/vagrant/schema/run-scripts /vagrant/schema/scripts'
     - user: vagrant
     - env:
       - PGDATABASE: minerva
@@ -88,7 +88,7 @@ git:
 
 install-pgtap:
   cmd.wait:
-    - name: '/shared/vagrant/install_pgtap'
+    - name: '/vagrant/vagrant/install_pgtap'
     - user: vagrant
     - watch:
       - cmd: init-minerva-db
@@ -97,7 +97,7 @@ install-pgtap:
 
 /etc/minerva/instances/default.conf:
   file.copy:
-    - source: /shared/vagrant/minerva_instance.conf
+    - source: /vagrant/vagrant/minerva_instance.conf
     - makedirs: True
 
 /etc/postgresql/9.3/main/postgresql.conf:
