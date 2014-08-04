@@ -94,8 +94,8 @@ SELECT
 FROM pg_stat_replication;';
 
 
-CREATE OR REPLACE FUNCTION safe_division(numerator numeric, denominator numeric)
-	RETURNS numeric
+CREATE OR REPLACE FUNCTION safe_division(numerator anyelement, denominator anyelement)
+	RETURNS anyelement
 AS $$
 SELECT CASE
 	WHEN $2 = 0 THEN
@@ -105,7 +105,7 @@ SELECT CASE
 	END;
 $$ LANGUAGE SQL IMMUTABLE;
 
-ALTER FUNCTION safe_division(numeric, numeric)
+ALTER FUNCTION safe_division(anyelement, anyelement)
 	OWNER TO postgres;
 
 
