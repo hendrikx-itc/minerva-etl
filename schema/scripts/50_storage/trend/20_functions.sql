@@ -1316,3 +1316,19 @@ BEGIN
     RETURN result;
 END;
 $$ LANGUAGE plpgsql VOLATILE;
+
+
+CREATE OR REPLACE FUNCTION trend.granularity_seconds(text)
+ RETURNS integer
+ LANGUAGE sql
+ IMMUTABLE
+AS $function$SELECT CASE
+    WHEN $1 = '300' THEN 300
+    WHEN $1 = '900' THEN 900
+    WHEN $1 = '3600' THEN 3600
+    WHEN $1 = '43200' THEN 43200
+    WHEN $1 = '86400' THEN 86400
+    WHEN $1 = '604800' THEN 604800
+    WHEN $1 = 'month' THEN 2419200
+END;$function$
+
