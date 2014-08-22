@@ -10,7 +10,7 @@ Vagrant.configure "2" do |config|
   end
 
   config.vm.provision :salt do |salt|
-    salt.minion_config = "vagrant/salt/minion"
+    salt.minion_config = "provision/salt/minion"
     salt.run_highstate = true
     salt.verbose = true
   end
