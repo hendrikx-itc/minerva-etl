@@ -53,51 +53,51 @@ def compile_sql(minerva_query, relation_group_name, entity_id_column=None):
 
     if first_component['type'] == 'C':
         if entity_id_column:
-            sql, eld_alias = make_c_join(0, entity_id_column)
+            query_part, eld_alias = make_c_join(0, entity_id_column)
         else:
-            sql, entity_id_column, eld_alias = make_c_from()
+            query_part, entity_id_column, eld_alias = make_c_from()
     else:  # type == 'any C'
         if entity_id_column:
-            sql, eld_alias = make_any_c_join(0, entity_id_column)
+            query_part, eld_alias = make_any_c_join(0, entity_id_column)
         else:
-            sql, entity_id_column, eld_alias = make_any_c_from()
+            query_part, entity_id_column, eld_alias = make_any_c_from()
 
-    query_parts.append(sql)
+    query_parts.append(query_part)
     args.append(map(unicode.lower, first_component['value']))
 
     for index, component in enumerate(minerva_query[1:], start=1):
         if component['type'] == 'C':
-            sql, entity_id_column = make_relation_join(
+            query_part, entity_id_column = make_relation_join(
                 index, entity_id_column, relation_group_name)
 
-            query_parts.append(sql)
+            query_parts.append(query_part)
 
-            sql, eld_alias = make_c_join(index, entity_id_column)
+            query_part, eld_alias = make_c_join(index, entity_id_column)
 
-            query_parts.append(sql)
+            query_parts.append(query_part)
             args.append(map(unicode.lower, component['value']))
 
         elif component['type'] == 'any C':
-            sql = make_relation_join(
+            query_part, entity_id_column = make_relation_join(
                 index, entity_id_column, relation_group_name)
 
-            query_parts.append(sql)
+            query_parts.append(query_part)
 
-            sql, eld_alias = make_any_c_join(index, entity_id_column)
+            query_part, eld_alias = make_any_c_join(index, entity_id_column)
 
-            query_parts.append(sql)
+            query_parts.append(query_part)
             args.append(map(unicode.lower, component['value']))
 
         elif component['type'] == 'S':
-            sql = make_s_join(index, eld_alias)
+            query_part = make_s_join(index, eld_alias)
 
-            query_parts.append(sql)
+            query_parts.append(query_part)
             args.append(component['value'].lower())
 
         else:
             raise QueryError('query contains unknown type ' + component['type'])
 
-    sql = " ".join(query_parts)
+    sql = "\n".join(query_parts)
 
     return sql, args, entity_id_column
 
@@ -201,7 +201,7 @@ def make_relation_join(index, entity_id_column, relation_group_name):
     type_alias = "type_{0}".format(index)
     group_alias = "g_{0}".format(index)
 
-    sql_part = (
+    query_part = (
         " JOIN relation.all_materialized {0} ON {0}.source_id = {1} "
         " JOIN relation.type {2} ON {0}.type_id = {2}.id "
         " JOIN relation.group {3} "
@@ -213,51 +213,51 @@ def make_relation_join(index, entity_id_column, relation_group_name):
     )
     entity_id_column = "{0}.target_id".format(relation_alias)
 
-    return sql_part, entity_id_column
+    return query_part, entity_id_column
 
 
 def make_c_from():
-    sql_part = (
+    query_part = (
         ' FROM (VALUES(NULL)) dummy'
         ' JOIN directory.entity_link_denorm eld'
         ' ON %s <@ eld.tags'
     )
 
-    return sql_part, 'eld.entity_id', 'eld'
+    return query_part, 'eld.entity_id', 'eld'
 
 
 def make_c_join(index, entity_id_column):
     taglink_alias = "eld_{0}".format(index)
 
-    sql_part = (
+    query_part = (
         ' JOIN directory.entity_link_denorm {0}'
         ' ON {1} = {0}.entity_id'
         ' AND %s <@ {0}.tags'
     ).format(taglink_alias, entity_id_column)
 
-    return sql_part, taglink_alias
+    return query_part, taglink_alias
 
 
 def make_any_c_from():
-    sql_part = (
+    query_part = (
         ' FROM (VALUES(NULL)) dummy'
         ' JOIN directory.entity_link_denorm eld'
         ' ON %s && eld.tags'
     )
 
-    return sql_part, 'eld.entity_id', 'eld'
+    return query_part, 'eld.entity_id', 'eld'
 
 
 def make_any_c_join(index, entity_id_column):
     taglink_alias = "eld_{0}".format(index)
 
-    sql_part = (
+    query_part = (
         ' JOIN directory.entity_link_denorm {0}'
         ' ON {1} = {0}.entity_id'
         ' AND %s && {0}.tags'
     ).format(taglink_alias, entity_id_column)
 
-    return sql_part, taglink_alias
+    return query_part, taglink_alias
 
 
 def make_s_join(index, eld_alias):
