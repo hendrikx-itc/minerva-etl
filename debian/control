@@ -1,4 +1,4 @@
-Source: minerva
+Source: python-minerva
 Section: contrib/python
 Priority: extra
 Maintainer: Alfred Blokland <a.j.n.blokland@hendrikx-itc.nl>
