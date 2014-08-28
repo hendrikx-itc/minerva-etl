@@ -12,8 +12,6 @@ debian/python-minerva.*
 debian/python-minerva/*
 dist/*
 doc/_build
-python-package/build/
-python-package/debian/python-minerva-storage-trend*
-python-package/dist/
-python-package/src/minerva.egg-info/
+src/minerva.egg-info/
 schema/debian/minerva-storage-trend-schema*
+.vagrant

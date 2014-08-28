@@ -2,4 +2,4 @@ master: localhost
 file_client: local
 file_roots:
   base:
-    - /shared/vagrant/salt/roots/salt
+    - /vagrant/provision/salt/roots/salt

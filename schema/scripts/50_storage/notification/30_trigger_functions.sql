@@ -28,12 +28,9 @@ $$ LANGUAGE plpgsql VOLATILE;
 CREATE OR REPLACE FUNCTION drop_table_on_delete()
     RETURNS TRIGGER
 AS $$
-DECLARE
-    table_name name;
 BEGIN
-    table_name = notification.table_name(OLD);
-
-    EXECUTE format('DROP TABLE IF EXISTS notification.%I CASCADE', table_name);
+    EXECUTE format('DROP TABLE IF EXISTS notification.%I CASCADE', notification.staging_table_name(OLD));
+    EXECUTE format('DROP TABLE IF EXISTS notification.%I CASCADE', notification.table_name(OLD));
 
     RETURN OLD;
 END;

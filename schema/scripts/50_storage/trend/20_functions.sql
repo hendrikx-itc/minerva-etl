@@ -35,6 +35,13 @@ AS $$
 $$ LANGUAGE SQL STABLE;
 
 
+CREATE OR REPLACE FUNCTION create_trends(trend.trendstore, trend.trend_descr[])
+    RETURNS SETOF trend.trend
+AS $$
+    SELECT trend.add_trend_to_trendstore($1, t.name::character varying, t.datatype) FROM unnest($2) t;
+$$ LANGUAGE SQL VOLATILE;
+
+
 CREATE OR REPLACE FUNCTION create_trendstore_from_attributes(datasource_name character varying, entitytype_name character varying, granularity character varying)
     RETURNS trend.trendstore
 AS $$
@@ -843,15 +850,15 @@ END;
 $$ LANGUAGE plpgsql VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION attributes_to_trend(trendstore trend.trendstore, name character varying)
+CREATE OR REPLACE FUNCTION attributes_to_trend(trend.trendstore, name)
     RETURNS trend.trend
 AS $$
-    SELECT COALESCE(trend.get_trend($1, $2), trend.create_trend_for_trendstore($1, $2));
+    SELECT COALESCE(trend.get_trend($1, $2::character varying), trend.create_trend_for_trendstore($1, $2::character varying));
 $$ LANGUAGE SQL VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION add_trend_to_trendstore(trendstore trend.trendstore, trend_name character varying, data_type character varying)
-    RETURNS VOID
+CREATE OR REPLACE FUNCTION add_trend_to_trendstore(trendstore trend.trendstore, trend_name name, data_type character varying)
+    RETURNS trend.trend
 AS $$
 DECLARE
     base_table_name character varying;
@@ -864,6 +871,8 @@ BEGIN
     IF NOT trend.column_exists(base_table_name, new_trend.name) THEN
         EXECUTE format('ALTER TABLE trend.%I ADD COLUMN %I %s;', base_table_name, new_trend.name, data_type);
     END IF;
+
+    RETURN new_trend;
 END;
 $$ LANGUAGE plpgsql VOLATILE;
 
@@ -1316,3 +1325,19 @@ BEGIN
     RETURN result;
 END;
 $$ LANGUAGE plpgsql VOLATILE;
+
+
+CREATE OR REPLACE FUNCTION trend.granularity_seconds(text)
+ RETURNS integer
+ LANGUAGE sql
+ IMMUTABLE
+AS $function$SELECT CASE
+    WHEN $1 = '300' THEN 300
+    WHEN $1 = '900' THEN 900
+    WHEN $1 = '3600' THEN 3600
+    WHEN $1 = '43200' THEN 43200
+    WHEN $1 = '86400' THEN 86400
+    WHEN $1 = '604800' THEN 604800
+    WHEN $1 = 'month' THEN 2419200
+END;$function$
+

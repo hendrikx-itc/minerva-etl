@@ -20,14 +20,6 @@ libpq-dev:
   pkg:
     - installed
 
-vim:
-  pkg:
-    - installed
-
-zsh:
-  pkg:
-    - installed
-
 python-virtualenv:
   pkg:
     - installed
@@ -38,7 +30,9 @@ language-pack-nl:
 
 python-package:
   pip.installed:
-    - editable: /shared/python-package
+    - editable: /vagrant/
+    - requires:
+      - pkg: python-psycopg2
 
 # Psycopg2 requires compilation, so it is easier to use the standard Ubuntu
 # package
@@ -66,16 +60,9 @@ minerva:
   postgres_database:
     - present
 
-/home/vagrant/.zshrc:
-  file.managed:
-    - source: ~
-    - user: vagrant
-    - group: vagrant
-    - mode: 644
-
 init-minerva-db:
   cmd.wait:
-    - name: '/shared/schema/run-scripts /shared/schema/scripts'
+    - name: '/vagrant/schema/run-scripts /vagrant/schema/scripts'
     - user: vagrant
     - env:
       - PGDATABASE: minerva
@@ -88,7 +75,7 @@ git:
 
 install-pgtap:
   cmd.wait:
-    - name: '/shared/vagrant/install_pgtap'
+    - name: '/vagrant/provision/install_pgtap'
     - user: vagrant
     - watch:
       - cmd: init-minerva-db
@@ -96,8 +83,8 @@ install-pgtap:
       - pkg: git
 
 /etc/minerva/instances/default.conf:
-  file.copy:
-    - source: /shared/vagrant/minerva_instance.conf
+  file.managed:
+    - source: salt://resources/minerva_instance.conf
     - makedirs: True
 
 /etc/postgresql/9.3/main/postgresql.conf:

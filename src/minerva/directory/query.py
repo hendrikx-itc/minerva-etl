@@ -13,40 +13,12 @@ this software.
 from operator import itemgetter
 from contextlib import closing
 
-import pyparsing
-from pyparsing import alphanums, ZeroOrMore, Optional
-
-from minerva.util import first, compose
 from minerva.directory.helpers import get_entitytype_by_id, \
     get_relationtype_id, NoSuchRelationTypeError
-from minerva.directory.query_types import Tag, Alias, Context, Query
 
 
 class QueryError(Exception):
     pass
-
-
-def parser():
-    tag = pyparsing.Word(alphanums).setParseAction(compose(Tag, first))
-
-    alias = pyparsing.Word(alphanums).setParseAction(compose(Alias, first))
-
-    op_and = pyparsing.Keyword("+").suppress()
-
-    context = pyparsing.operatorPrecedence(tag, [
-        (op_and, 2, pyparsing.opAssoc.LEFT)]).setParseAction(
-        compose(Context, first))
-
-    cs_pair = context + alias
-
-    q = ZeroOrMore(cs_pair) + Optional(context)
-
-    q.setParseAction(Query)
-
-    return q
-
-
-parse = parser().parseString
 
 
 def select(conn, minerva_query, relation_group_name):
@@ -74,15 +46,21 @@ def compile_sql(minerva_query, relation_group_name, entity_id_column=None):
     args = []
     query_parts = []
 
-    if not minerva_query or minerva_query[0]["type"] != 'C':
+    if not minerva_query or minerva_query[0]['type'] not in ['C', 'any C']:
         raise QueryError("query must start with a context(tag)")
 
     first_component = minerva_query[0]
 
-    if entity_id_column:
-        sql, eld_alias = make_c_join(0, entity_id_column)
-    else:
-        sql, entity_id_column, eld_alias = make_c_from()
+    if first_component['type'] == 'C':
+        if entity_id_column:
+            sql, eld_alias = make_c_join(0, entity_id_column)
+        else:
+            sql, entity_id_column, eld_alias = make_c_from()
+    else:  # type == 'any C'
+        if entity_id_column:
+            sql, eld_alias = make_any_c_join(0, entity_id_column)
+        else:
+            sql, entity_id_column, eld_alias = make_any_c_from()
 
     query_parts.append(sql)
     args.append(map(unicode.lower, first_component['value']))
@@ -95,6 +73,17 @@ def compile_sql(minerva_query, relation_group_name, entity_id_column=None):
             query_parts.append(sql)
 
             sql, eld_alias = make_c_join(index, entity_id_column)
+
+            query_parts.append(sql)
+            args.append(map(unicode.lower, component['value']))
+
+        elif component['type'] == 'any C':
+            sql = make_relation_join(
+                index, entity_id_column, relation_group_name)
+
+            query_parts.append(sql)
+
+            sql, eld_alias = make_any_c_join(index, entity_id_column)
 
             query_parts.append(sql)
             args.append(map(unicode.lower, component['value']))
@@ -117,9 +106,9 @@ def get_entities_by_query(conn, minerva_query, relation_group_name):
     q, args, entity_id_column = compile_sql(minerva_query, relation_group_name)
 
     sql = (
-        "SELECT entity.id, entity.dn, entity.entitytype_id "
-        "{0} "
-        "JOIN directory.entity entity ON entity.id = {1}").format(
+        " SELECT entity.id, entity.dn, entity.entitytype_id"
+        " {0}"
+        " JOIN directory.entity entity ON entity.id = {1}").format(
         q, entity_id_column)
 
     with closing(conn.cursor()) as cursor:
@@ -140,10 +129,10 @@ def get_entitytags_by_query(cursor, minerva_query, relation_group_name):
         minerva_query, relation_group_name)
 
     sql = (
-        "SELECT etl.tag_id "
-        "{0} "
-        "JOIN directory.entitytaglink etl ON etl.entity_id = {1} "
-        "GROUP BY etl.tag_id"
+        " SELECT etl.tag_id"
+        " {0}"
+        " JOIN directory.entitytaglink etl ON etl.entity_id = {1}"
+        " GROUP BY etl.tag_id"
     ).format(query_part, entity_id_column)
 
     cursor.execute(sql, args)
@@ -179,11 +168,11 @@ def get_related_entities_by_query(conn, minerva_query, relation_group_name,
                 continue
             else:
                 query = (
-                    "SELECT target_id, e.dn, e.entitytype_id "
-                    "FROM relation.\"{0}\" "
-                    "JOIN directory.entity e ON e.id = target_id "
-                    "AND e.entitytype_id = %s "
-                    "WHERE source_id = %s").format(relationtype_name)
+                    " SELECT target_id, e.dn, e.entitytype_id"
+                    " FROM relation.\"{0}\""
+                    " JOIN directory.entity e ON e.id = target_id"
+                    " AND e.entitytype_id = %s"
+                    " WHERE source_id = %s").format(relationtype_name)
 
                 with closing(conn.cursor()) as cursor:
                     cursor.execute(query, (target_entitytype_id, entity["id"]))
@@ -212,43 +201,64 @@ def make_relation_join(index, entity_id_column, relation_group_name):
     type_alias = "type_{0}".format(index)
     group_alias = "g_{0}".format(index)
 
-    sql = (
-        "\nJOIN relation.all_materialized {0} ON {0}.source_id = {1} "
-        "\nJOIN relation.type {2} ON {0}.type_id = {2}.id "
-        "\nJOIN relation.group {3} "
-        "\n    ON {2}.group_id = {3}.id "
-        "\n    AND {3}.name = '{4}'"
+    sql_part = (
+        " JOIN relation.all_materialized {0} ON {0}.source_id = {1} "
+        " JOIN relation.type {2} ON {0}.type_id = {2}.id "
+        " JOIN relation.group {3} "
+        " ON {2}.group_id = {3}.id "
+        " AND {3}.name = '{4}'"
     ).format(
         relation_alias, entity_id_column, type_alias, group_alias,
         relation_group_name
     )
     entity_id_column = "{0}.target_id".format(relation_alias)
 
-    return sql, entity_id_column
+    return sql_part, entity_id_column
 
 
 def make_c_from():
-    sql = (
-        '\nFROM (VALUES(NULL)) dummy'
-        '\nJOIN directory.entity_link_denorm eld'
-        '\n    ON %s <@ eld.tags'
+    sql_part = (
+        ' FROM (VALUES(NULL)) dummy'
+        ' JOIN directory.entity_link_denorm eld'
+        ' ON %s <@ eld.tags'
     )
 
-    return sql, 'eld.entity_id', 'eld'
+    return sql_part, 'eld.entity_id', 'eld'
 
 
 def make_c_join(index, entity_id_column):
     taglink_alias = "eld_{0}".format(index)
 
-    return (
-        (
-            '\nJOIN directory.entity_link_denorm {0}'
-            '\n    ON {1} = {0}.entity_id'
-            '\n    AND %s <@ {0}.tags'
-        ).format(taglink_alias, entity_id_column),
-        taglink_alias
+    sql_part = (
+        ' JOIN directory.entity_link_denorm {0}'
+        ' ON {1} = {0}.entity_id'
+        ' AND %s <@ {0}.tags'
+    ).format(taglink_alias, entity_id_column)
+
+    return sql_part, taglink_alias
+
+
+def make_any_c_from():
+    sql_part = (
+        ' FROM (VALUES(NULL)) dummy'
+        ' JOIN directory.entity_link_denorm eld'
+        ' ON %s && eld.tags'
     )
+
+    return sql_part, 'eld.entity_id', 'eld'
+
+
+def make_any_c_join(index, entity_id_column):
+    taglink_alias = "eld_{0}".format(index)
+
+    sql_part = (
+        ' JOIN directory.entity_link_denorm {0}'
+        ' ON {1} = {0}.entity_id'
+        ' AND %s && {0}.tags'
+    ).format(taglink_alias, entity_id_column)
+
+    return sql_part, taglink_alias
 
 
 def make_s_join(index, eld_alias):
-    return '\n    AND {0}.name = %s'.format(eld_alias)
+    return ' AND {0}.name = %s'.format(eld_alias)
