@@ -92,3 +92,36 @@ SELECT
   client_addr,
   (public.wal_location_to_int(pg_current_xlog_location()) - public.wal_location_to_int(replay_location)) / 2^20 AS distance_mb
 FROM pg_stat_replication;';
+
+
+CREATE OR REPLACE FUNCTION safe_division(numerator anyelement, denominator anyelement)
+	RETURNS anyelement
+AS $$
+SELECT CASE
+	WHEN $2 = 0 THEN
+		NULL
+	ELSE
+		$1 / $2
+	END;
+$$ LANGUAGE SQL IMMUTABLE;
+
+ALTER FUNCTION safe_division(anyelement, anyelement)
+	OWNER TO postgres;
+
+
+CREATE OR REPLACE FUNCTION add_array(anyarray, anyarray) RETURNS anyarray
+AS $$
+SELECT array_agg((arr1 + arr2)) FROM
+(
+	SELECT
+		unnest($1[1:least(array_length($1,1), array_length($2,1))]) AS arr1,
+		unnest($2[1:least(array_length($1,1), array_length($2,1))]) AS arr2
+) AS foo;
+$$ LANGUAGE SQL STABLE STRICT;
+
+
+CREATE AGGREGATE sum_array(anyarray)
+(
+	sfunc = add_array,
+	stype = anyarray
+);

@@ -13,6 +13,17 @@ GRANT USAGE ON SCHEMA trend TO minerva;
 
 SET search_path = trend, pg_catalog;
 
+-- Type 'trend_descr'
+
+CREATE TYPE trend_descr AS (
+    name name,
+    datatype varchar,
+    description text
+);
+
+ALTER TYPE trend_descr OWNER TO minerva_admin;
+
+
 -- Table 'trend'
 
 CREATE TABLE trend (
