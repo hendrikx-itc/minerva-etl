@@ -18,26 +18,18 @@ from contextlib import closing
 
 from minerva import __version__ as version
 from minerva.instance import MinervaInstance
-from minerva.util.config import get_defaults
 
 
 package_name = "minerva"
 script_name = os.path.basename(__file__)
-config_file = "{}.conf".format(script_name)
 
 
 def main():
-    config_file_path = os.path.join("/etc/minerva", config_file)
-
     parser = argparse.ArgumentParser(description="Cleanup trend data")
 
     parser.add_argument(
         "--version", action="version", version=version,
         help="display version information and exit")
-
-    parser.add_argument(
-        "-c", "--configfile", dest="configfile",
-        default=config_file_path, help="the path to the config file")
 
     parser.add_argument(
         "-i", "--instance",
@@ -62,11 +54,6 @@ def main():
 
     parser.add_argument(
         "-e", "--entitytype", help="entitytype of trendstores to clean")
-
-    parser.add_argument(
-        "--generate-configfile", dest="generate_configfile",
-        action=GenerateConfigFileAction, nargs=0,
-        help="generate base config file")
 
     args = parser.parse_args()
 
@@ -118,21 +105,15 @@ def main():
     user = args.user or "minerva_admin"
 
     with closing(minerva_instance.connect(user=user)) as conn:
+        conn.autocommit = True
         with closing(conn.cursor()) as cursor:
             cursor.execute(select_query, select_args)
 
             for table_name, start, end in cursor.fetchall():
                 if not args.pretend:
                     cursor.execute(delete_query, (table_name,))
-                    conn.commit()
                 logging.info("dropped table {}, {} - {}".format(
                     table_name, start, end))
-
-
-class GenerateConfigFileAction(argparse.Action):
-    def __call__(self, parser, namespace, values, option_string=None):
-        sys.stdout.write(get_defaults(package_name, config_file))
-        sys.exit(0)
 
 
 if __name__ == "__main__":
