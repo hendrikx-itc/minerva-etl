@@ -105,7 +105,7 @@ def main():
     user = args.user or "minerva_admin"
 
     with closing(minerva_instance.connect(user=user)) as conn:
-        conn.autocommit = True
+        conn._con.autocommit = True
         with closing(conn.cursor()) as cursor:
             cursor.execute(select_query, select_args)
 

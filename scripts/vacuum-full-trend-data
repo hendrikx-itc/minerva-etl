@@ -60,11 +60,11 @@ def main():
     user = args.user or "minerva_admin"
 
     with closing(minerva_instance.connect(user=user)) as conn:
-        conn.autocommit = True
+        conn._con.autocommit = True
         with closing(conn.cursor()) as cursor:
             cursor.execute('SELECT table_name FROM trend.to_be_vacuumed')
 
-            for table_name in cursor.fetchall():
+            for table_name, in cursor.fetchall():
                 logging.info('performing vacuum full on {}'.format(table_name))
                 cursor.execute(
                     'VACUUM FULL FREEZE trend."{}"'.format(table_name))
