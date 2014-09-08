@@ -292,3 +292,13 @@ ALTER TABLE ONLY view_trendstore_link
 GRANT ALL ON TABLE view_trendstore_link TO minerva_admin;
 GRANT SELECT ON TABLE view_trendstore_link TO minerva;
 GRANT INSERT,DELETE,UPDATE ON TABLE view_trendstore_link TO minerva_writer;
+
+
+CREATE TABLE to_be_vacuumed (
+    table_name name not null primary key
+);
+
+ALTER TABLE to_be_vacuumed OWNER TO minerva_admin;
+GRANT SELECT ON TABLE to_be_vacuumed TO minerva;
+GRANT INSERT,DELETE,UPDATE ON TABLE to_be_vacuumed TO minerva_writer;
+
