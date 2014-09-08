@@ -77,22 +77,22 @@ AS $$
 DECLARE
     base_table_name text;
     vacuum_partition_index int;
-    trendstore trend.trendstore;
+    the_trendstore trend.trendstore;
 BEGIN
     IF NEW.table_name IS NULL THEN
         NEW.table_name = trend.to_table_name_v4(NEW);
     END IF;
 
     IF NOT trend.partition_exists(NEW.table_name::text) THEN
-        SELECT trendstore INTO trendstore FROM trend.trendstore WHERE id = NEW.trendstore_id;
+        SELECT * INTO the_trendstore FROM trend.trendstore WHERE id = NEW.trendstore_id;
 
-        base_table_name = trend.to_base_table_name(trendstore);
+        base_table_name = trend.to_base_table_name(the_trendstore);
 
         PERFORM trend.create_partition_table_v4(base_table_name, NEW.table_name, NEW.data_start, NEW.data_end);
 
         -- mark the second to last partition as available for vacuum full
-        vacuum_partition_index = trend.timestamp_to_index(trendstore.partition_size, NEW.data_start) - 2;
-        INSERT INTO trend.to_be_vacuumed (table_name) SELECT trend.partition_name(trendstore, vacuum_partition_index);
+        vacuum_partition_index = trend.timestamp_to_index(the_trendstore.partition_size, NEW.data_start) - 2;
+        INSERT INTO trend.to_be_vacuumed (table_name) SELECT trend.partition_name(the_trendstore, vacuum_partition_index);
     END IF;
 
     RETURN NEW;
