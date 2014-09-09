@@ -84,3 +84,15 @@ CREATE TABLE "5m" (
 GRANT ALL ON TABLE "5m" TO minerva_admin;
 GRANT SELECT ON TABLE "5m" TO minerva;
 GRANT INSERT,DELETE,UPDATE ON TABLE "5m" TO minerva_writer;
+
+-- Table 'four_consec_qtr'
+
+CREATE TABLE "four_consec_qtr" (
+    timestamp timestamp with time zone PRIMARY KEY,
+    start timestamp with time zone,
+    "end" timestamp with time zone
+);
+
+GRANT ALL ON TABLE "four_consec_qtr" TO minerva_admin;
+GRANT SELECT ON TABLE "four_consec_qtr" TO minerva;
+GRANT INSERT,DELETE,UPDATE ON TABLE "four_consec_qtr" TO minerva_writer;
