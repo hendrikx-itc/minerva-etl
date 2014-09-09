@@ -10,6 +10,6 @@ Vcs-Browser: http://github.com/hendrikx-itc/minerva
 
 Package: minerva-database
 Architecture: all
-Depends: ${misc:Depends} postgresql(>=9.1) postgresql-server-dev(>=9.1)
+Depends: ${misc:Depends}, postgresql(>=9.1), postgresql-server-dev(>=9.1)
 Description: <insert up to 60 chars description>
  <insert long description, indented with spaces>
