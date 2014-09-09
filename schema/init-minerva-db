@@ -106,12 +106,8 @@ function main()
 	exec_module_scripts "/usr/share/minerva/50_storage/notification"
 	exec_module_scripts "/usr/share/minerva/50_storage/geospatial"
 
-	log "metric schema"
-	exec_module_scripts "/usr/share/minerva/60_metric"
-
-	log "olap schema"
-	exec_module_scripts "/usr/share/minerva/80_olap"
-
+	log "extensions"
+	exec_nested_module_scripts "/usr/share/minerva/extensions"
 
 	log "done"
 }
