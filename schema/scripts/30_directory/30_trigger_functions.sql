@@ -54,3 +54,14 @@ END;
 $$ LANGUAGE plpgsql VOLATILE;
 
 ALTER FUNCTION directory."create entitytaglink for new entity (func)"() OWNER TO postgres;
+
+
+CREATE OR REPLACE FUNCTION directory.update_entity_link_denorm_for_insert()
+    RETURNS trigger
+AS $$
+BEGIN
+    PERFORM directory.update_denormalized_entity_tags(NEW.entity_id);
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql VOLATILE;

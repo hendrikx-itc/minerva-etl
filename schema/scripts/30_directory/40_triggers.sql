@@ -25,3 +25,9 @@ CREATE TRIGGER "create tag for new entitytypes"
     ON directory.entitytype
     FOR EACH ROW
     EXECUTE PROCEDURE directory."create tag for new entitytypes (func)"();
+
+CREATE TRIGGER update_denormalized_tags_on_link_insert
+    AFTER INSERT
+    ON directory.entitytaglink
+    FOR EACH ROW
+    EXECUTE PROCEDURE directory.update_entity_link_denorm_for_insert();
