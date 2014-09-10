@@ -31,3 +31,9 @@ CREATE TRIGGER update_denormalized_tags_on_link_insert
     ON directory.entitytaglink
     FOR EACH ROW
     EXECUTE PROCEDURE directory.update_entity_link_denorm_for_insert();
+
+CREATE TRIGGER update_denormalized_tags_on_link_delete
+    AFTER DELETE 
+    ON directory.entitytaglink
+    FOR EACH ROW
+    EXECUTE PROCEDURE directory.update_entity_link_denorm_for_delete();

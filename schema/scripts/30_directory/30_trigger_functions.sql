@@ -65,3 +65,14 @@ BEGIN
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql VOLATILE;
+
+
+CREATE OR REPLACE FUNCTION directory.update_entity_link_denorm_for_delete()
+    RETURNS trigger
+AS $$
+BEGIN
+    PERFORM directory.update_denormalized_entity_tags(OLD.entity_id);
+
+    RETURN OLD;
+END;
+$$ LANGUAGE plpgsql VOLATILE;
