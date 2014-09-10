@@ -107,3 +107,19 @@ AS $$
             '5 minute'::interval) AS timestamp
     ) timestamps;
 $$ LANGUAGE SQL;
+
+CREATE OR REPLACE FUNCTION update_four_consec_qtr()
+    RETURNS void
+AS $$
+    TRUNCATE dimension."four_consec_qtr";
+    INSERT INTO dimension."four_consec_qtr" SELECT
+        timestamp,
+        timestamp - '1 hour'::interval,
+        timestamp
+    FROM (
+        SELECT generate_series(
+            date_trunc('hour', now()) - '1 year'::interval,
+            date_trunc('hour', now()) + '1 year'::interval,
+            '15 minute'::interval) AS timestamp
+    ) timestamps;
+$$ LANGUAGE SQL;

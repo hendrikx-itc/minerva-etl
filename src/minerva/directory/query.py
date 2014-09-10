@@ -65,17 +65,25 @@ def compile_sql(minerva_query, relation_group_name, entity_id_column=None):
     query_parts.append(query_part)
     args.append(map(unicode.lower, first_component['value']))
 
+    last_type = first_component['type']
+
     for index, component in enumerate(minerva_query[1:], start=1):
         if component['type'] == 'C':
-            query_part, entity_id_column = make_relation_join(
-                index, entity_id_column, relation_group_name)
+            if last_type == 'any C':
+                query_part = make_c_and(eld_alias)
 
-            query_parts.append(query_part)
+                query_parts.append(query_part)
+                args.append(map(unicode.lower, component['value']))
+            else:
+                query_part, entity_id_column = make_relation_join(
+                    index, entity_id_column, relation_group_name)
 
-            query_part, eld_alias = make_c_join(index, entity_id_column)
+                query_parts.append(query_part)
 
-            query_parts.append(query_part)
-            args.append(map(unicode.lower, component['value']))
+                query_part, eld_alias = make_c_join(index, entity_id_column)
+
+                query_parts.append(query_part)
+                args.append(map(unicode.lower, component['value']))
 
         elif component['type'] == 'any C':
             query_part, entity_id_column = make_relation_join(
@@ -96,6 +104,8 @@ def compile_sql(minerva_query, relation_group_name, entity_id_column=None):
 
         else:
             raise QueryError('query contains unknown type ' + component['type'])
+
+        last_type = component['type']
 
     sql = "\n".join(query_parts)
 
@@ -236,6 +246,16 @@ def make_c_join(index, entity_id_column):
     ).format(taglink_alias, entity_id_column)
 
     return query_part, taglink_alias
+
+
+def make_c_and(taglink_alias):
+    query_part = (
+        " AND %s <@ {0}.tags"
+    ).format(
+        taglink_alias
+    )
+
+    return query_part
 
 
 def make_any_c_from():
