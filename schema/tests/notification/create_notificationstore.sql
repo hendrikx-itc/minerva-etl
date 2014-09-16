@@ -30,4 +30,3 @@ SELECT has_column(
 
 SELECT * FROM finish();
 ROLLBACK;
-

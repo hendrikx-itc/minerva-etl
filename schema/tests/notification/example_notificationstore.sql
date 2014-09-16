@@ -23,4 +23,3 @@ SELECT has_table(
 
 SELECT * FROM finish();
 ROLLBACK;
-
