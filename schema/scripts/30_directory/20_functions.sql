@@ -428,3 +428,21 @@ AS $$
     FROM directory.tag, directory.entity
     WHERE tag.name = $2 AND entity.dn = $1 RETURNING $1;
 $$ LANGUAGE SQL VOLATILE;
+
+
+CREATE OR REPLACE FUNCTION update_denormalized_entity_tags(entity_id integer)
+    RETURNS directory.entity_link_denorm
+AS $$
+DELETE FROM directory.entity_link_denorm WHERE entity_id = $1;
+INSERT INTO directory.entity_link_denorm
+SELECT
+    entity.id,
+    array_agg(lower(tag.name)),
+    lower(entity.name)
+FROM directory.entity
+JOIN directory.entitytaglink etl ON etl.entity_id = entity.id
+JOIN directory.tag ON tag.id = etl.tag_id
+WHERE entity.id = $1
+GROUP BY entity.id
+RETURNING *;
+$$ LANGUAGE sql VOLATILE;
