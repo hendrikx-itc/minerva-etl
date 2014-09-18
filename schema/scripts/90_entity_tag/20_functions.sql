@@ -39,7 +39,7 @@ SELECT
 	staging.tag_name AS name,
 	staging.taggroup_id
 FROM entity_tag.entitytaglink_staging staging
-LEFT JOIN directory.tag ON tag.name = tag_name WHERE tag.name IS NULL
+LEFT JOIN directory.tag ON lower(tag.name) = lower(tag_name) WHERE tag.name IS NULL
 GROUP BY staging.tag_name, staging.taggroup_id;
 
 
@@ -61,7 +61,7 @@ SELECT
 	staging.entity_id,
 	tag.id AS tag_id
 FROM entity_tag.entitytaglink_staging staging
-JOIN directory.tag ON tag.name = staging.tag_name
+JOIN directory.tag ON lower(tag.name) = lower(staging.tag_name)
 LEFT JOIN directory.entitytaglink etl ON etl.entity_id = staging.entity_id AND etl.tag_id = tag.id
 WHERE etl.entity_id IS NULL;
 
