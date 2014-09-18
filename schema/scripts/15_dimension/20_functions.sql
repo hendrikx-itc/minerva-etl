@@ -31,7 +31,9 @@ AS $$
     INSERT INTO dimension.week SELECT
         timestamp,
         timestamp - '1 week'::interval,
-        timestamp
+        timestamp,
+        date_part('isoyear'::text, timestamp - '7 days'::interval),
+        date_part('week'::text, timestamp - '7 days'::interval)
     FROM (
         SELECT generate_series(
             date_trunc('week', now() - '1 year'::interval),
