@@ -114,21 +114,15 @@ CREATE OR REPLACE FUNCTION entity_tag.update(type_name name)
 	RETURNS entity_tag.update_result
 AS $$
 DECLARE
-	transferred bigint;
-	tags_added bigint;
-	links_added bigint;
-	links_removed bigint;
+    result entity_tag.update_result;
 BEGIN
-	transferred = entity_tag.transfer_to_staging(type_name);
-
-	tags_added = entity_tag.add_new_tags();
-
-	links_added = entity_tag.add_new_links();
-
-	links_removed = entity_tag.remove_obsolete_links();
+	result.staged = entity_tag.transfer_to_staging(type_name);
+	result.tags_added = entity_tag.add_new_tags();
+	result.links_added = entity_tag.add_new_links();
+	result.links_removed = entity_tag.remove_obsolete_links();
 
 	TRUNCATE entity_tag.entitytaglink_staging;
 
-	RETURN (transferred, tags_added, links_added, links_removed);
+    RETURN result;
 END;
 $$ LANGUAGE plpgsql VOLATILE;
