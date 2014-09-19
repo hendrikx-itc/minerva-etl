@@ -30,7 +30,9 @@ GRANT INSERT,DELETE,UPDATE ON TABLE "month" TO minerva_writer;
 CREATE TABLE week (
     timestamp timestamp with time zone PRIMARY KEY,
     start timestamp with time zone,
-    "end" timestamp with time zone
+    "end" timestamp with time zone,
+    year smallint,
+    week_iso_8601 smallint
 );
 
 GRANT ALL ON TABLE week TO minerva_admin;

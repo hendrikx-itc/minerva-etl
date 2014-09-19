@@ -41,48 +41,47 @@ def tag_entities(conn, tag_links):
     :param conn: database connection
     :param tag_links: list of tuples like (entity_id, tag_name)
     """
-    tmp_table_name = store_in_temp_table(conn, tag_links)
+    group_id = get_taggroup_id(conn, 'default')
 
-    query = (
-        "INSERT INTO {0}.entitytaglink (entity_id, tag_id) "
-        "(SELECT tmp.entity_id, tag.id "
-        "FROM {1} tmp "
-        "JOIN {0}.tag tag ON tag.name = tmp.tag "
-        "LEFT JOIN {0}.entitytaglink etl ON "
-        "etl.entity_id = tmp.entity_id AND etl.tag_id = tag.id "
-        "WHERE etl.entity_id IS NULL)").format(SCHEMA, tmp_table_name)
+    tag_links_with_group_id = [
+        (entity_id, tag_name, group_id)
+        for entity_id, tag_name in tag_links
+    ]
+
+    store_in_staging_table(conn, tag_links_with_group_id)
 
     with closing(conn.cursor()) as cursor:
-        cursor.execute(query)
-
-    drop_table(conn, tmp_table_name)
+        cursor.execute("SELECT entity_tag.process_staged_links();")
 
     conn.commit()
 
 
-def store_in_temp_table(conn, tag_links):
+def get_taggroup_id(conn, name):
+    with closing(conn.cursor()) as cursor:
+        cursor.execute(
+            "SELECT id FROM directory.taggroup WHERE name = %s",
+            (name,)
+        )
+
+        group_id, = cursor.fetchone()
+
+    return group_id
+
+
+def store_in_staging_table(conn, tag_links):
     """
     Create temporay table with tag links
 
     :param conn: Minerva database connection
-    :param tag_links: list of tuples like (trend_id, tag_name)
+    :param tag_links: list of tuples like (trend_id, tag_name, taggroup_id)
     """
+    table_name = "entity_tag.entitytaglink_staging"
+    column_names = ["entity_id", "tag_name", "taggroup_id"]
 
-    tmp_table_name = "tmp_entity_tags"
-    columns = [
-        ("entity_id", "integer"),
-        ("tag", "varchar")
-    ]
-    column_names = [col_name for col_name, col_type in columns]
-    sql_columns = ["{} {}".format(*column) for column in columns]
-
-    copy_from_file = create_copy_from_file(tag_links, ('d', 's'))
-    create_temp_table(conn, tmp_table_name, sql_columns)
+    copy_from_file = create_copy_from_file(tag_links, ('d', 's', 'd'))
 
     with closing(conn.cursor()) as cursor:
-        cursor.copy_from(copy_from_file, tmp_table_name, columns=column_names)
-
-    return tmp_table_name
+        cursor.copy_from(copy_from_file, table_name, columns=column_names)
 
 
 def flush_tag_links(conn, tag_name):
