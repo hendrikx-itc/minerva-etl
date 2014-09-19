@@ -6,25 +6,17 @@ import argparse
 import traceback
 import logging
 from contextlib import closing
-from logging.handlers import RotatingFileHandler
 
 from configobj import ConfigObj
 
 from minerva import __version__ as version
+from minerva.instance import MinervaInstance
 from minerva.db import connect
 from minerva.directory.helpers import get_entitytype
 from minerva.directory.tag import NoSuchTagError, tag_entities, \
     flush_tag_links, get_tag, create_tag_group, create_tag
-from minerva.util.config import parse_size
 from minerva.db.util import create_copy_from_file, create_temp_table, \
     drop_table
-
-CONFIG_DEFAULTS = """\
-db_url = postgresql://minerva:minerva@localhost/minerva
-log_directory = /var/log/minerva
-log_filename = load-tags.log
-log_rotation_size = 10MB
-log_level = INFO"""
 
 package_name = "minerva"
 script_name = os.path.basename(__file__)
@@ -38,6 +30,9 @@ def main():
     parser.add_argument(
         "--version", action="version", version=version,
         help="display version information and exit")
+
+    parser.add_argument(
+        "-i", "--instance", help="name of the target minerva instance")
 
     parser.add_argument(
         "file", metavar="FILE", nargs='*',
@@ -57,32 +52,31 @@ def main():
         help="the path to the config file")
 
     parser.add_argument(
-        "-v", "--verbose", action="store_true", default=False,
-        help="verbose output")
-
-    parser.add_argument(
         "-f", "--flush", action="store_true", default=False,
         help="flush current tags with specified name")
 
-    parser.add_argument(
-        "--generate-configfile", dest="generate_configfile",
-        default=False, action="store_true", help="generate base config file")
+    parser.add_argument("-u", "--user", help="user to connect to database")
 
     args = parser.parse_args()
 
-    if args.generate_configfile:
-        print(CONFIG_DEFAULTS)
-        return 0
+    minerva_instance = MinervaInstance.load(
+        args.instance or
+        os.environ.get("DEFAULT_MINERVA_INSTANCE") or
+        "default"
+    )
 
     config = ConfigObj(args.configfile)
 
-    setup_logging(args.verbose)
-    setup_file_logging(
-        config["log_directory"], config["log_filename"],
-        config["log_rotation_size"], config["log_level"])
+    setup_logging()
+
+    user = (
+        args.user or
+        config.get("database", {}).get("user") or
+        "minerva_admin"
+    )
 
     try:
-        with closing(connect(config["db_url"])) as conn:
+        with closing(minerva_instance.connect(user=user)) as conn:
             entitytype = get_entitytype(conn, args.entity_type)
 
             for file_path in args.file:
@@ -170,39 +164,12 @@ def store_aliases_in_temp_table(conn, aliases):
     return tmp_table_name
 
 
-def setup_logging(verbose):
-    root_logger = logging.getLogger("")
+def setup_logging():
+    handler = logging.StreamHandler(sys.stdout)
 
-    if verbose:
-        handler = logging.StreamHandler(sys.stdout)
+    logging.root.addHandler(handler)
 
-        root_logger.addHandler(handler)
-
-    root_logger.setLevel(logging.INFO)
-
-
-def setup_file_logging(directory, filename, rotation_size, level):
-    """Setup rotating file logging."""
-    level_map = {
-        "DEBUG": logging.DEBUG,
-        "INFO": logging.INFO,
-        "WARNING": logging.WARNING,
-        "ERROR": logging.ERROR,
-        "CRITICAL": logging.CRITICAL}
-
-    max_log_size = parse_size(rotation_size)
-
-    filepath = os.path.join(directory, filename)
-    handler = RotatingFileHandler(filepath, maxBytes=max_log_size,
-                                  backupCount=5)
-    handler.setLevel(level_map[level])
-
-    formatter = logging.Formatter("%(asctime)s %(levelname)s %(message)s")
-    handler.setFormatter(formatter)
-
-    rootlogger = logging.getLogger("")
-    rootlogger.setLevel(level_map[level])
-    rootlogger.addHandler(handler)
+    logging.root.setLevel(logging.INFO)
 
 
 if __name__ == "__main__":

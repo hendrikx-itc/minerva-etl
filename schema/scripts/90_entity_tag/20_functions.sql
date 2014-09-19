@@ -42,6 +42,9 @@ FROM entity_tag.entitytaglink_staging staging
 LEFT JOIN directory.tag ON lower(tag.name) = lower(tag_name) WHERE tag.name IS NULL
 GROUP BY staging.tag_name, staging.taggroup_id;
 
+ALTER VIEW entity_tag._new_tags_in_staging OWNER TO minerva_admin;
+GRANT SELECT ON TABLE entity_tag._new_tags_in_staging TO minerva;
+
 
 CREATE OR REPLACE FUNCTION entity_tag.add_new_tags()
 	RETURNS bigint
@@ -64,6 +67,9 @@ FROM entity_tag.entitytaglink_staging staging
 JOIN directory.tag ON lower(tag.name) = lower(staging.tag_name)
 LEFT JOIN directory.entitytaglink etl ON etl.entity_id = staging.entity_id AND etl.tag_id = tag.id
 WHERE etl.entity_id IS NULL;
+
+ALTER VIEW entity_tag._new_links_in_staging OWNER TO minerva_admin;
+GRANT SELECT ON TABLE entity_tag._new_links_in_staging TO minerva;
 
 
 CREATE OR REPLACE FUNCTION entity_tag.add_new_links()
@@ -88,6 +94,9 @@ JOIN directory.tag ON tag.id = etl.tag_id
 LEFT JOIN entity_tag.entitytaglink_staging staging ON staging.tag_name = tag.name AND staging.entity_id = etl.entity_id
 WHERE tag.name IN (SELECT tag_name FROM entity_tag.entitytaglink_staging GROUP BY tag_name) AND staging.entity_id IS NULL;
 
+ALTER VIEW entity_tag._obsolete_links OWNER TO minerva_admin;
+GRANT SELECT ON TABLE entity_tag._obsolete_links TO minerva;
+
 
 CREATE OR REPLACE FUNCTION entity_tag.remove_obsolete_links()
 	RETURNS bigint
@@ -100,6 +109,30 @@ AS $$
 	)
 	SELECT count(*) FROM t;
 $$ LANGUAGE sql VOLATILE;
+
+
+CREATE TYPE entity_tag.process_staged_links_result AS (
+	tags_added bigint,
+	links_added bigint,
+	links_removed bigint 
+);
+
+
+CREATE OR REPLACE FUNCTION entity_tag.process_staged_links()
+	RETURNS entity_tag.process_staged_links_result
+AS $$
+DECLARE
+    result entity_tag.process_staged_links_result;
+BEGIN
+	result.tags_added = entity_tag.add_new_tags();
+	result.links_added = entity_tag.add_new_links();
+	result.links_removed = entity_tag.remove_obsolete_links();
+
+	TRUNCATE entity_tag.entitytaglink_staging;
+
+    RETURN result;
+END;
+$$ LANGUAGE plpgsql VOLATILE;
 
 
 CREATE TYPE entity_tag.update_result AS (
@@ -115,13 +148,15 @@ CREATE OR REPLACE FUNCTION entity_tag.update(type_name name)
 AS $$
 DECLARE
     result entity_tag.update_result;
+    process_result entity_tag.process_staged_links_result;
 BEGIN
 	result.staged = entity_tag.transfer_to_staging(type_name);
-	result.tags_added = entity_tag.add_new_tags();
-	result.links_added = entity_tag.add_new_links();
-	result.links_removed = entity_tag.remove_obsolete_links();
 
-	TRUNCATE entity_tag.entitytaglink_staging;
+    process_result = entity_tag.process_staged_links();
+
+	result.tags_added = process_result.tags_added;
+	result.links_added = process_result.links_added;
+	result.links_removed = process_result.links_removed;
 
     RETURN result;
 END;
