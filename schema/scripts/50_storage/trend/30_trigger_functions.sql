@@ -92,7 +92,10 @@ BEGIN
 
         -- mark the second to last partition as available for vacuum full
         vacuum_partition_index = trend.timestamp_to_index(the_trendstore.partition_size, NEW.data_start) - 2;
-        INSERT INTO trend.to_be_vacuumed (table_name) SELECT trend.partition_name(the_trendstore, vacuum_partition_index);
+        INSERT INTO trend.to_be_vacuumed (table_name)
+        SELECT trend.partition_name(the_trendstore, vacuum_partition_index) WHERE NOT EXISTS(
+            SELECT 1 FROM trend.to_be_vacuumed WHERE table_name = trend.partition_name(the_trendstore, vacuum_partition_index)
+        );
     END IF;
 
     RETURN NEW;
