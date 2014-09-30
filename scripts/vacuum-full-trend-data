@@ -16,6 +16,8 @@ import argparse
 import logging
 from contextlib import closing
 
+from psycopg2 import ProgrammingError
+
 from minerva import __version__ as version
 from minerva.instance import MinervaInstance
 
@@ -65,8 +67,12 @@ def main():
             cursor.execute('SELECT table_name FROM trend.to_be_vacuumed')
 
             for table_name, in cursor.fetchall():
-                cursor.execute(
-                    'VACUUM FULL FREEZE trend."{}"'.format(table_name))
+                try:
+                    cursor.execute(
+                        'VACUUM FULL FREEZE trend."{}"'.format(table_name))
+                except ProgrammingError:
+                    # Partition has been dropped already
+                    pass
                 cursor.execute(
                     'DELETE FROM trend.to_be_vacuumed WHERE table_name = %s',
                     (table_name, ))
