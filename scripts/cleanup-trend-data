@@ -46,7 +46,7 @@ def main():
         help="don't really delete partitions")
 
     parser.add_argument(
-        "-g", "--granularity", default="900",
+        "-g", "--granularity",
         help="granularity of trendstores to clean")
 
     parser.add_argument(
@@ -71,6 +71,7 @@ def main():
     minerva_instance = MinervaInstance.load(minerva_instance_name)
 
     joins = []
+    criteria = ["data_end < now() - ts.retention_period"]
     select_args = []
 
     if args.datasource:
@@ -89,12 +90,15 @@ def main():
 
         select_args.append(args.entitytype)
 
+    if args.granularity:
+        criteria.append("ts.granularity = %s")
+
     select_query = (
         "SELECT table_name, data_start, data_end "
         "FROM trend.partition p "
         "JOIN trend.trendstore ts ON ts.id = p.trendstore_id {}"
-        "WHERE ts.granularity = %s AND data_end < now() - ts.retention_period "
-        "ORDER BY data_end, table_name").format("".join(joins))
+        "WHERE {} "
+        "ORDER BY data_end, table_name").format("".join(joins), " AND ".join(criteria))
 
     select_args.append(args.granularity)
 
