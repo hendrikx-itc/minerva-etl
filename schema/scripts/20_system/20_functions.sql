@@ -32,10 +32,7 @@ AS $$
 DECLARE
     result system.job_type;
 BEGIN
-    BEGIN
-        LOCK TABLE system.job_queue IN SHARE UPDATE EXCLUSIVE MODE NOWAIT;
-        LOCK TABLE system.job IN SHARE UPDATE EXCLUSIVE MODE NOWAIT;
-
+    IF pg_try_advisory_lock(0) THEN
         SELECT job.id, job.type, job.description, job.size, js.config INTO result
             FROM system.job_queue
             JOIN system.job ON job_id = id
@@ -47,12 +44,13 @@ BEGIN
 
             DELETE FROM system.job_queue WHERE job_id = result.id;
         END IF;
-    EXCEPTION
-        WHEN lock_not_available THEN
-            result = NULL;
-    END;
 
-    RETURN result;
+        PERFORM pg_advisory_unlock(0);
+
+        RETURN result;
+    ELSE
+        RETURN NULL;
+    END IF;
 END;
 $$ LANGUAGE plpgsql VOLATILE;
 
