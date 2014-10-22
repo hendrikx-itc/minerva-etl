@@ -32,7 +32,7 @@ AS $$
 DECLARE
     result system.job_type;
 BEGIN
-    IF pg_try_advisory_lock(0) THEN
+    IF pg_try_advisory_xact_lock(0) THEN
         SELECT job.id, job.type, job.description, job.size, js.config INTO result
             FROM system.job_queue
             JOIN system.job ON job_id = id
@@ -44,8 +44,6 @@ BEGIN
 
             DELETE FROM system.job_queue WHERE job_id = result.id;
         END IF;
-
-        PERFORM pg_advisory_unlock(0);
 
         RETURN result;
     ELSE
@@ -110,9 +108,7 @@ DECLARE
     result integer;
 BEGIN
     -- Acquire locks
-    LOCK TABLE system.job IN ACCESS EXCLUSIVE MODE;
-    LOCK TABLE system.job_queue IN ACCESS EXCLUSIVE MODE;
-    LOCK TABLE transform.state IN ACCESS EXCLUSIVE MODE;
+    PERFORM pg_advisory_xact_lock(0);
 
     -- Drop constraints on dependent tables
     ALTER TABLE system.job_queue DROP CONSTRAINT job_queue_job_id_fkey;
