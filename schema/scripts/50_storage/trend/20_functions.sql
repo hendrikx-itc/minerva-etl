@@ -124,6 +124,8 @@ AS $$
             6 * 3600
         WHEN '3600' THEN
             24 * 3600
+        WHEN '43200' THEN
+            24 * 3600 * 7
         WHEN '86400' THEN
             24 * 3600 * 7
         WHEN 'day' THEN
