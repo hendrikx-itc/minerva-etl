@@ -1339,5 +1339,19 @@ AS $function$SELECT CASE
     WHEN $1 = '86400' THEN 86400
     WHEN $1 = '604800' THEN 604800
     WHEN $1 = 'month' THEN 2419200
-END;$function$
+END;$function$;
 
+
+CREATE OR REPLACE FUNCTION create_trendstore(datasource_name character varying, entitytype_name character varying, granularity character varying, trends trend.trend_descr[])
+    RETURNS trend.trendstore
+AS $$
+DECLARE
+    result trend.trendstore;
+BEGIN
+    result = trend.create_trendstore_from_attributes($1, $2, $3);
+
+    PERFORM trend.create_trends(result, $4);
+
+    RETURN result;
+END;
+$$ LANGUAGE plpgsql VOLATILE;
