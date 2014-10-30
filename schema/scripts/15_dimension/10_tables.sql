@@ -98,3 +98,29 @@ CREATE TABLE "four_consec_qtr" (
 GRANT ALL ON TABLE "four_consec_qtr" TO minerva_admin;
 GRANT SELECT ON TABLE "four_consec_qtr" TO minerva;
 GRANT INSERT,DELETE,UPDATE ON TABLE "four_consec_qtr" TO minerva_writer;
+
+-- Table '"month_15m"'
+
+CREATE TABLE "month_15m" (
+    timestamp timestamp with time zone,
+    timestamp_15m timestamp with time zone PRIMARY KEY
+);
+
+CREATE INDEX month_15m_timestamp_idx ON "month_15m"(timestamp);
+
+GRANT ALL ON TABLE "month_15m" TO minerva_admin;
+GRANT SELECT ON TABLE "month_15m" TO minerva;
+GRANT INSERT,DELETE,UPDATE ON TABLE "month_15m" TO minerva_writer;
+
+-- Table '"week_15m"'
+
+CREATE TABLE "week_15m" (
+    timestamp timestamp with time zone,
+    timestamp_15m timestamp with time zone PRIMARY KEY
+);
+
+CREATE INDEX week_15m_timestamp_idx ON "week_15m"(timestamp);
+
+GRANT ALL ON TABLE "week_15m" TO minerva_admin;
+GRANT SELECT ON TABLE "week_15m" TO minerva;
+GRANT INSERT,DELETE,UPDATE ON TABLE "week_15m" TO minerva_writer;
