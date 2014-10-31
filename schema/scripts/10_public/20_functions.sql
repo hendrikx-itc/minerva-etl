@@ -125,3 +125,26 @@ CREATE AGGREGATE sum_array(anyarray)
 	sfunc = add_array,
 	stype = anyarray
 );
+
+
+CREATE OR REPLACE FUNCTION divide_array(anyarray, anyelement)
+    RETURNS anyarray
+AS $$
+SELECT array_agg(arr / $2) FROM
+(
+    SELECT unnest($1) AS arr
+) AS foo;
+$$ LANGUAGE SQL STABLE STRICT;
+
+
+CREATE OR REPLACE FUNCTION divide_array(anyarray, anyarray)
+    RETURNS anyarray
+AS $$
+SELECT array_agg(public.safe_division(arr1, arr2)) FROM
+(
+    SELECT
+    unnest($1[1:least(array_length($1,1), array_length($2,1))]) AS arr1,
+    unnest($2[1:least(array_length($1,1), array_length($2,1))]) AS arr2
+) AS foo;
+$$ LANGUAGE SQL STABLE STRICT;
+
