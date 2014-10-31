@@ -69,3 +69,14 @@ BEGIN
     return result;
 END;
 $$ LANGUAGE plpgsql VOLATILE;
+
+
+CREATE OR REPLACE FUNCTION define_reverse(reverse name, original name)
+    RETURNS relation.type
+AS $$
+SELECT relation.define($1, format(
+$query$SELECT
+    target_id AS source_id,
+    source_id AS target_id
+FROM relation_def.%I$query$, $2));
+$$ LANGUAGE sql VOLATILE;
