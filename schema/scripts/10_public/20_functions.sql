@@ -148,3 +148,16 @@ SELECT array_agg(public.safe_division(arr1, arr2)) FROM
 ) AS foo;
 $$ LANGUAGE SQL STABLE STRICT;
 
+
+CREATE OR REPLACE FUNCTION array_sum(anyarray) RETURNS anyelement
+AS $$
+SELECT sum(t) FROM unnest($1) t;
+$$ LANGUAGE SQL IMMUTABLE STRICT;
+
+
+CREATE OR REPLACE FUNCTION to_pdf(text)
+	RETURNS int[]
+AS $$
+	SELECT array_agg(nullif(x, '')::int)
+    FROM unnest(string_to_array($1, ',')) AS x;
+$$ LANGUAGE SQL STABLE STRICT;
