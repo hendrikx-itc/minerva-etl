@@ -25,7 +25,8 @@ function runsqlscript()
 {
 	local filepath=$1
 
-	invoke_psql $DATABASE --file $filepath --single-transaction
+	invoke_psql $DATABASE --file $filepath
+	# --single-transaction
 }
 
 function runsql()
