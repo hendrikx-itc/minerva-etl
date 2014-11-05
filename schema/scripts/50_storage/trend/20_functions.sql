@@ -1357,3 +1357,26 @@ BEGIN
     RETURN result;
 END;
 $$ LANGUAGE plpgsql VOLATILE;
+
+
+CREATE OR REPLACE FUNCTION show_trends(trend.trendstore)
+    RETURNS SETOF trend.trend_descr
+AS $$
+    SELECT trend.name::name, format_type(a.atttypid, a.atttypmod)::character varying, trend.description
+    FROM trend.trend
+    JOIN trend.trendstore_trend_link ON trendstore_trend_link.trend_id = trend.id
+    JOIN pg_catalog.pg_class c ON c.relname = $1::text
+    JOIN pg_catalog.pg_namespace n ON c.relnamespace = n.oid
+    JOIN pg_catalog.pg_attribute a ON a.attrelid = c.oid AND a.attname = trend.name
+    WHERE
+        n.nspname = 'trend' AND
+        a.attisdropped = false AND
+        a.attnum > 0 AND trendstore_trend_link.trendstore_id = $1.id;
+$$ LANGUAGE sql STABLE;
+
+
+CREATE OR REPLACE FUNCTION show_trends(trendstore_id integer)
+    RETURNS SETOF trend.trend_descr
+AS $$
+    SELECT trend.show_trends(trendstore) FROM trend.trendstore WHERE id = $1;
+$$ LANGUAGE sql STABLE;
