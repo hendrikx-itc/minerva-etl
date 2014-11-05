@@ -80,3 +80,14 @@ $query$SELECT
     source_id AS target_id
 FROM relation_def.%I$query$, $2));
 $$ LANGUAGE sql VOLATILE;
+
+
+CREATE OR REPLACE FUNCTION define_reverse(reverse name, original relation.type)
+    RETURNS relation.type
+AS $$
+SELECT relation.define($1, format(
+$query$SELECT
+    target_id AS source_id,
+    source_id AS target_id
+FROM relation_def.%I$query$, $2.name));
+$$ LANGUAGE sql VOLATILE;
