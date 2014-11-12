@@ -383,14 +383,15 @@ GRANT INSERT,DELETE,UPDATE ON TABLE existence TO minerva_writer;
 
 -- Table 'existence_curr'
 
-CREATE TABLE existence_curr (
-) INHERITS (existence);
+CREATE VIEW existence_curr AS
+    SELECT  entity_id,
+        entitytype_id,
+        public.first("timestamp" ORDER BY timestamp DESC ) as timestamp,
+        public.first(exists  ORDER BY timestamp DESC ) as exists
+    FROM directory.existence
+    GROUP BY entity_id;
 
-ALTER TABLE existence_curr OWNER TO minerva_admin;
 
-ALTER TABLE ONLY existence_curr
-    ADD CONSTRAINT existence_curr_pkey PRIMARY KEY (entity_id);
+ALTER VIEW existence_curr OWNER TO minerva_admin;
 
-GRANT ALL ON TABLE existence_curr TO minerva_admin;
 GRANT SELECT ON TABLE existence_curr TO minerva;
-GRANT INSERT,DELETE,UPDATE ON TABLE existence_curr TO minerva_writer;
