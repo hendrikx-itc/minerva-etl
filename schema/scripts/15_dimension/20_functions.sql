@@ -125,3 +125,35 @@ AS $$
             '15 minute'::interval) AS timestamp
     ) timestamps;
 $$ LANGUAGE SQL;
+
+
+CREATE OR REPLACE FUNCTION update_month_15m()
+    RETURNS void
+AS $$
+    TRUNCATE dimension.month_15m;
+    INSERT INTO dimension.month_15m SELECT
+        date_trunc('month', timestamp_15m) as timestamp,
+        timestamp_15m
+    FROM 
+        generate_series(
+            date_trunc('month', now() - '1 year'::interval),
+            date_trunc('month', now() + '1 year'::interval),
+            '15 minutes'::interval
+        ) AS timestamps(timestamp_15m);
+$$ LANGUAGE SQL;
+
+
+CREATE OR REPLACE FUNCTION update_week_15m()
+    RETURNS void
+AS $$
+    TRUNCATE dimension.week_15m;
+    INSERT INTO dimension.week_15m SELECT
+        date_trunc('week', timestamp_15m) as timestamp,
+        timestamp_15m
+    FROM 
+        generate_series(
+            date_trunc('week', now() - '1 year'::interval),
+            date_trunc('week', now() + '1 year'::interval),
+            '15 minutes'::interval
+        ) AS timestamps(timestamp_15m);
+$$ LANGUAGE SQL;

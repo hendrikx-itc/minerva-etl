@@ -87,6 +87,12 @@ BEGIN
 
     PERFORM attribute_directory.create_history_table($1);
 
+    PERFORM attribute_directory.create_at_func_ptr($1);
+    PERFORM attribute_directory.create_at_func($1);
+
+    PERFORM attribute_directory.create_entity_at_func_ptr($1);
+    PERFORM attribute_directory.create_entity_at_func($1);
+
     PERFORM attribute_directory.create_staging_table($1);
 
     PERFORM attribute_directory.create_hash_triggers($1);
