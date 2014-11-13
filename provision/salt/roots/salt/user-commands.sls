@@ -1,7 +1,7 @@
-/home/vagrant/bin/rebuild-database:
+/home/vagrant/bin/recreate-database:
   file:
     - managed
-    - source: salt://resources/rebuild-database
+    - source: salt://resources/recreate-database
     - user: vagrant
     - group: vagrant
     - mode: 755
