@@ -15,3 +15,12 @@
     - group: vagrant
     - mode: 755
     - makedirs: True
+
+/home/vagrant/bin/run-db-tests:
+  file:
+    - managed
+    - source: salt://resources/run-db-tests
+    - user: vagrant
+    - group: vagrant
+    - mode: 755
+    - makedirs: True
