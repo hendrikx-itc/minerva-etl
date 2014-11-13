@@ -56,18 +56,12 @@ vagrant:
     - require:
       - service: postgresql
 
-minerva:
-  postgres_database:
-    - present
-
-init-minerva-db:
+create-minerva-db:
   cmd.wait:
-    - name: '/vagrant/schema/run-scripts /vagrant/schema/scripts'
+    - name: '/vagrant/provision/create-minerva-db'
     - user: vagrant
-    - env:
-      - PGDATABASE: minerva
     - watch:
-      - postgres_database: minerva
+      - postgres_user: vagrant
 
 git:
   pkg:
@@ -78,7 +72,7 @@ install-pgtap:
     - name: '/vagrant/provision/install_pgtap'
     - user: vagrant
     - watch:
-      - cmd: init-minerva-db
+      - cmd: create-minerva-db
     - require:
       - pkg: git
 

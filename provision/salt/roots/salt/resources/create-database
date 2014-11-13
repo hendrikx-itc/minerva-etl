@@ -1,0 +1,6 @@
+#!/bin/bash
+set -e
+
+psql -d postgres -c "CREATE DATABASE minerva;"
+
+PGDATABASE=minerva /vagrant/schema/run-scripts /vagrant/schema/scripts
