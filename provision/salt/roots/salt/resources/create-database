@@ -3,4 +3,6 @@ set -e
 
 psql -d postgres -c "CREATE DATABASE minerva;"
 
+psql -d minerva -c 'CREATE EXTENSION pgtap;'
+
 PGDATABASE=minerva /vagrant/schema/run-scripts /vagrant/schema/scripts

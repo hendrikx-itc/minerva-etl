@@ -10,5 +10,3 @@ make && sudo make install && make installcheck
 popd
 
 sudo PERL_MM_USE_DEFAULT=1 cpan TAP::Parser::SourceHandler::pgTAP
-
-psql -c 'CREATE EXTENSION pgtap;'
