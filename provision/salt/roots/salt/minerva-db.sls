@@ -67,17 +67,6 @@ git:
   pkg:
     - installed
 
-install-pgtap:
-  cmd.wait:
-    - name: '/vagrant/provision/install_pgtap'
-    - env:
-      - PGDATABASE: minerva
-    - user: vagrant
-    - watch:
-      - cmd: create-database
-    - require:
-      - pkg: git
-
 /etc/minerva/instances/default.conf:
   file.managed:
     - source: salt://resources/minerva_instance.conf

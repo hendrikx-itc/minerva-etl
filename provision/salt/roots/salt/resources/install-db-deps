@@ -1,0 +1,8 @@
+#!/bin/bash
+set -e
+
+if [ ! -d "/home/vagrant/db-deps/" ]; then
+	git clone https://github.com/hendrikx-itc/db-deps
+fi
+
+PGDATABASE=minerva /vagrant/schema/run-scripts /home/vagrant/db-deps/scripts
