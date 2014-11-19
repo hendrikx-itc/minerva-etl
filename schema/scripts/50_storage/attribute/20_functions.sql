@@ -87,6 +87,12 @@ BEGIN
 
     PERFORM attribute_directory.create_history_table($1);
 
+    PERFORM attribute_directory.create_at_func_ptr($1);
+    PERFORM attribute_directory.create_at_func($1);
+
+    PERFORM attribute_directory.create_entity_at_func_ptr($1);
+    PERFORM attribute_directory.create_entity_at_func($1);
+
     PERFORM attribute_directory.create_staging_table($1);
 
     PERFORM attribute_directory.create_hash_triggers($1);
@@ -830,19 +836,16 @@ CREATE OR REPLACE FUNCTION init(attribute_directory.attribute)
 AS $$
 DECLARE
     table_name name;
-    tmp_attributestore attribute_directory.attributestore;
 BEGIN
-    SELECT * INTO tmp_attributestore
-    FROM attribute_directory.attributestore WHERE id = $1.attributestore_id;
-
-    PERFORM attribute_directory.drop_dependees(tmp_attributestore);
-
     SELECT attribute_directory.to_char(attributestore) INTO table_name
     FROM attribute_directory.attributestore WHERE id = $1.attributestore_id;
 
-    EXECUTE format('ALTER TABLE attribute_base.%I ADD COLUMN %I %s', table_name, $1.name, $1.datatype);
-
-    PERFORM attribute_directory.create_dependees(tmp_attributestore);
+    PERFORM dep_recurse.alter(
+        dep_recurse.table_ref('attribute_base', table_name),
+        ARRAY[
+            format('ALTER TABLE attribute_base.%I ADD COLUMN %I %s', table_name, $1.name, $1.datatype)
+        ]
+    );
 
     RETURN $1;
 END;

@@ -12,6 +12,13 @@ GRANT ALL ON SCHEMA relation TO minerva_admin;
 GRANT ALL ON SCHEMA relation TO minerva_writer;
 GRANT USAGE ON SCHEMA relation TO minerva;
 
+CREATE SCHEMA relation_def;
+ALTER SCHEMA relation_def OWNER TO minerva_admin;
+
+GRANT ALL ON SCHEMA relation_def TO minerva_admin;
+GRANT ALL ON SCHEMA relation_def TO minerva_writer;
+GRANT USAGE ON SCHEMA relation_def TO minerva;
+
 SET search_path = relation, pg_catalog;
 
 

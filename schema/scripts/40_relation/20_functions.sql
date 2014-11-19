@@ -53,3 +53,41 @@ CREATE OR REPLACE FUNCTION name_to_type(character varying)
 AS $$
     SELECT COALESCE(relation.get_type($1), relation.create_type($1));
 $$ LANGUAGE SQL VOLATILE STRICT;
+
+
+CREATE OR REPLACE FUNCTION define(name, text)
+    RETURNS relation.type
+AS $$
+DECLARE
+    result relation.type;
+BEGIN
+    result = relation.name_to_type($1::character varying);
+
+    EXECUTE format('CREATE OR REPLACE VIEW relation_def.%I AS %s', $1, $2);
+    EXECUTE format('ALTER VIEW relation_def.%I OWNER TO minerva_admin', $1);
+
+    return result;
+END;
+$$ LANGUAGE plpgsql VOLATILE;
+
+
+CREATE OR REPLACE FUNCTION define_reverse(reverse name, original name)
+    RETURNS relation.type
+AS $$
+SELECT relation.define($1, format(
+$query$SELECT
+    target_id AS source_id,
+    source_id AS target_id
+FROM relation_def.%I$query$, $2));
+$$ LANGUAGE sql VOLATILE;
+
+
+CREATE OR REPLACE FUNCTION define_reverse(reverse name, original relation.type)
+    RETURNS relation.type
+AS $$
+SELECT relation.define($1, format(
+$query$SELECT
+    target_id AS source_id,
+    source_id AS target_id
+FROM relation_def.%I$query$, $2.name));
+$$ LANGUAGE sql VOLATILE;

@@ -43,13 +43,18 @@ DECLARE
     table_name name;
 BEGIN
     SELECT attribute_directory.to_table_name(attributestore) INTO table_name
-    FROM attribute_directory.attributestore WHERE id = OLD.attributestore_id;
+    FROM attribute_directory.attributestore
+    WHERE id = OLD.attributestore_id;
 
-    PERFORM attribute_directory.drop_dependees(attributestore) FROM attribute_directory.attributestore WHERE id = OLD.attributestore_id;
+    -- When the delete of the attribute is cascaded from the attributestore, the
+    -- table name can no longer be constructed.
+    IF table_name IS NOT NULL THEN
+        PERFORM attribute_directory.drop_dependees(attributestore) FROM attribute_directory.attributestore WHERE id = OLD.attributestore_id;
 
-    EXECUTE format('ALTER TABLE attribute_base.%I DROP COLUMN %I', table_name, OLD.name);
+        EXECUTE format('ALTER TABLE attribute_base.%I DROP COLUMN %I', table_name, OLD.name);
 
-    PERFORM attribute_directory.create_dependees(attributestore) FROM attribute_directory.attributestore WHERE id = OLD.attributestore_id;
+        PERFORM attribute_directory.create_dependees(attributestore) FROM attribute_directory.attributestore WHERE id = OLD.attributestore_id;
+    END IF;
 
     RETURN OLD;
 END;
