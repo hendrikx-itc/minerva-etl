@@ -2,17 +2,19 @@ BEGIN;
 
 SELECT plan(2);
 
-SELECT is(
-	trend.create_trendstore(
-        'some_datasource_name',
-        'some_entitytype_name',
-        '900',
-        ARRAY[
-            ('x', 'integer', 'some column with integer values')
-        ]::trend.trend_descr[]
-    )::text,
+SELECT trend.create_trendstore(
+	'some_datasource_name',
+	'some_entitytype_name',
+	'900',
+	ARRAY[
+		('x', 'integer', 'some column with integer values')
+	]::trend.trend_descr[]
+);
+
+SELECT has_table(
+	'trend',
 	'some_datasource_name_some_entitytype_name_qtr',
-	'the result of create_notificationstore'
+	'trend table should exist'
 );
 
 SELECT columns_are(
