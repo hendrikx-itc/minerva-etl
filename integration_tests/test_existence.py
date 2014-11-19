@@ -17,17 +17,6 @@ def prepare_datebase(conn):
 
     clear_database(conn)
 
-
-def get_existence_curr(conn):
-    with closing(conn.cursor()) as cursor:
-        cursor.execute("""
-SELECT entity.dn, e.timestamp, e.exists
-FROM directory.existence_curr e
-JOIN directory.entity on entity.id = e.entity_id
-ORDER BY entity.id, e.timestamp""")
-        return cursor.fetchall()
-
-
 def check_existence(conn, rows):
     with closing(conn.cursor()) as cursor:
         cursor.execute("""
