@@ -124,6 +124,8 @@ AS $$
             6 * 3600
         WHEN '3600' THEN
             24 * 3600
+        WHEN '43200' THEN
+            24 * 3600 * 7
         WHEN '86400' THEN
             24 * 3600 * 7
         WHEN 'day' THEN
@@ -1339,5 +1341,42 @@ AS $function$SELECT CASE
     WHEN $1 = '86400' THEN 86400
     WHEN $1 = '604800' THEN 604800
     WHEN $1 = 'month' THEN 2419200
-END;$function$
+END;$function$;
 
+
+CREATE OR REPLACE FUNCTION create_trendstore(datasource_name character varying, entitytype_name character varying, granularity character varying, trends trend.trend_descr[])
+    RETURNS trend.trendstore
+AS $$
+DECLARE
+    result trend.trendstore;
+BEGIN
+    result = trend.create_trendstore_from_attributes($1, $2, $3);
+
+    PERFORM trend.create_trends(result, $4);
+
+    RETURN result;
+END;
+$$ LANGUAGE plpgsql VOLATILE;
+
+
+CREATE OR REPLACE FUNCTION show_trends(trend.trendstore)
+    RETURNS SETOF trend.trend_descr
+AS $$
+    SELECT trend.name::name, format_type(a.atttypid, a.atttypmod)::character varying, trend.description
+    FROM trend.trend
+    JOIN trend.trendstore_trend_link ON trendstore_trend_link.trend_id = trend.id
+    JOIN pg_catalog.pg_class c ON c.relname = $1::text
+    JOIN pg_catalog.pg_namespace n ON c.relnamespace = n.oid
+    JOIN pg_catalog.pg_attribute a ON a.attrelid = c.oid AND a.attname = trend.name
+    WHERE
+        n.nspname = 'trend' AND
+        a.attisdropped = false AND
+        a.attnum > 0 AND trendstore_trend_link.trendstore_id = $1.id;
+$$ LANGUAGE sql STABLE;
+
+
+CREATE OR REPLACE FUNCTION show_trends(trendstore_id integer)
+    RETURNS SETOF trend.trend_descr
+AS $$
+    SELECT trend.show_trends(trendstore) FROM trend.trendstore WHERE id = $1;
+$$ LANGUAGE sql STABLE;

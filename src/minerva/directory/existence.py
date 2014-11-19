@@ -9,24 +9,23 @@ TMP_TABLE_NAME = "tmp_existence"
 class Existence(object):
     def __init__(self, conn):
         self.conn = conn
-        self.existence = []
+        self.existences = []
 
-    def mark_existing(self, dns, timestamp):
-        self.existence.extend([(dn, timestamp) for dn in dns])
+    def mark_existing(self, dns):
+        self.existences.extend([(dn,) for dn in dns])
 
-    def flush(self):
-        if len(self.existence) > 0:
+    def flush(self, timestamp):
+        if len(self.existences) > 0:
             dn_temp_table = "tmp_dn_timestamp"
 
             columns = [
-                "dn character varying NOT NULL",
-                "timestamp timestamp with time zone NOT NULL"]
+                "dn character varying NOT NULL"]
 
-            column_names = ["dn", "timestamp"]
+            column_names = ["dn"]
 
             create_temp_table(self.conn, dn_temp_table, columns)
 
-            copy_from_file = create_copy_from_file(self.existence, ("s", "%Y-%m-%d %H:%M:%S"))
+            copy_from_file = create_copy_from_file(self.existences, ("s",))
 
             copy_from_query = create_copy_from_query(dn_temp_table, column_names)
 
@@ -36,24 +35,18 @@ class Existence(object):
             create_existence_temp_table(self.conn, TMP_TABLE_NAME)
 
             mark_existing_sql = (
-                "INSERT INTO {} (entity_id, entitytype_id, timestamp) "
-                "("
-                "SELECT e.id, e.entitytype_id, dns.timestamp FROM {} dns "
-                "JOIN directory.entity e ON dns.dn = e.dn"
-                ")".format(TMP_TABLE_NAME, dn_temp_table))
+                "INSERT INTO {} (entity_id, entitytype_id, exists) "
+                "( SELECT e.id, e.entitytype_id, True FROM {} dns JOIN directory.entity e ON dns.dn = e.dn )".format(TMP_TABLE_NAME, dn_temp_table))
 
-            exec_sql(self.conn, mark_existing_sql)
+            exec_sql(self.conn, mark_existing_sql, (timestamp))
 
-            update_existing(self.conn, TMP_TABLE_NAME)
+            update_existing(self.conn, TMP_TABLE_NAME, timestamp)
 
-            self.existence = []
+            self.existences = []
 
 
 def create_existence_temp_table(conn, name):
-    columns = [
-        "timestamp timestamp with time zone NOT NULL",
-        "entity_id integer NOT NULL",
-        "entitytype_id integer NOT NULL"]
+    columns = ["entity_id integer NOT NULL", "entitytype_id integer NOT NULL", "exists boolean NOT NULL"]
 
     create_temp_table(conn, name, columns)
     create_unique_index(conn, name, ["entity_id"])
@@ -75,58 +68,39 @@ def create_entity_copy_from_file(timestamp, entities):
     return create_copy_from_file(tuples, formats)
 
 
-def update_existing(conn, tmp_table_new):
+def update_existing(conn, tmp_table_new, timestamp):
     """
-    1) Copy records now in existence_curr and not in temp table to existence
-    twice. Once verbatim and once with 'exists' set to 'False' and a timestamp
-    of NOW().
+    1) Copy records from existence (With the same entitytype) which are not in tmp_table_new and mark them exists=False
 
-    2) Remove records of step 1 from existence_curr table.
 
-    3) Add new records to existence_curr.
     """
-    tmp_table_intermediate = "tmp_intermediate"
+    #tmp_table_intermediate = "tmp_intermediate"
 
-    get_entitytype_ids = (
-        "SELECT entitytype_id FROM {} tmp "
-        "GROUP BY entitytype_id")
+    get_entitytype_ids = "SELECT entitytype_id FROM {} tmp GROUP BY entitytype_id"
 
-    copy_old_to_tmp_query = (
-        "INSERT INTO {} (entity_id, entitytype_id, timestamp) "
-        "(SELECT ec.entity_id, ec.entitytype_id, ec.timestamp FROM directory.existence_curr ec "
-        "LEFT JOIN {} tmp ON ec.entity_id = tmp.entity_id "
-        "WHERE tmp.entity_id IS NULL AND ec.entitytype_id IN ({}))")
+    copy_old_to_tmp_query = """
+INSERT INTO {} (entity_id, entitytype_id, exists) (
+    SELECT e.entity_id, e.entitytype_id, False as Exists
+    FROM directory.existence e
+    LEFT JOIN {} tmp on tmp.entity_id = e.entity_id
+    WHERE e.exists = True AND tmp.entity_id is null
+      AND directory.get_existence('{}', e.entity_id) is True
+      AND e.entitytype_id in ({})
+)"""
 
-    remove_old_query = (
-        "DELETE FROM directory.existence_curr ec "
-        "WHERE ec.entity_id IN (SELECT entity_id FROM {})")
-
-    copy_old_created_query = (
-        "INSERT INTO directory.existence (entity_id, entitytype_id, timestamp, exists) "
-        "(SELECT entity_id, entitytype_id, timestamp, True FROM {})")
-
-    copy_old_destroyed_query = (
-        "INSERT INTO directory.existence (entity_id, entitytype_id, timestamp, exists) "
-        "(SELECT entity_id, entitytype_id, NOW(), False FROM {})")
-
-    add_new_query = (
-        "INSERT INTO directory.existence_curr (entity_id, entitytype_id, timestamp, exists) "
-        "(SELECT tmp.entity_id, tmp.entitytype_id, tmp.timestamp, True FROM {0} tmp "
-        "LEFT JOIN directory.existence_curr ec ON ec.entity_id = tmp.entity_id "
-        "WHERE ec.entity_id IS NULL)")
-
-    create_existence_temp_table(conn, tmp_table_intermediate)
+    copy_old_to_existence = """
+INSERT INTO directory.existence (entity_id, entitytype_id, timestamp, exists) (
+    SELECT tmp.entity_id , tmp.entitytype_id, '{}' as timestamp, tmp.exists
+    FROM {} tmp
+    WHERE directory.get_existence('{}', tmp.entity_id) is not True OR tmp.exists is False
+)"""
 
     with closing(conn.cursor()) as cursor:
         cursor.execute(get_entitytype_ids.format(tmp_table_new))
-        entitytype_ids = [entitytype_id for entitytype_id, in cursor.fetchall()]
+        entitytype_ids = ",".join(map(str, [entitytype_id for entitytype_id, in cursor.fetchall()]))
 
-        cursor.execute(copy_old_to_tmp_query.format(tmp_table_intermediate,
-            tmp_table_new, ",".join(map(str, entitytype_ids))))
-        cursor.execute(remove_old_query.format(tmp_table_intermediate))
-        cursor.execute(copy_old_created_query.format(tmp_table_intermediate))
-        cursor.execute(copy_old_destroyed_query.format(tmp_table_intermediate))
-        cursor.execute(add_new_query.format(tmp_table_new))
+        cursor.execute(copy_old_to_tmp_query.format(tmp_table_new, tmp_table_new, timestamp, entitytype_ids))
+        cursor.execute(copy_old_to_existence.format(timestamp, tmp_table_new, timestamp, timestamp))
 
     conn.commit()
 

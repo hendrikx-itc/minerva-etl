@@ -1,6 +1,0 @@
-#!/bin/bash
-
-set -e
-
-psql -d postgres -c "DROP DATABASE minerva;"
-sudo salt-call state.highstate

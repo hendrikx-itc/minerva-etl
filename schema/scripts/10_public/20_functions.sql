@@ -125,3 +125,39 @@ CREATE AGGREGATE sum_array(anyarray)
 	sfunc = add_array,
 	stype = anyarray
 );
+
+
+CREATE OR REPLACE FUNCTION divide_array(anyarray, anyelement)
+    RETURNS anyarray
+AS $$
+SELECT array_agg(arr / $2) FROM
+(
+    SELECT unnest($1) AS arr
+) AS foo;
+$$ LANGUAGE SQL STABLE STRICT;
+
+
+CREATE OR REPLACE FUNCTION divide_array(anyarray, anyarray)
+    RETURNS anyarray
+AS $$
+SELECT array_agg(public.safe_division(arr1, arr2)) FROM
+(
+    SELECT
+    unnest($1[1:least(array_length($1,1), array_length($2,1))]) AS arr1,
+    unnest($2[1:least(array_length($1,1), array_length($2,1))]) AS arr2
+) AS foo;
+$$ LANGUAGE SQL STABLE STRICT;
+
+
+CREATE OR REPLACE FUNCTION array_sum(anyarray) RETURNS anyelement
+AS $$
+SELECT sum(t) FROM unnest($1) t;
+$$ LANGUAGE SQL IMMUTABLE STRICT;
+
+
+CREATE OR REPLACE FUNCTION to_pdf(text)
+	RETURNS int[]
+AS $$
+	SELECT array_agg(nullif(x, '')::int)
+    FROM unnest(string_to_array($1, ',')) AS x;
+$$ LANGUAGE SQL STABLE STRICT;

@@ -446,3 +446,19 @@ WHERE entity.id = $1
 GROUP BY entity.id
 RETURNING *;
 $$ LANGUAGE sql VOLATILE;
+
+
+
+CREATE OR REPLACE FUNCTION directory.get_existence(timestamp with time zone, integer)
+  RETURNS boolean AS
+$BODY$
+
+ SELECT first(existence."exists" ORDER BY existence."timestamp" DESC) AS "exists"
+   FROM directory.existence
+   WHERE existence."timestamp" <= $1 AND existence.entity_id = $2
+  GROUP BY existence.entity_id
+
+$BODY$
+  LANGUAGE sql STABLE STRICT
+  COST 100;
+
