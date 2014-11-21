@@ -13,6 +13,7 @@ Contents:
    :glob:
 
    python-package/*
+   database-schema/*
 
 Indices and tables
 ==================
