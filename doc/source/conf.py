@@ -37,9 +37,6 @@ source_suffix = '.rst'
 # The encoding of source files.
 #source_encoding = 'utf-8-sig'
 
-# The master toctree document.
-master_doc = 'index'
-
 # General information about the project.
 project = u'Minerva'
 copyright = u'2008-{}, Hendrikx ITC'.format(time.strftime('%Y'))
