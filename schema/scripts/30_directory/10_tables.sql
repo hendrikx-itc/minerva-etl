@@ -389,7 +389,7 @@ CREATE VIEW existence_curr AS
         public.first("timestamp" ORDER BY timestamp DESC ) as timestamp,
         public.first(exists  ORDER BY timestamp DESC ) as exists
     FROM directory.existence
-    GROUP BY entity_id;
+    GROUP BY entity_id, entitytype_id;
 
 
 ALTER VIEW existence_curr OWNER TO minerva_admin;
