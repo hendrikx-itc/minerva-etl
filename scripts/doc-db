@@ -171,7 +171,7 @@ class Table(object):
             column_align,
             column_sizes,
             [(column.name, column.type, column.description) for column in self.columns]
-        )
+        ) + ['']
 
 
 def main():
