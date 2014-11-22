@@ -25,6 +25,15 @@ CREATE TABLE notificationstore (
     CONSTRAINT uniqueness UNIQUE(datasource_id)
 );
 
+COMMENT ON TABLE notificationstore IS
+'Describes notificationstores. Each notificationstore maps to a set of tables '
+'and functions that can store and manage notifications of a certain type. '
+'These corresponding tables and functions are created automatically for each '
+'notificationstore. Because each notificationstore maps one-on-one to a '
+'datasource, the name of the notificationstore is the same as that of the '
+'datasource. Use the create_notificationstore function to create new '
+'notificationstores.';
+
 ALTER TABLE notificationstore OWNER TO minerva_admin;
 
 GRANT ALL ON TABLE notificationstore TO minerva_admin;
@@ -42,6 +51,12 @@ CREATE TABLE attribute (
     description varchar not null
 );
 
+COMMENT ON TABLE attribute IS
+'Describes attributes of notificationstores. An attribute of a '
+'notificationstore is an attribute that each notification stored in that '
+'notificationstore has. An attribute corresponds directly to a column in '
+'the main notificationstore table';
+
 ALTER TABLE attribute OWNER TO minerva_admin;
 
 GRANT ALL ON TABLE attribute TO minerva_admin;
@@ -56,6 +71,10 @@ CREATE TABLE notificationsetstore (
     name name not null,
     notificationstore_id integer REFERENCES notification.notificationstore ON DELETE CASCADE
 );
+
+COMMENT ON TABLE notificationsetstore IS
+'Describes notificationsetstores. A notificationsetstore can hold information '
+'over sets of notifications that are related to each other.';
 
 ALTER TABLE notificationsetstore OWNER TO minerva_admin;
 
@@ -73,6 +92,12 @@ CREATE TABLE setattribute (
     data_type name not null,
     description varchar not null
 );
+
+COMMENT ON TABLE setattribute IS
+'Describes attributes of notificationsetstores. A setattribute of a '
+'notificationsetstore is an attribute that each notification set has. '
+'A setattribute corresponds directly to a column in the main '
+'notificationsetstore table.';
 
 ALTER TABLE attribute OWNER TO minerva_admin;
 
