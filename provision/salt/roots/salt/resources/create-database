@@ -1,8 +1,6 @@
 #!/bin/bash
 set -e
 
-/vagrant/provision/salt/roots/salt/resources/install-pgtap
-
 psql -d postgres -c "CREATE DATABASE minerva;"
 
 psql -d minerva -c 'CREATE EXTENSION pgtap;'
