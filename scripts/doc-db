@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import argparse
 from operator import itemgetter
 from contextlib import closing
 from itertools import chain
@@ -78,6 +79,7 @@ class Schema(object):
         schema = Schema(name, description)
 
         schema.tables = Table.load_all(conn, name)
+        schema.functions = Function.load_all(conn, name)
 
         return schema
 
@@ -94,6 +96,26 @@ class Schema(object):
         ]
 
         lines.extend(chain(ljoin('', (table.to_rst() for table in self.tables))))
+
+        section_title = 'functions'
+
+        lines.extend([
+            '',
+            section_title,
+            len(section_title) * '=',
+            ''
+        ])
+
+        column_names = ["Name", "Return Type", "Description"]
+        column_align = "<" * len(column_names) # Align all columns left
+        column_sizes = ["max"] * len(column_names) # Size columns to max cell width
+
+        lines.extend(render_rst_table(
+            column_names,
+            column_align,
+            column_sizes,
+            [('{}({})'.format(function.name, function.arguments), function.return_type, function.description) for function in self.functions]
+        ) + [''])
 
         return lines
 
@@ -191,9 +213,44 @@ class Table(object):
         ) + ['']
 
 
+class Function(object):
+    def __init__(self, name, arguments, return_type, description):
+        self.name = name
+        self.arguments = arguments
+        self.return_type = return_type
+        self.description = description
+
+    @staticmethod
+    def load_all(conn, schema_name):
+        query = (
+            'SELECT proname, pg_get_function_arguments(p.oid), pg_get_function_result(p.oid) '
+            'FROM pg_proc p '
+            'JOIN pg_namespace n ON n.oid = p.pronamespace '
+            'WHERE n.nspname = %s'
+        )
+
+        args = (schema_name,)
+
+        with closing(conn.cursor()) as cursor:
+            cursor.execute(query, args)
+
+            return [Function(name, arguments, return_type, '') for name, arguments, return_type in cursor.fetchall()]
+
+
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('schemas', nargs='*')
+
+    args = parser.parse_args()
+
     with closing(psycopg2.connect('')) as conn:
-        Database.load(conn, 'minerva')
+        if args.schemas:
+            for name in args.schemas:
+                schema = Schema.load(conn, name)
+
+                print(unlines(schema.to_rst()))
+        else:
+            Database.load(conn, 'minerva')
 
 
 if __name__ == '__main__':
