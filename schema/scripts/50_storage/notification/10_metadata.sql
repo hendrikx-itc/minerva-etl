@@ -6,6 +6,11 @@ SET client_min_messages = warning;
 SET escape_string_warning = off;
 
 CREATE SCHEMA notification;
+
+COMMENT ON SCHEMA notification IS
+'Stores information of events that can occur at irregular intervals, but '
+'still have a fixed, known format.';
+
 ALTER SCHEMA notification OWNER TO minerva_admin;
 
 GRANT ALL ON SCHEMA notification TO minerva_writer;
