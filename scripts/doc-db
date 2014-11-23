@@ -52,28 +52,45 @@ class Database(object):
 
 
 class Schema(object):
-    def __init__(self, name):
+    def __init__(self, name, description):
         self.name = name
+        self.description = description
         self.tables = []
         self.views = []
         self.functions = []
 
     @staticmethod
     def load(conn, name):
-        schema = Schema(name)
+        query = (
+            'SELECT d.description '
+            'FROM pg_namespace n '
+            'LEFT JOIN pg_description d ON d.objoid = n.oid '
+            'WHERE n.nspname = %s'
+        )
+
+        args = (name, )
+
+        with closing(conn.cursor()) as cursor:
+            cursor.execute(query, args)
+
+            description, = cursor.fetchone()
+
+        schema = Schema(name, description)
 
         schema.tables = Table.load_all(conn, name)
 
         return schema
 
     def to_rst(self):
+        chapter_name = self.name + ' tables'
+
         lines = [
-            self.name,
-            len(self.name) * '=',
+            chapter_name,
             '',
-            'Tables',
-            '------',
-            ''
+            format_value(self.description),
+            '',
+            len(chapter_name) * '=',
+            '',
         ]
 
         lines.extend(chain(ljoin('', (table.to_rst() for table in self.tables))))
