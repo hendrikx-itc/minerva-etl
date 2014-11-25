@@ -12,8 +12,8 @@ Contents:
    :numbered:
    :glob:
 
-   python-package/*
-   database-schema/*
+   python-package/index
+   database-schema/index
 
 Indices and tables
 ==================
