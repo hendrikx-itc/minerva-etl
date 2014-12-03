@@ -15,3 +15,4 @@ SELECT update_quarter();
 SELECT update_four_consec_qtr();
 SELECT update_month_15m();
 SELECT update_week_15m();
+SELECT update_day_15m();
