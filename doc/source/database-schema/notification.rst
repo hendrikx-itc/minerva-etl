@@ -6,6 +6,26 @@ Stores information of events that can occur at irregular intervals, but still ha
 Tables
 ------
 
+attribute
+`````````
+
+Describes attributes of notificationstores. An attribute of a notificationstore is an attribute that each notification stored in that notificationstore has. An attribute corresponds directly to a column in the main notificationstore table
+
++----------------------+-------------------+-------------+
+|         Name         |       Type        | Description |
++======================+===================+=============+
+| id                   | integer           | None        |
++----------------------+-------------------+-------------+
+| notificationstore_id | integer           | None        |
++----------------------+-------------------+-------------+
+| name                 | name              | None        |
++----------------------+-------------------+-------------+
+| data_type            | name              | None        |
++----------------------+-------------------+-------------+
+| description          | character varying | None        |
++----------------------+-------------------+-------------+
+
+
 notificationstore
 `````````````````
 
@@ -36,26 +56,6 @@ Describes notificationsetstores. A notificationsetstore can hold information ove
 +----------------------+---------+-------------+
 | notificationstore_id | integer | None        |
 +----------------------+---------+-------------+
-
-
-attribute
-`````````
-
-Describes attributes of notificationstores. An attribute of a notificationstore is an attribute that each notification stored in that notificationstore has. An attribute corresponds directly to a column in the main notificationstore table
-
-+----------------------+-------------------+-------------+
-|         Name         |       Type        | Description |
-+======================+===================+=============+
-| id                   | integer           | None        |
-+----------------------+-------------------+-------------+
-| notificationstore_id | integer           | None        |
-+----------------------+-------------------+-------------+
-| name                 | name              | None        |
-+----------------------+-------------------+-------------+
-| data_type            | name              | None        |
-+----------------------+-------------------+-------------+
-| description          | character varying | None        |
-+----------------------+-------------------+-------------+
 
 
 setattribute
@@ -104,13 +104,13 @@ Functions
 +------------------------------------------------------------------------------+-----------------------------------+-------------+
 | create_notificationsetstore(name name, notification.notificationstore)       | notification.notificationsetstore |             |
 +------------------------------------------------------------------------------+-----------------------------------+-------------+
-| create_notificationstore(datasource_name text, notification.attr_def[])      | notification.notificationstore    |             |
+| create_notificationstore(datasource_id integer, notification.attr_def[])     | notification.notificationstore    |             |
 +------------------------------------------------------------------------------+-----------------------------------+-------------+
 | create_notificationstore(datasource_id integer)                              | notification.notificationstore    |             |
 +------------------------------------------------------------------------------+-----------------------------------+-------------+
 | create_notificationstore(datasource_name text)                               | notification.notificationstore    |             |
 +------------------------------------------------------------------------------+-----------------------------------+-------------+
-| create_notificationstore(datasource_id integer, notification.attr_def[])     | notification.notificationstore    |             |
+| create_notificationstore(datasource_name text, notification.attr_def[])      | notification.notificationstore    |             |
 +------------------------------------------------------------------------------+-----------------------------------+-------------+
 | create_staging_table(notification.notificationstore)                         | notification.notificationstore    |             |
 +------------------------------------------------------------------------------+-----------------------------------+-------------+

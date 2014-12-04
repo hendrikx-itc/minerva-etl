@@ -6,6 +6,38 @@ Stores contextual information for the data. This includes the entities, entityty
 Tables
 ------
 
+datasource
+``````````
+
+Describes datasources. A datasource is used to indicate where data came from. Datasources are also used to prevent collisions between sets of data from different sources, where names can be the same, but the meaning of the data differs.
+
++-------------+------------------------+-------------+
+|    Name     |          Type          | Description |
++=============+========================+=============+
+| id          | integer                | None        |
++-------------+------------------------+-------------+
+| name        | character varying(100) | None        |
++-------------+------------------------+-------------+
+| description | character varying      | None        |
++-------------+------------------------+-------------+
+| timezone    | character varying(40)  | None        |
++-------------+------------------------+-------------+
+
+
+entitytaglink
+`````````````
+
+
+
++-----------+---------+-------------+
+|   Name    |  Type   | Description |
++===========+=========+=============+
+| tag_id    | integer | None        |
++-----------+---------+-------------+
+| entity_id | integer | None        |
++-----------+---------+-------------+
+
+
 entitytype
 ``````````
 
@@ -20,6 +52,28 @@ Stores the entity types that exist in the entity table. Entity types are also us
 +-------------+-----------------------+-------------+
 | description | character varying     | None        |
 +-------------+-----------------------+-------------+
+
+
+entity
+``````
+
+Describes entities. An entity is the base object for which the database can hold further information such as attributes, trends and notifications. All data must have a reference to an entity.
+
++------------------+--------------------------+-------------+
+|       Name       |           Type           | Description |
++==================+==========================+=============+
+| id               | integer                  | None        |
++------------------+--------------------------+-------------+
+| first_appearance | timestamp with time zone | None        |
++------------------+--------------------------+-------------+
+| name             | character varying        | None        |
++------------------+--------------------------+-------------+
+| entitytype_id    | integer                  | None        |
++------------------+--------------------------+-------------+
+| dn               | character varying        | None        |
++------------------+--------------------------+-------------+
+| parent_id        | integer                  | None        |
++------------------+--------------------------+-------------+
 
 
 entity_link_denorm
@@ -38,18 +92,38 @@ entity_link_denorm
 +-----------+---------+-------------+
 
 
-entitytaglink
-`````````````
+taggroup
+````````
 
 
 
-+-----------+---------+-------------+
-|   Name    |  Type   | Description |
-+===========+=========+=============+
-| tag_id    | integer | None        |
-+-----------+---------+-------------+
-| entity_id | integer | None        |
-+-----------+---------+-------------+
++---------------+-------------------+-------------+
+|     Name      |       Type        | Description |
++===============+===================+=============+
+| id            | integer           | None        |
++---------------+-------------------+-------------+
+| name          | character varying | None        |
++---------------+-------------------+-------------+
+| complementary | boolean           | None        |
++---------------+-------------------+-------------+
+
+
+tag
+```
+
+Stores all tags. A tag is a simple label that can be attached to a number of object types in the database, such as entities and trends.
+
++-------------+-------------------+-------------+
+|    Name     |       Type        | Description |
++=============+===================+=============+
+| id          | integer           | None        |
++-------------+-------------------+-------------+
+| name        | character varying | None        |
++-------------+-------------------+-------------+
+| taggroup_id | integer           | None        |
++-------------+-------------------+-------------+
+| description | character varying | None        |
++-------------+-------------------+-------------+
 
 
 aliastype
@@ -82,40 +156,6 @@ alias
 +-----------+-------------------+-------------+
 
 
-tag
-```
-
-Stores all tags. A tag is a simple label that can be attached to a number of object types in the database, such as entities and trends.
-
-+-------------+-------------------+-------------+
-|    Name     |       Type        | Description |
-+=============+===================+=============+
-| id          | integer           | None        |
-+-------------+-------------------+-------------+
-| name        | character varying | None        |
-+-------------+-------------------+-------------+
-| taggroup_id | integer           | None        |
-+-------------+-------------------+-------------+
-| description | character varying | None        |
-+-------------+-------------------+-------------+
-
-
-taggroup
-````````
-
-
-
-+---------------+-------------------+-------------+
-|     Name      |       Type        | Description |
-+===============+===================+=============+
-| id            | integer           | None        |
-+---------------+-------------------+-------------+
-| name          | character varying | None        |
-+---------------+-------------------+-------------+
-| complementary | boolean           | None        |
-+---------------+-------------------+-------------+
-
-
 existence
 `````````
 
@@ -133,46 +173,6 @@ existence
 | entitytype_id | integer                  | None        |
 +---------------+--------------------------+-------------+
 
-
-entity
-``````
-
-Describes entities. An entity is the base object for which the database can hold further information such as attributes, trends and notifications. All data must have a reference to an entity.
-
-+------------------+--------------------------+-------------+
-|       Name       |           Type           | Description |
-+==================+==========================+=============+
-| id               | integer                  | None        |
-+------------------+--------------------------+-------------+
-| first_appearance | timestamp with time zone | None        |
-+------------------+--------------------------+-------------+
-| name             | character varying        | None        |
-+------------------+--------------------------+-------------+
-| entitytype_id    | integer                  | None        |
-+------------------+--------------------------+-------------+
-| dn               | character varying        | None        |
-+------------------+--------------------------+-------------+
-| parent_id        | integer                  | None        |
-+------------------+--------------------------+-------------+
-
-
-datasource
-``````````
-
-Describes datasources. A datasource is used to indicate where data came from. Datasources are also used to prevent collisions between sets of data from different sources, where names can be the same, but the meaning of the data differs.
-
-+-------------+------------------------+-------------+
-|    Name     |          Type          | Description |
-+=============+========================+=============+
-| id          | integer                | None        |
-+-------------+------------------------+-------------+
-| name        | character varying(100) | None        |
-+-------------+------------------------+-------------+
-| description | character varying      | None        |
-+-------------+------------------------+-------------+
-| timezone    | character varying(40)  | None        |
-+-------------+------------------------+-------------+
-
 Functions
 ---------
 +------------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+-------------+
@@ -182,9 +182,9 @@ Functions
 +------------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+-------------+
 | array_to_dn_part(character varying[])                                                                | directory.dn_part                                                                             |             |
 +------------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+-------------+
-| compile_minerva_query(query directory.query_part[])                                                  | text                                                                                          |             |
-+------------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+-------------+
 | compile_minerva_query(query text)                                                                    | text                                                                                          |             |
++------------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+-------------+
+| compile_minerva_query(query directory.query_part[])                                                  | text                                                                                          |             |
 +------------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+-------------+
 | create alias for new entity (func)()                                                                 | trigger                                                                                       |             |
 +------------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------+-------------+
