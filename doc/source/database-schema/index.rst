@@ -11,4 +11,5 @@ Contents:
    system
    trend
    attribute
+   attribute_directory
    notification
