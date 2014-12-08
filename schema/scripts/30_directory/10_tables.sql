@@ -6,6 +6,11 @@ SET client_min_messages = warning;
 SET escape_string_warning = off;
 
 CREATE SCHEMA directory;
+
+COMMENT ON SCHEMA directory IS
+'Stores contextual information for the data. This includes the entities, '
+'entitytypes, datasources, etc. It is the entrypoint when looking for data.';
+
 ALTER SCHEMA directory OWNER TO minerva_admin;
 
 GRANT ALL ON SCHEMA directory TO minerva_admin;
@@ -21,6 +26,12 @@ CREATE TABLE datasource (
     description character varying NOT NULL,
     timezone character varying(40) NOT NULL
 );
+
+COMMENT ON TABLE datasource IS
+'Describes datasources. A datasource is used to indicate where data came from. '
+'Datasources are also used to prevent collisions between sets of data from '
+'different sources, where names can be the same, but the meaning of the data '
+'differs.';
 
 ALTER TABLE directory.datasource OWNER TO minerva_admin;
 
@@ -57,6 +68,10 @@ CREATE TABLE entitytype (
     name character varying(50) NOT NULL,
     description character varying NOT NULL
 );
+
+COMMENT ON TABLE entitytype IS
+'Stores the entity types that exist in the entity table. Entity types are '
+'also used to give context to data that is stored for entities.';
 
 ALTER TABLE directory.entitytype OWNER TO minerva_admin;
 
@@ -97,6 +112,11 @@ CREATE TABLE entity (
     dn character varying NOT NULL,
     parent_id integer
 );
+
+COMMENT ON TABLE entity IS
+'Describes entities. An entity is the base object for which the database can '
+'hold further information such as attributes, trends and notifications. All '
+'data must have a reference to an entity.';
 
 ALTER TABLE directory.entity OWNER TO minerva_admin;
 
@@ -194,6 +214,10 @@ CREATE TABLE tag (
     taggroup_id integer NOT NULL,
     description character varying
 );
+
+COMMENT ON TABLE tag IS
+'Stores all tags. A tag is a simple label that can be attached to a number of '
+'object types in the database, such as entities and trends.';
 
 CREATE UNIQUE INDEX ix_directory_tag_name
     ON tag (lower(name));
@@ -389,7 +413,7 @@ CREATE VIEW existence_curr AS
         public.first("timestamp" ORDER BY timestamp DESC ) as timestamp,
         public.first(exists  ORDER BY timestamp DESC ) as exists
     FROM directory.existence
-    GROUP BY entity_id;
+    GROUP BY entity_id, entitytype_id;
 
 
 ALTER VIEW existence_curr OWNER TO minerva_admin;

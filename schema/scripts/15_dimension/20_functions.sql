@@ -157,3 +157,20 @@ AS $$
             '15 minutes'::interval
         ) AS timestamps(timestamp_15m);
 $$ LANGUAGE SQL;
+
+
+CREATE OR REPLACE FUNCTION update_day_15m()
+    RETURNS void
+AS $$
+    TRUNCATE dimension.day_15m;
+    INSERT INTO dimension.day_15m SELECT
+        date_trunc('day', timestamp),
+        timestamp
+    FROM (
+        SELECT generate_series(
+            date_trunc('hour', now()) - '1 year'::interval,
+            date_trunc('hour', now()) + '1 year'::interval,
+            '15 minute'::interval
+        ) AS timestamp
+    ) timestamps;
+$$ LANGUAGE SQL;

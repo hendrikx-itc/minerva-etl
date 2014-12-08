@@ -43,11 +43,16 @@ def render_rst_table(column_names, column_align, column_sizes, rows):
         col_sep, column_names, col_widths, "^" * col_count) + " |"
     horizontal_sep = "+-" + render_horizontal_sep(
         "-+-", "-", col_widths) + "-+"
+    horizontal_sep_header = "+=" + render_horizontal_sep(
+        "=+=", "=", col_widths) + "=+"
     body_rows = ["| " + render_line(
         col_sep, row, col_widths, column_align) + " |" for row in rows]
 
-    return [horizontal_sep, header, horizontal_sep] + body_rows + [
-        horizontal_sep]
+    return (
+        [horizontal_sep, header, horizontal_sep_header] +
+        list(join(horizontal_sep, body_rows)) +
+        [horizontal_sep]
+    )
 
 
 def render_table(column_names, column_align, column_sizes, rows):
