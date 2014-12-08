@@ -83,7 +83,7 @@ CREATE OR REPLACE FUNCTION init(attribute_directory.attributestore)
     RETURNS attribute_directory.attributestore
 AS $$
 BEGIN
-    PERFORM attribute_directory.create_main_table($1);
+    PERFORM attribute_directory.create_base_table($1);
 
     PERFORM attribute_directory.create_history_table($1);
 
@@ -375,7 +375,7 @@ END;
 $$ LANGUAGE plpgsql VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION create_main_table(attribute_directory.attributestore)
+CREATE OR REPLACE FUNCTION create_base_table(attribute_directory.attributestore)
     RETURNS attribute_directory.attributestore
 AS $$
 DECLARE

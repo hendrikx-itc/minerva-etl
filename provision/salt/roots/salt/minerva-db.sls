@@ -56,12 +56,18 @@ vagrant:
     - require:
       - service: postgresql
 
+install-pgtap:
+  cmd.wait:
+    - name: '/vagrant/provision/salt/roots/salt/resources/install-pgtap'
+    - watch:
+      - postgres_user: vagrant
+
 create-database:
   cmd.wait:
     - name: '/vagrant/provision/salt/roots/salt/resources/create-database'
     - user: vagrant
     - watch:
-      - postgres_user: vagrant
+      - cmd: install-pgtap
 
 git:
   pkg:

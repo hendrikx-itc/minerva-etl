@@ -124,3 +124,14 @@ CREATE INDEX week_15m_timestamp_idx ON "week_15m"(timestamp);
 GRANT ALL ON TABLE "week_15m" TO minerva_admin;
 GRANT SELECT ON TABLE "week_15m" TO minerva;
 GRANT INSERT,DELETE,UPDATE ON TABLE "week_15m" TO minerva_writer;
+
+-- Table '"day_15m"'
+
+CREATE TABLE "day_15m" (
+    timestamp timestamp with time zone,
+    timestamp_15m timestamp with time zone PRIMARY KEY
+);
+
+GRANT ALL ON TABLE "day_15m" TO minerva_admin;
+GRANT SELECT ON TABLE "day_15m" TO minerva;
+GRANT INSERT,DELETE,UPDATE ON TABLE "day_15m" TO minerva_writer;
