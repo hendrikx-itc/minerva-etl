@@ -11,4 +11,4 @@ version.  The full license is in the file COPYING, distributed as part of
 this software.
 """
 
-from schemabuilder import SchemaBuilder
+from minerva.xmlschemaparser.schemabuilder import SchemaBuilder
