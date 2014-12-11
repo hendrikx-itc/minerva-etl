@@ -69,6 +69,7 @@ setup(
         "scripts/materialize-attribute-curr",
         "scripts/materialize-relation-all",
         "scripts/migrate-trendstore",
+        "scripts/minerva-dump",
         "scripts/populate-entity-tagarray",
         "scripts/populate-gis",
         "scripts/query-entities",
