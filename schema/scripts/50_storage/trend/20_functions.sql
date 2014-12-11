@@ -385,7 +385,12 @@ CREATE OR REPLACE FUNCTION modify_partition_column(partition_name varchar, colum
     RETURNS void
 AS $$
 BEGIN
-    EXECUTE format('ALTER TABLE trend.%I ALTER %I TYPE %s USING CAST(%I AS %s);', partition_name, column_name, datatype, column_name, datatype);
+    PERFORM dep_recurse.alter(
+        dep_recurse.table_ref('trend', base_table_name),
+        ARRAY[
+            format('ALTER TABLE trend.%I ALTER %I TYPE %s USING CAST(%I AS %s);', partition_name, column_name, datatype, column_name, datatype)
+        ]
+    );
 END;
 $$ LANGUAGE plpgsql;
 
@@ -396,17 +401,16 @@ AS $$
 DECLARE
     base_table_name varchar;
 BEGIN
-    PERFORM trend.drop_view(dependent_view)
-        FROM trend.get_dependent_views(trendstore_id) dependent_view;
-
     SELECT trend.to_base_table_name(trendstore) INTO base_table_name
         FROM trend.trendstore
         WHERE trendstore.id = trendstore_id;
 
-    EXECUTE format('ALTER TABLE trend.%I ALTER %I TYPE %s USING CAST(%I AS %s);', base_table_name, column_name, datatype, column_name, datatype);
-
-    PERFORM trend.create_view(dependent_view)
-        FROM trend.get_dependent_views(trendstore_id) dependent_view;
+    PERFORM dep_recurse.alter(
+        dep_recurse.table_ref('trend', base_table_name),
+        ARRAY[
+            format('ALTER TABLE trend.%I ALTER %I TYPE %s USING CAST(%I AS %s);', base_table_name, column_name, datatype, column_name, datatype)
+        ]
+    );
 END;
 $$ LANGUAGE plpgsql;
 
@@ -469,7 +473,12 @@ BEGIN
         array_to_string(array_agg(format('ALTER %I TYPE %s USING CAST (%I AS %s)', cs.name, cs.datatype, cs.name, cs.datatype)), ', ') INTO column_alterations
     FROM unnest(columns) AS cs;
 
-    EXECUTE format('ALTER TABLE %I.%I %s', namespace_name, table_name, column_alterations);
+    PERFORM dep_recurse.alter(
+        dep_recurse.table_ref('trend', base_table_name),
+        ARRAY[
+            format('ALTER TABLE %I.%I %s', namespace_name, table_name, column_alterations)
+        ]
+    );
 END;
 $$ LANGUAGE plpgsql;
 
@@ -873,7 +882,12 @@ BEGIN
     base_table_name = trend.to_base_table_name(trendstore_obj);
 
     IF NOT trend.column_exists(base_table_name, trend.name) THEN
-        EXECUTE format('ALTER TABLE trend.%I ADD COLUMN %I %s;', base_table_name, trend.name, trend.data_type);
+        PERFORM dep_recurse.alter(
+            dep_recurse.table_ref('trend', base_table_name),
+            ARRAY[
+                format('ALTER TABLE trend.%I ADD COLUMN %I %s;', base_table_name, trend.name, trend.data_type);
+            ]
+        );
     END IF;
 END;
 $$ LANGUAGE plpgsql VOLATILE;
@@ -898,7 +912,12 @@ BEGIN
     base_table_name = trend.to_base_table_name(trendstore);
 
     IF NOT trend.column_exists(base_table_name, new_trend.name) THEN
-        EXECUTE format('ALTER TABLE trend.%I ADD COLUMN %I %s;', base_table_name, new_trend.name, data_type);
+        PERFORM dep_recurse.alter(
+            dep_recurse.table_ref('trend', base_table_name),
+            ARRAY[
+                format('ALTER TABLE trend.%I ADD COLUMN %I %s;', base_table_name, new_trend.name, data_type)
+            ]
+        );
     END IF;
 
     RETURN new_trend;
