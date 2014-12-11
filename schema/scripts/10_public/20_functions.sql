@@ -161,3 +161,29 @@ AS $$
 	SELECT array_agg(nullif(x, '')::int)
     FROM unnest(string_to_array($1, ',')) AS x;
 $$ LANGUAGE SQL STABLE STRICT;
+
+
+CREATE OR REPLACE FUNCTION action(anyelement, sql text)
+    RETURNS anyelement
+AS $$
+BEGIN
+    EXECUTE sql;
+
+    RETURN $1;
+END;
+$$ LANGUAGE plpgsql VOLATILE;
+
+
+CREATE OR REPLACE FUNCTION action(anyelement, sql text[])
+    RETURNS anyelement
+AS $$
+DECLARE
+    statement text;
+BEGIN
+    FOREACH statement IN ARRAY sql LOOP
+        EXECUTE statement;
+    END LOOP;
+
+    RETURN $1;
+END;
+$$ LANGUAGE plpgsql VOLATILE;
