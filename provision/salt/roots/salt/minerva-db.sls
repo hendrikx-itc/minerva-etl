@@ -28,17 +28,17 @@ language-pack-nl:
   pkg:
     - installed
 
-python-package:
-  pip.installed:
-    - editable: /vagrant/
-    - requires:
-      - pkg: python-psycopg2
-
 # Psycopg2 requires compilation, so it is easier to use the standard Ubuntu
 # package
 python-psycopg2:
   pkg:
     - installed
+
+python-package:
+  pip.installed:
+    - editable: /vagrant/
+    - require:
+      - pkg: python-psycopg2
 
 # python_dateutil from pypi currently has permission issues with some files
 # after installation, so use the standard Ubuntu package
@@ -61,6 +61,11 @@ install-pgtap:
     - name: '/vagrant/provision/salt/roots/salt/resources/install-pgtap'
     - watch:
       - postgres_user: vagrant
+    - env:
+      - PGDATABASE: minerva
+    - user: vagrant
+    - require:
+      - pkg: git
 
 create-database:
   cmd.wait:
