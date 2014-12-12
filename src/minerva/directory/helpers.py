@@ -109,6 +109,7 @@ FROM directory.datasource WHERE lower(name)=lower(%s)", (name,))
 def add_datasource(conn, name, description, timezone):
     """
     Add a new datasource if none exists with the same name.
+
     :param conn: A psycopg2 connection to the Minerva database.
     :param name: The identifying name of the data source.
     :param description: A short description.
@@ -148,6 +149,7 @@ WHERE name=%s", (name,))
 def create_datasource(conn, name, description, timezone):
     """
     Create new datasource
+
     :param conn: A psycopg2 connection to the Minerva database.
     :param name: identifying name of data source.
     :param description: A short description.

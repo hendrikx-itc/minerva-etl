@@ -24,3 +24,12 @@
     - group: vagrant
     - mode: 755
     - makedirs: True
+
+/home/vagrant/bin/build-db-docs:
+  file:
+    - managed
+    - source: salt://resources/build-db-docs
+    - user: vagrant
+    - group: vagrant
+    - mode: 755
+    - makedirs: True

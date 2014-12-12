@@ -12,22 +12,30 @@ from minerva.db import parse_db_url, extract_safe_url
 def connect():
     db_url = os.getenv("TEST_DB_URL")
 
-    if db_url is None:
-        raise Exception("Environment variable TEST_DB_URL not set")
+    if db_url:
+        scheme, user, password, host, port, database = parse_db_url(db_url)
 
-    scheme, user, password, host, port, database = parse_db_url(db_url)
+        if scheme != "postgresql":
+            raise Exception("Only PostgreSQL connections are supported")
 
-    if scheme != "postgresql":
-        raise Exception("Only PostgreSQL connections are supported")
+        conn_msg = extract_safe_url(db_url)
+    else:
+        user = 'minerva_admin'
+        password = None
+        host = None
+        port = None
+        database = 'minerva'
+
+        conn_msg = 'local database using trust authentication'
 
     conn = psycopg2.connect(
         database=database, user=user, password=password,
         host=host, port=port,
         connection_factory=psycopg2.extras.LoggingConnection)
 
-    logging.info("connected to {}".format(extract_safe_url(db_url)))
+    logging.info("connected to {}".format(conn_msg))
 
-    conn.initialize(logging.getLogger(""))
+    conn.initialize(logging.root)
 
     conn.commit = log_call_basic(conn.commit)
     conn.rollback = log_call_basic(conn.rollback)
