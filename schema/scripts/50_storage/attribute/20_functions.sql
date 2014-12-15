@@ -144,8 +144,12 @@ SELECT ARRAY[
         ]
     ),
     dep_recurse.view_ref('attribute_staging', attribute_directory.staging_new_view_name($1)),
+    dep_recurse.view_ref('attribute_staging', attribute_directory.staging_modified_view_name($1)),
     dep_recurse.view_ref('attribute_history', attribute_directory.changes_view_name($1)),
-    dep_recurse.view_ref('attribute_history', attribute_directory.run_length_view_name($1))
+    dep_recurse.view_ref('attribute_history', attribute_directory.run_length_view_name($1)),
+    dep_recurse.view_ref('attribute_history', attribute_directory.compacted_view_name($1)),
+    dep_recurse.view_ref('attribute_history', attribute_directory.curr_ptr_view_name($1)),
+    dep_recurse.view_ref('attribute', attribute_directory.curr_view_name($1))
 ]::dep_recurse.obj_ref[];
 $$ LANGUAGE sql STABLE;
 
@@ -206,12 +210,19 @@ AS $$
 $$ LANGUAGE SQL VOLATILE;
 
 
+CREATE OR REPLACE FUNCTION curr_ptr_view_name(attribute_directory.attributestore)
+    RETURNS name
+AS $$
+    SELECT (attribute_directory.to_table_name($1) || '_curr_selection')::name;
+$$ LANGUAGE sql STABLE;
+
+
 CREATE OR REPLACE FUNCTION materialize_curr_ptr(attribute_directory.attributestore)
     RETURNS integer
 AS $$
 DECLARE
     table_name name := attribute_directory.curr_ptr_table_name($1);
-    view_name name := attribute_directory.to_table_name($1) || '_curr_selection';
+    view_name name := attribute_directory.curr_ptr_view_name($1);
     row_count integer;
 BEGIN
     IF attribute_directory.requires_compacting($1) THEN
@@ -462,7 +473,7 @@ CREATE OR REPLACE FUNCTION create_curr_ptr_view_sql(attribute_directory.attribut
 AS $$
 DECLARE
     table_name name := attribute_directory.to_table_name($1);
-    view_name name := table_name || '_curr_selection';
+    view_name name := attribute_directory.curr_ptr_view_name($1);
     view_sql text;
 BEGIN
     view_sql = format(
@@ -498,7 +509,7 @@ $$ LANGUAGE sql VOLATILE;
 CREATE OR REPLACE FUNCTION drop_curr_ptr_view_sql(attribute_directory.attributestore)
     RETURNS varchar
 AS $$
-    SELECT format('DROP VIEW attribute_history.%I', attribute_directory.to_table_name($1) || '_curr_selection');
+    SELECT format('DROP VIEW attribute_history.%I', attribute_directory.curr_ptr_view_name($1));
 $$ LANGUAGE sql VOLATILE;
 
 
@@ -689,6 +700,13 @@ END;
 $$ LANGUAGE plpgsql VOLATILE;
 
 
+CREATE OR REPLACE FUNCTION staging_modified_view_name(attribute_directory.attributestore)
+    RETURNS name
+AS $$
+    SELECT (attribute_directory.to_table_name($1) || '_modified')::name;
+$$ LANGUAGE sql STABLE;
+
+
 CREATE OR REPLACE FUNCTION create_staging_modified_view_sql(attribute_directory.attributestore)
     RETURNS text[]
 AS $$
@@ -698,7 +716,7 @@ DECLARE
     view_name name;
 BEGIN
     table_name = attribute_directory.to_table_name($1);
-    view_name = table_name || '_modified';
+    view_name = attribute_directory.staging_modified_view_name($1);
 
     RETURN ARRAY[
         format('CREATE VIEW attribute_staging.%I
@@ -724,7 +742,7 @@ $$ LANGUAGE sql VOLATILE;
 CREATE OR REPLACE FUNCTION drop_staging_modified_view_sql(attribute_directory.attributestore)
     RETURNS varchar
 AS $$
-    SELECT format('DROP VIEW attribute_staging.%I', attribute_directory.to_table_name($1) || '_modified');
+    SELECT format('DROP VIEW attribute_staging.%I', attribute_directory.staging_modified_view_name($1));
 $$ LANGUAGE sql VOLATILE;
 
 
@@ -1036,7 +1054,7 @@ BEGIN
     PERFORM dep_recurse.alter(
         dep_recurse.table_ref('attribute_base', table_name),
         ARRAY[
-            format('ALTER TABLE attribute_base.%I ADD COLUMN %I %s', table_name, $1.name, $1.datatype)
+            format('SELECT attribute_directory.add_attribute_column(attributestore, %L, %L) FROM attribute_directory.attributestore WHERE id = %s', $1.name, $1.datatype, $1.attributestore_id)
         ],
         attribute_directory.dependees(tmp_attributestore)
     );
@@ -1044,6 +1062,20 @@ BEGIN
     RETURN $1;
 END;
 $$ LANGUAGE plpgsql VOLATILE;
+
+
+CREATE OR REPLACE FUNCTION add_attribute_column(attribute_directory.attributestore, name, text)
+    RETURNS attribute_directory.attributestore
+AS $$
+    SELECT public.action(
+        $1,
+        ARRAY[
+            format('SELECT attribute_directory.drop_dependees(attributestore) FROM attribute_directory.attributestore WHERE id = %s', $1.id),
+            format('ALTER TABLE attribute_base.%I ADD COLUMN %I %s', attribute_directory.to_char($1), $2, $3),
+            format('SELECT attribute_directory.create_dependees(attributestore) FROM attribute_directory.attributestore WHERE id = %s', $1.id)
+        ]
+    );
+$$ LANGUAGE sql VOLATILE;
 
 
 CREATE OR REPLACE FUNCTION get_attributestore(datasource_id integer, entitytype_id integer)
@@ -1353,7 +1385,7 @@ $$ LANGUAGE sql VOLATILE;
 
 
 CREATE OR REPLACE FUNCTION drop_compacted_view_sql(attribute_directory.attributestore)
-    RETURNS text[]
+    RETURNS text
 AS $$
     SELECT format('DROP VIEW attribute_history.%I', attribute_directory.compacted_view_name($1));
 $$ LANGUAGE sql VOLATILE;
