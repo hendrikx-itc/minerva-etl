@@ -25,7 +25,7 @@ CREATE OR REPLACE FUNCTION addentity(timestamp with time zone, character varying
     RETURNS integer
 AS $$
     INSERT INTO directory.entity (id, first_appearance, name, entitytype_id, dn, parent_id)
-    VALUES (DEFAULT, $1, $2, $3, $4, $5, $6) RETURNING id;
+    VALUES (DEFAULT, $1, $2, $3, $4, $5) RETURNING id;
 $$ LANGUAGE SQL;
 
 CREATE OR REPLACE FUNCTION directory.get_entitytype_id(character varying)
@@ -165,6 +165,35 @@ AS $$
 $$ LANGUAGE SQL IMMUTABLE STRICT;
 
 
+CREATE OR REPLACE FUNCTION name_to_entitytype(character varying)
+    RETURNS directory.entitytype
+AS $$
+    SELECT COALESCE(directory.get_entitytype($1), directory.create_entitytype($1));
+$$ LANGUAGE SQL VOLATILE STRICT;
+
+
+CREATE OR REPLACE FUNCTION entitytype_id(directory.entitytype)
+    RETURNS integer
+AS $$
+    SELECT $1.id;
+$$ LANGUAGE SQL VOLATILE STRICT;
+
+
+CREATE OR REPLACE FUNCTION entity_id(directory.entity)
+    RETURNS integer
+AS $$
+    SELECT $1.id;
+$$ LANGUAGE SQL VOLATILE STRICT;
+
+
+-- Stub
+CREATE OR REPLACE FUNCTION dn_to_entity(character varying)
+    RETURNS directory.entity
+AS $$
+    SELECT null::directory.entity;
+$$ LANGUAGE SQL VOLATILE STRICT;
+
+
 CREATE OR REPLACE FUNCTION last_dn_part(directory.dn_part[])
     RETURNS directory.dn_part
 AS $$
@@ -187,6 +216,13 @@ AS $$
 $$ LANGUAGE SQL VOLATILE STRICT;
 
 
+CREATE OR REPLACE FUNCTION dn_to_entity(character varying)
+    RETURNS directory.entity
+AS $$
+    SELECT COALESCE(directory.get_entity($1), directory.create_entity($1));
+$$ LANGUAGE SQL VOLATILE STRICT;
+
+
 CREATE OR REPLACE FUNCTION get_alias(entity_id integer, aliastype_name character varying)
     RETURNS character varying
 AS $$
@@ -197,38 +233,10 @@ AS $$
 $$ LANGUAGE sql STABLE;
 
 
-CREATE OR REPLACE FUNCTION dn_to_entity(character varying)
-    RETURNS directory.entity
-AS $$
-    SELECT COALESCE(directory.get_entity($1), directory.create_entity($1));
-$$ LANGUAGE SQL VOLATILE STRICT;
-
-
-CREATE OR REPLACE FUNCTION entity_id(directory.entity)
-    RETURNS integer
-AS $$
-    SELECT $1.id;
-$$ LANGUAGE SQL VOLATILE STRICT;
-
-
-CREATE OR REPLACE FUNCTION entitytype_id(directory.entitytype)
-    RETURNS integer
-AS $$
-    SELECT $1.id;
-$$ LANGUAGE SQL VOLATILE STRICT;
-
-
 CREATE OR REPLACE FUNCTION name_to_datasource(character varying)
     RETURNS directory.datasource
 AS $$
     SELECT COALESCE(directory.get_datasource($1), directory.create_datasource($1));
-$$ LANGUAGE SQL VOLATILE STRICT;
-
-
-CREATE OR REPLACE FUNCTION name_to_entitytype(character varying)
-    RETURNS directory.entitytype
-AS $$
-    SELECT COALESCE(directory.get_entitytype($1), directory.create_entitytype($1));
 $$ LANGUAGE SQL VOLATILE STRICT;
 
 
@@ -446,7 +454,7 @@ CREATE OR REPLACE FUNCTION directory.get_existence(timestamp with time zone, int
   RETURNS boolean AS
 $BODY$
 
- SELECT first(existence."exists" ORDER BY existence."timestamp" DESC) AS "exists"
+ SELECT public.first(existence."exists" ORDER BY existence."timestamp" DESC) AS "exists"
    FROM directory.existence
    WHERE existence."timestamp" <= $1 AND existence.entity_id = $2
   GROUP BY existence.entity_id
