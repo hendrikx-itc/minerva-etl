@@ -1,7 +1,4 @@
-SET search_path = attribute_directory, pg_catalog;
-
-
-CREATE OR REPLACE FUNCTION cleanup_on_datasource_delete()
+CREATE OR REPLACE FUNCTION attribute_directory.cleanup_on_datasource_delete()
     RETURNS TRIGGER
 AS $$
 BEGIN
@@ -12,7 +9,7 @@ END;
 $$ LANGUAGE plpgsql VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION cleanup_attributestore_on_delete()
+CREATE OR REPLACE FUNCTION attribute_directory.cleanup_attributestore_on_delete()
     RETURNS TRIGGER
 AS $$
 BEGIN
@@ -29,7 +26,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 
-CREATE OR REPLACE FUNCTION cleanup_attribute_after_delete()
+CREATE OR REPLACE FUNCTION attribute_directory.cleanup_attribute_after_delete()
     RETURNS TRIGGER
 AS $$
 DECLARE
@@ -54,7 +51,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 
-CREATE OR REPLACE FUNCTION update_datatype_on_change()
+CREATE OR REPLACE FUNCTION attribute_directory.update_datatype_on_change()
     RETURNS TRIGGER
 AS $$
 BEGIN
@@ -67,7 +64,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 
-CREATE OR REPLACE FUNCTION set_hash()
+CREATE OR REPLACE FUNCTION attribute_directory.set_hash()
     RETURNS TRIGGER
 AS $$
 BEGIN

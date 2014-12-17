@@ -1,7 +1,4 @@
-SET search_path = relation, pg_catalog;
-
-
-INSERT INTO "type" (name) VALUES ('self');
+INSERT INTO relation."type" (name) VALUES ('self');
 
 -- Dummy relations to satisfy geospatial requirements
 SELECT relation.define_reverse(

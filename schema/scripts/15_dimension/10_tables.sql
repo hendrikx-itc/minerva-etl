@@ -4,23 +4,21 @@ ALTER SCHEMA dimension OWNER TO minerva_admin;
 GRANT ALL ON SCHEMA dimension TO minerva_writer;
 GRANT USAGE ON SCHEMA dimension TO minerva;
 
-SET search_path = dimension, pg_catalog;
+-- Table 'dimension."month"'
 
--- Table '"month"'
-
-CREATE TABLE "month" (
+CREATE TABLE dimension."month" (
     timestamp timestamp with time zone PRIMARY KEY,
     start timestamp with time zone,
     "end" timestamp with time zone
 );
 
-GRANT ALL ON TABLE "month" TO minerva_admin;
-GRANT SELECT ON TABLE "month" TO minerva;
-GRANT INSERT,DELETE,UPDATE ON TABLE "month" TO minerva_writer;
+GRANT ALL ON TABLE dimension."month" TO minerva_admin;
+GRANT SELECT ON TABLE dimension."month" TO minerva;
+GRANT INSERT,DELETE,UPDATE ON TABLE dimension."month" TO minerva_writer;
 
--- Table 'week'
+-- Table 'dimension.week'
 
-CREATE TABLE week (
+CREATE TABLE dimension.week (
     timestamp timestamp with time zone PRIMARY KEY,
     start timestamp with time zone,
     "end" timestamp with time zone,
@@ -28,103 +26,103 @@ CREATE TABLE week (
     week_iso_8601 smallint
 );
 
-GRANT ALL ON TABLE week TO minerva_admin;
-GRANT SELECT ON TABLE week TO minerva;
-GRANT INSERT,DELETE,UPDATE ON TABLE week TO minerva_writer;
+GRANT ALL ON TABLE dimension.week TO minerva_admin;
+GRANT SELECT ON TABLE dimension.week TO minerva;
+GRANT INSERT,DELETE,UPDATE ON TABLE dimension.week TO minerva_writer;
 
--- Table '"day"'
+-- Table 'dimension."day"'
 
-CREATE TABLE "day" (
+CREATE TABLE dimension."day" (
     timestamp timestamp with time zone PRIMARY KEY,
     start timestamp with time zone,
     "end" timestamp with time zone
 );
 
-GRANT ALL ON TABLE "day" TO minerva_admin;
-GRANT SELECT ON TABLE "day" TO minerva;
-GRANT INSERT,DELETE,UPDATE ON TABLE "day" TO minerva_writer;
+GRANT ALL ON TABLE dimension."day" TO minerva_admin;
+GRANT SELECT ON TABLE dimension."day" TO minerva;
+GRANT INSERT,DELETE,UPDATE ON TABLE dimension."day" TO minerva_writer;
 
--- Table 'hour'
+-- Table 'dimension.hour'
 
-CREATE TABLE hour (
+CREATE TABLE dimension.hour (
     timestamp timestamp with time zone PRIMARY KEY,
     start timestamp with time zone,
     "end" timestamp with time zone
 );
 
-GRANT ALL ON TABLE hour TO minerva_admin;
-GRANT SELECT ON TABLE hour TO minerva;
-GRANT INSERT,DELETE,UPDATE ON TABLE hour TO minerva_writer;
+GRANT ALL ON TABLE dimension.hour TO minerva_admin;
+GRANT SELECT ON TABLE dimension.hour TO minerva;
+GRANT INSERT,DELETE,UPDATE ON TABLE dimension.hour TO minerva_writer;
 
--- Table 'quarter'
+-- Table 'dimension.quarter'
 
-CREATE TABLE quarter (
+CREATE TABLE dimension.quarter (
     timestamp timestamp with time zone PRIMARY KEY,
     start timestamp with time zone,
     "end" timestamp with time zone
 );
 
-GRANT ALL ON TABLE quarter TO minerva_admin;
-GRANT SELECT ON TABLE quarter TO minerva;
-GRANT INSERT,DELETE,UPDATE ON TABLE quarter TO minerva_writer;
+GRANT ALL ON TABLE dimension.quarter TO minerva_admin;
+GRANT SELECT ON TABLE dimension.quarter TO minerva;
+GRANT INSERT,DELETE,UPDATE ON TABLE dimension.quarter TO minerva_writer;
 
--- Table '5m'
+-- Table 'dimension.5m'
 
-CREATE TABLE "5m" (
+CREATE TABLE dimension."5m" (
     timestamp timestamp with time zone PRIMARY KEY,
     start timestamp with time zone,
     "end" timestamp with time zone
 );
 
-GRANT ALL ON TABLE "5m" TO minerva_admin;
-GRANT SELECT ON TABLE "5m" TO minerva;
-GRANT INSERT,DELETE,UPDATE ON TABLE "5m" TO minerva_writer;
+GRANT ALL ON TABLE dimension."5m" TO minerva_admin;
+GRANT SELECT ON TABLE dimension."5m" TO minerva;
+GRANT INSERT,DELETE,UPDATE ON TABLE dimension."5m" TO minerva_writer;
 
--- Table 'four_consec_qtr'
+-- Table 'dimension.four_consec_qtr'
 
-CREATE TABLE "four_consec_qtr" (
+CREATE TABLE dimension."four_consec_qtr" (
     timestamp timestamp with time zone PRIMARY KEY,
     start timestamp with time zone,
     "end" timestamp with time zone
 );
 
-GRANT ALL ON TABLE "four_consec_qtr" TO minerva_admin;
-GRANT SELECT ON TABLE "four_consec_qtr" TO minerva;
-GRANT INSERT,DELETE,UPDATE ON TABLE "four_consec_qtr" TO minerva_writer;
+GRANT ALL ON TABLE dimension."four_consec_qtr" TO minerva_admin;
+GRANT SELECT ON TABLE dimension."four_consec_qtr" TO minerva;
+GRANT INSERT,DELETE,UPDATE ON TABLE dimension."four_consec_qtr" TO minerva_writer;
 
--- Table '"month_15m"'
+-- Table 'dimension."month_15m"'
 
-CREATE TABLE "month_15m" (
+CREATE TABLE dimension."month_15m" (
     timestamp timestamp with time zone,
     timestamp_15m timestamp with time zone PRIMARY KEY
 );
 
-CREATE INDEX month_15m_timestamp_idx ON "month_15m"(timestamp);
+CREATE INDEX month_15m_timestamp_idx ON dimension."month_15m"(timestamp);
 
-GRANT ALL ON TABLE "month_15m" TO minerva_admin;
-GRANT SELECT ON TABLE "month_15m" TO minerva;
-GRANT INSERT,DELETE,UPDATE ON TABLE "month_15m" TO minerva_writer;
+GRANT ALL ON TABLE dimension."month_15m" TO minerva_admin;
+GRANT SELECT ON TABLE dimension."month_15m" TO minerva;
+GRANT INSERT,DELETE,UPDATE ON TABLE dimension."month_15m" TO minerva_writer;
 
--- Table '"week_15m"'
+-- Table 'dimension."week_15m"'
 
-CREATE TABLE "week_15m" (
+CREATE TABLE dimension."week_15m" (
     timestamp timestamp with time zone,
     timestamp_15m timestamp with time zone PRIMARY KEY
 );
 
-CREATE INDEX week_15m_timestamp_idx ON "week_15m"(timestamp);
+CREATE INDEX week_15m_timestamp_idx ON dimension."week_15m"(timestamp);
 
-GRANT ALL ON TABLE "week_15m" TO minerva_admin;
-GRANT SELECT ON TABLE "week_15m" TO minerva;
-GRANT INSERT,DELETE,UPDATE ON TABLE "week_15m" TO minerva_writer;
+GRANT ALL ON TABLE dimension."week_15m" TO minerva_admin;
+GRANT SELECT ON TABLE dimension."week_15m" TO minerva;
+GRANT INSERT,DELETE,UPDATE ON TABLE dimension."week_15m" TO minerva_writer;
 
--- Table '"day_15m"'
+-- Table 'dimension."day_15m"'
 
-CREATE TABLE "day_15m" (
+CREATE TABLE dimension."day_15m" (
     timestamp timestamp with time zone,
     timestamp_15m timestamp with time zone PRIMARY KEY
 );
 
-GRANT ALL ON TABLE "day_15m" TO minerva_admin;
-GRANT SELECT ON TABLE "day_15m" TO minerva;
-GRANT INSERT,DELETE,UPDATE ON TABLE "day_15m" TO minerva_writer;
+GRANT ALL ON TABLE dimension."day_15m" TO minerva_admin;
+GRANT SELECT ON TABLE dimension."day_15m" TO minerva;
+GRANT INSERT,DELETE,UPDATE ON TABLE dimension."day_15m" TO minerva_writer;

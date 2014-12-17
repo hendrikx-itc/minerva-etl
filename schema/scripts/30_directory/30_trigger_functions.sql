@@ -1,6 +1,3 @@
-SET search_path = directory, pg_catalog;
-
-
 CREATE OR REPLACE FUNCTION directory."create alias for new entity (func)"()
     RETURNS trigger
 AS $$

@@ -9,8 +9,6 @@ GRANT ALL ON SCHEMA gis TO minerva_admin;
 GRANT USAGE ON SCHEMA gis TO minerva;
 GRANT ALL ON SCHEMA gis TO minerva_writer;
 
-SET search_path = gis, public, pg_catalog;
-
 -- Create gis.site tables
 CREATE TABLE gis.site (
     entity_id integer NOT NULL,

@@ -1,7 +1,4 @@
-SET search_path = relation, pg_catalog;
-
-
-CREATE OR REPLACE FUNCTION create_relation_table_on_insert()
+CREATE OR REPLACE FUNCTION relation.create_relation_table_on_insert()
     RETURNS TRIGGER
 AS $$
 BEGIN
@@ -12,7 +9,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 
-CREATE OR REPLACE FUNCTION drop_table_on_type_delete()
+CREATE OR REPLACE FUNCTION relation.drop_table_on_type_delete()
     RETURNS TRIGGER
 AS $$
 BEGIN
@@ -23,7 +20,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 
-CREATE OR REPLACE FUNCTION create_self_relation()
+CREATE OR REPLACE FUNCTION relation.create_self_relation()
     RETURNS TRIGGER
 AS $$
 BEGIN
