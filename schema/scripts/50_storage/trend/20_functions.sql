@@ -1,6 +1,30 @@
 SET search_path = trend, pg_catalog;
 
 
+CREATE OR REPLACE FUNCTION granularity_to_text(granularity varchar)
+    RETURNS text
+AS $$
+    SELECT CASE $1
+        WHEN '300' THEN
+            '5m'
+        WHEN '900' THEN
+            'qtr'
+        WHEN '3600' THEN
+            'hr'
+        WHEN '43200' THEN
+            '12hr'
+        WHEN '86400' THEN
+            'day'
+        WHEN '604800' THEN
+            'wk'
+        WHEN 'month' THEN
+        'month'
+        ELSE
+            $1
+        END;
+$$ LANGUAGE SQL IMMUTABLE STRICT;
+
+
 CREATE OR REPLACE FUNCTION to_char(trend.trendstore)
     RETURNS text
 AS $$
@@ -17,6 +41,15 @@ AS $$
 $$ LANGUAGE SQL STABLE STRICT;
 
 
+CREATE OR REPLACE FUNCTION to_base_table_name(trendstore trend.trendstore)
+    RETURNS text
+AS $$
+    SELECT datasource.name || '_' || entitytype.name || '_' || trend.granularity_to_text($1.granularity)
+        FROM directory.datasource, directory.entitytype
+        WHERE datasource.id = $1.datasource_id AND entitytype.id = $1.entitytype_id;
+$$ LANGUAGE SQL STABLE STRICT;
+
+
 CREATE OR REPLACE FUNCTION get_trendstore_by_attributes(datasource_name character varying, entitytype_name character varying, granularity character varying)
     RETURNS trend.trendstore
 AS $$
@@ -26,6 +59,62 @@ AS $$
     JOIN directory.entitytype et ON et.id = ts.entitytype_id
     WHERE lower(ds.name) = lower($1) AND lower(et.name) = lower($2) AND ts.granularity = $3;
 $$ LANGUAGE SQL STABLE;
+
+
+CREATE TYPE trend_with_type AS (id integer, name character varying, data_type character varying);
+
+
+CREATE OR REPLACE FUNCTION add_trend_to_trendstore(trendstore_obj trend.trendstore, trend trend_with_type)
+    RETURNS VOID
+AS $$
+DECLARE
+    base_table_name character varying;
+    link_exists boolean;
+BEGIN
+    EXECUTE 'SELECT exists(SELECT 1 FROM trend.trendstore_trend_link WHERE trend_id=$1 AND trendstore_id = $2)' INTO link_exists USING trend.id, trendstore_obj.id;
+
+    IF NOT link_exists THEN
+        INSERT INTO trend.trendstore_trend_link (trend_id, trendstore_id)
+            VALUES (trend.id, trendstore_obj.id);
+    END IF;
+
+    base_table_name = trend.to_base_table_name(trendstore_obj);
+
+    IF NOT trend.column_exists(base_table_name, trend.name) THEN
+        PERFORM dep_recurse.alter(
+            dep_recurse.table_ref('trend', base_table_name),
+            ARRAY[
+                format('ALTER TABLE trend.%I ADD COLUMN %I %s;', base_table_name, trend.name, trend.data_type)
+            ]
+        );
+    END IF;
+END;
+$$ LANGUAGE plpgsql VOLATILE;
+
+
+CREATE OR REPLACE FUNCTION add_trend_to_trendstore(trendstore trend.trendstore, trend_name name, data_type character varying)
+    RETURNS trend.trend
+AS $$
+DECLARE
+    base_table_name character varying;
+    new_trend trend.trend;
+BEGIN
+    new_trend = trend.attributes_to_trend(trendstore, trend_name);
+
+    base_table_name = trend.to_base_table_name(trendstore);
+
+    IF NOT trend.column_exists(base_table_name, new_trend.name) THEN
+        PERFORM dep_recurse.alter(
+            dep_recurse.table_ref('trend', base_table_name),
+            ARRAY[
+                format('ALTER TABLE trend.%I ADD COLUMN %I %s;', base_table_name, new_trend.name, data_type)
+            ]
+        );
+    END IF;
+
+    RETURN new_trend;
+END;
+$$ LANGUAGE plpgsql VOLATILE;
 
 
 CREATE OR REPLACE FUNCTION create_trends(trend.trendstore, trend.trend_descr[])
@@ -79,30 +168,6 @@ CREATE OR REPLACE FUNCTION attributes_to_view_trendstore(datasource_name charact
 AS $$
     SELECT COALESCE(trend.get_trendstore_by_attributes($1, $2, $3), trend.create_trendstore_from_attributes($1, $2, $3, 'view'));
 $$ LANGUAGE SQL VOLATILE;
-
-
-CREATE OR REPLACE FUNCTION granularity_to_text(granularity varchar)
-    RETURNS text
-AS $$
-    SELECT CASE $1
-        WHEN '300' THEN
-            '5m'
-        WHEN '900' THEN
-            'qtr'
-        WHEN '3600' THEN
-            'hr'
-        WHEN '43200' THEN
-            '12hr'
-        WHEN '86400' THEN
-            'day'
-        WHEN '604800' THEN
-            'wk'
-        WHEN 'month' THEN
-        'month'
-        ELSE
-            $1
-        END;
-$$ LANGUAGE SQL IMMUTABLE STRICT;
 
 
 CREATE OR REPLACE FUNCTION get_default_partition_size(granularity varchar)
@@ -194,6 +259,27 @@ CREATE OR REPLACE FUNCTION partition_name(trendstore trend.trendstore, index int
 AS $$
     SELECT CAST((trend.to_base_table_name($1) || '_' || $2) AS name);
 $$ LANGUAGE SQL STABLE STRICT;
+
+
+CREATE OR REPLACE FUNCTION timestamp_to_index(partition_size integer, "timestamp" timestamp with time zone)
+    RETURNS integer
+AS $$
+DECLARE
+    unix_timestamp integer;
+    div integer;
+    modulo integer;
+BEGIN
+    unix_timestamp = extract(EPOCH FROM "timestamp")::integer;
+    div = unix_timestamp / partition_size;
+    modulo = mod(unix_timestamp, partition_size);
+
+    IF modulo > 0 THEN
+        return div;
+    ELSE
+        return div - 1;
+    END IF;
+END;
+$$ LANGUAGE plpgsql IMMUTABLE STRICT;
 
 
 CREATE OR REPLACE FUNCTION partition_name(trendstore trend.trendstore, timestamp with time zone)
@@ -576,6 +662,30 @@ AS $$
 $$ LANGUAGE SQL STABLE;
 
 
+CREATE OR REPLACE FUNCTION get_view_column_names(view_name character varying)
+    RETURNS SETOF name
+AS $$
+    SELECT a.attname FROM pg_class c
+        JOIN pg_attribute a ON a.attrelid = c.oid
+    WHERE c.relname = $1 AND a.attnum >= 0 AND NOT a.attisdropped;
+$$ LANGUAGE SQL STABLE;
+
+
+CREATE OR REPLACE FUNCTION create_trend_for_trendstore(trendstore trend.trendstore, trend_name character varying)
+    RETURNS trend.trend
+AS $$
+DECLARE
+    new_trend trend.trend;
+BEGIN
+    new_trend = trend.create_trend($2, '');
+
+    INSERT INTO trend.trendstore_trend_link (trendstore_id, trend_id) SELECT trendstore.id, new_trend.id;
+
+    RETURN new_trend;
+END;
+$$ LANGUAGE plpgsql VOLATILE;
+
+
 CREATE OR REPLACE FUNCTION create_view_trends(view trend.view)
     RETURNS SETOF trend.trend
 AS $$
@@ -590,6 +700,25 @@ CREATE OR REPLACE FUNCTION delete_view_trends(view trend.view)
 AS $$
     DELETE FROM trend.trend USING trend.trendstore_trend_link ttl WHERE trend.id = ttl.trend_id AND ttl.trendstore_id = $1.trendstore_id;
 $$ LANGUAGE SQL VOLATILE;
+
+
+-- View required by function 'link_view_dependencies'
+CREATE VIEW view_dependencies AS
+    SELECT dependent.relname AS src, pg_attribute.attname column_name, dependee.relname AS dst
+    FROM pg_depend
+    JOIN pg_rewrite ON pg_depend.objid = pg_rewrite.oid
+    JOIN pg_class as dependee ON pg_rewrite.ev_class = dependee.oid
+    JOIN pg_class as dependent ON pg_depend.refobjid = dependent.oid
+    JOIN pg_namespace as n ON dependent.relnamespace = n.oid
+    JOIN pg_attribute ON
+            pg_depend.refobjid = pg_attribute.attrelid
+            AND
+            pg_depend.refobjsubid = pg_attribute.attnum
+    WHERE n.nspname = 'trend' AND pg_attribute.attnum > 0;
+
+ALTER VIEW view_dependencies OWNER TO minerva_admin;
+
+GRANT SELECT ON TABLE view_dependencies TO minerva;
 
 
 CREATE OR REPLACE FUNCTION link_view_dependencies(trend.view)
@@ -714,39 +843,6 @@ END;
 $$ LANGUAGE plpgsql IMMUTABLE;
 
 
-CREATE OR REPLACE FUNCTION to_base_table_name(trendstore trend.trendstore)
-    RETURNS text
-AS $$
-    SELECT datasource.name || '_' || entitytype.name || '_' || trend.granularity_to_text($1.granularity)
-        FROM directory.datasource, directory.entitytype
-        WHERE datasource.id = $1.datasource_id AND entitytype.id = $1.entitytype_id;
-$$ LANGUAGE SQL STABLE STRICT;
-
-
-CREATE TYPE trend_with_type AS (id integer, name character varying, data_type character varying);
-
-
-CREATE OR REPLACE FUNCTION timestamp_to_index(partition_size integer, "timestamp" timestamp with time zone)
-    RETURNS integer
-AS $$
-DECLARE
-    unix_timestamp integer;
-    div integer;
-    modulo integer;
-BEGIN
-    unix_timestamp = extract(EPOCH FROM "timestamp")::integer;
-    div = unix_timestamp / partition_size;
-    modulo = mod(unix_timestamp, partition_size);
-
-    IF modulo > 0 THEN
-        return div;
-    ELSE
-        return div - 1;
-    END IF;
-END;
-$$ LANGUAGE plpgsql IMMUTABLE STRICT;
-
-
 CREATE OR REPLACE FUNCTION index_to_timestamp(partition_size integer, index integer)
     RETURNS timestamp with time zone
 AS $$
@@ -836,21 +932,6 @@ AS $$
 $$ LANGUAGE SQL VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION create_trend_for_trendstore(trendstore trend.trendstore, trend_name character varying)
-    RETURNS trend.trend
-AS $$
-DECLARE
-    new_trend trend.trend;
-BEGIN
-    new_trend = trend.create_trend($2, '');
-
-    INSERT INTO trend.trendstore_trend_link (trendstore_id, trend_id) SELECT trendstore.id, new_trend.id;
-
-    RETURN new_trend;
-END;
-$$ LANGUAGE plpgsql VOLATILE;
-
-
 CREATE OR REPLACE FUNCTION trendstore_has_trend_with_name(trendstore trend.trendstore, trend_name character varying)
     RETURNS boolean
 AS $$
@@ -858,64 +939,11 @@ AS $$
 $$ LANGUAGE SQL STABLE;
 
 
-CREATE OR REPLACE FUNCTION add_trend_to_trendstore(trendstore_obj trend.trendstore, trend trend_with_type)
-    RETURNS VOID
-AS $$
-DECLARE
-    base_table_name character varying;
-    link_exists boolean;
-BEGIN
-    EXECUTE 'SELECT exists(SELECT 1 FROM trend.trendstore_trend_link WHERE trend_id=$1 AND trendstore_id = $2)' INTO link_exists USING trend.id, trendstore_obj.id;
-
-    IF NOT link_exists THEN
-        INSERT INTO trend.trendstore_trend_link (trend_id, trendstore_id)
-            VALUES (trend.id, trendstore_obj.id);
-    END IF;
-
-    base_table_name = trend.to_base_table_name(trendstore_obj);
-
-    IF NOT trend.column_exists(base_table_name, trend.name) THEN
-        PERFORM dep_recurse.alter(
-            dep_recurse.table_ref('trend', base_table_name),
-            ARRAY[
-                format('ALTER TABLE trend.%I ADD COLUMN %I %s;', base_table_name, trend.name, trend.data_type);
-            ]
-        );
-    END IF;
-END;
-$$ LANGUAGE plpgsql VOLATILE;
-
-
 CREATE OR REPLACE FUNCTION attributes_to_trend(trend.trendstore, name)
     RETURNS trend.trend
 AS $$
     SELECT COALESCE(trend.get_trend($1, $2::character varying), trend.create_trend_for_trendstore($1, $2::character varying));
 $$ LANGUAGE SQL VOLATILE;
-
-
-CREATE OR REPLACE FUNCTION add_trend_to_trendstore(trendstore trend.trendstore, trend_name name, data_type character varying)
-    RETURNS trend.trend
-AS $$
-DECLARE
-    base_table_name character varying;
-    new_trend trend.trend;
-BEGIN
-    new_trend = trend.attributes_to_trend(trendstore, trend_name);
-
-    base_table_name = trend.to_base_table_name(trendstore);
-
-    IF NOT trend.column_exists(base_table_name, new_trend.name) THEN
-        PERFORM dep_recurse.alter(
-            dep_recurse.table_ref('trend', base_table_name),
-            ARRAY[
-                format('ALTER TABLE trend.%I ADD COLUMN %I %s;', base_table_name, new_trend.name, data_type)
-            ]
-        );
-    END IF;
-
-    RETURN new_trend;
-END;
-$$ LANGUAGE plpgsql VOLATILE;
 
 
 CREATE OR REPLACE FUNCTION remove_trend_from_trendstore(trendstore trend.trendstore, trend_name character varying)
@@ -1061,15 +1089,6 @@ AS $$
 $$ LANGUAGE SQL STABLE;
 
 
-CREATE OR REPLACE FUNCTION get_view_column_names(view_name character varying)
-    RETURNS SETOF name
-AS $$
-    SELECT a.attname FROM pg_class c
-        JOIN pg_attribute a ON a.attrelid = c.oid
-    WHERE c.relname = $1 AND a.attnum >= 0 AND NOT a.attisdropped;
-$$ LANGUAGE SQL STABLE;
-
-
 CREATE OR REPLACE FUNCTION get_column_names(table_name character varying)
     RETURNS character varying[]
 AS $$
@@ -1183,20 +1202,6 @@ END;
 $$ LANGUAGE plpgsql STABLE;
 
 
-CREATE OR REPLACE FUNCTION mark_modified(table_name name, "timestamp" timestamp with time zone, modified timestamp with time zone)
-    RETURNS trend.modified
-AS $$
-    SELECT COALESCE(trend.update_modified($1, $2, $3), trend.store_modified($1, $2, $3));
-$$ LANGUAGE SQL VOLATILE;
-
-
-CREATE OR REPLACE FUNCTION mark_modified(table_name name, "timestamp" timestamp with time zone)
-    RETURNS trend.modified
-AS $$
-    SELECT COALESCE(trend.update_modified($1, $2, now()), trend.store_modified($1, $2, now()));
-$$ LANGUAGE SQL VOLATILE;
-
-
 CREATE OR REPLACE FUNCTION update_modified(table_name name, "timestamp" timestamp with time zone, modified timestamp with time zone)
     RETURNS trend.modified
 AS $$
@@ -1211,6 +1216,32 @@ AS $$
 $$ LANGUAGE SQL VOLATILE;
 
 
+CREATE OR REPLACE FUNCTION mark_modified(table_name name, "timestamp" timestamp with time zone, modified timestamp with time zone)
+    RETURNS trend.modified
+AS $$
+    SELECT COALESCE(trend.update_modified($1, $2, $3), trend.store_modified($1, $2, $3));
+$$ LANGUAGE SQL VOLATILE;
+
+
+CREATE OR REPLACE FUNCTION mark_modified(table_name name, "timestamp" timestamp with time zone)
+    RETURNS trend.modified
+AS $$
+    SELECT COALESCE(trend.update_modified($1, $2, now()), trend.store_modified($1, $2, now()));
+$$ LANGUAGE SQL VOLATILE;
+
+
+CREATE OR REPLACE FUNCTION populate_modified(partition trend.partition)
+    RETURNS SETOF trend.modified
+AS $$
+BEGIN
+    RETURN QUERY EXECUTE format('
+        SELECT (trend.mark_modified(%L, "timestamp", max(modified))).*
+            FROM trend.%I GROUP BY timestamp',
+        partition.table_name, partition.table_name);
+END;
+$$ LANGUAGE plpgsql VOLATILE;
+
+
 CREATE OR REPLACE FUNCTION populate_modified(trend.trendstore)
     RETURNS SETOF trend.modified
 AS $$
@@ -1223,18 +1254,6 @@ CREATE OR REPLACE FUNCTION available_timestamps(partition trend.partition)
 AS $$
 BEGIN
     RETURN QUERY EXECUTE format('SELECT "timestamp" FROM trend.%I GROUP BY timestamp', partition.table_name);
-END;
-$$ LANGUAGE plpgsql VOLATILE;
-
-
-CREATE OR REPLACE FUNCTION populate_modified(partition trend.partition)
-    RETURNS SETOF trend.modified
-AS $$
-BEGIN
-    RETURN QUERY EXECUTE format('
-        SELECT (trend.mark_modified(%L, "timestamp", max(modified))).*
-            FROM trend.%I GROUP BY timestamp',
-        partition.table_name, partition.table_name);
 END;
 $$ LANGUAGE plpgsql VOLATILE;
 
