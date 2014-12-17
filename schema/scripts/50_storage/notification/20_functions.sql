@@ -131,7 +131,7 @@ AS $$
         FROM pg_attribute a
         JOIN pg_class c ON c.oid = a.attrelid
         JOIN pg_namespace n ON c.relnamespace = n.oid
-        WHERE n.nspname = $1 AND c.relname = $2 AND a.attname = $3;
+        WHERE n.nspname = $1 AND c.relname = $2 AND a.attname = $3
     );
 $$ LANGUAGE sql STABLE;
 
