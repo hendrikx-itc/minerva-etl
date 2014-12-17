@@ -397,18 +397,3 @@ CREATE INDEX ix_directory_existence_timestamp
 GRANT ALL ON TABLE existence TO minerva_admin;
 GRANT SELECT ON TABLE existence TO minerva;
 GRANT INSERT,DELETE,UPDATE ON TABLE existence TO minerva_writer;
-
--- Table 'existence_curr'
-
-CREATE VIEW existence_curr AS
-    SELECT  entity_id,
-        entitytype_id,
-        public.first("timestamp" ORDER BY timestamp DESC ) as timestamp,
-        public.first(exists  ORDER BY timestamp DESC ) as exists
-    FROM directory.existence
-    GROUP BY entity_id, entitytype_id;
-
-
-ALTER VIEW existence_curr OWNER TO minerva_admin;
-
-GRANT SELECT ON TABLE existence_curr TO minerva;
