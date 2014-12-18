@@ -9,5 +9,5 @@ the Free Software Foundation; either version 3, or (at your option) any later
 version.  The full license is in the file COPYING, distributed as part of
 this software.
 """
-from basetypes import *
-from helpers import *
+from minerva.directory.basetypes import *
+from minerva.directory.helpers import *

@@ -1,13 +1,4 @@
-SET statement_timeout = 0;
-SET client_encoding = 'UTF8';
-SET standard_conforming_strings = off;
-SET check_function_bodies = false;
-SET client_min_messages = warning;
-SET escape_string_warning = off;
-
-SET search_path = dimension, pg_catalog;
-
-CREATE OR REPLACE FUNCTION update_month()
+CREATE OR REPLACE FUNCTION dimension.update_month()
     RETURNS void
 AS $$
     TRUNCATE dimension.month;
@@ -24,7 +15,7 @@ AS $$
 $$ LANGUAGE SQL;
 
 
-CREATE OR REPLACE FUNCTION update_week()
+CREATE OR REPLACE FUNCTION dimension.update_week()
     RETURNS void
 AS $$
     TRUNCATE dimension.week;
@@ -43,7 +34,7 @@ AS $$
 $$ LANGUAGE SQL;
 
 
-CREATE OR REPLACE FUNCTION update_day()
+CREATE OR REPLACE FUNCTION dimension.update_day()
     RETURNS void
 AS $$
     TRUNCATE dimension.day;
@@ -60,7 +51,7 @@ AS $$
 $$ LANGUAGE SQL;
 
 
-CREATE OR REPLACE FUNCTION update_hour()
+CREATE OR REPLACE FUNCTION dimension.update_hour()
     RETURNS void
 AS $$
     TRUNCATE dimension.hour;
@@ -77,7 +68,7 @@ AS $$
 $$ LANGUAGE SQL;
 
 
-CREATE OR REPLACE FUNCTION update_quarter()
+CREATE OR REPLACE FUNCTION dimension.update_quarter()
     RETURNS void
 AS $$
     TRUNCATE dimension.quarter;
@@ -94,7 +85,7 @@ AS $$
 $$ LANGUAGE SQL;
 
 
-CREATE OR REPLACE FUNCTION update_5m()
+CREATE OR REPLACE FUNCTION dimension.update_5m()
     RETURNS void
 AS $$
     TRUNCATE dimension."5m";
@@ -110,7 +101,7 @@ AS $$
     ) timestamps;
 $$ LANGUAGE SQL;
 
-CREATE OR REPLACE FUNCTION update_four_consec_qtr()
+CREATE OR REPLACE FUNCTION dimension.update_four_consec_qtr()
     RETURNS void
 AS $$
     TRUNCATE dimension."four_consec_qtr";
@@ -127,7 +118,7 @@ AS $$
 $$ LANGUAGE SQL;
 
 
-CREATE OR REPLACE FUNCTION update_month_15m()
+CREATE OR REPLACE FUNCTION dimension.update_month_15m()
     RETURNS void
 AS $$
     TRUNCATE dimension.month_15m;
@@ -143,7 +134,7 @@ AS $$
 $$ LANGUAGE SQL;
 
 
-CREATE OR REPLACE FUNCTION update_week_15m()
+CREATE OR REPLACE FUNCTION dimension.update_week_15m()
     RETURNS void
 AS $$
     TRUNCATE dimension.week_15m;
@@ -159,7 +150,7 @@ AS $$
 $$ LANGUAGE SQL;
 
 
-CREATE OR REPLACE FUNCTION update_day_15m()
+CREATE OR REPLACE FUNCTION dimension.update_day_15m()
     RETURNS void
 AS $$
     TRUNCATE dimension.day_15m;

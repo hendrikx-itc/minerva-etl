@@ -1,10 +1,3 @@
-SET statement_timeout = 0;
-SET client_encoding = 'UTF8';
-SET standard_conforming_strings = off;
-SET check_function_bodies = false;
-SET client_min_messages = warning;
-SET escape_string_warning = off;
-
 CREATE SCHEMA relation;
 
 COMMENT ON SCHEMA relation IS
@@ -23,148 +16,145 @@ GRANT ALL ON SCHEMA relation_def TO minerva_admin;
 GRANT ALL ON SCHEMA relation_def TO minerva_writer;
 GRANT USAGE ON SCHEMA relation_def TO minerva;
 
-SET search_path = relation, pg_catalog;
+-- Table 'relation.group'
 
-
--- Table 'group'
-
-CREATE TABLE "group" (
+CREATE TABLE relation."group" (
     id integer NOT NULL,
     name character varying NOT NULL
 );
 
-ALTER TABLE "group" OWNER TO minerva_admin;
+ALTER TABLE relation."group" OWNER TO minerva_admin;
 
-ALTER TABLE ONLY "group"
+ALTER TABLE ONLY relation."group"
     ADD CONSTRAINT group_pkey PRIMARY KEY (id);
 
-GRANT ALL ON TABLE "group" TO minerva_admin;
-GRANT SELECT ON TABLE "group" TO minerva;
-GRANT INSERT,DELETE,UPDATE ON TABLE "group" TO minerva_writer;
+GRANT ALL ON TABLE relation."group" TO minerva_admin;
+GRANT SELECT ON TABLE relation."group" TO minerva;
+GRANT INSERT,DELETE,UPDATE ON TABLE relation."group" TO minerva_writer;
 
-CREATE SEQUENCE group_id_seq
+CREATE SEQUENCE relation.group_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
     NO MAXVALUE
     CACHE 1;
 
-ALTER TABLE group_id_seq OWNER TO minerva_admin;
+ALTER TABLE relation.group_id_seq OWNER TO minerva_admin;
 
-ALTER SEQUENCE group_id_seq OWNED BY "group".id;
+ALTER SEQUENCE relation.group_id_seq OWNED BY relation."group".id;
 
-ALTER TABLE "group"
+ALTER TABLE relation."group"
     ALTER COLUMN id
-    SET DEFAULT nextval('group_id_seq'::regclass);
+    SET DEFAULT nextval('relation.group_id_seq'::regclass);
 
-GRANT ALL ON SEQUENCE group_id_seq TO minerva_admin;
-GRANT SELECT ON SEQUENCE group_id_seq TO minerva;
-GRANT UPDATE ON SEQUENCE group_id_seq TO minerva_writer;
+GRANT ALL ON SEQUENCE relation.group_id_seq TO minerva_admin;
+GRANT SELECT ON SEQUENCE relation.group_id_seq TO minerva;
+GRANT UPDATE ON SEQUENCE relation.group_id_seq TO minerva_writer;
 
-CREATE UNIQUE INDEX ix_group_name ON "group" (name);
+CREATE UNIQUE INDEX ix_group_name ON relation."group" (name);
 
--- Table 'type'
+-- Table 'relation.type'
 
-CREATE TYPE type_cardinality_enum AS ENUM (
+CREATE TYPE relation.type_cardinality_enum AS ENUM (
     'one-to-one',
     'one-to-many',
     'many-to-one'
 );
 
-CREATE TABLE "type" (
+CREATE TABLE relation."type" (
     id integer NOT NULL,
     name character varying NOT NULL,
-    cardinality type_cardinality_enum DEFAULT NULL,
+    cardinality relation.type_cardinality_enum DEFAULT NULL,
     group_id integer DEFAULT NULL
 );
 
-ALTER TABLE "type" OWNER TO minerva_admin;
+ALTER TABLE relation."type" OWNER TO minerva_admin;
 
-ALTER TABLE ONLY "type"
+ALTER TABLE ONLY relation."type"
     ADD CONSTRAINT type_pkey PRIMARY KEY (id);
 
-GRANT ALL ON TABLE "type" TO minerva_admin;
-GRANT SELECT ON TABLE "type" TO minerva;
-GRANT INSERT,DELETE,UPDATE ON TABLE "type" TO minerva_writer;
+GRANT ALL ON TABLE relation."type" TO minerva_admin;
+GRANT SELECT ON TABLE relation."type" TO minerva;
+GRANT INSERT,DELETE,UPDATE ON TABLE relation."type" TO minerva_writer;
 
-CREATE SEQUENCE type_id_seq
+CREATE SEQUENCE relation.type_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
     NO MAXVALUE
     CACHE 1;
 
-ALTER TABLE type_id_seq OWNER TO minerva_admin;
+ALTER TABLE relation.type_id_seq OWNER TO minerva_admin;
 
-ALTER SEQUENCE type_id_seq OWNED BY "type".id;
+ALTER SEQUENCE relation.type_id_seq OWNED BY relation."type".id;
 
-ALTER TABLE "type"
+ALTER TABLE relation."type"
     ALTER COLUMN id
-    SET DEFAULT nextval('type_id_seq'::regclass);
+    SET DEFAULT nextval('relation.type_id_seq'::regclass);
 
-ALTER TABLE ONLY "type"
+ALTER TABLE ONLY relation."type"
     ADD CONSTRAINT group_id_fkey
-    FOREIGN KEY (group_id) REFERENCES "group"(id)
+    FOREIGN KEY (group_id) REFERENCES relation."group"(id)
     ON DELETE CASCADE;
 
-GRANT ALL ON SEQUENCE type_id_seq TO minerva_admin;
-GRANT SELECT ON SEQUENCE type_id_seq TO minerva;
-GRANT UPDATE ON SEQUENCE type_id_seq TO minerva_writer;
+GRANT ALL ON SEQUENCE relation.type_id_seq TO minerva_admin;
+GRANT SELECT ON SEQUENCE relation.type_id_seq TO minerva;
+GRANT UPDATE ON SEQUENCE relation.type_id_seq TO minerva_writer;
 
-CREATE UNIQUE INDEX ix_type_name ON "type" (name);
+CREATE UNIQUE INDEX ix_type_name ON relation."type" (name);
 
--- Table 'all'
+-- Table 'relation.all'
 
-CREATE TABLE "all" (
+CREATE TABLE relation."all" (
     source_id integer NOT NULL,
     target_id integer NOT NULL,
     type_id integer NOT NULL
 );
 
-ALTER TABLE "all" OWNER TO minerva_admin;
+ALTER TABLE relation."all" OWNER TO minerva_admin;
 
-ALTER TABLE ONLY "all"
+ALTER TABLE ONLY relation."all"
     ADD PRIMARY KEY (source_id, target_id);
 
-ALTER TABLE ONLY "all"
+ALTER TABLE ONLY relation."all"
     ADD CONSTRAINT source_id_fkey
     FOREIGN KEY (source_id) REFERENCES directory.entity(id)
     ON DELETE CASCADE;
 
-ALTER TABLE ONLY "all"
+ALTER TABLE ONLY relation."all"
     ADD CONSTRAINT target_id_fkey
     FOREIGN KEY (target_id) REFERENCES directory.entity(id)
     ON DELETE CASCADE;
 
-GRANT ALL ON TABLE "all" TO minerva_admin;
-GRANT SELECT ON TABLE "all" TO minerva;
-GRANT INSERT,DELETE,UPDATE ON TABLE "all" TO minerva_writer;
+GRANT ALL ON TABLE relation."all" TO minerva_admin;
+GRANT SELECT ON TABLE relation."all" TO minerva;
+GRANT INSERT,DELETE,UPDATE ON TABLE relation."all" TO minerva_writer;
 
-ALTER TABLE ONLY "all"
+ALTER TABLE ONLY relation."all"
     ADD CONSTRAINT type_id_fkey
-    FOREIGN KEY (type_id) REFERENCES "type"(id)
+    FOREIGN KEY (type_id) REFERENCES relation."type"(id)
     ON DELETE CASCADE;
 
-CREATE INDEX ON "all" USING btree (target_id);
-CREATE INDEX ON "all" USING btree (type_id);
+CREATE INDEX ON relation."all" USING btree (target_id);
+CREATE INDEX ON relation."all" USING btree (type_id);
 
--- Table 'all_materialized'
+-- Table 'relation.all_materialized'
 
-CREATE TABLE all_materialized (
+CREATE TABLE relation.all_materialized (
     source_id integer NOT NULL,
     target_id integer NOT NULL,
     type_id integer NOT NULL
 );
 
-ALTER TABLE "all_materialized" OWNER TO minerva_admin;
+ALTER TABLE relation."all_materialized" OWNER TO minerva_admin;
 
-ALTER TABLE "all_materialized"
+ALTER TABLE relation."all_materialized"
     ADD PRIMARY KEY (source_id, target_id, type_id);
 
-GRANT ALL ON TABLE "all_materialized" TO minerva_admin;
-GRANT SELECT ON TABLE "all_materialized" TO minerva;
-GRANT INSERT,DELETE,UPDATE ON TABLE "all_materialized" TO minerva_writer;
+GRANT ALL ON TABLE relation."all_materialized" TO minerva_admin;
+GRANT SELECT ON TABLE relation."all_materialized" TO minerva;
+GRANT INSERT,DELETE,UPDATE ON TABLE relation."all_materialized" TO minerva_writer;
 
-CREATE INDEX ON "all_materialized" USING btree (target_id);
-CREATE INDEX ON "all_materialized" USING btree (type_id);
+CREATE INDEX ON relation."all_materialized" USING btree (target_id);
+CREATE INDEX ON relation."all_materialized" USING btree (type_id);
 

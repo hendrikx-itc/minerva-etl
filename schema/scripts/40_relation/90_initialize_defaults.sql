@@ -1,11 +1,15 @@
-SET statement_timeout = 0;
-SET client_encoding = 'UTF8';
-SET standard_conforming_strings = off;
-SET check_function_bodies = false;
-SET client_min_messages = warning;
-SET escape_string_warning = off;
+INSERT INTO relation."type" (name) VALUES ('self');
 
-SET search_path = relation, pg_catalog;
+-- Dummy relations to satisfy geospatial requirements
+SELECT relation.define_reverse(
+    'HandoverRelation->Cell',
+    relation.define(
+        'Cell->HandoverRelation',
+        $$SELECT 0 as source_id, 0 as target_id WHERE false;$$
+    )
+);
 
-
-INSERT INTO "type" (name) VALUES ('self');
+SELECT relation.define(
+    'real_handover',
+    $$SELECT 0 as source_id, 0 as target_id WHERE false;$$
+);
