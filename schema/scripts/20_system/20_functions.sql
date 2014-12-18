@@ -1,17 +1,7 @@
-SET statement_timeout = 0;
-SET client_encoding = 'UTF8';
-SET standard_conforming_strings = off;
-SET check_function_bodies = false;
-SET client_min_messages = warning;
-SET escape_string_warning = off;
-
-SET search_path = system, pg_catalog;
+CREATE TYPE system.job_type AS (id int, type character varying, description character varying, size bigint, config text);
 
 
-CREATE TYPE job_type AS (id int, type character varying, description character varying, size bigint, config text);
-
-
-CREATE OR REPLACE FUNCTION create_job(type character varying, description character varying, size bigint, job_source_id int)
+CREATE OR REPLACE FUNCTION system.create_job(type character varying, description character varying, size bigint, job_source_id int)
     RETURNS integer
 AS $$
 DECLARE
@@ -26,7 +16,7 @@ END;
 $$ LANGUAGE plpgsql VOLATILE STRICT;
 
 
-CREATE OR REPLACE FUNCTION get_job()
+CREATE OR REPLACE FUNCTION system.get_job()
     RETURNS system.job_type
 AS $$
 DECLARE
@@ -53,7 +43,7 @@ END;
 $$ LANGUAGE plpgsql VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION finish_job(job_id int)
+CREATE OR REPLACE FUNCTION system.finish_job(job_id int)
     RETURNS void
 AS $$
 DECLARE
@@ -63,7 +53,7 @@ END;
 $$ LANGUAGE plpgsql VOLATILE STRICT;
 
 
-CREATE OR REPLACE FUNCTION fail_job(job_id int)
+CREATE OR REPLACE FUNCTION system.fail_job(job_id int)
     RETURNS void
 AS $$
 DECLARE
@@ -73,7 +63,7 @@ END;
 $$ LANGUAGE plpgsql VOLATILE STRICT;
 
 
-CREATE OR REPLACE FUNCTION fail_job(job_id int, message character varying)
+CREATE OR REPLACE FUNCTION system.fail_job(job_id int, message character varying)
     RETURNS void
 AS $$
 DECLARE
@@ -85,7 +75,7 @@ END;
 $$ LANGUAGE plpgsql VOLATILE STRICT;
 
 
-CREATE OR REPLACE FUNCTION add_job_source(character varying, character varying, character varying)
+CREATE OR REPLACE FUNCTION system.add_job_source(character varying, character varying, character varying)
     RETURNS integer
 AS $$
     INSERT INTO system.job_source (id, name, job_type, config)
@@ -94,14 +84,14 @@ AS $$
 $$ LANGUAGE SQL;
 
 
-CREATE OR REPLACE FUNCTION get_job_source(integer)
+CREATE OR REPLACE FUNCTION system.get_job_source(integer)
     RETURNS TABLE(name character varying, job_type character varying, config character varying)
 AS $$
     SELECT name, job_type, config FROM system.job_source WHERE id = $1;
 $$ LANGUAGE SQL;
 
 
-CREATE OR REPLACE FUNCTION remove_jobs(before timestamp with time zone)
+CREATE OR REPLACE FUNCTION system.remove_jobs(before timestamp with time zone)
     RETURNS integer
 AS $$
 DECLARE
@@ -141,43 +131,43 @@ END;
 $$ LANGUAGE plpgsql VOLATILE STRICT;
 
 
-CREATE OR REPLACE FUNCTION get_setting(name text)
+CREATE OR REPLACE FUNCTION system.get_setting(name text)
     RETURNS system.setting
 AS $$
     SELECT setting FROM system.setting WHERE name = $1;
 $$ LANGUAGE SQL STABLE STRICT;
 
 
-CREATE OR REPLACE FUNCTION add_setting(name text, value text)
+CREATE OR REPLACE FUNCTION system.add_setting(name text, value text)
     RETURNS system.setting
 AS $$
     INSERT INTO system.setting (name, value) VALUES ($1, $2) RETURNING setting;
 $$ LANGUAGE SQL VOLATILE STRICT;
 
 
-CREATE OR REPLACE FUNCTION update_setting(name text, value text)
+CREATE OR REPLACE FUNCTION system.update_setting(name text, value text)
     RETURNS system.setting
 AS $$
     UPDATE system.setting SET value = $2 WHERE name = $1 RETURNING setting;
 $$ LANGUAGE SQL VOLATILE STRICT;
 
 
-CREATE OR REPLACE FUNCTION set_setting(name text, value text)
+CREATE OR REPLACE FUNCTION system.set_setting(name text, value text)
     RETURNS system.setting
 AS $$
     SELECT COALESCE(system.update_setting($1, $2), system.add_setting($1, $2));
 $$ LANGUAGE SQL VOLATILE STRICT;
 
 
-CREATE OR REPLACE FUNCTION get_setting_value(name text)
+CREATE OR REPLACE FUNCTION system.get_setting_value(name text)
     RETURNS text
 AS $$
     SELECT value FROM system.setting WHERE name = $1;
 $$ LANGUAGE SQL STABLE STRICT;
 
 
-CREATE OR REPLACE FUNCTION get_setting_value(name text, "default" text)
+CREATE OR REPLACE FUNCTION system.get_setting_value(name text, "default" text)
     RETURNS text
 AS $$
-    SELECT COALESCE(get_setting_value($1), $2);
+    SELECT COALESCE(system.get_setting_value($1), $2);
 $$ LANGUAGE SQL STABLE STRICT;

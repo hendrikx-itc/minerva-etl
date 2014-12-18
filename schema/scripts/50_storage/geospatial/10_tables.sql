@@ -1,11 +1,3 @@
-SET statement_timeout = 0;
-SET client_encoding = 'UTF8';
-SET standard_conforming_strings = off;
-SET check_function_bodies = false;
-SET client_min_messages = warning;
-SET escape_string_warning = off;
-
-
 --=============
 -- Schema: gis
 --=============
@@ -16,8 +8,6 @@ ALTER SCHEMA gis OWNER TO minerva_admin;
 GRANT ALL ON SCHEMA gis TO minerva_admin;
 GRANT USAGE ON SCHEMA gis TO minerva;
 GRANT ALL ON SCHEMA gis TO minerva_writer;
-
-SET search_path = gis, public, pg_catalog;
 
 -- Create gis.site tables
 CREATE TABLE gis.site (

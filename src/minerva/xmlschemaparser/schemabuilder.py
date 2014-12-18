@@ -11,7 +11,7 @@ this software.
 """
 from xml.sax import make_parser
 from xml.sax.handler import feature_namespaces
-import schemaelementhandlers
+from minerva.xmlschemaparser import schemaelementhandlers
 from minerva.xmldochandler.xmldochandler import XmlDocHandler
 from minerva.xmldochandler.xmlelementtype import XmlElementType
 from minerva.xmldochandler import SchemaContext

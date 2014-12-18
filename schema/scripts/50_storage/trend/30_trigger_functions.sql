@@ -1,14 +1,4 @@
-SET statement_timeout = 0;
-SET client_encoding = 'UTF8';
-SET standard_conforming_strings = off;
-SET check_function_bodies = false;
-SET client_min_messages = warning;
-SET escape_string_warning = off;
-
-SET search_path = trend, pg_catalog;
-
-
-CREATE OR REPLACE FUNCTION changes_on_datasource_update()
+CREATE OR REPLACE FUNCTION trend.changes_on_datasource_update()
     RETURNS TRIGGER
 AS $$
 BEGIN
@@ -24,7 +14,7 @@ END;
 $$ LANGUAGE plpgsql VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION cleanup_on_datasource_delete()
+CREATE OR REPLACE FUNCTION trend.cleanup_on_datasource_delete()
     RETURNS TRIGGER
 AS $$
 BEGIN
@@ -35,7 +25,7 @@ END;
 $$ LANGUAGE plpgsql VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION changes_on_partition_update()
+CREATE OR REPLACE FUNCTION trend.changes_on_partition_update()
     RETURNS TRIGGER
 AS $$
 BEGIN
@@ -48,7 +38,7 @@ END;
 $$ LANGUAGE plpgsql VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION changes_on_trend_update()
+CREATE OR REPLACE FUNCTION trend.changes_on_trend_update()
     RETURNS TRIGGER
 AS $$
 DECLARE
@@ -71,7 +61,7 @@ END;
 $$ LANGUAGE plpgsql VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION create_partition_table_on_insert()
+CREATE OR REPLACE FUNCTION trend.create_partition_table_on_insert()
     RETURNS TRIGGER
 AS $$
 DECLARE
@@ -103,7 +93,7 @@ END;
 $$ LANGUAGE plpgsql VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION drop_partition_table_on_delete()
+CREATE OR REPLACE FUNCTION trend.drop_partition_table_on_delete()
     RETURNS TRIGGER
 AS $$
 DECLARE
@@ -122,7 +112,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 
-CREATE OR REPLACE FUNCTION update_modified_column()
+CREATE OR REPLACE FUNCTION trend.update_modified_column()
     RETURNS TRIGGER
 AS $$
 BEGIN
@@ -133,7 +123,7 @@ END;
 $$ LANGUAGE plpgsql VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION create_base_table_on_insert()
+CREATE OR REPLACE FUNCTION trend.create_base_table_on_insert()
     RETURNS TRIGGER
 AS $$
 DECLARE
@@ -151,7 +141,7 @@ END;
 $$ LANGUAGE plpgsql VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION on_trendstore_update()
+CREATE OR REPLACE FUNCTION trend.on_trendstore_update()
     RETURNS TRIGGER
 AS $$
 DECLARE
@@ -177,7 +167,7 @@ END;
 $$ LANGUAGE plpgsql VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION cleanup_trendstore_on_delete()
+CREATE OR REPLACE FUNCTION trend.cleanup_trendstore_on_delete()
     RETURNS TRIGGER
 AS $$
 DECLARE
@@ -198,7 +188,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 
-CREATE OR REPLACE FUNCTION set_trendstore_defaults()
+CREATE OR REPLACE FUNCTION trend.set_trendstore_defaults()
     RETURNS TRIGGER
 AS $$
 BEGIN
@@ -211,7 +201,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 
-CREATE OR REPLACE FUNCTION drop_view_on_delete()
+CREATE OR REPLACE FUNCTION trend.drop_view_on_delete()
     RETURNS TRIGGER
 AS $$
 BEGIN

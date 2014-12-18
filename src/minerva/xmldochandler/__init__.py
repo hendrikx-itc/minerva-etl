@@ -10,5 +10,5 @@ the Free Software Foundation; either version 3, or (at your option) any later
 version.  The full license is in the file COPYING, distributed as part of
 this software.
 """
-from xmldochandler import XmlDocHandler
-from schemacontext import SchemaContext
+from minerva.xmldochandler.xmldochandler import XmlDocHandler
+from minerva.xmldochandler.schemacontext import SchemaContext
