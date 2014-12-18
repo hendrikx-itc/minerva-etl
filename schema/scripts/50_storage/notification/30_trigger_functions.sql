@@ -1,7 +1,4 @@
-SET search_path = notification, pg_catalog;
-
-
-CREATE OR REPLACE FUNCTION create_table_on_insert()
+CREATE OR REPLACE FUNCTION notification.create_table_on_insert()
     RETURNS TRIGGER
 AS $$
 BEGIN
@@ -18,7 +15,7 @@ END;
 $$ LANGUAGE plpgsql VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION drop_table_on_delete()
+CREATE OR REPLACE FUNCTION notification.drop_table_on_delete()
     RETURNS TRIGGER
 AS $$
 BEGIN
@@ -30,7 +27,7 @@ END;
 $$ LANGUAGE plpgsql VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION drop_notificationsetstore_table_on_delete()
+CREATE OR REPLACE FUNCTION notification.drop_notificationsetstore_table_on_delete()
     RETURNS TRIGGER
 AS $$
 BEGIN
@@ -42,7 +39,7 @@ END;
 $$ LANGUAGE plpgsql VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION create_attribute_column_on_insert()
+CREATE OR REPLACE FUNCTION notification.create_attribute_column_on_insert()
     RETURNS TRIGGER
 AS $$
 BEGIN
@@ -53,7 +50,7 @@ END;
 $$ LANGUAGE plpgsql VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION cleanup_on_datasource_delete()
+CREATE OR REPLACE FUNCTION notification.cleanup_on_datasource_delete()
     RETURNS TRIGGER
 AS $$
 BEGIN

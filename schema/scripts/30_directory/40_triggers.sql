@@ -1,6 +1,3 @@
-SET search_path = directory, pg_catalog;
-
-
 CREATE TRIGGER "create alias for new entity"
     AFTER INSERT
     ON directory.entity

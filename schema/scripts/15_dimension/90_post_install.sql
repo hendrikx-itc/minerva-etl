@@ -1,11 +1,9 @@
-SET search_path = dimension, pg_catalog;
-
-SELECT update_month();
-SELECT update_week();
-SELECT update_day();
-SELECT update_hour();
-SELECT update_quarter();
-SELECT update_four_consec_qtr();
-SELECT update_month_15m();
-SELECT update_week_15m();
-SELECT update_day_15m();
+SELECT dimension.update_month();
+SELECT dimension.update_week();
+SELECT dimension.update_day();
+SELECT dimension.update_hour();
+SELECT dimension.update_quarter();
+SELECT dimension.update_four_consec_qtr();
+SELECT dimension.update_month_15m();
+SELECT dimension.update_week_15m();
+SELECT dimension.update_day_15m();

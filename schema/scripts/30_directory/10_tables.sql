@@ -9,18 +9,16 @@ ALTER SCHEMA directory OWNER TO minerva_admin;
 GRANT ALL ON SCHEMA directory TO minerva_admin;
 GRANT USAGE ON SCHEMA directory TO minerva;
 
-SET search_path = directory, pg_catalog;
+-- Table 'directory.datasource'
 
--- Table 'datasource'
-
-CREATE TABLE datasource (
+CREATE TABLE directory.datasource (
     id integer NOT NULL,
     name character varying(100) NOT NULL,
     description character varying NOT NULL,
     timezone character varying(40) NOT NULL
 );
 
-COMMENT ON TABLE datasource IS
+COMMENT ON TABLE directory.datasource IS
 'Describes datasources. A datasource is used to indicate where data came from. '
 'Datasources are also used to prevent collisions between sets of data from '
 'different sources, where names can be the same, but the meaning of the data '
@@ -28,7 +26,7 @@ COMMENT ON TABLE datasource IS
 
 ALTER TABLE directory.datasource OWNER TO minerva_admin;
 
-CREATE SEQUENCE datasource_id_seq
+CREATE SEQUENCE directory.datasource_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -37,38 +35,38 @@ CREATE SEQUENCE datasource_id_seq
 
 ALTER TABLE directory.datasource_id_seq OWNER TO minerva_admin;
 
-ALTER SEQUENCE datasource_id_seq OWNED BY datasource.id;
+ALTER SEQUENCE directory.datasource_id_seq OWNED BY directory.datasource.id;
 
-ALTER TABLE datasource ALTER COLUMN id SET DEFAULT nextval('datasource_id_seq'::regclass);
+ALTER TABLE directory.datasource ALTER COLUMN id SET DEFAULT nextval('directory.datasource_id_seq'::regclass);
 
-ALTER TABLE ONLY datasource
+ALTER TABLE ONLY directory.datasource
     ADD CONSTRAINT datasource_pkey PRIMARY KEY (id);
 
-GRANT ALL ON TABLE datasource TO minerva_admin;
-GRANT SELECT ON TABLE datasource TO minerva;
-GRANT INSERT,DELETE,UPDATE ON TABLE datasource TO minerva_writer;
+GRANT ALL ON TABLE directory.datasource TO minerva_admin;
+GRANT SELECT ON TABLE directory.datasource TO minerva;
+GRANT INSERT,DELETE,UPDATE ON TABLE directory.datasource TO minerva_writer;
 
-GRANT ALL ON SEQUENCE datasource_id_seq TO minerva_admin;
-GRANT SELECT ON SEQUENCE datasource_id_seq TO minerva;
-GRANT UPDATE ON SEQUENCE datasource_id_seq TO minerva_writer;
+GRANT ALL ON SEQUENCE directory.datasource_id_seq TO minerva_admin;
+GRANT SELECT ON SEQUENCE directory.datasource_id_seq TO minerva;
+GRANT UPDATE ON SEQUENCE directory.datasource_id_seq TO minerva_writer;
 
-CREATE UNIQUE INDEX ix_directory_datasource_name ON datasource USING btree (name);
+CREATE UNIQUE INDEX ix_directory_datasource_name ON directory.datasource USING btree (name);
 
 -- Table 'entitytype'
 
-CREATE TABLE entitytype (
+CREATE TABLE directory.entitytype (
     id integer NOT NULL,
     name character varying(50) NOT NULL,
     description character varying NOT NULL
 );
 
-COMMENT ON TABLE entitytype IS
+COMMENT ON TABLE directory.entitytype IS
 'Stores the entity types that exist in the entity table. Entity types are '
 'also used to give context to data that is stored for entities.';
 
 ALTER TABLE directory.entitytype OWNER TO minerva_admin;
 
-CREATE SEQUENCE entitytype_id_seq
+CREATE SEQUENCE directory.entitytype_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -76,28 +74,28 @@ CREATE SEQUENCE entitytype_id_seq
     CACHE 1;
 
 ALTER TABLE directory.entitytype_id_seq OWNER TO minerva_admin;
-ALTER SEQUENCE entitytype_id_seq OWNED BY entitytype.id;
-ALTER TABLE entitytype
+ALTER SEQUENCE directory.entitytype_id_seq OWNED BY directory.entitytype.id;
+ALTER TABLE directory.entitytype
     ALTER COLUMN id
-    SET DEFAULT nextval('entitytype_id_seq'::regclass);
+    SET DEFAULT nextval('directory.entitytype_id_seq'::regclass);
 
-ALTER TABLE ONLY entitytype
+ALTER TABLE ONLY directory.entitytype
     ADD CONSTRAINT entitytype_pkey PRIMARY KEY (id);
 
 CREATE UNIQUE INDEX ix_directory_entitytype_name
-    ON entitytype (lower(name));
+    ON directory.entitytype (lower(name));
 
-GRANT ALL ON TABLE entitytype TO minerva_admin;
-GRANT SELECT ON TABLE entitytype TO minerva;
-GRANT INSERT,DELETE,UPDATE ON TABLE entitytype TO minerva_writer;
+GRANT ALL ON TABLE directory.entitytype TO minerva_admin;
+GRANT SELECT ON TABLE directory.entitytype TO minerva;
+GRANT INSERT,DELETE,UPDATE ON TABLE directory.entitytype TO minerva_writer;
 
-GRANT ALL ON SEQUENCE entitytype_id_seq TO minerva_admin;
-GRANT SELECT ON SEQUENCE entitytype_id_seq TO minerva;
-GRANT UPDATE ON SEQUENCE entitytype_id_seq TO minerva_writer;
+GRANT ALL ON SEQUENCE directory.entitytype_id_seq TO minerva_admin;
+GRANT SELECT ON SEQUENCE directory.entitytype_id_seq TO minerva;
+GRANT UPDATE ON SEQUENCE directory.entitytype_id_seq TO minerva_writer;
 
--- Table 'entity'
+-- Table 'directory.entity'
 
-CREATE TABLE entity (
+CREATE TABLE directory.entity (
     id integer NOT NULL,
     first_appearance timestamp with time zone NOT NULL,
     name character varying NOT NULL,
@@ -106,14 +104,14 @@ CREATE TABLE entity (
     parent_id integer
 );
 
-COMMENT ON TABLE entity IS
+COMMENT ON TABLE directory.entity IS
 'Describes entities. An entity is the base object for which the database can '
 'hold further information such as attributes, trends and notifications. All '
 'data must have a reference to an entity.';
 
 ALTER TABLE directory.entity OWNER TO minerva_admin;
 
-CREATE SEQUENCE entity_id_seq
+CREATE SEQUENCE directory.entity_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -122,55 +120,55 @@ CREATE SEQUENCE entity_id_seq
 
 ALTER TABLE directory.entity_id_seq OWNER TO minerva_admin;
 
-ALTER SEQUENCE entity_id_seq OWNED BY entity.id;
+ALTER SEQUENCE directory.entity_id_seq OWNED BY directory.entity.id;
 
-ALTER TABLE entity
+ALTER TABLE directory.entity
     ALTER COLUMN id
-    SET DEFAULT nextval('entity_id_seq'::regclass);
+    SET DEFAULT nextval('directory.entity_id_seq'::regclass);
 
-ALTER TABLE ONLY entity
+ALTER TABLE ONLY directory.entity
     ADD CONSTRAINT entity_pkey PRIMARY KEY (id);
 
-GRANT ALL ON TABLE entity TO minerva_admin;
-GRANT SELECT ON TABLE entity TO minerva;
-GRANT INSERT,DELETE,UPDATE ON TABLE entity TO minerva_writer;
+GRANT ALL ON TABLE directory.entity TO minerva_admin;
+GRANT SELECT ON TABLE directory.entity TO minerva;
+GRANT INSERT,DELETE,UPDATE ON TABLE directory.entity TO minerva_writer;
 
-GRANT ALL ON SEQUENCE entity_id_seq TO minerva_admin;
-GRANT SELECT ON SEQUENCE entity_id_seq TO minerva;
-GRANT UPDATE ON SEQUENCE entity_id_seq TO minerva_writer;
+GRANT ALL ON SEQUENCE directory.entity_id_seq TO minerva_admin;
+GRANT SELECT ON SEQUENCE directory.entity_id_seq TO minerva;
+GRANT UPDATE ON SEQUENCE directory.entity_id_seq TO minerva_writer;
 
-ALTER TABLE ONLY entity
+ALTER TABLE ONLY directory.entity
     ADD CONSTRAINT entity_entitytype_id_fkey
-    FOREIGN KEY (entitytype_id) REFERENCES entitytype(id)
+    FOREIGN KEY (entitytype_id) REFERENCES directory.entitytype(id)
     ON DELETE CASCADE;
 
-ALTER TABLE ONLY entity
+ALTER TABLE ONLY directory.entity
     ADD CONSTRAINT entity_parent_id_fkey
-    FOREIGN KEY (parent_id) REFERENCES entity(id)
+    FOREIGN KEY (parent_id) REFERENCES directory.entity(id)
     ON DELETE CASCADE;
 
 CREATE UNIQUE INDEX ix_directory_entity_dn
-    ON entity USING btree (dn);
+    ON directory.entity USING btree (dn);
 
 CREATE INDEX ix_directory_entity_name
-    ON entity USING btree (name);
+    ON directory.entity USING btree (name);
 
-CREATE INDEX parent_id ON entity USING btree (parent_id);
-CREATE INDEX ix_directory_entity_entitytype_id ON entity USING btree (entitytype_id);
+CREATE INDEX parent_id ON directory.entity USING btree (parent_id);
+CREATE INDEX ix_directory_entity_entitytype_id ON directory.entity USING btree (entitytype_id);
 
--- Table 'taggroup'
+-- Table 'directory.taggroup'
 
-CREATE TABLE taggroup (
+CREATE TABLE directory.taggroup (
     id integer NOT NULL,
     name character varying NOT NULL,
     complementary boolean NOT NULL
 );
 
-CREATE UNIQUE INDEX ix_directory_taggroup_name on taggroup (lower(name));
+CREATE UNIQUE INDEX ix_directory_taggroup_name on directory.taggroup (lower(name));
 
 ALTER TABLE directory.taggroup OWNER TO minerva_admin;
 
-CREATE SEQUENCE taggroup_id_seq
+CREATE SEQUENCE directory.taggroup_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -179,47 +177,47 @@ CREATE SEQUENCE taggroup_id_seq
 
 ALTER TABLE directory.taggroup_id_seq OWNER TO minerva_admin;
 
-ALTER TABLE taggroup
+ALTER TABLE directory.taggroup
     ALTER COLUMN id
-    SET DEFAULT nextval('taggroup_id_seq'::regclass);
+    SET DEFAULT nextval('directory.taggroup_id_seq'::regclass);
 
-ALTER SEQUENCE taggroup_id_seq OWNED BY taggroup.id;
+ALTER SEQUENCE directory.taggroup_id_seq OWNED BY directory.taggroup.id;
 
-ALTER TABLE ONLY taggroup
+ALTER TABLE ONLY directory.taggroup
     ADD CONSTRAINT taggroup_pkey PRIMARY KEY (id);
 
-GRANT ALL ON TABLE taggroup TO minerva_admin;
-GRANT SELECT ON TABLE taggroup TO minerva;
-GRANT INSERT,DELETE,UPDATE ON TABLE taggroup TO minerva_writer;
+GRANT ALL ON TABLE directory.taggroup TO minerva_admin;
+GRANT SELECT ON TABLE directory.taggroup TO minerva;
+GRANT INSERT,DELETE,UPDATE ON TABLE directory.taggroup TO minerva_writer;
 
-GRANT ALL ON SEQUENCE taggroup_id_seq TO minerva_admin;
-GRANT SELECT ON SEQUENCE taggroup_id_seq TO minerva;
-GRANT UPDATE ON SEQUENCE taggroup_id_seq TO minerva_writer;
+GRANT ALL ON SEQUENCE directory.taggroup_id_seq TO minerva_admin;
+GRANT SELECT ON SEQUENCE directory.taggroup_id_seq TO minerva;
+GRANT UPDATE ON SEQUENCE directory.taggroup_id_seq TO minerva_writer;
 
-INSERT INTO taggroup (name, complementary) VALUES ('default', false);
-INSERT INTO taggroup (name, complementary) VALUES ('entitytype', true);
+INSERT INTO directory.taggroup (name, complementary) VALUES ('default', false);
+INSERT INTO directory.taggroup (name, complementary) VALUES ('entitytype', true);
 
--- Table 'tag'
+-- Table 'directory.tag'
 
-CREATE TABLE tag (
+CREATE TABLE directory.tag (
     id integer NOT NULL,
     name character varying NOT NULL,
     taggroup_id integer NOT NULL,
     description character varying
 );
 
-COMMENT ON TABLE tag IS
+COMMENT ON TABLE directory.tag IS
 'Stores all tags. A tag is a simple label that can be attached to a number of '
 'object types in the database, such as entities and trends.';
 
 CREATE UNIQUE INDEX ix_directory_tag_name
-    ON tag (lower(name));
+    ON directory.tag (lower(name));
 
-CREATE INDEX ON tag (lower(name), id);
+CREATE INDEX ON directory.tag (lower(name), id);
 
 ALTER TABLE directory.tag OWNER TO minerva_admin;
 
-CREATE SEQUENCE tag_id_seq
+CREATE SEQUENCE directory.tag_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -228,57 +226,57 @@ CREATE SEQUENCE tag_id_seq
 
 ALTER TABLE directory.tag_id_seq OWNER TO minerva_admin;
 
-ALTER TABLE tag
+ALTER TABLE directory.tag
     ALTER COLUMN id
-    SET DEFAULT nextval('tag_id_seq'::regclass);
+    SET DEFAULT nextval('directory.tag_id_seq'::regclass);
 
-ALTER SEQUENCE tag_id_seq OWNED BY tag.id;
+ALTER SEQUENCE directory.tag_id_seq OWNED BY directory.tag.id;
 
-ALTER TABLE ONLY tag
+ALTER TABLE ONLY directory.tag
     ADD CONSTRAINT tag_pkey PRIMARY KEY (id);
 
-ALTER TABLE ONLY tag
+ALTER TABLE ONLY directory.tag
     ADD CONSTRAINT tag_taggroup_id_fkey
-    FOREIGN KEY (taggroup_id) REFERENCES taggroup(id)
+    FOREIGN KEY (taggroup_id) REFERENCES directory.taggroup(id)
     ON DELETE CASCADE;
 
-GRANT ALL ON TABLE tag TO minerva_admin;
-GRANT SELECT ON TABLE tag TO minerva;
-GRANT INSERT,DELETE,UPDATE ON TABLE tag TO minerva_writer;
+GRANT ALL ON TABLE directory.tag TO minerva_admin;
+GRANT SELECT ON TABLE directory.tag TO minerva;
+GRANT INSERT,DELETE,UPDATE ON TABLE directory.tag TO minerva_writer;
 
-GRANT ALL ON SEQUENCE tag_id_seq TO minerva_admin;
-GRANT SELECT ON SEQUENCE tag_id_seq TO minerva;
-GRANT UPDATE ON SEQUENCE tag_id_seq TO minerva_writer;
+GRANT ALL ON SEQUENCE directory.tag_id_seq TO minerva_admin;
+GRANT SELECT ON SEQUENCE directory.tag_id_seq TO minerva;
+GRANT UPDATE ON SEQUENCE directory.tag_id_seq TO minerva_writer;
 
--- Table 'entitytaglink'
+-- Table 'directory.entitytaglink'
 
-CREATE TABLE entitytaglink (
+CREATE TABLE directory.entitytaglink (
     tag_id integer NOT NULL,
     entity_id integer NOT NULL
 );
 
 ALTER TABLE directory.entitytaglink OWNER TO minerva_admin;
 
-ALTER TABLE ONLY entitytaglink
+ALTER TABLE ONLY directory.entitytaglink
     ADD CONSTRAINT entitytaglink_pkey PRIMARY KEY (tag_id, entity_id);
 
-GRANT ALL ON TABLE entitytaglink TO minerva_admin;
-GRANT SELECT ON TABLE entitytaglink TO minerva;
-GRANT INSERT,DELETE,UPDATE ON TABLE entitytaglink TO minerva_writer;
+GRANT ALL ON TABLE directory.entitytaglink TO minerva_admin;
+GRANT SELECT ON TABLE directory.entitytaglink TO minerva;
+GRANT INSERT,DELETE,UPDATE ON TABLE directory.entitytaglink TO minerva_writer;
 
-ALTER TABLE ONLY entitytaglink
+ALTER TABLE ONLY directory.entitytaglink
     ADD CONSTRAINT entitytaglink_entity_id_fkey
-    FOREIGN KEY (entity_id) REFERENCES entity(id)
+    FOREIGN KEY (entity_id) REFERENCES directory.entity(id)
     ON DELETE CASCADE;
 
-ALTER TABLE ONLY entitytaglink
-    ADD CONSTRAINT entitytaglink_tag_id_fkey FOREIGN KEY (tag_id) REFERENCES tag(id)
+ALTER TABLE ONLY directory.entitytaglink
+    ADD CONSTRAINT entitytaglink_tag_id_fkey FOREIGN KEY (tag_id) REFERENCES directory.tag(id)
     ON DELETE CASCADE;
 
 CREATE INDEX ix_directory_entitytaglink_entity_id
-    ON entitytaglink USING btree (entity_id);
+    ON directory.entitytaglink USING btree (entity_id);
 
--- Table 'entity_link_denorm'
+-- Table 'directory.entity_link_denorm'
 
 CREATE TABLE directory.entity_link_denorm (
     entity_id integer primary key not null,
@@ -296,17 +294,17 @@ GRANT UPDATE, INSERT, DELETE ON TABLE directory.entity_link_denorm TO minerva_wr
 GRANT ALL ON TABLE directory.entity_link_denorm TO minerva_admin;
 
 
--- Table 'aliastype'
+-- Table 'directory.aliastype'
 
-CREATE TABLE aliastype
+CREATE TABLE directory.aliastype
 (
     id integer NOT NULL,
     "name" character varying NOT NULL
 );
 
-ALTER TABLE aliastype OWNER TO minerva_admin;
+ALTER TABLE directory.aliastype OWNER TO minerva_admin;
 
-CREATE SEQUENCE aliastype_id_seq
+CREATE SEQUENCE directory.aliastype_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -314,62 +312,62 @@ CREATE SEQUENCE aliastype_id_seq
     CACHE 1;
 
 ALTER TABLE directory.aliastype_id_seq OWNER TO minerva_admin;
-ALTER SEQUENCE aliastype_id_seq OWNED BY aliastype.id;
-ALTER TABLE aliastype
+ALTER SEQUENCE directory.aliastype_id_seq OWNED BY directory.aliastype.id;
+ALTER TABLE directory.aliastype
     ALTER COLUMN id
-    SET DEFAULT nextval('aliastype_id_seq'::regclass);
+    SET DEFAULT nextval('directory.aliastype_id_seq'::regclass);
 
-GRANT ALL ON SEQUENCE aliastype_id_seq TO minerva_admin;
-GRANT SELECT ON SEQUENCE aliastype_id_seq TO minerva;
-GRANT UPDATE ON SEQUENCE aliastype_id_seq TO minerva_writer;
+GRANT ALL ON SEQUENCE directory.aliastype_id_seq TO minerva_admin;
+GRANT SELECT ON SEQUENCE directory.aliastype_id_seq TO minerva;
+GRANT UPDATE ON SEQUENCE directory.aliastype_id_seq TO minerva_writer;
 
-ALTER TABLE ONLY aliastype
+ALTER TABLE ONLY directory.aliastype
     ADD CONSTRAINT aliastype_pkey PRIMARY KEY (id);
 
 CREATE UNIQUE INDEX ix_directory_aliastype_name
-    ON aliastype (lower(name));
+    ON directory.aliastype (lower(name));
 
-GRANT ALL ON TABLE aliastype TO minerva_admin;
-GRANT SELECT ON TABLE aliastype TO minerva;
-GRANT INSERT,DELETE,UPDATE ON TABLE aliastype TO minerva_writer;
+GRANT ALL ON TABLE directory.aliastype TO minerva_admin;
+GRANT SELECT ON TABLE directory.aliastype TO minerva;
+GRANT INSERT,DELETE,UPDATE ON TABLE directory.aliastype TO minerva_writer;
 
-INSERT INTO aliastype (name) VALUES ('name');
+INSERT INTO directory.aliastype (name) VALUES ('name');
 
--- Table 'alias'
+-- Table 'directory.alias'
 
-CREATE TABLE alias
+CREATE TABLE directory.alias
 (
     entity_id integer NOT NULL,
     "name" character varying NOT NULL,
     type_id integer NOT NULL
 );
 
-ALTER TABLE alias OWNER TO minerva_admin;
+ALTER TABLE directory.alias OWNER TO minerva_admin;
 
-ALTER TABLE ONLY alias
+ALTER TABLE ONLY directory.alias
     ADD CONSTRAINT alias_pkey PRIMARY KEY (entity_id, type_id);
 
-ALTER TABLE ONLY alias
+ALTER TABLE ONLY directory.alias
     ADD CONSTRAINT alias_entity_id_fkey
-    FOREIGN KEY (entity_id) REFERENCES entity(id)
+    FOREIGN KEY (entity_id) REFERENCES directory.entity(id)
     ON DELETE CASCADE;
 
-ALTER TABLE ONLY alias
+ALTER TABLE ONLY directory.alias
     ADD CONSTRAINT alias_aliastype_id_fkey
-    FOREIGN KEY (type_id) REFERENCES aliastype(id)
+    FOREIGN KEY (type_id) REFERENCES directory.aliastype(id)
     ON DELETE CASCADE;
 
-CREATE INDEX ON alias USING btree (name);
+CREATE INDEX ON directory.alias USING btree (name);
 
-CREATE INDEX ON alias (lower(name));
+CREATE INDEX ON directory.alias (lower(name));
 
-GRANT ALL ON TABLE alias TO minerva_admin;
-GRANT SELECT ON TABLE alias TO minerva;
-GRANT INSERT,DELETE,UPDATE ON TABLE alias TO minerva_writer;
+GRANT ALL ON TABLE directory.alias TO minerva_admin;
+GRANT SELECT ON TABLE directory.alias TO minerva;
+GRANT INSERT,DELETE,UPDATE ON TABLE directory.alias TO minerva_writer;
 
--- Table 'existence'
+-- Table 'directory.existence'
 
-CREATE TABLE existence
+CREATE TABLE directory.existence
 (
     timestamp timestamp with time zone NOT NULL,
     exists boolean NOT NULL,
@@ -377,23 +375,23 @@ CREATE TABLE existence
     entitytype_id integer NOT NULL
 );
 
-ALTER TABLE existence OWNER TO minerva_admin;
+ALTER TABLE directory.existence OWNER TO minerva_admin;
 
-ALTER TABLE ONLY existence
+ALTER TABLE ONLY directory.existence
     ADD CONSTRAINT existence_pkey PRIMARY KEY (entity_id, timestamp);
 
-ALTER TABLE ONLY existence
+ALTER TABLE ONLY directory.existence
     ADD CONSTRAINT existence_entity_id_fkey
-    FOREIGN KEY (entity_id) REFERENCES entity(id)
+    FOREIGN KEY (entity_id) REFERENCES directory.entity(id)
     ON DELETE CASCADE;
 
-ALTER TABLE ONLY existence
+ALTER TABLE ONLY directory.existence
     ADD CONSTRAINT existence_entitytype_id_fkey
-    FOREIGN KEY (entitytype_id) REFERENCES entitytype(id);
+    FOREIGN KEY (entitytype_id) REFERENCES directory.entitytype(id);
 
 CREATE INDEX ix_directory_existence_timestamp
-    ON existence USING btree (timestamp);
+    ON directory.existence USING btree (timestamp);
 
-GRANT ALL ON TABLE existence TO minerva_admin;
-GRANT SELECT ON TABLE existence TO minerva;
-GRANT INSERT,DELETE,UPDATE ON TABLE existence TO minerva_writer;
+GRANT ALL ON TABLE directory.existence TO minerva_admin;
+GRANT SELECT ON TABLE directory.existence TO minerva;
+GRANT INSERT,DELETE,UPDATE ON TABLE directory.existence TO minerva_writer;

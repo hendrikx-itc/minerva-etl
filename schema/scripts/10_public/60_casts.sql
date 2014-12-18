@@ -1,6 +1,3 @@
-SET search_path = public, pg_catalog;
-
-
 CREATE CAST (integer AS integer[])
     WITH FUNCTION integer_to_array(integer);
 
