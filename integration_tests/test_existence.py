@@ -41,7 +41,7 @@ TIMEZONE = timezone("Europe/Amsterdam")
 
 
 @with_conn(prepare_datebase)
-def test_existence_simple(conn):
+def _test_existence_simple(conn):
     dn = "network=1,cell=1"
 
     dt = TIMEZONE.localize(datetime(2014, 01, 01, 14, 0, 0))
@@ -56,7 +56,7 @@ def test_existence_simple(conn):
 
 
 @with_conn(prepare_datebase)
-def test_existence_onoff(conn):
+def _test_existence_onoff(conn):
     with closing(conn.cursor()) as cursor:
         dn1 = "network=1,cell=1"
         dn2 = "network=1,cell=2"
@@ -79,7 +79,7 @@ def test_existence_onoff(conn):
 
 
 @with_conn(prepare_datebase)
-def test_existence_history_on(conn):
+def _test_existence_history_on(conn):
     with closing(conn.cursor()) as cursor:
         dn1 = "network=1,cell=1"
         dn2 = "network=1,cell=2"
@@ -102,7 +102,7 @@ def test_existence_history_on(conn):
 
 
 @with_conn(prepare_datebase)
-def test_existence_history_off(conn):
+def _test_existence_history_off(conn):
     with closing(conn.cursor()) as cursor:
         dn1 = "network=1,cell=1"
         dn2 = "network=1,cell=2"
@@ -129,7 +129,7 @@ def test_existence_history_off(conn):
 
 
 @with_conn(prepare_datebase)
-def test_existence_duplicate(conn):
+def _test_existence_duplicate(conn):
     dn = "network=1,cell=1"
     dt = TIMEZONE.localize(datetime(2014, 01, 01, 14, 0, 0))
 
@@ -146,7 +146,7 @@ def test_existence_duplicate(conn):
 
 
 @with_conn(prepare_datebase)
-def test_existence_still_on(conn):
+def _test_existence_still_on(conn):
     dn = "network=1,cell=1"
     dt1 = TIMEZONE.localize(datetime(2014, 01, 01, 14, 0, 0))
     dt2 = TIMEZONE.localize(datetime(2014, 02, 01, 14, 0, 0))
@@ -161,3 +161,46 @@ def test_existence_still_on(conn):
     ex.flush(dt2)
 
     ok_(check_existence(conn, [(dn,dt1,True)]))
+
+
+@with_conn(prepare_datebase)
+def test_duplicate(conn):
+    with closing(conn.cursor()) as cursor:
+        dn1 = "network=1,cell=1"
+        dn2 = "network=1,cell=2"
+        dn3 = "network=1,cell=3"
+
+        dt1 = TIMEZONE.localize(datetime(2014, 01, 01, 14, 0, 0))
+        dt2 = TIMEZONE.localize(datetime(2014, 02, 01, 14, 0, 0))
+        dt3 = TIMEZONE.localize(datetime(2014, 03, 01, 14, 0, 0))
+        dt4 = TIMEZONE.localize(datetime(2014, 04, 01, 14, 0, 0))
+        dt5 = TIMEZONE.localize(datetime(2014, 05, 01, 14, 0, 0))
+
+        ex = existence.Existence(conn)
+
+        directory.create_entity(conn, dn1)
+        directory.create_entity(conn, dn2)
+        directory.create_entity(conn, dn3)
+
+        ex.mark_existing([dn1])
+        ex.flush(dt1)
+
+        ex.mark_existing([dn2])
+        ex.flush(dt2)
+
+        ex.mark_existing([dn1])
+        ex.flush(dt3)
+
+        ex.mark_existing([dn2])
+        ex.flush(dt4)
+
+        ex.mark_existing([dn1])
+        ex.flush(dt5)
+
+
+        ok_(check_existence(conn, [
+            (dn1, dt1, True),
+            (dn1, dt2, False), (dn2, dt2, True),
+            (dn1, dt3, True), (dn2, dt3, False),
+            (dn1, dt4, False), (dn2, dt4, True),
+            (dn1, dt5, True), (dn2, dt5, False)]))
