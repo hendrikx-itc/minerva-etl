@@ -1199,28 +1199,28 @@ END;
 $$ LANGUAGE plpgsql STABLE;
 
 
-CREATE OR REPLACE FUNCTION trend.update_modified(table_name name, "timestamp" timestamp with time zone, modified timestamp with time zone)
+CREATE FUNCTION trend.update_modified(trendstore_id integer, "timestamp" timestamp with time zone, modified timestamp with time zone)
     RETURNS trend.modified
 AS $$
-    UPDATE trend.modified SET "end" = greatest("end", $3) WHERE "timestamp" = $2 AND table_name = $1::character varying RETURNING modified;
+    UPDATE trend.modified SET "end" = greatest("end", $3) WHERE "timestamp" = $2 AND trendstore_id = $1 RETURNING modified;
 $$ LANGUAGE SQL VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION trend.store_modified(table_name name, "timestamp" timestamp with time zone, modified timestamp with time zone)
+CREATE FUNCTION trend.store_modified(trendstore_id integer, "timestamp" timestamp with time zone, modified timestamp with time zone)
     RETURNS trend.modified
 AS $$
-    INSERT INTO trend.modified (table_name, "timestamp", start, "end") VALUES ($1::character varying, $2, $3, $3) RETURNING modified;
+    INSERT INTO trend.modified (trendstore_id, "timestamp", start, "end") VALUES ($1, $2, $3, $3) RETURNING modified;
 $$ LANGUAGE SQL VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION trend.mark_modified(table_name name, "timestamp" timestamp with time zone, modified timestamp with time zone)
+CREATE FUNCTION trend.mark_modified(trendstore_id integer, "timestamp" timestamp with time zone, modified timestamp with time zone)
     RETURNS trend.modified
 AS $$
     SELECT COALESCE(trend.update_modified($1, $2, $3), trend.store_modified($1, $2, $3));
 $$ LANGUAGE SQL VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION trend.mark_modified(table_name name, "timestamp" timestamp with time zone)
+CREATE FUNCTION trend.mark_modified(trendstore_id integer, "timestamp" timestamp with time zone)
     RETURNS trend.modified
 AS $$
     SELECT COALESCE(trend.update_modified($1, $2, now()), trend.store_modified($1, $2, now()));
@@ -1231,10 +1231,10 @@ CREATE OR REPLACE FUNCTION trend.populate_modified(partition trend.partition)
     RETURNS SETOF trend.modified
 AS $$
 BEGIN
-    RETURN QUERY EXECUTE format('
-        SELECT (trend.mark_modified(%L, "timestamp", max(modified))).*
-            FROM trend.%I GROUP BY timestamp',
-        partition.table_name, partition.table_name);
+    RETURN QUERY EXECUTE format(
+        'SELECT (trend.mark_modified(%L, "timestamp", max(modified))).*
+FROM trend.%I GROUP BY timestamp',
+        partition.trendstore_id, partition.table_name);
 END;
 $$ LANGUAGE plpgsql VOLATILE;
 
@@ -1246,6 +1246,13 @@ AS $$
 $$ LANGUAGE SQL VOLATILE;
 
 
+CREATE OR REPLACE FUNCTION trend.populate_modified(character varying)
+    RETURNS SETOF trend.modified
+AS $$
+    SELECT trend.populate_modified(partition) FROM trend.partition WHERE table_name = $1;
+$$ LANGUAGE SQL VOLATILE;
+
+
 CREATE OR REPLACE FUNCTION trend.available_timestamps(partition trend.partition)
     RETURNS SETOF timestamp with time zone
 AS $$
@@ -1253,13 +1260,6 @@ BEGIN
     RETURN QUERY EXECUTE format('SELECT "timestamp" FROM trend.%I GROUP BY timestamp', partition.table_name);
 END;
 $$ LANGUAGE plpgsql VOLATILE;
-
-
-CREATE OR REPLACE FUNCTION trend.populate_modified(character varying)
-    RETURNS SETOF trend.modified
-AS $$
-    SELECT trend.populate_modified(partition) FROM trend.partition WHERE table_name = $1;
-$$ LANGUAGE SQL VOLATILE;
 
 
 CREATE OR REPLACE FUNCTION trend.get_dependent_view_names(table_name name)
