@@ -1,8 +1,9 @@
 CREATE TABLE trend.modified_new (
-    trendstore_id integer not null references trend.trendstore(id),
+    trendstore_id integer not null REFERENCES trend.trendstore(id) ON UPDATE CASCADE ON DELETE CASCADE,
     timestamp timestamp with time zone not null,
     start timestamp with time zone not null,
-    "end" timestamp with time zone not null
+    "end" timestamp with time zone not null,
+    PRIMARY KEY (trendstore_id, "timestamp")
 );
 
 INSERT INTO trend.modified_new(

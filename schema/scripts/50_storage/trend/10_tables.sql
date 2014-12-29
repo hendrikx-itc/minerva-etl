@@ -192,22 +192,14 @@ GRANT INSERT,DELETE,UPDATE ON TABLE trend.trend_tag_link TO minerva_writer;
 -- Table 'trend.modified'
 
 CREATE TABLE trend.modified (
+    trendstore_id integer not null REFERENCES trend.trendstore ON UPDATE CASCADE ON DELETE CASCADE,
     "timestamp" timestamp WITH time zone NOT NULL,
-    table_name varchar NOT NULL,
     start timestamp WITH time zone NOT NULL,
-    "end" timestamp WITH time zone NOT NULL
+    "end" timestamp WITH time zone NOT NULL,
+    PRIMARY KEY (trendstore_id, "timestamp")
 );
 
 ALTER TABLE trend.modified OWNER TO minerva_admin;
-
-ALTER TABLE ONLY trend.modified
-    ADD CONSTRAINT modified_pkey PRIMARY KEY ("timestamp", table_name);
-
-ALTER TABLE ONLY trend.modified
-    ADD CONSTRAINT modified_table_name_fkey
-    FOREIGN KEY (table_name) REFERENCES trend.partition(table_name)
-    ON UPDATE CASCADE
-    ON DELETE CASCADE;
 
 GRANT ALL ON TABLE trend.modified TO minerva_admin;
 GRANT SELECT ON TABLE trend.modified TO minerva;
