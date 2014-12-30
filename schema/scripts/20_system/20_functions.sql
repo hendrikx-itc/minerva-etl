@@ -1,3 +1,53 @@
+CREATE TYPE system.version_tuple AS (
+    major smallint,
+    minor smallint,
+    patch smallint
+);
+
+CREATE OR REPLACE FUNCTION system.version_gtlt_version(system.version_tuple, system.version_tuple)
+    RETURNS boolean
+AS $$
+SELECT
+    $1.major > $2.major AND
+    $1.minor > $2.minor AND
+    $1.patch > $2.patch;
+$$ LANGUAGE sql IMMUTABLE;
+
+
+CREATE OPERATOR <> (
+    LEFTARG = system.version_tuple,
+    RIGHTARG = system.version_tuple,
+    PROCEDURE = system.version_gtlt_version
+);
+
+
+CREATE OR REPLACE FUNCTION system.set_version(system.version_tuple)
+    RETURNS system.version_tuple
+AS $$
+BEGIN
+
+    EXECUTE format($sql$CREATE OR REPLACE FUNCTION system.version()
+    RETURNS system.version_tuple
+AS $function$
+SELECT %s::system.version_tuple;
+$function$ LANGUAGE sql IMMUTABLE;$sql$, $1);
+
+    RETURN $1;
+
+END;
+$$ LANGUAGE plpgsql VOLATILE;
+
+
+CREATE OR REPLACE FUNCTION system.set_version(integer, integer, integer)
+    RETURNS system.version_tuple
+AS $$
+    SELECT system.set_version(($1, $2, $3)::system.version_tuple);
+$$ LANGUAGE sql VOLATILE;
+
+
+SELECT system.set_version(4, 7, 0);
+
+
 CREATE TYPE system.job_type AS (id int, type character varying, description character varying, size bigint, config text);
 
 
