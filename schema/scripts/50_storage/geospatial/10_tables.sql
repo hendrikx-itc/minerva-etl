@@ -5,7 +5,6 @@
 CREATE SCHEMA gis;
 
 ALTER SCHEMA gis OWNER TO minerva_admin;
-GRANT ALL ON SCHEMA gis TO minerva_admin;
 GRANT USAGE ON SCHEMA gis TO minerva;
 GRANT ALL ON SCHEMA gis TO minerva_writer;
 
@@ -20,7 +19,6 @@ CREATE TABLE gis.site (
 SELECT AddGeometryColumn('minerva', 'gis', 'site', 'position', 900913, 'POINT', 2);
 
 ALTER TABLE gis.site OWNER TO minerva_admin;
-GRANT ALL ON TABLE gis.site TO minerva_admin;
 GRANT SELECT ON TABLE gis.site TO minerva;
 GRANT INSERT, DELETE, UPDATE ON TABLE gis.site TO minerva_writer;
 
@@ -29,7 +27,6 @@ CREATE TABLE gis.site_curr (
 ) INHERITS (gis.site);
 
 ALTER TABLE gis.site_curr OWNER TO minerva_admin;
-GRANT ALL ON TABLE gis.site_curr TO minerva_admin;
 GRANT SELECT ON TABLE gis.site_curr TO minerva;
 GRANT INSERT, DELETE, UPDATE ON TABLE gis.site_curr TO minerva_writer;
 
@@ -44,7 +41,6 @@ CREATE TABLE gis.cell (
 ) WITHOUT OIDS;
 
 ALTER TABLE gis.cell OWNER TO minerva_admin;
-GRANT ALL ON TABLE gis.cell TO minerva_admin;
 GRANT SELECT ON TABLE gis.cell TO minerva;
 GRANT INSERT, DELETE, UPDATE ON TABLE gis.cell TO minerva_writer;
 
@@ -53,6 +49,5 @@ CREATE TABLE gis.cell_curr (
 ) INHERITS (gis.cell);
 
 ALTER TABLE gis.cell_curr OWNER TO minerva_admin;
-GRANT ALL ON TABLE gis.cell_curr TO minerva_admin;
 GRANT SELECT ON TABLE gis.cell_curr TO minerva;
 GRANT INSERT, DELETE, UPDATE ON TABLE gis.cell_curr TO minerva_writer;

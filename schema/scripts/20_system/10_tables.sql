@@ -1,7 +1,6 @@
 CREATE SCHEMA system;
 ALTER SCHEMA system OWNER TO minerva_admin;
 
-GRANT ALL ON SCHEMA system TO minerva_admin;
 GRANT ALL ON SCHEMA system TO minerva_writer;
 
 CREATE TYPE system.job_state_enum AS ENUM (
@@ -43,11 +42,9 @@ ALTER TABLE ONLY system.job_source
 CREATE UNIQUE INDEX ix_system_job_source_name
     ON system.job_source USING btree (name);
 
-GRANT ALL ON TABLE system.job_source TO minerva_admin;
 GRANT SELECT ON TABLE system.job_source TO minerva;
 GRANT INSERT,DELETE,UPDATE ON TABLE system.job_source TO minerva_writer;
 
-GRANT ALL ON SEQUENCE system.job_source_id_seq TO minerva_admin;
 GRANT SELECT ON SEQUENCE system.job_source_id_seq TO minerva;
 GRANT UPDATE ON SEQUENCE system.job_source_id_seq TO minerva_writer;
 
@@ -91,11 +88,9 @@ ALTER TABLE ONLY system.job
     FOREIGN KEY (job_source_id) REFERENCES system.job_source(id)
     ON DELETE CASCADE;
 
-GRANT ALL ON TABLE system.job TO minerva_admin;
 GRANT SELECT ON TABLE system.job TO minerva;
 GRANT INSERT,DELETE,UPDATE ON TABLE system.job TO minerva_writer;
 
-GRANT ALL ON SEQUENCE system.job_id_seq TO minerva_admin;
 GRANT SELECT ON SEQUENCE system.job_id_seq TO minerva;
 GRANT UPDATE ON SEQUENCE system.job_id_seq TO minerva_writer;
 
@@ -111,7 +106,6 @@ ALTER TABLE system.job_error_log OWNER TO minerva_admin;
 ALTER TABLE ONLY system.job_error_log
     ADD CONSTRAINT job_error_log_pkey PRIMARY KEY (job_id);
 
-GRANT ALL ON TABLE system.job_error_log TO minerva_admin;
 GRANT SELECT ON TABLE system.job_error_log TO minerva;
 GRANT INSERT,DELETE,UPDATE ON TABLE system.job_error_log TO minerva_writer;
 
@@ -131,7 +125,6 @@ ALTER TABLE ONLY system.job_queue
     FOREIGN KEY (job_id) REFERENCES system.job(id)
     ON DELETE CASCADE;
 
-GRANT ALL ON TABLE system.job_queue TO minerva_admin;
 GRANT SELECT ON TABLE system.job_queue TO minerva;
 GRANT INSERT,DELETE,UPDATE ON TABLE system.job_queue TO minerva_writer;
 
@@ -163,6 +156,5 @@ ALTER TABLE system.setting
 ALTER TABLE ONLY system.setting
     ADD CONSTRAINT setting_pkey PRIMARY KEY (id);
 
-GRANT ALL ON TABLE system.setting TO minerva_admin;
 GRANT SELECT ON TABLE system.setting TO minerva;
 GRANT INSERT,DELETE,UPDATE ON TABLE system.setting TO minerva_writer;

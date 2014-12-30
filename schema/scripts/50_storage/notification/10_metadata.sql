@@ -32,7 +32,6 @@ COMMENT ON TABLE notification.notificationstore IS
 
 ALTER TABLE notification.notificationstore OWNER TO minerva_admin;
 
-GRANT ALL ON TABLE notification.notificationstore TO minerva_admin;
 GRANT SELECT ON TABLE notification.notificationstore TO minerva;
 GRANT INSERT,DELETE,UPDATE ON TABLE notification.notificationstore TO minerva_writer;
 
@@ -55,7 +54,6 @@ COMMENT ON TABLE notification.attribute IS
 
 ALTER TABLE notification.attribute OWNER TO minerva_admin;
 
-GRANT ALL ON TABLE notification.attribute TO minerva_admin;
 GRANT SELECT ON TABLE notification.attribute TO minerva;
 GRANT INSERT,DELETE,UPDATE ON TABLE notification.attribute TO minerva_writer;
 
@@ -74,7 +72,6 @@ COMMENT ON TABLE notification.notificationsetstore IS
 
 ALTER TABLE notification.notificationsetstore OWNER TO minerva_admin;
 
-GRANT ALL ON TABLE notification.notificationsetstore TO minerva_admin;
 GRANT SELECT ON TABLE notification.notificationsetstore TO minerva;
 GRANT INSERT,DELETE,UPDATE ON TABLE notification.notificationsetstore TO minerva_writer;
 
@@ -97,6 +94,5 @@ COMMENT ON TABLE notification.setattribute IS
 
 ALTER TABLE notification.attribute OWNER TO minerva_admin;
 
-GRANT ALL ON TABLE notification.attribute TO minerva_admin;
 GRANT SELECT ON TABLE notification.attribute TO minerva;
 GRANT INSERT,DELETE,UPDATE ON TABLE notification.attribute TO minerva_writer;
