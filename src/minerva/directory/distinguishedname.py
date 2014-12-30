@@ -61,3 +61,19 @@ def entitytype_name_from_dn(dn):
     Return type of last component of distinguished name
     """
     return explode(dn)[-1][0]
+
+
+class DistinguishedName(object):
+    def __init__(self, parts):
+        self.parts = parts
+
+    @staticmethod
+    def from_str(dn_str):
+        """Return new DistinguishedName instance constructed from `dn_str`"""
+        return DistinguishedName(explode(dn_str))
+
+    def to_str(self):
+        return implode(self.parts)
+
+    def entitytype_name(self):
+        return self.parts[-1][0]

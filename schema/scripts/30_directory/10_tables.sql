@@ -6,7 +6,6 @@ COMMENT ON SCHEMA directory IS
 
 ALTER SCHEMA directory OWNER TO minerva_admin;
 
-GRANT ALL ON SCHEMA directory TO minerva_admin;
 GRANT USAGE ON SCHEMA directory TO minerva;
 
 -- Table 'directory.datasource'
@@ -42,11 +41,9 @@ ALTER TABLE directory.datasource ALTER COLUMN id SET DEFAULT nextval('directory.
 ALTER TABLE ONLY directory.datasource
     ADD CONSTRAINT datasource_pkey PRIMARY KEY (id);
 
-GRANT ALL ON TABLE directory.datasource TO minerva_admin;
 GRANT SELECT ON TABLE directory.datasource TO minerva;
 GRANT INSERT,DELETE,UPDATE ON TABLE directory.datasource TO minerva_writer;
 
-GRANT ALL ON SEQUENCE directory.datasource_id_seq TO minerva_admin;
 GRANT SELECT ON SEQUENCE directory.datasource_id_seq TO minerva;
 GRANT UPDATE ON SEQUENCE directory.datasource_id_seq TO minerva_writer;
 
@@ -85,11 +82,9 @@ ALTER TABLE ONLY directory.entitytype
 CREATE UNIQUE INDEX ix_directory_entitytype_name
     ON directory.entitytype (lower(name));
 
-GRANT ALL ON TABLE directory.entitytype TO minerva_admin;
 GRANT SELECT ON TABLE directory.entitytype TO minerva;
 GRANT INSERT,DELETE,UPDATE ON TABLE directory.entitytype TO minerva_writer;
 
-GRANT ALL ON SEQUENCE directory.entitytype_id_seq TO minerva_admin;
 GRANT SELECT ON SEQUENCE directory.entitytype_id_seq TO minerva;
 GRANT UPDATE ON SEQUENCE directory.entitytype_id_seq TO minerva_writer;
 
@@ -129,11 +124,9 @@ ALTER TABLE directory.entity
 ALTER TABLE ONLY directory.entity
     ADD CONSTRAINT entity_pkey PRIMARY KEY (id);
 
-GRANT ALL ON TABLE directory.entity TO minerva_admin;
 GRANT SELECT ON TABLE directory.entity TO minerva;
 GRANT INSERT,DELETE,UPDATE ON TABLE directory.entity TO minerva_writer;
 
-GRANT ALL ON SEQUENCE directory.entity_id_seq TO minerva_admin;
 GRANT SELECT ON SEQUENCE directory.entity_id_seq TO minerva;
 GRANT UPDATE ON SEQUENCE directory.entity_id_seq TO minerva_writer;
 
@@ -186,11 +179,9 @@ ALTER SEQUENCE directory.taggroup_id_seq OWNED BY directory.taggroup.id;
 ALTER TABLE ONLY directory.taggroup
     ADD CONSTRAINT taggroup_pkey PRIMARY KEY (id);
 
-GRANT ALL ON TABLE directory.taggroup TO minerva_admin;
 GRANT SELECT ON TABLE directory.taggroup TO minerva;
 GRANT INSERT,DELETE,UPDATE ON TABLE directory.taggroup TO minerva_writer;
 
-GRANT ALL ON SEQUENCE directory.taggroup_id_seq TO minerva_admin;
 GRANT SELECT ON SEQUENCE directory.taggroup_id_seq TO minerva;
 GRANT UPDATE ON SEQUENCE directory.taggroup_id_seq TO minerva_writer;
 
@@ -240,11 +231,9 @@ ALTER TABLE ONLY directory.tag
     FOREIGN KEY (taggroup_id) REFERENCES directory.taggroup(id)
     ON DELETE CASCADE;
 
-GRANT ALL ON TABLE directory.tag TO minerva_admin;
 GRANT SELECT ON TABLE directory.tag TO minerva;
 GRANT INSERT,DELETE,UPDATE ON TABLE directory.tag TO minerva_writer;
 
-GRANT ALL ON SEQUENCE directory.tag_id_seq TO minerva_admin;
 GRANT SELECT ON SEQUENCE directory.tag_id_seq TO minerva;
 GRANT UPDATE ON SEQUENCE directory.tag_id_seq TO minerva_writer;
 
@@ -260,7 +249,6 @@ ALTER TABLE directory.entitytaglink OWNER TO minerva_admin;
 ALTER TABLE ONLY directory.entitytaglink
     ADD CONSTRAINT entitytaglink_pkey PRIMARY KEY (tag_id, entity_id);
 
-GRANT ALL ON TABLE directory.entitytaglink TO minerva_admin;
 GRANT SELECT ON TABLE directory.entitytaglink TO minerva;
 GRANT INSERT,DELETE,UPDATE ON TABLE directory.entitytaglink TO minerva_writer;
 
@@ -291,7 +279,6 @@ CREATE INDEX ON directory.entity_link_denorm (name);
 
 GRANT SELECT ON TABLE directory.entity_link_denorm TO minerva;
 GRANT UPDATE, INSERT, DELETE ON TABLE directory.entity_link_denorm TO minerva_writer;
-GRANT ALL ON TABLE directory.entity_link_denorm TO minerva_admin;
 
 
 -- Table 'directory.aliastype'
@@ -317,7 +304,6 @@ ALTER TABLE directory.aliastype
     ALTER COLUMN id
     SET DEFAULT nextval('directory.aliastype_id_seq'::regclass);
 
-GRANT ALL ON SEQUENCE directory.aliastype_id_seq TO minerva_admin;
 GRANT SELECT ON SEQUENCE directory.aliastype_id_seq TO minerva;
 GRANT UPDATE ON SEQUENCE directory.aliastype_id_seq TO minerva_writer;
 
@@ -327,7 +313,6 @@ ALTER TABLE ONLY directory.aliastype
 CREATE UNIQUE INDEX ix_directory_aliastype_name
     ON directory.aliastype (lower(name));
 
-GRANT ALL ON TABLE directory.aliastype TO minerva_admin;
 GRANT SELECT ON TABLE directory.aliastype TO minerva;
 GRANT INSERT,DELETE,UPDATE ON TABLE directory.aliastype TO minerva_writer;
 
@@ -361,7 +346,6 @@ CREATE INDEX ON directory.alias USING btree (name);
 
 CREATE INDEX ON directory.alias (lower(name));
 
-GRANT ALL ON TABLE directory.alias TO minerva_admin;
 GRANT SELECT ON TABLE directory.alias TO minerva;
 GRANT INSERT,DELETE,UPDATE ON TABLE directory.alias TO minerva_writer;
 
@@ -392,6 +376,26 @@ ALTER TABLE ONLY directory.existence
 CREATE INDEX ix_directory_existence_timestamp
     ON directory.existence USING btree (timestamp);
 
-GRANT ALL ON TABLE directory.existence TO minerva_admin;
 GRANT SELECT ON TABLE directory.existence TO minerva;
 GRANT INSERT,DELETE,UPDATE ON TABLE directory.existence TO minerva_writer;
+
+
+CREATE UNLOGGED TABLE directory.existence_staging
+(
+    dn character varying NOT NULL UNIQUE
+);
+
+ALTER TABLE directory.existence_staging OWNER TO minerva_admin;
+
+GRANT SELECT ON TABLE directory.existence_staging TO minerva;
+GRANT INSERT,DELETE,UPDATE ON TABLE directory.existence_staging TO minerva_writer;
+
+
+CREATE VIEW directory.existence_staging_entitytype_ids AS
+SELECT entity.entitytype_id
+FROM directory.existence_staging JOIN directory.entity
+ON entity.dn = existence_staging.dn
+GROUP BY entitytype_id;
+
+GRANT SELECT ON TABLE directory.existence_staging_entitytype_ids TO minerva;
+GRANT INSERT,DELETE,UPDATE ON TABLE directory.existence_staging_entitytype_ids TO minerva_writer;
