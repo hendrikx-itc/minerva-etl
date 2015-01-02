@@ -380,6 +380,19 @@ GRANT SELECT ON TABLE directory.existence TO minerva;
 GRANT INSERT,DELETE,UPDATE ON TABLE directory.existence TO minerva_writer;
 
 
+-- View 'directory.existence_curr'
+
+CREATE VIEW directory.existence_curr AS
+SELECT
+    entity_id,
+    entitytype_id,
+    public.first("timestamp" ORDER BY "timestamp" DESC) AS "timestamp",
+    public.first("exists" ORDER BY "timestamp" DESC) AS "exists"
+FROM directory.existence GROUP BY entity_id, entitytype_id;
+
+
+-- Table 'directory.existence_staging'
+
 CREATE UNLOGGED TABLE directory.existence_staging
 (
     dn character varying NOT NULL UNIQUE
