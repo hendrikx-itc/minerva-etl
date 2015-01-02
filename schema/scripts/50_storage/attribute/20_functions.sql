@@ -1597,7 +1597,7 @@ AS $function$
     SELECT ARRAY[
         format(
             'CREATE OR REPLACE FUNCTION attribute_history.%I(entity_id integer, timestamp with time zone)
-    RETURNS SETOF attribute_history.%I
+    RETURNS attribute_history.%I
 AS $$
 SELECT *
 FROM
