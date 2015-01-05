@@ -23,6 +23,8 @@ SELECT
 FROM relation."Cell->HandoverRelation" cell_ho
 JOIN relation."HandoverRelation->Cell" ho_cell on cell_ho.target_id = ho_cell.source_id;
 
+GRANT ALL ON TABLE gis.handover_relation TO minerva_admin;
+GRANT SELECT ON TABLE gis.handover_relation TO minerva;
 
 CREATE OR REPLACE VIEW gis.handover_relation_existence AS
 SELECT
@@ -53,51 +55,73 @@ GROUP BY
     tag.name,
     handover_relation.direction;
 
+GRANT ALL ON TABLE gis.handover_relation_existence TO minerva_admin;
+GRANT SELECT ON TABLE gis.handover_relation_existence TO minerva;
+
+
+CREATE OR REPLACE VIEW gis.handoverrelation_tags AS
+    SELECT entitytaglink.entity_id entity_id, array_agg( tag.name ) tags
+    FROM directory.entitytaglink
+    JOIN directory.tag ON entitytaglink.tag_id = tag.id
+    JOIN directory.taggroup ON taggroup.id = tag.taggroup_id AND taggroup.name = 'handover'
+    GROUP BY entitytaglink.entity_id;
+
+GRANT ALL ON TABLE gis.handoverrelation_tags TO minerva_admin;
+GRANT SELECT ON TABLE gis.handoverrelation_tags TO minerva;
+
 
 CREATE TYPE gis.existence_change AS (exists boolean, unix_timestamp double precision);
 
-
-CREATE OR REPLACE FUNCTION gis.get_handovers_new(integer)
-    RETURNS TABLE(
-        source_id integer,
-        handover_id integer,
-        target_id integer,
-        target_name character varying, 
-        source_name character varying, 
-        tag_name character varying, 
-        direction text,
-        existance gis.existence_change[]
-    ) AS
-$$
+CREATE OR REPLACE FUNCTION gis.get_handovers(IN integer)
+  RETURNS TABLE(source_id integer, handover_id integer, target_id integer, target_name character varying, source_name character varying, tag_name character varying, direction text, existence text[], handover_tags character varying[]) AS
+$BODY$
     SELECT
-        handover_relation.source_entity_id source_id,
-        handover_relation.ho_entity_id handover_id,
-        handover_relation.target_entity_id target_id, 
-        trg_et.name target_name,
-        src_et.name source_name,
-        tag.name tag_name,
-        handover_relation.direction, 
-        array_agg(
-            (existence.exists, date_part('epoch', existence.timestamp))::gis.existence_change
-        ) existence
-    FROM gis.handover_relation
-    JOIN directory.entity src_et ON src_et.id = handover_relation.source_entity_id
-    JOIN directory.entity trg_et ON trg_et.id = handover_relation.target_entity_id
-    JOIN directory.entitytaglink etl ON etl.entity_id = trg_et.id
-    JOIN directory.tag ON etl.tag_id = tag.id 
-    JOIN directory.taggroup etg ON etg.id = tag.taggroup_id AND etg.name = 'generation'
-    JOIN relation.real_handover ON real_handover.source_id = handover_relation.ho_entity_id
-    JOIN directory.existence existence ON existence.entity_id = real_handover.target_id
-    WHERE handover_relation.cell_entity_id = $1
-    GROUP BY
-        handover_relation.source_entity_id,
-        handover_relation.ho_entity_id,
-        handover_relation.target_entity_id,
-        trg_et.name,
-        src_et.name,
-        tag.name
+	source_id,
+	handover_id,
+	target_id,
+	target_name,
+	source_name,
+	tag_name,
+	direction,
+	existence,
+        handoverrelation_tags.tags
+    FROM (SELECT
+		handover_relation.source_entity_id source_id,
+		handover_relation.ho_entity_id handover_id,
+		handover_relation.target_entity_id target_id,
+		trg_et.name target_name,
+		src_et.name source_name,
+		tag.name tag_name,
+		handover_relation.direction,
+	        array_agg(
+	            existence.exists || ',' || date_part('epoch', existence.timestamp)
+		) existence
+	    FROM gis.handover_relation
+	    JOIN directory.entity src_et ON src_et.id = handover_relation.source_entity_id
+	    JOIN directory.entity trg_et ON trg_et.id = handover_relation.target_entity_id
+	    JOIN directory.entitytaglink etl ON etl.entity_id = handover_relation.neighbour_entity_id
+	    JOIN directory.tag ON etl.tag_id = tag.id
+	    JOIN directory.taggroup etg ON etg.id = tag.taggroup_id AND etg.name = 'generation'
+	    JOIN relation.real_handover ON real_handover.source_id = handover_relation.ho_entity_id
+	    JOIN directory.existence existence ON existence.entity_id = real_handover.target_id
+	    WHERE handover_relation.cell_entity_id = $1
+	    GROUP BY
+		handover_relation.source_entity_id,
+		handover_relation.ho_entity_id,
+		handover_relation.target_entity_id,
+		trg_et.name,
+		src_et.name,
+		tag.name,
+		handover_relation.direction ) t
+    LEFT JOIN gis.handoverrelation_tags ON handoverrelation_tags.entity_id = t.handover_id
 
-$$ LANGUAGE sql STABLE;
+
+$BODY$
+  LANGUAGE sql STABLE
+  COST 100
+  ROWS 1000;
+ALTER FUNCTION gis.get_handovers(integer)
+  OWNER TO ts2803;
 
 
 -- Function: gis.get_handovers
@@ -132,6 +156,7 @@ $$
     JOIN relation."HandoverRelation->Cell" trg_rel ON src_rel.target_id = trg_rel.source_id
     JOIN directory.entity src_et ON src_et.id = src_rel.source_id
     JOIN directory.entity trg_et ON trg_et.id = trg_rel.target_id
+
     JOIN directory.entitytaglink etl ON etl.entity_id = trg_et.id
     JOIN directory.taggroup etg ON etg.name = 'generation'
     JOIN directory.tag et ON etl.tag_id = et.id  and etg.id = et.taggroup_id
@@ -167,7 +192,8 @@ $$
     JOIN relation."HandoverRelation->Cell" trg_rel ON src_rel.target_id=trg_rel.source_id 
     JOIN directory.entity src_et ON src_et.id = src_rel.source_id 
     JOIN directory.entity trg_et ON trg_et.id = trg_rel.target_id 
-    JOIN directory.entitytaglink etl ON etl.entity_id = src_et.id 
+
+    JOIN directory.entitytaglink etl ON etl.entity_id = src_et.id
     JOIN directory.taggroup etg ON etg.name = 'generation'
     JOIN directory.tag et ON etl.tag_id = et.id AND etg.id = et.taggroup_id
     JOIN relation.real_handover real_ho ON real_ho.source_id = src_rel.target_id 
