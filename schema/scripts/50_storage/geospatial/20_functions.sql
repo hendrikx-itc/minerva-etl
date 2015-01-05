@@ -76,7 +76,7 @@ $$
         trg_et.name target_name,
         src_et.name source_name,
         tag.name tag_name,
-        'OUT'::text direction, 
+        handover_relation.direction, 
         array_agg(
             (existence.exists, date_part('epoch', existence.timestamp))::gis.existence_change
         ) existence
