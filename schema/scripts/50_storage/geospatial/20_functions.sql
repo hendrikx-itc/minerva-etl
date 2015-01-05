@@ -63,9 +63,9 @@ $$
         ) existance
     FROM relation."Cell->HandoverRelation" src_rel 
     JOIN relation."HandoverRelation->Cell" trg_rel ON src_rel.target_id=trg_rel.source_id 
-    JOIN directory.entity src_et ON src_et.id=src_rel.source_id 
+    JOIN directory.entity src_et ON src_et.id = src_rel.source_id 
     JOIN directory.entity trg_et ON trg_et.id = trg_rel.target_id 
-    JOIN directory.entitytaglink etl ON etl.entity_id=src_et.id 
+    JOIN directory.entitytaglink etl ON etl.entity_id = src_et.id 
     JOIN directory.taggroup etg ON etg.name = 'generation'
     JOIN directory.tag et ON etl.tag_id = et.id AND etg.id = et.taggroup_id
     JOIN relation.real_handover real_ho ON real_ho.source_id = src_rel.target_id 
