@@ -26,6 +26,9 @@ JOIN relation."HandoverRelation->Cell" ho_cell on cell_ho.target_id = ho_cell.so
 GRANT ALL ON TABLE gis.handover_relation TO minerva_admin;
 GRANT SELECT ON TABLE gis.handover_relation TO minerva;
 
+
+CREATE TYPE gis.existence_change AS (exists boolean, unix_timestamp double precision);
+
 CREATE OR REPLACE VIEW gis.handover_relation_existence AS
 SELECT
     handover_relation.source_entity_id source_id,
@@ -36,7 +39,7 @@ SELECT
     tag.name tag_name,
     handover_relation.direction, 
     array_agg(
-        (existence.exists, date_part('epoch', existence.timestamp))
+        (existence.exists, date_part('epoch', existence.timestamp))::gis.existence_change
     ) existence
 FROM gis.handover_relation
 JOIN directory.entity src_et ON src_et.id = handover_relation.source_entity_id
@@ -69,8 +72,6 @@ CREATE OR REPLACE VIEW gis.handoverrelation_tags AS
 GRANT ALL ON TABLE gis.handoverrelation_tags TO minerva_admin;
 GRANT SELECT ON TABLE gis.handoverrelation_tags TO minerva;
 
-
-CREATE TYPE gis.existence_change AS (exists boolean, unix_timestamp double precision);
 
 CREATE OR REPLACE FUNCTION gis.get_handovers(IN integer)
   RETURNS TABLE(source_id integer, handover_id integer, target_id integer, target_name character varying, source_name character varying, tag_name character varying, direction text, existence text[], handover_tags character varying[]) AS
@@ -114,8 +115,6 @@ $BODY$
 		tag.name,
 		handover_relation.direction ) t
     LEFT JOIN gis.handoverrelation_tags ON handoverrelation_tags.entity_id = t.handover_id
-
-
 $BODY$
   LANGUAGE sql STABLE
   COST 100
