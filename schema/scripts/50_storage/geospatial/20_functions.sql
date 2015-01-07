@@ -72,8 +72,7 @@ CREATE OR REPLACE VIEW gis.handoverrelation_tags AS
 GRANT ALL ON TABLE gis.handoverrelation_tags TO minerva_admin;
 GRANT SELECT ON TABLE gis.handoverrelation_tags TO minerva;
 
-
-CREATE OR REPLACE FUNCTION gis.get_handovers(IN integer)
+CREATE OR REPLACE FUNCTION gis.get_handovers(integer)
   RETURNS TABLE(source_id integer, handover_id integer, target_id integer, target_name character varying, source_name character varying, tag_name character varying, direction text, existence text[], handover_tags character varying[]) AS
 $BODY$
     SELECT
@@ -116,13 +115,7 @@ $BODY$
 		handover_relation.direction ) t
     LEFT JOIN gis.handoverrelation_tags ON handoverrelation_tags.entity_id = t.handover_id
 $BODY$
-  LANGUAGE sql STABLE
-  COST 100
-  ROWS 1000;
-ALTER FUNCTION gis.get_handovers(integer)
-  OWNER TO ts2803;
-
-
+  LANGUAGE sql STABLE;
 
 
 -- Function: gis.get_changed_handover_cells(timestamp with time zone)
