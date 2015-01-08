@@ -139,7 +139,7 @@ CREATE TABLE trend.partition (
     trendstore_id integer,
     data_start timestamp with time zone not null,
     data_end timestamp with time zone not null,
-    version integer not null default 3
+    version integer not null default 4
 );
 
 ALTER TABLE trend.partition OWNER TO minerva_admin;
