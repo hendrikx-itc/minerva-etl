@@ -252,7 +252,7 @@ $$ LANGUAGE SQL VOLATILE;
 CREATE OR REPLACE FUNCTION trend.attributes_to_view_trendstore(datasource_name character varying, entitytype_name character varying, granularity character varying)
     RETURNS trend.trendstore
 AS $$
-    SELECT COALESCE(trend.get_trendstore_by_attributes($1, $2, $3), trend.create_trendstore($1, $2, $3, 'view'));
+    SELECT COALESCE(trend.get_trendstore_by_attributes($1, $2, $3), trend.define_trendstore($1, $2, $3, 'view'::trend.storetype));
 $$ LANGUAGE SQL VOLATILE;
 
 
@@ -640,93 +640,15 @@ END;
 $$ LANGUAGE plpgsql VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION trend.create_view(view trend.view)
-    RETURNS trend.view
+CREATE OR REPLACE FUNCTION trend.create_view_sql(trend.view)
+    RETURNS text[]
 AS $$
-DECLARE
-    view_name varchar;
-BEGIN
-    SELECT trend.view_name(view) INTO view_name;
-
-    EXECUTE format('CREATE VIEW trend.%I AS %s;', view_name, view.sql);
-    EXECUTE format('ALTER TABLE trend.%I OWNER TO minerva_writer;', view_name);
-    EXECUTE format('GRANT SELECT ON TABLE trend.%I TO minerva;', view_name);
-
-    PERFORM trend.link_view_dependencies(view);
-
-    PERFORM trend.create_view_trends(view);
-
-    RETURN view;
-END;
-$$ LANGUAGE plpgsql VOLATILE;
-
-
-CREATE OR REPLACE FUNCTION trend.create_view(text)
-    RETURNS trend.view
-AS $$
-    SELECT trend.create_view(view) FROM trend.view WHERE view::text = $1;
-$$ LANGUAGE SQL VOLATILE;
-
-
-CREATE OR REPLACE FUNCTION trend.recreate_view(view trend.view)
-    RETURNS trend.view
-AS $$
-    SELECT trend.create_view(trend.drop_view($1));
-$$ LANGUAGE SQL VOLATILE;
-
-
-CREATE OR REPLACE FUNCTION trend.recreate_view(text)
-    RETURNS trend.view
-AS $$
-    SELECT trend.create_view(trend.drop_view(view)) FROM trend.view WHERE view::text = $1;
-$$ LANGUAGE SQL VOLATILE;
-
-
-CREATE OR REPLACE FUNCTION trend.get_trendstore(view trend.view)
-    RETURNS trend.trendstore
-AS $$
-    SELECT trendstore FROM trend.trendstore WHERE id = $1.trendstore_id;
-$$ LANGUAGE SQL STABLE;
-
-
-CREATE OR REPLACE FUNCTION trend.get_view_column_names(view_name character varying)
-    RETURNS SETOF name
-AS $$
-    SELECT a.attname FROM pg_class c
-        JOIN pg_attribute a ON a.attrelid = c.oid
-    WHERE c.relname = $1 AND a.attnum >= 0 AND NOT a.attisdropped;
-$$ LANGUAGE SQL STABLE;
-
-
-CREATE OR REPLACE FUNCTION trend.create_trend_for_trendstore(trendstore trend.trendstore, trend_name character varying)
-    RETURNS trend.trend
-AS $$
-DECLARE
-    new_trend trend.trend;
-BEGIN
-    new_trend = trend.create_trend($2, '');
-
-    INSERT INTO trend.trendstore_trend_link (trendstore_id, trend_id) SELECT trendstore.id, new_trend.id;
-
-    RETURN new_trend;
-END;
-$$ LANGUAGE plpgsql VOLATILE;
-
-
-CREATE OR REPLACE FUNCTION trend.create_view_trends(view trend.view)
-    RETURNS SETOF trend.trend
-AS $$
-    SELECT trend.create_trend_for_trendstore(trend.get_trendstore($1), v.column_name::character varying)
-    FROM (SELECT trend.get_view_column_names(trend.view_name($1)) column_name) v
-    WHERE v.column_name::character varying NOT IN ('entity_id', 'timestamp', 'samples', 'function_set_ids');
-$$ LANGUAGE SQL VOLATILE;
-
-
-CREATE OR REPLACE FUNCTION trend.delete_view_trends(view trend.view)
-    RETURNS void
-AS $$
-    DELETE FROM trend.trend USING trend.trendstore_trend_link ttl WHERE trend.id = ttl.trend_id AND ttl.trendstore_id = $1.trendstore_id;
-$$ LANGUAGE SQL VOLATILE;
+SELECT ARRAY[
+    format('CREATE VIEW trend.%I AS %s;', trend.view_name($1), $1.sql),
+    format('ALTER TABLE trend.%I OWNER TO minerva_writer;', trend.view_name($1)),
+    format('GRANT SELECT ON TABLE trend.%I TO minerva;', trend.view_name($1))
+];
+$$ LANGUAGE sql STABLE;
 
 
 -- View required by function 'link_view_dependencies'
@@ -759,6 +681,87 @@ AS $$
     WHERE vdeps.dst = trend.view_name($1) AND vtl.view_id IS NULL
     GROUP BY ts.id
     RETURNING $1;
+$$ LANGUAGE sql VOLATILE;
+
+
+CREATE OR REPLACE FUNCTION trend.get_view_column_names(view_name character varying)
+    RETURNS SETOF name
+AS $$
+    SELECT a.attname FROM pg_class c
+        JOIN pg_attribute a ON a.attrelid = c.oid
+    WHERE c.relname = $1 AND a.attnum >= 0 AND NOT a.attisdropped;
+$$ LANGUAGE sql STABLE;
+
+
+CREATE OR REPLACE FUNCTION trend.create_trend_for_trendstore(trendstore trend.trendstore, trend_name character varying)
+    RETURNS trend.trend
+AS $$
+DECLARE
+    new_trend trend.trend;
+BEGIN
+    new_trend = trend.create_trend($2, '');
+
+    INSERT INTO trend.trendstore_trend_link (trendstore_id, trend_id) SELECT trendstore.id, new_trend.id;
+
+    RETURN new_trend;
+END;
+$$ LANGUAGE plpgsql VOLATILE;
+
+
+CREATE OR REPLACE FUNCTION trend.get_trendstore(view trend.view)
+    RETURNS trend.trendstore
+AS $$
+    SELECT trendstore FROM trend.trendstore WHERE id = $1.trendstore_id;
+$$ LANGUAGE sql STABLE;
+
+
+CREATE OR REPLACE FUNCTION trend.create_view_trends(view trend.view)
+    RETURNS SETOF trend.trend
+AS $$
+    SELECT trend.create_trend_for_trendstore(trend.get_trendstore($1), v.column_name::character varying)
+    FROM (SELECT trend.get_view_column_names(trend.view_name($1)) column_name) v
+    WHERE v.column_name::character varying NOT IN ('entity_id', 'timestamp', 'samples', 'function_set_ids');
+$$ LANGUAGE sql VOLATILE;
+
+
+CREATE OR REPLACE FUNCTION trend.create_view(trend.view)
+    RETURNS trend.view
+AS $$
+    SELECT public.action($1, trend.create_view_sql($1));
+
+    SELECT trend.link_view_dependencies($1);
+
+    SELECT trend.create_view_trends($1);
+
+    SELECT $1;
+$$ LANGUAGE sql VOLATILE;
+
+
+CREATE OR REPLACE FUNCTION trend.create_view(text)
+    RETURNS trend.view
+AS $$
+    SELECT trend.create_view(view) FROM trend.view WHERE view::text = $1;
+$$ LANGUAGE SQL VOLATILE;
+
+
+CREATE OR REPLACE FUNCTION trend.recreate_view(view trend.view)
+    RETURNS trend.view
+AS $$
+    SELECT trend.create_view(trend.drop_view($1));
+$$ LANGUAGE SQL VOLATILE;
+
+
+CREATE OR REPLACE FUNCTION trend.recreate_view(text)
+    RETURNS trend.view
+AS $$
+    SELECT trend.create_view(trend.drop_view(view)) FROM trend.view WHERE view::text = $1;
+$$ LANGUAGE SQL VOLATILE;
+
+
+CREATE OR REPLACE FUNCTION trend.delete_view_trends(view trend.view)
+    RETURNS void
+AS $$
+    DELETE FROM trend.trend USING trend.trendstore_trend_link ttl WHERE trend.id = ttl.trend_id AND ttl.trendstore_id = $1.trendstore_id;
 $$ LANGUAGE SQL VOLATILE;
 
 
