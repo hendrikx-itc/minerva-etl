@@ -1347,7 +1347,7 @@ AS $$
 DECLARE
     result trend.trendstore;
 BEGIN
-    result = trend.create_trendstore_from_attributes($1, $2, $3);
+    result = trend.create_trendstore($1, $2, $3);
 
     PERFORM trend.create_trends(result, $4);
 
