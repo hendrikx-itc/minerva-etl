@@ -127,7 +127,9 @@ CREATE OR REPLACE FUNCTION trend.create_base_table_on_insert()
     RETURNS TRIGGER
 AS $$
 BEGIN
-    PERFORM trend.initialize_trendstore(NEW);
+    IF NEW.type = 'table' THEN
+        PERFORM trend.initialize_trendstore(NEW);
+    END IF;
 
     RETURN NEW;
 END;
