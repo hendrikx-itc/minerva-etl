@@ -126,41 +126,8 @@ $$ LANGUAGE plpgsql VOLATILE;
 CREATE OR REPLACE FUNCTION trend.create_base_table_on_insert()
     RETURNS TRIGGER
 AS $$
-DECLARE
-    table_name text;
 BEGIN
-    IF NEW.version = 4 AND NEW.type = 'table' THEN
-        -- Only version 4 trendstores use a base table
-        table_name = trend.to_base_table_name(NEW);
-
-        PERFORM trend.create_partition_table(table_name);
-    END IF;
-
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql VOLATILE;
-
-
-CREATE OR REPLACE FUNCTION trend.on_trendstore_update()
-    RETURNS TRIGGER
-AS $$
-DECLARE
-    base_table_name text;
-    r trend.trend_with_type%rowtype;
-BEGIN
-    IF OLD.version = 3 AND NEW.version = 4 AND NEW.type = 'table' THEN
-        base_table_name = trend.to_base_table_name(NEW);
-
-        PERFORM trend.create_partition_table(base_table_name);
-
-        FOR r IN SELECT * FROM trend.get_trends_for_v3_trendstore(OLD) LOOP
-            PERFORM trend.add_trend_to_trendstore(NEW, r);
-        END LOOP;
-    ELSIF OLD.version = 4 AND NEW.version = 3 THEN
-        base_table_name = trend.to_base_table_name(NEW);
-
-        EXECUTE format('DROP TABLE trend.%I', base_table_name);
-    END IF;
+    PERFORM trend.initialize_trendstore(NEW);
 
     RETURN NEW;
 END;
@@ -173,14 +140,12 @@ AS $$
 DECLARE
     table_name text;
 BEGIN
-    IF OLD.version = 4 THEN
-        table_name = trend.to_base_table_name(OLD);
+    table_name = trend.to_base_table_name(OLD);
 
-        IF OLD.type = 'table' THEN
-            EXECUTE format('DROP TABLE IF EXISTS trend.%I CASCADE', table_name);
-        ELSIF OLD.type = 'view' THEN
-            DELETE FROM trend.view WHERE trendstore_id = OLD.id;
-        END IF;
+    IF OLD.type = 'table' THEN
+        EXECUTE format('DROP TABLE IF EXISTS trend.%I CASCADE', table_name);
+    ELSIF OLD.type = 'view' THEN
+        DELETE FROM trend.view WHERE trendstore_id = OLD.id;
     END IF;
 
     RETURN OLD;
