@@ -62,7 +62,10 @@ def trendstore_query(exclude_materialized):
     )
 
     if exclude_materialized:
-        query += "LEFT JOIN materialization.type ON type.dst_trendstore_id = trendstore.id AND type.id IS NULL "
+        query += (
+            "LEFT JOIN materialization.type "
+            "ON type.dst_trendstore_id = trendstore.id AND type.id IS NULL "
+        )
 
     query += (
         "WHERE trendstore.type = 'table' "
@@ -97,7 +100,10 @@ def dump(conn, trendstore_query):
             yield "    ARRAY["
             cursor.execute("SELECT * FROM trend.show_trends(%s)", (id,))
             trends = cursor.fetchall()
-            yield ",\n".join("        ('{}', '{}', '{}')".format(trend_name, datatype, description) for trend_name, datatype, description in trends)
+            yield ",\n".join(
+                "        ('{}', '{}', '{}')".format(trend_name, datatype, description)
+                for trend_name, datatype, description in trends
+            )
             yield "    ]::trend.trend_descr[]"
             yield ");"
             yield ""
@@ -114,7 +120,10 @@ def dump(conn, trendstore_query):
 
             cursor.execute("SELECT name, datatype, description FROM attribute_directory.attribute WHERE attributestore_id = %s", (id,))
 
-            yield ",\n".join("        ({}, {}, {})".format(format_str(attribute_name), format_str(datatype), format_str(description)) for attribute_name, datatype, description in cursor.fetchall())
+            yield ",\n".join(
+                "        ({}, {}, {})".format(format_str(attribute_name), format_str(datatype), format_str(description))
+                for attribute_name, datatype, description in cursor.fetchall()
+            )
 
             yield "    ]::attribute_directory.attribute_descr[]"
             yield ");"
