@@ -138,6 +138,27 @@ SELECT array_agg(public.safe_division(arr1, arr2)) FROM
 $$ LANGUAGE SQL STABLE STRICT;
 
 
+CREATE OR REPLACE FUNCTION public.multiply_array(anyarray, anyelement)
+    RETURNS anyarray
+AS $$
+SELECT
+  array_agg(arr * $2)
+FROM unnest($1) AS arr;
+$$ LANGUAGE SQL STABLE STRICT;
+
+
+CREATE OR REPLACE FUNCTION public.multiply_array(anyarray, anyarray)
+    RETURNS anyarray
+AS $$
+SELECT array_agg(arr1 * arr2) FROM
+(
+    SELECT
+    unnest($1[1:least(array_length($1,1), array_length($2,1))]) AS arr1,
+    unnest($2[1:least(array_length($1,1), array_length($2,1))]) AS arr2
+) AS foo;
+$$ LANGUAGE SQL STABLE STRICT;
+
+
 CREATE OR REPLACE FUNCTION public.array_sum(anyarray) RETURNS anyelement
 AS $$
 SELECT sum(t) FROM unnest($1) t;
