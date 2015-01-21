@@ -153,6 +153,15 @@ AS $$
 $$ LANGUAGE SQL STABLE STRICT;
 
 
+CREATE OR REPLACE FUNCTION public.array_to_char(anyarray, format text) RETURNS text[]
+AS $$
+SELECT
+  array_agg(trim(format('%s', to_char(arr_item, $2))))
+FROM
+  unnest($1) AS arr_item;
+$$ LANGUAGE SQL STABLE STRICT;
+
+
 CREATE OR REPLACE FUNCTION public.action(anyelement, sql text)
     RETURNS anyelement
 AS $$
