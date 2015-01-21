@@ -121,7 +121,7 @@ CREATE OR REPLACE FUNCTION public.divide_array(anyarray, anyelement)
     RETURNS anyarray
 AS $$
 SELECT
-  array_agg(arr / $2)
+  array_agg(public.safe_division(arr, $2))
 FROM unnest($1) AS arr;
 $$ LANGUAGE SQL STABLE STRICT;
 
