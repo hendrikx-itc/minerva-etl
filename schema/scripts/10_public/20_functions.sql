@@ -120,10 +120,9 @@ CREATE AGGREGATE sum_array(anyarray)
 CREATE OR REPLACE FUNCTION public.divide_array(anyarray, anyelement)
     RETURNS anyarray
 AS $$
-SELECT array_agg(arr / $2) FROM
-(
-    SELECT unnest($1) AS arr
-) AS foo;
+SELECT
+  array_agg(arr / $2)
+FROM unnest($1) AS arr;
 $$ LANGUAGE SQL STABLE STRICT;
 
 
