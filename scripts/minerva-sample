@@ -6,7 +6,6 @@ import os
 import sys
 import argparse
 from contextlib import closing
-from operator import itemgetter
 from functools import partial
 
 from minerva import __version__ as version
