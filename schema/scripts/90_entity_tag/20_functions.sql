@@ -72,13 +72,14 @@ ALTER VIEW entity_tag._new_links_in_staging OWNER TO minerva_admin;
 GRANT SELECT ON TABLE entity_tag._new_links_in_staging TO minerva;
 
 
-CREATE OR REPLACE FUNCTION entity_tag.add_new_links()
+CREATE OR REPLACE FUNCTION entity_tag.add_new_links(add_limit integer)
 	RETURNS bigint
 AS $$
 	WITH t AS (
 		INSERT INTO directory.entitytaglink(entity_id, tag_id)
 		SELECT entity_id, tag_id
 		FROM entity_tag._new_links_in_staging
+        LIMIT $1
 		RETURNING *
 	)
 	SELECT count(*) FROM t;
@@ -118,14 +119,14 @@ CREATE TYPE entity_tag.process_staged_links_result AS (
 );
 
 
-CREATE OR REPLACE FUNCTION entity_tag.process_staged_links()
+CREATE OR REPLACE FUNCTION entity_tag.process_staged_links(process_limit integer)
 	RETURNS entity_tag.process_staged_links_result
 AS $$
 DECLARE
     result entity_tag.process_staged_links_result;
 BEGIN
 	result.tags_added = entity_tag.add_new_tags();
-	result.links_added = entity_tag.add_new_links();
+	result.links_added = entity_tag.add_new_links($1);
 	result.links_removed = entity_tag.remove_obsolete_links();
 
 	TRUNCATE entity_tag.entitytaglink_staging;
@@ -143,7 +144,7 @@ CREATE TYPE entity_tag.update_result AS (
 );
 
 
-CREATE OR REPLACE FUNCTION entity_tag.update(type_name name)
+CREATE OR REPLACE FUNCTION entity_tag.update(type_name name, update_limit integer DEFAULT 50000)
 	RETURNS entity_tag.update_result
 AS $$
 DECLARE
@@ -152,7 +153,7 @@ DECLARE
 BEGIN
 	result.staged = entity_tag.transfer_to_staging(type_name);
 
-    process_result = entity_tag.process_staged_links();
+    process_result = entity_tag.process_staged_links(update_limit);
 
 	result.tags_added = process_result.tags_added;
 	result.links_added = process_result.links_added;

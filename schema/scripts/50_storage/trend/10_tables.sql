@@ -47,11 +47,9 @@ ALTER SEQUENCE trend.trend_id_seq OWNED BY trend.trend.id;
 ALTER TABLE ONLY trend.trend
     ADD CONSTRAINT trend_pkey PRIMARY KEY (id);
 
-GRANT ALL ON TABLE trend.trend TO minerva_admin;
 GRANT SELECT ON TABLE trend.trend TO minerva;
 GRANT INSERT,DELETE,UPDATE ON TABLE trend.trend TO minerva_writer;
 
-GRANT ALL ON SEQUENCE trend.trend_id_seq TO minerva_admin;
 GRANT SELECT ON SEQUENCE trend.trend_id_seq TO minerva;
 GRANT UPDATE ON SEQUENCE trend.trend_id_seq TO minerva_writer;
 
@@ -102,11 +100,9 @@ ALTER TABLE ONLY trend.trendstore
 CREATE UNIQUE INDEX ix_trend_trendstore_uniqueness
     ON trend.trendstore (entitytype_id, datasource_id, granularity);
 
-GRANT ALL ON TABLE trend.trendstore TO minerva_admin;
 GRANT SELECT ON TABLE trend.trendstore TO minerva;
 GRANT INSERT,DELETE,UPDATE ON TABLE trend.trendstore TO minerva_writer;
 
-GRANT ALL ON SEQUENCE trend.trendstore_id_seq TO minerva_admin;
 GRANT SELECT ON SEQUENCE trend.trendstore_id_seq TO minerva;
 GRANT UPDATE ON SEQUENCE trend.trendstore_id_seq TO minerva_writer;
 
@@ -133,7 +129,6 @@ ALTER TABLE ONLY trend.trendstore_trend_link
     FOREIGN KEY (trend_id) REFERENCES trend.trend(id)
     ON DELETE CASCADE;
 
-GRANT ALL ON TABLE trend.trendstore_trend_link TO minerva_admin;
 GRANT SELECT ON TABLE trend.trendstore_trend_link TO minerva;
 GRANT INSERT,DELETE,UPDATE ON TABLE trend.trendstore_trend_link TO minerva_writer;
 
@@ -144,7 +139,7 @@ CREATE TABLE trend.partition (
     trendstore_id integer,
     data_start timestamp with time zone not null,
     data_end timestamp with time zone not null,
-    version integer not null default 3
+    version integer not null default 4
 );
 
 ALTER TABLE trend.partition OWNER TO minerva_admin;
@@ -158,7 +153,6 @@ ALTER TABLE ONLY trend.partition
     FOREIGN KEY (trendstore_id) REFERENCES trend.trendstore(id)
     ON DELETE CASCADE;
 
-GRANT ALL ON TABLE trend.partition TO minerva_admin;
 GRANT SELECT ON TABLE trend.partition TO minerva;
 GRANT INSERT,DELETE,UPDATE ON TABLE trend.partition TO minerva_writer;
 
@@ -185,7 +179,6 @@ ALTER TABLE ONLY trend.trend_tag_link
     FOREIGN KEY (trend_id) REFERENCES trend.trend(id)
     ON DELETE CASCADE;
 
-GRANT ALL ON TABLE trend.trend_tag_link TO minerva_admin;
 GRANT SELECT ON TABLE trend.trend_tag_link TO minerva;
 GRANT INSERT,DELETE,UPDATE ON TABLE trend.trend_tag_link TO minerva_writer;
 
@@ -201,7 +194,6 @@ CREATE TABLE trend.modified (
 
 ALTER TABLE trend.modified OWNER TO minerva_admin;
 
-GRANT ALL ON TABLE trend.modified TO minerva_admin;
 GRANT SELECT ON TABLE trend.modified TO minerva;
 GRANT INSERT,DELETE,UPDATE ON TABLE trend.modified TO minerva_writer;
 
@@ -244,11 +236,9 @@ ALTER TABLE ONLY trend.view
 CREATE UNIQUE INDEX ix_trend_view_uniqueness
     ON trend.view (trendstore_id);
 
-GRANT ALL ON TABLE trend.view TO minerva_admin;
 GRANT SELECT ON TABLE trend.view TO minerva;
 GRANT INSERT,DELETE,UPDATE ON TABLE trend.view TO minerva_writer;
 
-GRANT ALL ON SEQUENCE trend.view_id_seq TO minerva_admin;
 GRANT SELECT ON SEQUENCE trend.view_id_seq TO minerva;
 GRANT UPDATE ON SEQUENCE trend.view_id_seq TO minerva_writer;
 
@@ -276,7 +266,6 @@ ALTER TABLE ONLY trend.view_trendstore_link
     FOREIGN KEY (trendstore_id) REFERENCES trend.trendstore(id)
     ON DELETE CASCADE;
 
-GRANT ALL ON TABLE trend.view_trendstore_link TO minerva_admin;
 GRANT SELECT ON TABLE trend.view_trendstore_link TO minerva;
 GRANT INSERT,DELETE,UPDATE ON TABLE trend.view_trendstore_link TO minerva_writer;
 

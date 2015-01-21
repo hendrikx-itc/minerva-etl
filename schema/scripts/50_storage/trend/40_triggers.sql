@@ -46,12 +46,6 @@ CREATE TRIGGER create_trendstore_base_on_insert
     EXECUTE PROCEDURE trend.create_base_table_on_insert();
 
 
-CREATE TRIGGER handle_trendstore_update
-    BEFORE UPDATE ON trend.trendstore
-    FOR EACH ROW
-    EXECUTE PROCEDURE trend.on_trendstore_update();
-
-
 CREATE TRIGGER set_trendstore_defaults
     BEFORE INSERT ON trend.trendstore
     FOR EACH ROW

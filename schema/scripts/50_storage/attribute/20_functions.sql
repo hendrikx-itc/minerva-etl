@@ -1591,13 +1591,33 @@ $$ LANGUAGE SQL STABLE;',
 $function$ LANGUAGE SQL VOLATILE;
 
 
+CREATE OR REPLACE FUNCTION attribute_directory.drop_entity_at_func_sql(attribute_directory.attributestore)
+    RETURNS text
+AS $$
+SELECT format(
+    'DROP FUNCTION attribute_history.%I(integer, timestamp with time zone)',
+    attribute_directory.at_function_name($1)
+);
+$$ LANGUAGE sql STABLE;
+
+
+CREATE OR REPLACE FUNCTION attribute_directory.drop_entity_at_func(attribute_directory.attributestore)
+    RETURNS attribute_directory.attributestore
+AS $$
+    SELECT public.action(
+        $1,
+        attribute_directory.drop_entity_at_func_sql($1)
+    );
+$$ LANGUAGE sql VOLATILE;
+
+
 CREATE OR REPLACE FUNCTION attribute_directory.create_entity_at_func_sql(attribute_directory.attributestore)
     RETURNS text[]
 AS $function$
     SELECT ARRAY[
         format(
             'CREATE OR REPLACE FUNCTION attribute_history.%I(entity_id integer, timestamp with time zone)
-    RETURNS SETOF attribute_history.%I
+    RETURNS attribute_history.%I
 AS $$
 SELECT *
 FROM
