@@ -1,4 +1,4 @@
-CREATE OR REPLACE FUNCTION attribute_directory.cleanup_on_datasource_delete()
+CREATE FUNCTION attribute_directory.cleanup_on_datasource_delete()
     RETURNS TRIGGER
 AS $$
 BEGIN
@@ -9,7 +9,7 @@ END;
 $$ LANGUAGE plpgsql VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION attribute_directory.cleanup_attributestore_on_delete()
+CREATE FUNCTION attribute_directory.cleanup_attributestore_on_delete()
     RETURNS TRIGGER
 AS $$
 BEGIN
@@ -26,7 +26,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 
-CREATE OR REPLACE FUNCTION attribute_directory.cleanup_attribute_after_delete()
+CREATE FUNCTION attribute_directory.cleanup_attribute_after_delete()
     RETURNS TRIGGER
 AS $$
 DECLARE
@@ -51,7 +51,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 
-CREATE OR REPLACE FUNCTION attribute_directory.update_datatype_on_change()
+CREATE FUNCTION attribute_directory.update_datatype_on_change()
     RETURNS TRIGGER
 AS $$
 BEGIN
@@ -64,7 +64,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 
-CREATE OR REPLACE FUNCTION attribute_directory.set_hash()
+CREATE FUNCTION attribute_directory.set_hash()
     RETURNS TRIGGER
 AS $$
 BEGIN

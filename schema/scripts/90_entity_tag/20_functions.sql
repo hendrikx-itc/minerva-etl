@@ -1,4 +1,4 @@
-CREATE OR REPLACE FUNCTION entity_tag.define(type_name name, tag_group text, sql text)
+CREATE FUNCTION entity_tag.define(type_name name, tag_group text, sql text)
 	RETURNS entity_tag.type
 AS $$
 DECLARE
@@ -17,7 +17,7 @@ END;
 $$ LANGUAGE plpgsql VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION entity_tag.transfer_to_staging(name name)
+CREATE FUNCTION entity_tag.transfer_to_staging(name name)
 	RETURNS bigint
 AS $$
 DECLARE
@@ -34,7 +34,7 @@ END;
 $$ LANGUAGE plpgsql VOLATILE;
 
 
-CREATE OR REPLACE VIEW entity_tag._new_tags_in_staging AS
+CREATE VIEW entity_tag._new_tags_in_staging AS
 SELECT
 	staging.tag_name AS name,
 	staging.taggroup_id
@@ -46,7 +46,7 @@ ALTER VIEW entity_tag._new_tags_in_staging OWNER TO minerva_admin;
 GRANT SELECT ON TABLE entity_tag._new_tags_in_staging TO minerva;
 
 
-CREATE OR REPLACE FUNCTION entity_tag.add_new_tags()
+CREATE FUNCTION entity_tag.add_new_tags()
 	RETURNS bigint
 AS $$
 	WITH t AS (
@@ -59,7 +59,7 @@ AS $$
 $$ LANGUAGE sql VOLATILE;
 
 
-CREATE OR REPLACE VIEW entity_tag._new_links_in_staging AS
+CREATE VIEW entity_tag._new_links_in_staging AS
 SELECT
 	staging.entity_id,
 	tag.id AS tag_id
@@ -72,7 +72,7 @@ ALTER VIEW entity_tag._new_links_in_staging OWNER TO minerva_admin;
 GRANT SELECT ON TABLE entity_tag._new_links_in_staging TO minerva;
 
 
-CREATE OR REPLACE FUNCTION entity_tag.add_new_links(add_limit integer)
+CREATE FUNCTION entity_tag.add_new_links(add_limit integer)
 	RETURNS bigint
 AS $$
 	WITH t AS (
@@ -86,7 +86,7 @@ AS $$
 $$ LANGUAGE sql VOLATILE;
 
 
-CREATE OR REPLACE VIEW entity_tag._obsolete_links AS
+CREATE VIEW entity_tag._obsolete_links AS
 SELECT
 	etl.entity_id,
 	etl.tag_id
@@ -99,7 +99,7 @@ ALTER VIEW entity_tag._obsolete_links OWNER TO minerva_admin;
 GRANT SELECT ON TABLE entity_tag._obsolete_links TO minerva;
 
 
-CREATE OR REPLACE FUNCTION entity_tag.remove_obsolete_links()
+CREATE FUNCTION entity_tag.remove_obsolete_links()
 	RETURNS bigint
 AS $$
 	WITH t AS (
@@ -119,7 +119,7 @@ CREATE TYPE entity_tag.process_staged_links_result AS (
 );
 
 
-CREATE OR REPLACE FUNCTION entity_tag.process_staged_links(process_limit integer)
+CREATE FUNCTION entity_tag.process_staged_links(process_limit integer)
 	RETURNS entity_tag.process_staged_links_result
 AS $$
 DECLARE
@@ -144,7 +144,7 @@ CREATE TYPE entity_tag.update_result AS (
 );
 
 
-CREATE OR REPLACE FUNCTION entity_tag.update(type_name name, update_limit integer DEFAULT 50000)
+CREATE FUNCTION entity_tag.update(type_name name, update_limit integer DEFAULT 50000)
 	RETURNS entity_tag.update_result
 AS $$
 DECLARE

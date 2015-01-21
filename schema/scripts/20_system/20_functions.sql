@@ -4,7 +4,7 @@ CREATE TYPE system.version_tuple AS (
     patch smallint
 );
 
-CREATE OR REPLACE FUNCTION system.version_gtlt_version(system.version_tuple, system.version_tuple)
+CREATE FUNCTION system.version_gtlt_version(system.version_tuple, system.version_tuple)
     RETURNS boolean
 AS $$
 SELECT
@@ -21,12 +21,12 @@ CREATE OPERATOR <> (
 );
 
 
-CREATE OR REPLACE FUNCTION system.set_version(system.version_tuple)
+CREATE FUNCTION system.set_version(system.version_tuple)
     RETURNS system.version_tuple
 AS $$
 BEGIN
 
-    EXECUTE format($sql$CREATE OR REPLACE FUNCTION system.version()
+    EXECUTE format($sql$CREATE FUNCTION system.version()
     RETURNS system.version_tuple
 AS $function$
 SELECT %s::system.version_tuple;
@@ -38,7 +38,7 @@ END;
 $$ LANGUAGE plpgsql VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION system.set_version(integer, integer, integer)
+CREATE FUNCTION system.set_version(integer, integer, integer)
     RETURNS system.version_tuple
 AS $$
     SELECT system.set_version(($1, $2, $3)::system.version_tuple);
@@ -51,7 +51,7 @@ SELECT system.set_version(4, 7, 0);
 CREATE TYPE system.job_type AS (id int, type character varying, description character varying, size bigint, config text);
 
 
-CREATE OR REPLACE FUNCTION system.create_job(type character varying, description character varying, size bigint, job_source_id int)
+CREATE FUNCTION system.create_job(type character varying, description character varying, size bigint, job_source_id int)
     RETURNS integer
 AS $$
 DECLARE
@@ -66,7 +66,7 @@ END;
 $$ LANGUAGE plpgsql VOLATILE STRICT;
 
 
-CREATE OR REPLACE FUNCTION system.get_job()
+CREATE FUNCTION system.get_job()
     RETURNS system.job_type
 AS $$
 DECLARE
@@ -97,7 +97,7 @@ END;
 $$ LANGUAGE plpgsql VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION system.finish_job(job_id int)
+CREATE FUNCTION system.finish_job(job_id int)
     RETURNS void
 AS $$
 DECLARE
@@ -107,7 +107,7 @@ END;
 $$ LANGUAGE plpgsql VOLATILE STRICT;
 
 
-CREATE OR REPLACE FUNCTION system.fail_job(job_id int)
+CREATE FUNCTION system.fail_job(job_id int)
     RETURNS void
 AS $$
 DECLARE
@@ -117,7 +117,7 @@ END;
 $$ LANGUAGE plpgsql VOLATILE STRICT;
 
 
-CREATE OR REPLACE FUNCTION system.fail_job(job_id int, message character varying)
+CREATE FUNCTION system.fail_job(job_id int, message character varying)
     RETURNS void
 AS $$
 DECLARE
@@ -129,7 +129,7 @@ END;
 $$ LANGUAGE plpgsql VOLATILE STRICT;
 
 
-CREATE OR REPLACE FUNCTION system.add_job_source(character varying, character varying, character varying)
+CREATE FUNCTION system.add_job_source(character varying, character varying, character varying)
     RETURNS integer
 AS $$
     INSERT INTO system.job_source (id, name, job_type, config)
@@ -138,14 +138,14 @@ AS $$
 $$ LANGUAGE SQL;
 
 
-CREATE OR REPLACE FUNCTION system.get_job_source(integer)
+CREATE FUNCTION system.get_job_source(integer)
     RETURNS TABLE(name character varying, job_type character varying, config character varying)
 AS $$
     SELECT name, job_type, config FROM system.job_source WHERE id = $1;
 $$ LANGUAGE SQL;
 
 
-CREATE OR REPLACE FUNCTION system.remove_jobs(before timestamp with time zone)
+CREATE FUNCTION system.remove_jobs(before timestamp with time zone)
     RETURNS integer
 AS $$
 DECLARE
@@ -185,42 +185,42 @@ END;
 $$ LANGUAGE plpgsql VOLATILE STRICT;
 
 
-CREATE OR REPLACE FUNCTION system.get_setting(name text)
+CREATE FUNCTION system.get_setting(name text)
     RETURNS system.setting
 AS $$
     SELECT setting FROM system.setting WHERE name = $1;
 $$ LANGUAGE SQL STABLE STRICT;
 
 
-CREATE OR REPLACE FUNCTION system.add_setting(name text, value text)
+CREATE FUNCTION system.add_setting(name text, value text)
     RETURNS system.setting
 AS $$
     INSERT INTO system.setting (name, value) VALUES ($1, $2) RETURNING setting;
 $$ LANGUAGE SQL VOLATILE STRICT;
 
 
-CREATE OR REPLACE FUNCTION system.update_setting(name text, value text)
+CREATE FUNCTION system.update_setting(name text, value text)
     RETURNS system.setting
 AS $$
     UPDATE system.setting SET value = $2 WHERE name = $1 RETURNING setting;
 $$ LANGUAGE SQL VOLATILE STRICT;
 
 
-CREATE OR REPLACE FUNCTION system.set_setting(name text, value text)
+CREATE FUNCTION system.set_setting(name text, value text)
     RETURNS system.setting
 AS $$
     SELECT COALESCE(system.update_setting($1, $2), system.add_setting($1, $2));
 $$ LANGUAGE SQL VOLATILE STRICT;
 
 
-CREATE OR REPLACE FUNCTION system.get_setting_value(name text)
+CREATE FUNCTION system.get_setting_value(name text)
     RETURNS text
 AS $$
     SELECT value FROM system.setting WHERE name = $1;
 $$ LANGUAGE SQL STABLE STRICT;
 
 
-CREATE OR REPLACE FUNCTION system.get_setting_value(name text, "default" text)
+CREATE FUNCTION system.get_setting_value(name text, "default" text)
     RETURNS text
 AS $$
     SELECT COALESCE(system.get_setting_value($1), $2);

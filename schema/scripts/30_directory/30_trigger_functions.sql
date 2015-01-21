@@ -1,4 +1,4 @@
-CREATE OR REPLACE FUNCTION directory."create alias for new entity (func)"()
+CREATE FUNCTION directory."create alias for new entity (func)"()
     RETURNS trigger
 AS $$
 BEGIN
@@ -12,7 +12,7 @@ $$ LANGUAGE plpgsql VOLATILE;
 ALTER FUNCTION directory."create alias for new entity (func)"() OWNER TO postgres;
 
 
-CREATE OR REPLACE FUNCTION directory."create tag for new entitytypes (func)"()
+CREATE FUNCTION directory."create tag for new entitytypes (func)"()
     RETURNS trigger
 AS $$
 BEGIN
@@ -29,7 +29,7 @@ $$ LANGUAGE plpgsql VOLATILE;
 ALTER FUNCTION directory."create tag for new entitytypes (func)"() OWNER TO postgres;
 
 
-CREATE OR REPLACE FUNCTION directory."create entitytaglink for new entity (func)"()
+CREATE FUNCTION directory."create entitytaglink for new entity (func)"()
     RETURNS trigger
 AS $$
 BEGIN
@@ -46,7 +46,7 @@ $$ LANGUAGE plpgsql VOLATILE;
 ALTER FUNCTION directory."create entitytaglink for new entity (func)"() OWNER TO postgres;
 
 
-CREATE OR REPLACE FUNCTION directory.update_entity_link_denorm_for_insert()
+CREATE FUNCTION directory.update_entity_link_denorm_for_insert()
     RETURNS trigger
 AS $$
 BEGIN
@@ -57,7 +57,7 @@ END;
 $$ LANGUAGE plpgsql VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION directory.update_entity_link_denorm_for_delete()
+CREATE FUNCTION directory.update_entity_link_denorm_for_delete()
     RETURNS trigger
 AS $$
 BEGIN

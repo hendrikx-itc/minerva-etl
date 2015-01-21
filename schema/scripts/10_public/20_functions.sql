@@ -1,4 +1,4 @@
-CREATE OR REPLACE FUNCTION public.integer_to_array(value integer)
+CREATE FUNCTION public.integer_to_array(value integer)
     RETURNS integer[]
 AS $$
 BEGIN
@@ -7,7 +7,7 @@ END;
 $$ LANGUAGE plpgsql STABLE STRICT;
 
 
-CREATE OR REPLACE FUNCTION public.smallint_to_array(value smallint)
+CREATE FUNCTION public.smallint_to_array(value smallint)
     RETURNS smallint[]
 AS $$
 BEGIN
@@ -20,7 +20,7 @@ $$ LANGUAGE plpgsql STABLE STRICT;
 -- isn't possible but we want to be able to switch. Implicitly, we just set all
 -- values to NULL when converting a column from smallint to timestamp without
 -- time zone.
-CREATE OR REPLACE FUNCTION public.smallint_to_timestamp_without_time_zone (smallint)
+CREATE FUNCTION public.smallint_to_timestamp_without_time_zone (smallint)
     RETURNS timestamp without time zone AS
 $$
 BEGIN
@@ -30,7 +30,7 @@ $$ LANGUAGE plpgsql STABLE STRICT;
 
 
 -- Same 'cast' support for timestamp with time zone
-CREATE OR REPLACE FUNCTION public.smallint_to_timestamp_with_time_zone (smallint)
+CREATE FUNCTION public.smallint_to_timestamp_with_time_zone (smallint)
     RETURNS timestamp with time zone
 AS $$
 BEGIN
@@ -39,7 +39,7 @@ END;
 $$ LANGUAGE plpgsql STABLE STRICT;
 
 
-CREATE OR REPLACE FUNCTION public.column_names(namespace name, "table" name)
+CREATE FUNCTION public.column_names(namespace name, "table" name)
     RETURNS SETOF name
 AS $$
     SELECT a.attname
@@ -54,21 +54,21 @@ AS $$
 $$ LANGUAGE SQL STABLE;
 
 
-CREATE OR REPLACE FUNCTION public.fst(anyelement, anyelement)
+CREATE FUNCTION public.fst(anyelement, anyelement)
     RETURNS anyelement
 AS $$
     SELECT $1;
 $$ LANGUAGE SQL IMMUTABLE STRICT;
 
 
-CREATE OR REPLACE FUNCTION public.snd(anyelement, anyelement)
+CREATE FUNCTION public.snd(anyelement, anyelement)
     RETURNS anyelement
 AS $$
     SELECT $2;
 $$ LANGUAGE SQL IMMUTABLE STRICT;
 
 
-CREATE OR REPLACE FUNCTION public.wal_location_to_int(text)
+CREATE FUNCTION public.wal_location_to_int(text)
     RETURNS bigint
 AS $$
     SELECT ('x' || lpad((regexp_split_to_array($1, '/'))[1] || lpad((regexp_split_to_array($1, '/'))[2], 8, '0'), 16, '0'))::bit(64)::bigint;
@@ -84,7 +84,7 @@ SELECT
 FROM pg_stat_replication;';
 
 
-CREATE OR REPLACE FUNCTION public.safe_division(numerator anyelement, denominator anyelement)
+CREATE FUNCTION public.safe_division(numerator anyelement, denominator anyelement)
 	RETURNS anyelement
 AS $$
 SELECT CASE
@@ -99,7 +99,7 @@ ALTER FUNCTION safe_division(anyelement, anyelement)
 	OWNER TO postgres;
 
 
-CREATE OR REPLACE FUNCTION public.add_array(anyarray, anyarray) RETURNS anyarray
+CREATE FUNCTION public.add_array(anyarray, anyarray) RETURNS anyarray
 AS $$
 SELECT array_agg((arr1 + arr2)) FROM
 (
@@ -117,7 +117,7 @@ CREATE AGGREGATE sum_array(anyarray)
 );
 
 
-CREATE OR REPLACE FUNCTION public.divide_array(anyarray, anyelement)
+CREATE FUNCTION public.divide_array(anyarray, anyelement)
     RETURNS anyarray
 AS $$
 SELECT array_agg(arr / $2) FROM
@@ -127,7 +127,7 @@ SELECT array_agg(arr / $2) FROM
 $$ LANGUAGE SQL STABLE STRICT;
 
 
-CREATE OR REPLACE FUNCTION public.divide_array(anyarray, anyarray)
+CREATE FUNCTION public.divide_array(anyarray, anyarray)
     RETURNS anyarray
 AS $$
 SELECT array_agg(public.safe_division(arr1, arr2)) FROM
@@ -139,13 +139,13 @@ SELECT array_agg(public.safe_division(arr1, arr2)) FROM
 $$ LANGUAGE SQL STABLE STRICT;
 
 
-CREATE OR REPLACE FUNCTION public.array_sum(anyarray) RETURNS anyelement
+CREATE FUNCTION public.array_sum(anyarray) RETURNS anyelement
 AS $$
 SELECT sum(t) FROM unnest($1) t;
 $$ LANGUAGE SQL IMMUTABLE STRICT;
 
 
-CREATE OR REPLACE FUNCTION public.to_pdf(text)
+CREATE FUNCTION public.to_pdf(text)
 	RETURNS int[]
 AS $$
 	SELECT array_agg(nullif(x, '')::int)
@@ -153,7 +153,7 @@ AS $$
 $$ LANGUAGE SQL STABLE STRICT;
 
 
-CREATE OR REPLACE FUNCTION public.action(anyelement, sql text)
+CREATE FUNCTION public.action(anyelement, sql text)
     RETURNS anyelement
 AS $$
 BEGIN
@@ -164,7 +164,7 @@ END;
 $$ LANGUAGE plpgsql VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION public.action(anyelement, sql text[])
+CREATE FUNCTION public.action(anyelement, sql text[])
     RETURNS anyelement
 AS $$
 DECLARE

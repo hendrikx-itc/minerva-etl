@@ -1,4 +1,4 @@
-CREATE OR REPLACE FUNCTION trend.changes_on_datasource_update()
+CREATE FUNCTION trend.changes_on_datasource_update()
     RETURNS TRIGGER
 AS $$
 BEGIN
@@ -14,7 +14,7 @@ END;
 $$ LANGUAGE plpgsql VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION trend.cleanup_on_datasource_delete()
+CREATE FUNCTION trend.cleanup_on_datasource_delete()
     RETURNS TRIGGER
 AS $$
 BEGIN
@@ -25,7 +25,7 @@ END;
 $$ LANGUAGE plpgsql VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION trend.changes_on_partition_update()
+CREATE FUNCTION trend.changes_on_partition_update()
     RETURNS TRIGGER
 AS $$
 BEGIN
@@ -38,7 +38,7 @@ END;
 $$ LANGUAGE plpgsql VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION trend.changes_on_trend_update()
+CREATE FUNCTION trend.changes_on_trend_update()
     RETURNS TRIGGER
 AS $$
 DECLARE
@@ -61,7 +61,7 @@ END;
 $$ LANGUAGE plpgsql VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION trend.create_partition_table_on_insert()
+CREATE FUNCTION trend.create_partition_table_on_insert()
     RETURNS TRIGGER
 AS $$
 DECLARE
@@ -93,7 +93,7 @@ END;
 $$ LANGUAGE plpgsql VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION trend.drop_partition_table_on_delete()
+CREATE FUNCTION trend.drop_partition_table_on_delete()
     RETURNS TRIGGER
 AS $$
 DECLARE
@@ -112,7 +112,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 
-CREATE OR REPLACE FUNCTION trend.update_modified_column()
+CREATE FUNCTION trend.update_modified_column()
     RETURNS TRIGGER
 AS $$
 BEGIN
@@ -123,7 +123,7 @@ END;
 $$ LANGUAGE plpgsql VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION trend.create_base_table_on_insert()
+CREATE FUNCTION trend.create_base_table_on_insert()
     RETURNS TRIGGER
 AS $$
 BEGIN
@@ -136,7 +136,7 @@ END;
 $$ LANGUAGE plpgsql VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION trend.cleanup_trendstore_on_delete()
+CREATE FUNCTION trend.cleanup_trendstore_on_delete()
     RETURNS TRIGGER
 AS $$
 DECLARE
@@ -155,7 +155,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 
-CREATE OR REPLACE FUNCTION trend.set_trendstore_defaults()
+CREATE FUNCTION trend.set_trendstore_defaults()
     RETURNS TRIGGER
 AS $$
 BEGIN
@@ -168,7 +168,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 
-CREATE OR REPLACE FUNCTION trend.drop_view_on_delete()
+CREATE FUNCTION trend.drop_view_on_delete()
     RETURNS TRIGGER
 AS $$
 BEGIN

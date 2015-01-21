@@ -1,4 +1,4 @@
-CREATE OR REPLACE FUNCTION notification.action(anyelement, text)
+CREATE FUNCTION notification.action(anyelement, text)
     RETURNS anyelement
 AS $$
 BEGIN
@@ -9,7 +9,7 @@ END;
 $$ LANGUAGE plpgsql VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION notification.to_char(notification.notificationstore)
+CREATE FUNCTION notification.to_char(notification.notificationstore)
     RETURNS text
 AS $$
     SELECT datasource.name
@@ -18,7 +18,7 @@ AS $$
 $$ LANGUAGE SQL STABLE STRICT;
 
 
-CREATE OR REPLACE FUNCTION notification.get_notificationstore(datasource_name name)
+CREATE FUNCTION notification.get_notificationstore(datasource_name name)
     RETURNS notification.notificationstore
 AS $$
     SELECT ns
@@ -28,7 +28,7 @@ AS $$
 $$ LANGUAGE SQL STABLE;
 
 
-CREATE OR REPLACE FUNCTION notification.table_name(notification.notificationstore)
+CREATE FUNCTION notification.table_name(notification.notificationstore)
     RETURNS name
 AS $$
     SELECT ds.name::name
@@ -38,14 +38,14 @@ AS $$
 $$ LANGUAGE SQL STABLE;
 
 
-CREATE OR REPLACE FUNCTION notification.staging_table_name(notification.notificationstore)
+CREATE FUNCTION notification.staging_table_name(notification.notificationstore)
     RETURNS name
 AS $$
     SELECT (notification.table_name($1) || '_staging')::name;
 $$ LANGUAGE SQL STABLE;
 
 
-CREATE OR REPLACE FUNCTION notification.create_table(notification.notificationstore)
+CREATE FUNCTION notification.create_table(notification.notificationstore)
     RETURNS notification.notificationstore
 AS $$
 BEGIN
@@ -75,7 +75,7 @@ END;
 $$ LANGUAGE plpgsql VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION notification.create_staging_table(notification.notificationstore)
+CREATE FUNCTION notification.create_staging_table(notification.notificationstore)
     RETURNS notification.notificationstore
 AS $$
 BEGIN
@@ -101,7 +101,7 @@ END;
 $$ LANGUAGE plpgsql VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION notification.table_exists(schema_name name, table_name name)
+CREATE FUNCTION notification.table_exists(schema_name name, table_name name)
     RETURNS boolean
 AS $$
     SELECT exists(
@@ -113,14 +113,14 @@ AS $$
 $$ LANGUAGE SQL STABLE;
 
 
-CREATE OR REPLACE FUNCTION notification.table_exists(name)
+CREATE FUNCTION notification.table_exists(name)
     RETURNS boolean
 AS $$
     SELECT notification.table_exists('notification', $1);
 $$ LANGUAGE SQL STABLE;
 
 
-CREATE OR REPLACE FUNCTION notification.column_exists(schema_name name, table_name name, column_name name)
+CREATE FUNCTION notification.column_exists(schema_name name, table_name name, column_name name)
     RETURNS boolean
 AS $$
     SELECT EXISTS(
@@ -133,28 +133,28 @@ AS $$
 $$ LANGUAGE sql STABLE;
 
 
-CREATE OR REPLACE FUNCTION notification.column_exists(table_name name, column_name name)
+CREATE FUNCTION notification.column_exists(table_name name, column_name name)
     RETURNS boolean
 AS $$
     SELECT notification.column_exists('notification', $1, $2);
 $$ LANGUAGE sql STABLE;
 
 
-CREATE OR REPLACE FUNCTION notification.create_notificationstore(datasource_id integer)
+CREATE FUNCTION notification.create_notificationstore(datasource_id integer)
     RETURNS notification.notificationstore
 AS $$
     INSERT INTO notification.notificationstore(datasource_id, version) VALUES ($1, 1) RETURNING *;
 $$ LANGUAGE SQL VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION notification.create_notificationstore(datasource_name text)
+CREATE FUNCTION notification.create_notificationstore(datasource_name text)
     RETURNS notification.notificationstore
 AS $$
     SELECT notification.create_notificationstore((directory.name_to_datasource($1)).id);
 $$ LANGUAGE SQL VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION notification.create_attribute(notification.notificationstore, name, name)
+CREATE FUNCTION notification.create_attribute(notification.notificationstore, name, name)
     RETURNS SETOF notification.attribute
 AS $$
     INSERT INTO notification.attribute(notificationstore_id, name, data_type, description)
@@ -162,7 +162,7 @@ AS $$
 $$ LANGUAGE SQL VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION notification.create_notificationstore(datasource_id integer, notification.attr_def[])
+CREATE FUNCTION notification.create_notificationstore(datasource_id integer, notification.attr_def[])
     RETURNS notification.notificationstore
 AS $$
 DECLARE
@@ -177,14 +177,14 @@ END;
 $$ LANGUAGE plpgsql VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION notification.create_notificationstore(datasource_name text, notification.attr_def[])
+CREATE FUNCTION notification.create_notificationstore(datasource_name text, notification.attr_def[])
     RETURNS notification.notificationstore
 AS $$
     SELECT notification.create_notificationstore((directory.name_to_datasource($1)).id, $2);
 $$ LANGUAGE SQL VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION notification.define_notificationsetstore(name name, notificationstore_id integer)
+CREATE FUNCTION notification.define_notificationsetstore(name name, notificationstore_id integer)
     RETURNS notification.notificationsetstore
 AS $$
     INSERT INTO notification.notificationsetstore(name, notificationstore_id)
@@ -193,14 +193,14 @@ AS $$
 $$ LANGUAGE SQL VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION notification.notificationstore(notification.notificationsetstore)
+CREATE FUNCTION notification.notificationstore(notification.notificationsetstore)
     RETURNS notification.notificationstore
 AS $$
     SELECT notificationstore FROM notification.notificationstore WHERE id = $1.notificationstore_id;
 $$ LANGUAGE SQL STABLE;
 
 
-CREATE OR REPLACE FUNCTION notification.init_notificationsetstore(notification.notificationsetstore)
+CREATE FUNCTION notification.init_notificationsetstore(notification.notificationsetstore)
     RETURNS notification.notificationsetstore
 AS $$
 BEGIN
@@ -224,7 +224,7 @@ END;
 $$ LANGUAGE plpgsql VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION notification.create_notificationsetstore(name name, notificationstore_id integer)
+CREATE FUNCTION notification.create_notificationsetstore(name name, notificationstore_id integer)
     RETURNS notification.notificationsetstore
 AS $$
     SELECT notification.init_notificationsetstore(
@@ -233,14 +233,14 @@ AS $$
 $$ LANGUAGE SQL VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION notification.create_notificationsetstore(name name, notification.notificationstore)
+CREATE FUNCTION notification.create_notificationsetstore(name name, notification.notificationstore)
     RETURNS notification.notificationsetstore
 AS $$
     SELECT notification.create_notificationsetstore($1, $2.id);
 $$ LANGUAGE SQL VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION notification.get_column_type_name(namespace_name name, table_name name, column_name name)
+CREATE FUNCTION notification.get_column_type_name(namespace_name name, table_name name, column_name name)
     RETURNS name
 AS $$
     SELECT typname
@@ -252,14 +252,14 @@ AS $$
 $$ LANGUAGE SQL STABLE;
 
 
-CREATE OR REPLACE FUNCTION notification.get_column_type_name(notification.notificationstore, name)
+CREATE FUNCTION notification.get_column_type_name(notification.notificationstore, name)
     RETURNS name
 AS $$
     SELECT notification.get_column_type_name('notification', notification.table_name($1), $2);
 $$ LANGUAGE SQL STABLE;
 
 
-CREATE OR REPLACE FUNCTION notification.add_attribute_column_sql(name, notification.attribute)
+CREATE FUNCTION notification.add_attribute_column_sql(name, notification.attribute)
     RETURNS text 
 AS $$
     SELECT format(
@@ -269,7 +269,7 @@ AS $$
 $$ LANGUAGE SQL STABLE;
 
 
-CREATE OR REPLACE FUNCTION notification.add_staging_attribute_column_sql(notification.attribute)
+CREATE FUNCTION notification.add_staging_attribute_column_sql(notification.attribute)
     RETURNS text 
 AS $$
     SELECT
@@ -281,7 +281,7 @@ AS $$
 $$ LANGUAGE SQL STABLE;
 
 
-CREATE OR REPLACE FUNCTION notification.create_attribute_column(notification.attribute)
+CREATE FUNCTION notification.create_attribute_column(notification.attribute)
     RETURNS notification.attribute
 AS $$
 SELECT
@@ -306,7 +306,7 @@ FROM notification.notificationstore WHERE id = $1.notificationstore_id;
 $$ LANGUAGE SQL VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION notification.get_attr_defs(notification.notificationstore)
+CREATE FUNCTION notification.get_attr_defs(notification.notificationstore)
     RETURNS SETOF notification.attr_def AS
 $$
     SELECT (attname, typname)::notification.attr_def

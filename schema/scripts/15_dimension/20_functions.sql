@@ -1,4 +1,4 @@
-CREATE OR REPLACE FUNCTION dimension.update_month()
+CREATE FUNCTION dimension.update_month()
     RETURNS void
 AS $$
     TRUNCATE dimension.month;
@@ -15,7 +15,7 @@ AS $$
 $$ LANGUAGE SQL;
 
 
-CREATE OR REPLACE FUNCTION dimension.update_week()
+CREATE FUNCTION dimension.update_week()
     RETURNS void
 AS $$
     TRUNCATE dimension.week;
@@ -34,7 +34,7 @@ AS $$
 $$ LANGUAGE SQL;
 
 
-CREATE OR REPLACE FUNCTION dimension.update_day()
+CREATE FUNCTION dimension.update_day()
     RETURNS void
 AS $$
     TRUNCATE dimension.day;
@@ -51,7 +51,7 @@ AS $$
 $$ LANGUAGE SQL;
 
 
-CREATE OR REPLACE FUNCTION dimension.update_hour()
+CREATE FUNCTION dimension.update_hour()
     RETURNS void
 AS $$
     TRUNCATE dimension.hour;
@@ -68,7 +68,7 @@ AS $$
 $$ LANGUAGE SQL;
 
 
-CREATE OR REPLACE FUNCTION dimension.update_quarter()
+CREATE FUNCTION dimension.update_quarter()
     RETURNS void
 AS $$
     TRUNCATE dimension.quarter;
@@ -85,7 +85,7 @@ AS $$
 $$ LANGUAGE SQL;
 
 
-CREATE OR REPLACE FUNCTION dimension.update_5m()
+CREATE FUNCTION dimension.update_5m()
     RETURNS void
 AS $$
     TRUNCATE dimension."5m";
@@ -101,7 +101,7 @@ AS $$
     ) timestamps;
 $$ LANGUAGE SQL;
 
-CREATE OR REPLACE FUNCTION dimension.update_four_consec_qtr()
+CREATE FUNCTION dimension.update_four_consec_qtr()
     RETURNS void
 AS $$
     TRUNCATE dimension."four_consec_qtr";
@@ -118,7 +118,7 @@ AS $$
 $$ LANGUAGE SQL;
 
 
-CREATE OR REPLACE FUNCTION dimension.update_month_15m()
+CREATE FUNCTION dimension.update_month_15m()
     RETURNS void
 AS $$
     TRUNCATE dimension.month_15m;
@@ -134,7 +134,7 @@ AS $$
 $$ LANGUAGE SQL;
 
 
-CREATE OR REPLACE FUNCTION dimension.update_week_15m()
+CREATE FUNCTION dimension.update_week_15m()
     RETURNS void
 AS $$
     TRUNCATE dimension.week_15m;
@@ -150,7 +150,7 @@ AS $$
 $$ LANGUAGE SQL;
 
 
-CREATE OR REPLACE FUNCTION dimension.update_day_15m()
+CREATE FUNCTION dimension.update_day_15m()
     RETURNS void
 AS $$
     TRUNCATE dimension.day_15m;

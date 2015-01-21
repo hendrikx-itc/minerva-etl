@@ -1,4 +1,4 @@
-CREATE OR REPLACE FUNCTION notification.create_table_on_insert()
+CREATE FUNCTION notification.create_table_on_insert()
     RETURNS TRIGGER
 AS $$
 BEGIN
@@ -15,7 +15,7 @@ END;
 $$ LANGUAGE plpgsql VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION notification.drop_table_on_delete()
+CREATE FUNCTION notification.drop_table_on_delete()
     RETURNS TRIGGER
 AS $$
 BEGIN
@@ -27,7 +27,7 @@ END;
 $$ LANGUAGE plpgsql VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION notification.drop_notificationsetstore_table_on_delete()
+CREATE FUNCTION notification.drop_notificationsetstore_table_on_delete()
     RETURNS TRIGGER
 AS $$
 BEGIN
@@ -39,7 +39,7 @@ END;
 $$ LANGUAGE plpgsql VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION notification.create_attribute_column_on_insert()
+CREATE FUNCTION notification.create_attribute_column_on_insert()
     RETURNS TRIGGER
 AS $$
 BEGIN
@@ -50,7 +50,7 @@ END;
 $$ LANGUAGE plpgsql VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION notification.cleanup_on_datasource_delete()
+CREATE FUNCTION notification.cleanup_on_datasource_delete()
     RETURNS TRIGGER
 AS $$
 BEGIN

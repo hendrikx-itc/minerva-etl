@@ -1,6 +1,6 @@
 -- View 'tagged_runnable_materializations'
 
-CREATE OR REPLACE VIEW materialization.tagged_runnable_materializations AS
+CREATE VIEW materialization.tagged_runnable_materializations AS
 	SELECT mstate.type_id, timestamp, t.name as tag
 		FROM materialization.state mstate
 		JOIN materialization.type_tag_link mtl ON mtl.type_id = mstate.type_id
@@ -21,7 +21,7 @@ GRANT SELECT ON materialization.tagged_runnable_materializations TO minerva;
 
 -- View 'materializable_source_state'
 
-CREATE OR REPLACE VIEW materialization.materializable_source_state AS
+CREATE VIEW materialization.materializable_source_state AS
         SELECT
 			mt.id AS type_id,
 			trend.get_timestamp_for(dst.granularity, mdf.timestamp) AS timestamp,
@@ -45,7 +45,7 @@ GRANT SELECT ON materialization.materializable_source_state TO minerva;
 
 -- View 'materializables'
 
-CREATE OR REPLACE VIEW materialization.materializables AS
+CREATE VIEW materialization.materializables AS
 	SELECT
 		type_id,
 		timestamp,
@@ -68,7 +68,7 @@ GRANT SELECT ON materialization.materializables TO minerva;
 
 -- View 'new_materializables'
 
-CREATE OR REPLACE VIEW materialization.new_materializables AS
+CREATE VIEW materialization.new_materializables AS
 	SELECT
 		mzb.type_id,
 		mzb.timestamp,
@@ -88,7 +88,7 @@ GRANT SELECT ON materialization.new_materializables TO minerva;
 
 -- View 'modified_materializables'
 
-CREATE OR REPLACE VIEW materialization.modified_materializables AS
+CREATE VIEW materialization.modified_materializables AS
 	SELECT
 		mzb.type_id,
 		mzb.timestamp,
@@ -108,7 +108,7 @@ GRANT SELECT ON materialization.modified_materializables TO minerva;
 
 -- View 'obsolete_state'
 
-CREATE OR REPLACE VIEW materialization.obsolete_state AS
+CREATE VIEW materialization.obsolete_state AS
 	SELECT
 		state.type_id,
 		state.timestamp
@@ -125,7 +125,7 @@ GRANT SELECT ON materialization.obsolete_state TO minerva;
 
 -- View 'trend_ext'
 
-CREATE OR REPLACE VIEW materialization.trend_ext AS
+CREATE VIEW materialization.trend_ext AS
 SELECT
 	t.id,
 	t.name,
@@ -151,7 +151,7 @@ GRANT SELECT ON TABLE materialization.trend_ext TO minerva;
 
 -- View 'required_resources_by_group'
 
-CREATE OR REPLACE VIEW materialization.required_resources_by_group AS
+CREATE VIEW materialization.required_resources_by_group AS
 SELECT ttl.tag_id, sum((rm.type).cost) as required
 FROM materialization.runnable_materializations rm
 JOIN materialization.type_tag_link ttl ON ttl.type_id = (rm.type).id

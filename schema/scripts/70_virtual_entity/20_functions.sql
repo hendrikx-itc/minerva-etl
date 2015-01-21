@@ -1,4 +1,4 @@
-CREATE OR REPLACE FUNCTION virtual_entity.update(name name)
+CREATE FUNCTION virtual_entity.update(name name)
 	RETURNS integer
 AS $$
 DECLARE

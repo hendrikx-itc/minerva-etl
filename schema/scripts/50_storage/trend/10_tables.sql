@@ -19,39 +19,7 @@ CREATE TYPE trend.trend_descr AS (
 ALTER TYPE trend.trend_descr OWNER TO minerva_admin;
 
 
--- Table 'trend.trend'
-
-CREATE TABLE trend.trend (
-    id integer not null,
-    name varchar not null,
-    description varchar not null
-);
-
-ALTER TABLE trend.trend OWNER TO minerva_admin;
-
-CREATE SEQUENCE trend.trend_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-ALTER TABLE trend.trend_id_seq OWNER TO minerva_admin;
-
-ALTER TABLE trend.trend
-    ALTER COLUMN id
-    SET DEFAULT nextval('trend.trend_id_seq'::regclass);
-
-ALTER SEQUENCE trend.trend_id_seq OWNED BY trend.trend.id;
-
-ALTER TABLE ONLY trend.trend
-    ADD CONSTRAINT trend_pkey PRIMARY KEY (id);
-
-GRANT SELECT ON TABLE trend.trend TO minerva;
-GRANT INSERT,DELETE,UPDATE ON TABLE trend.trend TO minerva_writer;
-
-GRANT SELECT ON SEQUENCE trend.trend_id_seq TO minerva;
-GRANT UPDATE ON SEQUENCE trend.trend_id_seq TO minerva_writer;
+-- Type 'trend.storetype'
 
 CREATE TYPE trend.storetype AS ENUM ('table', 'view');
 
@@ -106,31 +74,54 @@ GRANT INSERT,DELETE,UPDATE ON TABLE trend.trendstore TO minerva_writer;
 GRANT SELECT ON SEQUENCE trend.trendstore_id_seq TO minerva;
 GRANT UPDATE ON SEQUENCE trend.trendstore_id_seq TO minerva_writer;
 
--- Table 'trend.trendstore_trend_link'
 
-CREATE TABLE trend.trendstore_trend_link (
-    trendstore_id integer NOT NULL,
-    trend_id integer NOT NULL
+-- Table 'trend.trend'
+
+CREATE TABLE trend.trend (
+    id integer not null,
+    name varchar not null,
+    trendstore_id integer NOT NULL REFERENCES trend.trendstore(id),
+    description varchar not null
 );
 
-ALTER TABLE trend.trendstore_trend_link OWNER TO minerva_admin;
+ALTER TABLE trend.trend OWNER TO minerva_admin;
 
-ALTER TABLE ONLY trend.trendstore_trend_link
-    ADD CONSTRAINT trend_trendstore_trend_link_pkey
-    PRIMARY KEY (trendstore_id, trend_id);
+CREATE SEQUENCE trend.trend_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
 
-ALTER TABLE ONLY trend.trendstore_trend_link
-    ADD CONSTRAINT trend_trendstore_trend_link_trendstore_id_fkey
-    FOREIGN KEY (trendstore_id) REFERENCES trend.trendstore(id)
-    ON DELETE CASCADE;
+ALTER TABLE trend.trend_id_seq OWNER TO minerva_admin;
 
-ALTER TABLE ONLY trend.trendstore_trend_link
-    ADD CONSTRAINT trend_trendstore_trend_link_trend_id_fkey
-    FOREIGN KEY (trend_id) REFERENCES trend.trend(id)
-    ON DELETE CASCADE;
+ALTER TABLE trend.trend
+    ALTER COLUMN id
+    SET DEFAULT nextval('trend.trend_id_seq'::regclass);
 
-GRANT SELECT ON TABLE trend.trendstore_trend_link TO minerva;
-GRANT INSERT,DELETE,UPDATE ON TABLE trend.trendstore_trend_link TO minerva_writer;
+ALTER SEQUENCE trend.trend_id_seq OWNED BY trend.trend.id;
+
+ALTER TABLE ONLY trend.trend
+    ADD CONSTRAINT trend_pkey PRIMARY KEY (id);
+
+GRANT SELECT ON TABLE trend.trend TO minerva;
+GRANT INSERT,DELETE,UPDATE ON TABLE trend.trend TO minerva_writer;
+
+GRANT SELECT ON SEQUENCE trend.trend_id_seq TO minerva;
+GRANT UPDATE ON SEQUENCE trend.trend_id_seq TO minerva_writer;
+
+
+-- View 'trend.trendstore_trend_link'
+-- This view is for backward compatibility
+
+CREATE VIEW trend.trendstore_trend_link AS
+SELECT
+    trendstore_id,
+    id AS trend_id
+FROM
+    trend.trend;
+
+ALTER VIEW trend.trendstore_trend_link OWNER TO minerva_admin;
 
 -- Table 'trend.partition'
 

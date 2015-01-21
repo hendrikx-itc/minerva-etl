@@ -1,4 +1,4 @@
-CREATE OR REPLACE VIEW gis.handover_relation AS
+CREATE VIEW gis.handover_relation AS
 SELECT
     cell_ho.source_id AS cell_entity_id,
     'OUT'::text direction,
@@ -29,7 +29,7 @@ GRANT SELECT ON TABLE gis.handover_relation TO minerva;
 
 CREATE TYPE gis.existence_change AS (exists boolean, unix_timestamp double precision);
 
-CREATE OR REPLACE VIEW gis.handover_relation_existence AS
+CREATE VIEW gis.handover_relation_existence AS
 SELECT
     handover_relation.source_entity_id source_id,
     handover_relation.ho_entity_id handover_id,
@@ -62,7 +62,7 @@ GRANT ALL ON TABLE gis.handover_relation_existence TO minerva_admin;
 GRANT SELECT ON TABLE gis.handover_relation_existence TO minerva;
 
 
-CREATE OR REPLACE VIEW gis.handoverrelation_tags AS
+CREATE VIEW gis.handoverrelation_tags AS
     SELECT entitytaglink.entity_id entity_id, array_agg( tag.name ) tags
     FROM directory.entitytaglink
     JOIN directory.tag ON entitytaglink.tag_id = tag.id
@@ -72,7 +72,7 @@ CREATE OR REPLACE VIEW gis.handoverrelation_tags AS
 GRANT ALL ON TABLE gis.handoverrelation_tags TO minerva_admin;
 GRANT SELECT ON TABLE gis.handoverrelation_tags TO minerva;
 
-CREATE OR REPLACE FUNCTION gis.get_handovers(integer)
+CREATE FUNCTION gis.get_handovers(integer)
   RETURNS TABLE(source_id integer, handover_id integer, target_id integer, target_name character varying, source_name character varying, tag_name character varying, direction text, existence text[], handover_tags character varying[]) AS
 $BODY$
     SELECT
@@ -120,7 +120,7 @@ $BODY$
 
 -- Function: gis.get_changed_handover_cells(timestamp with time zone)
 
-CREATE OR REPLACE FUNCTION gis.get_changed_handover_cells(timestamp with time zone)
+CREATE FUNCTION gis.get_changed_handover_cells(timestamp with time zone)
   RETURNS SETOF integer AS
 $$
 SELECT id FROM (

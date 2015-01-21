@@ -1,4 +1,4 @@
-CREATE OR REPLACE FUNCTION relation.create_relation_table_on_insert()
+CREATE FUNCTION relation.create_relation_table_on_insert()
     RETURNS TRIGGER
 AS $$
 BEGIN
@@ -9,7 +9,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 
-CREATE OR REPLACE FUNCTION relation.drop_table_on_type_delete()
+CREATE FUNCTION relation.drop_table_on_type_delete()
     RETURNS TRIGGER
 AS $$
 BEGIN
@@ -20,7 +20,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 
-CREATE OR REPLACE FUNCTION relation.create_self_relation()
+CREATE FUNCTION relation.create_self_relation()
     RETURNS TRIGGER
 AS $$
 BEGIN

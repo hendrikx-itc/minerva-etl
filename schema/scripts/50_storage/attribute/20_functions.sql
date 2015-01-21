@@ -4,7 +4,7 @@ CREATE TYPE attribute_directory.attribute_info AS (
 );
 
 
-CREATE OR REPLACE FUNCTION attribute_directory.to_char(attribute_directory.attributestore)
+CREATE FUNCTION attribute_directory.to_char(attribute_directory.attributestore)
     RETURNS text
 AS $$
     SELECT datasource.name || '_' || entitytype.name
@@ -13,77 +13,77 @@ AS $$
 $$ LANGUAGE SQL STABLE STRICT;
 
 
-CREATE OR REPLACE FUNCTION attribute_directory.to_table_name(attribute_directory.attributestore)
+CREATE FUNCTION attribute_directory.to_table_name(attribute_directory.attributestore)
     RETURNS name
 AS $$
     SELECT (attribute_directory.to_char($1))::name;
 $$ LANGUAGE SQL STABLE STRICT;
 
 
-CREATE OR REPLACE FUNCTION attribute_directory.at_function_name(attribute_directory.attributestore)
+CREATE FUNCTION attribute_directory.at_function_name(attribute_directory.attributestore)
     RETURNS name
 AS $$
     SELECT (attribute_directory.to_table_name($1) || '_at')::name;
 $$ LANGUAGE SQL IMMUTABLE;
 
 
-CREATE OR REPLACE FUNCTION attribute_directory.staging_new_view_name(attribute_directory.attributestore)
+CREATE FUNCTION attribute_directory.staging_new_view_name(attribute_directory.attributestore)
     RETURNS name
 AS $$
     SELECT (attribute_directory.to_table_name($1) || '_new')::name;
 $$ LANGUAGE sql STABLE;
 
 
-CREATE OR REPLACE FUNCTION attribute_directory.staging_modified_view_name(attribute_directory.attributestore)
+CREATE FUNCTION attribute_directory.staging_modified_view_name(attribute_directory.attributestore)
     RETURNS name
 AS $$
     SELECT (attribute_directory.to_table_name($1) || '_modified')::name;
 $$ LANGUAGE sql STABLE;
 
 
-CREATE OR REPLACE FUNCTION attribute_directory.changes_view_name(attribute_directory.attributestore)
+CREATE FUNCTION attribute_directory.changes_view_name(attribute_directory.attributestore)
     RETURNS name
 AS $$
 SELECT (attribute_directory.to_table_name($1) || '_changes')::name;
 $$ LANGUAGE sql STABLE;
 
 
-CREATE OR REPLACE FUNCTION attribute_directory.run_length_view_name(attribute_directory.attributestore)
+CREATE FUNCTION attribute_directory.run_length_view_name(attribute_directory.attributestore)
     RETURNS name
 AS $$
     SELECT (attribute_directory.to_table_name($1) || '_run_length')::name;
 $$ LANGUAGE sql STABLE;
 
 
-CREATE OR REPLACE FUNCTION attribute_directory.compacted_view_name(attribute_directory.attributestore)
+CREATE FUNCTION attribute_directory.compacted_view_name(attribute_directory.attributestore)
     RETURNS name
 AS $$
     SELECT (attribute_directory.to_table_name($1) || '_compacted')::name;
 $$ LANGUAGE SQL STABLE;
 
 
-CREATE OR REPLACE FUNCTION attribute_directory.curr_ptr_view_name(attribute_directory.attributestore)
+CREATE FUNCTION attribute_directory.curr_ptr_view_name(attribute_directory.attributestore)
     RETURNS name
 AS $$
     SELECT (attribute_directory.to_table_name($1) || '_curr_selection')::name;
 $$ LANGUAGE sql STABLE;
 
 
-CREATE OR REPLACE FUNCTION attribute_directory.curr_view_name(attribute_directory.attributestore)
+CREATE FUNCTION attribute_directory.curr_view_name(attribute_directory.attributestore)
     RETURNS name
 AS $$
 SELECT attribute_directory.to_table_name($1);
 $$ LANGUAGE sql STABLE;
 
 
-CREATE OR REPLACE FUNCTION attribute_directory.curr_ptr_table_name(attribute_directory.attributestore)
+CREATE FUNCTION attribute_directory.curr_ptr_table_name(attribute_directory.attributestore)
     RETURNS name
 AS $$
 SELECT (attribute_directory.to_table_name($1) || '_curr_ptr')::name;
 $$ LANGUAGE sql STABLE;
 
 
-CREATE OR REPLACE FUNCTION attribute_directory.datatype_order(datatype character varying)
+CREATE FUNCTION attribute_directory.datatype_order(datatype character varying)
     RETURNS integer
 AS $$
 BEGIN
@@ -119,7 +119,7 @@ END;
 $$ LANGUAGE plpgsql IMMUTABLE STRICT;
 
 
-CREATE OR REPLACE FUNCTION attribute_directory.greatest_datatype(datatype_a character varying, datatype_b character varying)
+CREATE FUNCTION attribute_directory.greatest_datatype(datatype_a character varying, datatype_b character varying)
     RETURNS character varying
 AS $$
 BEGIN
@@ -132,7 +132,7 @@ END;
 $$ LANGUAGE plpgsql IMMUTABLE;
 
 
-CREATE OR REPLACE FUNCTION attribute_directory.init(attribute_directory.attributestore)
+CREATE FUNCTION attribute_directory.init(attribute_directory.attributestore)
     RETURNS attribute_directory.attributestore
 AS $$
 BEGIN
@@ -170,7 +170,7 @@ END;
 $$ LANGUAGE plpgsql VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION attribute_directory.dependees(attribute_directory.attributestore)
+CREATE FUNCTION attribute_directory.dependees(attribute_directory.attributestore)
     RETURNS dep_recurse.obj_ref[]
 AS $$
 SELECT ARRAY[
@@ -214,7 +214,7 @@ COMMENT ON FUNCTION attribute_directory.dependees(attribute_directory.attributes
 'dynamically created and recreated';
 
 
-CREATE OR REPLACE FUNCTION attribute_directory.upgrade_attribute_table(attribute_directory.attributestore)
+CREATE FUNCTION attribute_directory.upgrade_attribute_table(attribute_directory.attributestore)
     RETURNS attribute_directory.attributestore
 AS $$
 BEGIN
@@ -227,7 +227,7 @@ END;
 $$ LANGUAGE plpgsql VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION attribute_directory.render_hash_query(attribute_directory.attributestore)
+CREATE FUNCTION attribute_directory.render_hash_query(attribute_directory.attributestore)
     RETURNS text
 AS $$
     SELECT COALESCE(
@@ -240,7 +240,7 @@ AS $$
 $$ LANGUAGE SQL STABLE;
 
 
-CREATE OR REPLACE FUNCTION attribute_directory.create_hash_function_sql(attribute_directory.attributestore)
+CREATE FUNCTION attribute_directory.create_hash_function_sql(attribute_directory.attributestore)
     RETURNS text[]
 AS $function$
 SELECT ARRAY[
@@ -255,7 +255,7 @@ $$ LANGUAGE SQL STABLE', attribute_directory.to_table_name($1), attribute_direct
 $function$ LANGUAGE sql STABLE;
 
 
-CREATE OR REPLACE FUNCTION attribute_directory.create_hash_function(attribute_directory.attributestore)
+CREATE FUNCTION attribute_directory.create_hash_function(attribute_directory.attributestore)
     RETURNS attribute_directory.attributestore
 AS $$
     SELECT public.action(
@@ -265,7 +265,7 @@ AS $$
 $$ LANGUAGE sql VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION attribute_directory.materialize_curr_ptr(attribute_directory.attributestore)
+CREATE FUNCTION attribute_directory.materialize_curr_ptr(attribute_directory.attributestore)
     RETURNS integer
 AS $$
 DECLARE
@@ -293,14 +293,14 @@ END;
 $$ LANGUAGE plpgsql VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION attribute_directory.changes_view_query(attribute_directory.attributestore)
+CREATE FUNCTION attribute_directory.changes_view_query(attribute_directory.attributestore)
     RETURNS text
 AS $$
 SELECT format('SELECT entity_id, timestamp, COALESCE(hash <> lag(hash) OVER w, true) AS change FROM attribute_history.%I WINDOW w AS (PARTITION BY entity_id ORDER BY timestamp asc)', attribute_directory.to_table_name($1));
 $$ LANGUAGE sql STABLE;
 
 
-CREATE OR REPLACE FUNCTION attribute_directory.create_changes_view_sql(attribute_directory.attributestore)
+CREATE FUNCTION attribute_directory.create_changes_view_sql(attribute_directory.attributestore)
     RETURNS text[]
 AS $$
 SELECT ARRAY[
@@ -315,7 +315,7 @@ SELECT ARRAY[
 $$ LANGUAGE sql STABLE;
 
 
-CREATE OR REPLACE FUNCTION attribute_directory.create_changes_view(attribute_directory.attributestore)
+CREATE FUNCTION attribute_directory.create_changes_view(attribute_directory.attributestore)
     RETURNS attribute_directory.attributestore
 AS $$
 SELECT public.action(
@@ -325,7 +325,7 @@ SELECT public.action(
 $$ LANGUAGE sql VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION attribute_directory.run_length_view_query(attribute_directory.attributestore)
+CREATE FUNCTION attribute_directory.run_length_view_query(attribute_directory.attributestore)
     RETURNS text
 AS $$
 SELECT format('SELECT
@@ -350,7 +350,7 @@ GROUP BY entity_id, run;', attribute_directory.to_table_name($1));
 $$ LANGUAGE sql STABLE;
 
 
-CREATE OR REPLACE FUNCTION attribute_directory.create_run_length_view_sql(attribute_directory.attributestore)
+CREATE FUNCTION attribute_directory.create_run_length_view_sql(attribute_directory.attributestore)
     RETURNS text[]
 AS $$
 SELECT ARRAY[
@@ -367,7 +367,7 @@ SELECT ARRAY[
 $$ LANGUAGE sql STABLE;
 
 
-CREATE OR REPLACE FUNCTION attribute_directory.create_run_length_view(attribute_directory.attributestore)
+CREATE FUNCTION attribute_directory.create_run_length_view(attribute_directory.attributestore)
     RETURNS attribute_directory.attributestore
 AS $$
 SELECT public.action(
@@ -382,7 +382,7 @@ duplicate attribute data records by their entity Id and start-end. This can
 be used as a source for compacting actions.';
 
 
-CREATE OR REPLACE FUNCTION drop_changes_view(attribute_directory.attributestore)
+CREATE FUNCTION drop_changes_view(attribute_directory.attributestore)
     RETURNS attribute_directory.attributestore
 AS $$
 BEGIN
@@ -393,7 +393,7 @@ END;
 $$ LANGUAGE plpgsql VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION attribute_directory.curr_view_query(attribute_directory.attributestore)
+CREATE FUNCTION attribute_directory.curr_view_query(attribute_directory.attributestore)
     RETURNS text
 AS $$
 SELECT format(
@@ -404,7 +404,7 @@ SELECT format(
 $$ LANGUAGE sql STABLE;
 
 
-CREATE OR REPLACE FUNCTION attribute_directory.create_curr_view_sql(attribute_directory.attributestore)
+CREATE FUNCTION attribute_directory.create_curr_view_sql(attribute_directory.attributestore)
     RETURNS text[]
 AS $$
     SELECT ARRAY[
@@ -425,7 +425,7 @@ AS $$
 $$ LANGUAGE sql VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION attribute_directory.create_curr_view(attribute_directory.attributestore)
+CREATE FUNCTION attribute_directory.create_curr_view(attribute_directory.attributestore)
     RETURNS attribute_directory.attributestore
 AS $$
     SELECT public.action(
@@ -435,14 +435,14 @@ AS $$
 $$ LANGUAGE sql VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION attribute_directory.drop_curr_view_sql(attribute_directory.attributestore)
+CREATE FUNCTION attribute_directory.drop_curr_view_sql(attribute_directory.attributestore)
     RETURNS varchar
 AS $$
     SELECT format('DROP VIEW attribute.%I', attribute_directory.to_table_name($1));
 $$ LANGUAGE sql STABLE;
 
 
-CREATE OR REPLACE FUNCTION attribute_directory.drop_curr_view(attribute_directory.attributestore)
+CREATE FUNCTION attribute_directory.drop_curr_view(attribute_directory.attributestore)
     RETURNS attribute_directory.attributestore
 AS $$
     SELECT public.action(
@@ -452,7 +452,7 @@ AS $$
 $$ LANGUAGE sql VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION attribute_directory.create_curr_ptr_table_sql(attribute_directory.attributestore)
+CREATE FUNCTION attribute_directory.create_curr_ptr_table_sql(attribute_directory.attributestore)
     RETURNS text[]
 AS $$
 SELECT ARRAY[
@@ -478,7 +478,7 @@ PRIMARY KEY (entity_id, timestamp))',
 $$ LANGUAGE sql STABLE;
 
 
-CREATE OR REPLACE FUNCTION attribute_directory.create_curr_ptr_table(attribute_directory.attributestore)
+CREATE FUNCTION attribute_directory.create_curr_ptr_table(attribute_directory.attributestore)
     RETURNS attribute_directory.attributestore
 AS $$
 SELECT public.action(
@@ -488,7 +488,7 @@ SELECT public.action(
 $$ LANGUAGE sql VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION attribute_directory.create_curr_ptr_view_sql(attribute_directory.attributestore)
+CREATE FUNCTION attribute_directory.create_curr_ptr_view_sql(attribute_directory.attributestore)
     RETURNS text[]
 AS $$
 DECLARE
@@ -504,19 +504,19 @@ BEGIN
     );
 
     RETURN ARRAY[
-        format('CREATE OR REPLACE VIEW attribute_history.%I AS %s', view_name, view_sql),
+        format('CREATE VIEW attribute_history.%I AS %s', view_name, view_sql),
         format(
             'ALTER TABLE attribute_history.%I '
             'OWNER TO minerva_writer',
             view_name
-        ), 
+        ),
         format('GRANT SELECT ON TABLE attribute_history.%I TO minerva', view_name)
     ];
 END;
 $$ LANGUAGE plpgsql VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION attribute_directory.create_curr_ptr_view(attribute_directory.attributestore)
+CREATE FUNCTION attribute_directory.create_curr_ptr_view(attribute_directory.attributestore)
     RETURNS attribute_directory.attributestore
 AS $$
     SELECT public.action(
@@ -526,14 +526,14 @@ AS $$
 $$ LANGUAGE sql VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION attribute_directory.drop_curr_ptr_view_sql(attribute_directory.attributestore)
+CREATE FUNCTION attribute_directory.drop_curr_ptr_view_sql(attribute_directory.attributestore)
     RETURNS varchar
 AS $$
     SELECT format('DROP VIEW attribute_history.%I', attribute_directory.curr_ptr_view_name($1));
 $$ LANGUAGE sql VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION attribute_directory.drop_curr_ptr_view(attribute_directory.attributestore)
+CREATE FUNCTION attribute_directory.drop_curr_ptr_view(attribute_directory.attributestore)
     RETURNS attribute_directory.attributestore
 AS $$
     SELECT public.action(
@@ -543,7 +543,7 @@ AS $$
 $$ LANGUAGE sql VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION attribute_directory.create_base_table(attribute_directory.attributestore)
+CREATE FUNCTION attribute_directory.create_base_table(attribute_directory.attributestore)
     RETURNS attribute_directory.attributestore
 AS $$
 DECLARE
@@ -575,7 +575,7 @@ END;
 $$ LANGUAGE plpgsql VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION attribute_directory.add_first_appearance_to_attribute_table(attribute_directory.attributestore)
+CREATE FUNCTION attribute_directory.add_first_appearance_to_attribute_table(attribute_directory.attributestore)
     RETURNS attribute_directory.attributestore
 AS $$
 DECLARE
@@ -595,7 +595,7 @@ END;
 $$ LANGUAGE plpgsql VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION attribute_directory.create_history_table(attribute_directory.attributestore)
+CREATE FUNCTION attribute_directory.create_history_table(attribute_directory.attributestore)
     RETURNS attribute_directory.attributestore
 AS $$
 DECLARE
@@ -624,7 +624,7 @@ END;
 $$ LANGUAGE plpgsql VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION attribute_directory.create_staging_table_sql(attribute_directory.attributestore)
+CREATE FUNCTION attribute_directory.create_staging_table_sql(attribute_directory.attributestore)
     RETURNS text[]
 AS $$
 SELECT ARRAY[
@@ -645,7 +645,7 @@ SELECT ARRAY[
 $$ LANGUAGE sql STABLE;
 
 
-CREATE OR REPLACE FUNCTION attribute_directory.create_staging_table(attribute_directory.attributestore)
+CREATE FUNCTION attribute_directory.create_staging_table(attribute_directory.attributestore)
     RETURNS attribute_directory.attributestore
 AS $$
     SELECT public.action(
@@ -655,7 +655,7 @@ AS $$
 $$ LANGUAGE sql VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION attribute_directory.create_staging_new_view_sql(attribute_directory.attributestore)
+CREATE FUNCTION attribute_directory.create_staging_new_view_sql(attribute_directory.attributestore)
     RETURNS text[]
 AS $$
 DECLARE
@@ -692,7 +692,7 @@ END;
 $$ LANGUAGE plpgsql STABLE;
 
 
-CREATE OR REPLACE FUNCTION attribute_directory.create_staging_new_view(attribute_directory.attributestore)
+CREATE FUNCTION attribute_directory.create_staging_new_view(attribute_directory.attributestore)
     RETURNS attribute_directory.attributestore
 AS $$
     SELECT public.action(
@@ -702,7 +702,7 @@ AS $$
 $$ LANGUAGE sql VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION attribute_directory.drop_staging_new_view(attribute_directory.attributestore)
+CREATE FUNCTION attribute_directory.drop_staging_new_view(attribute_directory.attributestore)
     RETURNS attribute_directory.attributestore
 AS $$
 BEGIN
@@ -713,7 +713,7 @@ END;
 $$ LANGUAGE plpgsql VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION attribute_directory.create_staging_modified_view_sql(attribute_directory.attributestore)
+CREATE FUNCTION attribute_directory.create_staging_modified_view_sql(attribute_directory.attributestore)
     RETURNS text[]
 AS $$
 DECLARE
@@ -735,7 +735,7 @@ END;
 $$ LANGUAGE plpgsql VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION attribute_directory.create_staging_modified_view(attribute_directory.attributestore)
+CREATE FUNCTION attribute_directory.create_staging_modified_view(attribute_directory.attributestore)
     RETURNS attribute_directory.attributestore
 AS $$
     SELECT public.action(
@@ -745,14 +745,14 @@ AS $$
 $$ LANGUAGE sql VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION attribute_directory.drop_staging_modified_view_sql(attribute_directory.attributestore)
+CREATE FUNCTION attribute_directory.drop_staging_modified_view_sql(attribute_directory.attributestore)
     RETURNS varchar
 AS $$
     SELECT format('DROP VIEW attribute_staging.%I', attribute_directory.staging_modified_view_name($1));
 $$ LANGUAGE sql VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION attribute_directory.drop_staging_modified_view(attribute_directory.attributestore)
+CREATE FUNCTION attribute_directory.drop_staging_modified_view(attribute_directory.attributestore)
     RETURNS attribute_directory.attributestore
 AS $$
     SELECT public.action(
@@ -762,7 +762,7 @@ AS $$
 $$ LANGUAGE sql VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION attribute_directory.create_hash_triggers_sql(attribute_directory.attributestore)
+CREATE FUNCTION attribute_directory.create_hash_triggers_sql(attribute_directory.attributestore)
     RETURNS text[]
 AS $$
 SELECT ARRAY[
@@ -778,7 +778,7 @@ SELECT ARRAY[
 $$ LANGUAGE sql STABLE;
 
 
-CREATE OR REPLACE FUNCTION attribute_directory.create_hash_triggers(attribute_directory.attributestore)
+CREATE FUNCTION attribute_directory.create_hash_triggers(attribute_directory.attributestore)
     RETURNS attribute_directory.attributestore
 AS $$
 SELECT public.action(
@@ -790,7 +790,7 @@ $$ LANGUAGE sql VOLATILE;
 
 -- Curr materialization log functions
 
-CREATE OR REPLACE FUNCTION attribute_directory.update_curr_materialized(attributestore_id integer, materialized timestamp with time zone)
+CREATE FUNCTION attribute_directory.update_curr_materialized(attributestore_id integer, materialized timestamp with time zone)
     RETURNS attribute_directory.attributestore_curr_materialized
 AS $$
     UPDATE attribute_directory.attributestore_curr_materialized
@@ -800,7 +800,7 @@ AS $$
 $$ LANGUAGE SQL VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION attribute_directory.store_curr_materialized(attributestore_id integer, materialized timestamp with time zone)
+CREATE FUNCTION attribute_directory.store_curr_materialized(attributestore_id integer, materialized timestamp with time zone)
     RETURNS attribute_directory.attributestore_curr_materialized
 AS $$
     INSERT INTO attribute_directory.attributestore_curr_materialized (attributestore_id, materialized)
@@ -809,14 +809,14 @@ AS $$
 $$ LANGUAGE SQL VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION attribute_directory.mark_curr_materialized(attributestore_id integer, materialized timestamp with time zone)
+CREATE FUNCTION attribute_directory.mark_curr_materialized(attributestore_id integer, materialized timestamp with time zone)
     RETURNS attribute_directory.attributestore_curr_materialized
 AS $$
     SELECT COALESCE(attribute_directory.update_curr_materialized($1, $2), attribute_directory.store_curr_materialized($1, $2));
 $$ LANGUAGE SQL VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION attribute_directory.mark_curr_materialized(attributestore_id integer)
+CREATE FUNCTION attribute_directory.mark_curr_materialized(attributestore_id integer)
     RETURNS attribute_directory.attributestore_curr_materialized
 AS $$
     SELECT attribute_directory.mark_curr_materialized(attributestore_id, modified)
@@ -827,7 +827,7 @@ $$ LANGUAGE SQL VOLATILE;
 
 -- Compacting log functions
 
-CREATE OR REPLACE FUNCTION attribute_directory.update_compacted(attributestore_id integer, compacted timestamp with time zone)
+CREATE FUNCTION attribute_directory.update_compacted(attributestore_id integer, compacted timestamp with time zone)
     RETURNS attribute_directory.attributestore_compacted
 AS $$
     UPDATE attribute_directory.attributestore_compacted
@@ -837,7 +837,7 @@ AS $$
 $$ LANGUAGE SQL VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION attribute_directory.store_compacted(attributestore_id integer, compacted timestamp with time zone)
+CREATE FUNCTION attribute_directory.store_compacted(attributestore_id integer, compacted timestamp with time zone)
     RETURNS attribute_directory.attributestore_compacted
 AS $$
     INSERT INTO attribute_directory.attributestore_compacted (attributestore_id, compacted)
@@ -846,14 +846,14 @@ AS $$
 $$ LANGUAGE SQL VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION attribute_directory.mark_compacted(attributestore_id integer, compacted timestamp with time zone)
+CREATE FUNCTION attribute_directory.mark_compacted(attributestore_id integer, compacted timestamp with time zone)
     RETURNS attribute_directory.attributestore_compacted
 AS $$
     SELECT COALESCE(attribute_directory.update_compacted($1, $2), attribute_directory.store_compacted($1, $2));
 $$ LANGUAGE SQL VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION attribute_directory.mark_compacted(attributestore_id integer)
+CREATE FUNCTION attribute_directory.mark_compacted(attributestore_id integer)
     RETURNS attribute_directory.attributestore_compacted
 AS $$
     SELECT attribute_directory.mark_compacted(attributestore_id, modified)
@@ -863,7 +863,7 @@ $$ LANGUAGE SQL VOLATILE;
 
 
 -- Modified log functions
-CREATE OR REPLACE FUNCTION attribute_directory.update_modified(attributestore_id integer, modified timestamp with time zone)
+CREATE FUNCTION attribute_directory.update_modified(attributestore_id integer, modified timestamp with time zone)
     RETURNS attribute_directory.attributestore_modified
 AS $$
     UPDATE attribute_directory.attributestore_modified
@@ -873,7 +873,7 @@ AS $$
 $$ LANGUAGE SQL VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION attribute_directory.store_modified(attributestore_id integer, modified timestamp with time zone)
+CREATE FUNCTION attribute_directory.store_modified(attributestore_id integer, modified timestamp with time zone)
     RETURNS attribute_directory.attributestore_modified
 AS $$
     INSERT INTO attribute_directory.attributestore_modified (attributestore_id, modified)
@@ -882,14 +882,14 @@ AS $$
 $$ LANGUAGE SQL VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION attribute_directory.mark_modified(attributestore_id integer, modified timestamp with time zone)
+CREATE FUNCTION attribute_directory.mark_modified(attributestore_id integer, modified timestamp with time zone)
     RETURNS attribute_directory.attributestore_modified
 AS $$
     SELECT COALESCE(attribute_directory.update_modified($1, $2), attribute_directory.store_modified($1, $2));
 $$ LANGUAGE SQL VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION attribute_directory.mark_modified(attributestore_id integer)
+CREATE FUNCTION attribute_directory.mark_modified(attributestore_id integer)
     RETURNS attribute_directory.attributestore_modified
 AS $$
     SELECT CASE
@@ -903,7 +903,7 @@ AS $$
 $$ LANGUAGE SQL VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION attribute_directory.create_modified_trigger_function_sql(attribute_directory.attributestore)
+CREATE FUNCTION attribute_directory.create_modified_trigger_function_sql(attribute_directory.attributestore)
     RETURNS text[]
 AS $function$
 SELECT ARRAY[
@@ -922,7 +922,7 @@ $$ LANGUAGE plpgsql', $1.id, $1.id),
 $function$ LANGUAGE sql STABLE;
 
 
-CREATE OR REPLACE FUNCTION attribute_directory.create_modified_trigger_function(attribute_directory.attributestore)
+CREATE FUNCTION attribute_directory.create_modified_trigger_function(attribute_directory.attributestore)
     RETURNS attribute_directory.attributestore
 AS $$
 SELECT public.action(
@@ -932,7 +932,7 @@ SELECT public.action(
 $$ LANGUAGE sql VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION attribute_directory.create_modified_triggers_sql(attribute_directory.attributestore)
+CREATE FUNCTION attribute_directory.create_modified_triggers_sql(attribute_directory.attributestore)
     RETURNS text[]
 AS $$
 SELECT ARRAY[
@@ -952,7 +952,7 @@ SELECT ARRAY[
 $$ LANGUAGE sql VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION attribute_directory.create_modified_triggers(attribute_directory.attributestore)
+CREATE FUNCTION attribute_directory.create_modified_triggers(attribute_directory.attributestore)
     RETURNS attribute_directory.attributestore
 AS $$
 SELECT public.action(
@@ -962,7 +962,7 @@ SELECT public.action(
 $$ LANGUAGE sql VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION attribute_directory.drop_hash_function(attribute_directory.attributestore)
+CREATE FUNCTION attribute_directory.drop_hash_function(attribute_directory.attributestore)
     RETURNS attribute_directory.attributestore
 AS $$
 BEGIN
@@ -973,37 +973,7 @@ END;
 $$ LANGUAGE plpgsql VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION attribute_directory.compact(attribute_directory.attributestore)
-    RETURNS attribute_directory.attributestore
-AS $$
-DECLARE
-    table_name name;
-    r record;
-BEGIN
-    table_name = attribute_directory.to_table_name($1);
-
-    FOR r IN EXECUTE format('SELECT entity_id, start, "end", first_appearance, modified FROM attribute_history.%I WHERE run_length > 1', attribute_directory.run_length_view_name($1))
-    LOOP
-        EXECUTE format('DELETE FROM attribute_history.%I WHERE entity_id = $1 AND timestamp > $2 AND timestamp <= $3', table_name)
-        USING r.entity_id, r."start", r."end";
-
-        EXECUTE format('UPDATE attribute_history.%I SET modified = $1, first_appearance = $4 WHERE entity_id = $2 AND timestamp = $3', table_name)
-        USING r.modified, r.entity_id, r."start", r.first_appearance;
-    END LOOP;
-
-    PERFORM attribute_directory.mark_compacted(attributestore_id, modified)
-    FROM attribute_directory.attributestore_modified
-    WHERE attributestore_id = $1.id;
-
-    RETURN $1;
-END;
-$$ LANGUAGE plpgsql VOLATILE;
-
-COMMENT ON FUNCTION attribute_directory.compact(attribute_directory.attributestore) IS
-'Remove all subsequent records with duplicate attribute values and update the modified of the first';
-
-
-CREATE OR REPLACE FUNCTION attribute_directory.init(attribute_directory.attribute)
+CREATE FUNCTION attribute_directory.init(attribute_directory.attribute)
     RETURNS attribute_directory.attribute
 AS $$
 DECLARE
@@ -1031,7 +1001,7 @@ END;
 $$ LANGUAGE plpgsql VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION attribute_directory.add_attribute_column(attribute_directory.attributestore, name, text)
+CREATE FUNCTION attribute_directory.add_attribute_column(attribute_directory.attributestore, name, text)
     RETURNS attribute_directory.attributestore
 AS $$
     SELECT public.action(
@@ -1045,7 +1015,7 @@ AS $$
 $$ LANGUAGE sql VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION attribute_directory.get_attributestore(datasource_id integer, entitytype_id integer)
+CREATE FUNCTION attribute_directory.get_attributestore(datasource_id integer, entitytype_id integer)
     RETURNS attribute_directory.attributestore
 AS $$
     SELECT attributestore
@@ -1054,7 +1024,7 @@ AS $$
 $$ LANGUAGE SQL VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION attribute_directory.define_attributestore(datasource_id integer, entitytype_id integer)
+CREATE FUNCTION attribute_directory.define_attributestore(datasource_id integer, entitytype_id integer)
     RETURNS attribute_directory.attributestore
 AS $$
     INSERT INTO attribute_directory.attributestore(datasource_id, entitytype_id)
@@ -1062,7 +1032,7 @@ AS $$
 $$ LANGUAGE SQL VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION attribute_directory.define_attributestore(datasource_name text, entitytype_name text)
+CREATE FUNCTION attribute_directory.define_attributestore(datasource_name text, entitytype_name text)
     RETURNS attribute_directory.attributestore
 AS $$
     INSERT INTO attribute_directory.attributestore(datasource_id, entitytype_id)
@@ -1071,7 +1041,7 @@ AS $$
 $$ LANGUAGE SQL VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION attribute_directory.to_attributestore(datasource_id integer, entitytype_id integer)
+CREATE FUNCTION attribute_directory.to_attributestore(datasource_id integer, entitytype_id integer)
     RETURNS attribute_directory.attributestore
 AS $$
     SELECT COALESCE(
@@ -1081,14 +1051,14 @@ AS $$
 $$ LANGUAGE SQL VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION attribute_directory.create_attributestore(datasource_name text, entitytype_name text)
+CREATE FUNCTION attribute_directory.create_attributestore(datasource_name text, entitytype_name text)
     RETURNS attribute_directory.attributestore
 AS $$
     SELECT attribute_directory.init(attribute_directory.define_attributestore($1, $2));
 $$ LANGUAGE SQL VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION attribute_directory.add_attributes(attribute_directory.attributestore, attributes attribute_directory.attribute_descr[])
+CREATE FUNCTION attribute_directory.add_attributes(attribute_directory.attributestore, attributes attribute_directory.attribute_descr[])
     RETURNS attribute_directory.attributestore
 AS $$
 BEGIN
@@ -1102,7 +1072,7 @@ END;
 $$ LANGUAGE plpgsql VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION attribute_directory.create_attributestore(datasource_name text, entitytype_name text, attributes attribute_directory.attribute_descr[])
+CREATE FUNCTION attribute_directory.create_attributestore(datasource_name text, entitytype_name text, attributes attribute_directory.attribute_descr[])
     RETURNS attribute_directory.attributestore
 AS $$
     SELECT attribute_directory.init(
@@ -1111,7 +1081,7 @@ AS $$
 $$ LANGUAGE SQL VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION attribute_directory.get_attribute(attribute_directory.attributestore, name)
+CREATE FUNCTION attribute_directory.get_attribute(attribute_directory.attributestore, name)
     RETURNS attribute_directory.attribute
 AS $$
     SELECT attribute
@@ -1120,7 +1090,7 @@ AS $$
 $$ LANGUAGE SQL STABLE;
 
 
-CREATE OR REPLACE FUNCTION attribute_directory.define(attribute_directory.attribute)
+CREATE FUNCTION attribute_directory.define(attribute_directory.attribute)
     RETURNS attribute_directory.attribute
 AS $$
     INSERT INTO attribute_directory.attribute(attributestore_id, description, name, datatype)
@@ -1129,7 +1099,7 @@ AS $$
 $$ LANGUAGE SQL VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION attribute_directory.to_attribute(attribute_directory.attribute)
+CREATE FUNCTION attribute_directory.to_attribute(attribute_directory.attribute)
     RETURNS attribute_directory.attribute
 AS $$
     SELECT COALESCE(
@@ -1140,7 +1110,7 @@ AS $$
 $$ LANGUAGE SQL VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION attribute_directory.check_attributes_exist(attribute_directory.attribute[])
+CREATE FUNCTION attribute_directory.check_attributes_exist(attribute_directory.attribute[])
     RETURNS SETOF attribute_directory.attribute
 AS $$
     SELECT attribute_directory.to_attribute(n)
@@ -1151,7 +1121,7 @@ AS $$
 $$ LANGUAGE SQL VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION attribute_directory.check_attribute_types(attribute_directory.attribute[])
+CREATE FUNCTION attribute_directory.check_attribute_types(attribute_directory.attribute[])
     RETURNS SETOF attribute_directory.attribute
 AS $$
     UPDATE attribute_directory.attribute SET datatype = n.datatype
@@ -1163,7 +1133,7 @@ AS $$
 $$ LANGUAGE SQL VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION attribute_directory.modify_column_type(table_name name, column_name name, datatype varchar)
+CREATE FUNCTION attribute_directory.modify_column_type(table_name name, column_name name, datatype varchar)
     RETURNS void
 AS $$
 BEGIN
@@ -1172,7 +1142,7 @@ END;
 $$ LANGUAGE plpgsql VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION attribute_directory.modify_column_type(attribute_directory.attributestore, column_name name, datatype varchar)
+CREATE FUNCTION attribute_directory.modify_column_type(attribute_directory.attributestore, column_name name, datatype varchar)
     RETURNS attribute_directory.attributestore
 AS $$
 BEGIN
@@ -1185,7 +1155,7 @@ END;
 $$ LANGUAGE plpgsql VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION attribute_directory.modify_datatype(attribute_directory.attribute)
+CREATE FUNCTION attribute_directory.modify_datatype(attribute_directory.attribute)
     RETURNS attribute_directory.attribute
 AS $$
 BEGIN
@@ -1205,7 +1175,7 @@ END;
 $$ LANGUAGE plpgsql VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION attribute_directory.transfer_staged(attribute_directory.attributestore)
+CREATE FUNCTION attribute_directory.transfer_staged(attribute_directory.attributestore)
     RETURNS attribute_directory.attributestore
 AS $$
 DECLARE
@@ -1239,14 +1209,14 @@ END;
 $$ LANGUAGE plpgsql VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION attribute_directory.compacted_tmp_table_name(attribute_directory.attributestore)
+CREATE FUNCTION attribute_directory.compacted_tmp_table_name(attribute_directory.attributestore)
     RETURNS name
 AS $$
 SELECT (attribute_directory.to_table_name($1) || '_compacted_tmp')::name;
 $$ LANGUAGE sql STABLE;
 
 
-CREATE OR REPLACE FUNCTION attribute_directory.create_compacted_tmp_table_sql(attribute_directory.attributestore)
+CREATE FUNCTION attribute_directory.create_compacted_tmp_table_sql(attribute_directory.attributestore)
     RETURNS text[]
 AS $$
 SELECT ARRAY[
@@ -1273,7 +1243,7 @@ SELECT ARRAY[
 $$ LANGUAGE sql VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION attribute_directory.create_compacted_tmp_table(attribute_directory.attributestore)
+CREATE FUNCTION attribute_directory.create_compacted_tmp_table(attribute_directory.attributestore)
     RETURNS attribute_directory.attributestore
 AS $$
 SELECT public.action(
@@ -1283,7 +1253,7 @@ SELECT public.action(
 $$ LANGUAGE sql VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION attribute_directory.compacted_view_query(attribute_directory.attributestore)
+CREATE FUNCTION attribute_directory.compacted_view_query(attribute_directory.attributestore)
     RETURNS text
 AS $$
 DECLARE
@@ -1308,12 +1278,12 @@ END;
 $$ LANGUAGE plpgsql STABLE;
 
 
-CREATE OR REPLACE FUNCTION attribute_directory.create_compacted_view_sql(attribute_directory.attributestore)
+CREATE FUNCTION attribute_directory.create_compacted_view_sql(attribute_directory.attributestore)
     RETURNS text[]
 AS $$
     SELECT ARRAY[
         format(
-            'CREATE OR REPLACE VIEW attribute_history.%I AS %s',
+            'CREATE VIEW attribute_history.%I AS %s',
             attribute_directory.compacted_view_name($1),
             attribute_directory.compacted_view_query($1)
         ),
@@ -1325,7 +1295,7 @@ AS $$
 $$ LANGUAGE sql VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION attribute_directory.create_compacted_view(attribute_directory.attributestore)
+CREATE FUNCTION attribute_directory.create_compacted_view(attribute_directory.attributestore)
     RETURNS attribute_directory.attributestore
 AS $$
     SELECT public.action(
@@ -1335,14 +1305,14 @@ AS $$
 $$ LANGUAGE sql VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION attribute_directory.drop_compacted_view_sql(attribute_directory.attributestore)
+CREATE FUNCTION attribute_directory.drop_compacted_view_sql(attribute_directory.attributestore)
     RETURNS text
 AS $$
     SELECT format('DROP VIEW attribute_history.%I', attribute_directory.compacted_view_name($1));
 $$ LANGUAGE sql VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION attribute_directory.drop_compacted_view(attribute_directory.attributestore)
+CREATE FUNCTION attribute_directory.drop_compacted_view(attribute_directory.attributestore)
     RETURNS attribute_directory.attributestore
 AS $$
     SELECT public.action(
@@ -1352,7 +1322,7 @@ AS $$
 $$ LANGUAGE sql VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION attribute_directory.requires_compacting(attributestore_id integer)
+CREATE FUNCTION attribute_directory.requires_compacting(attributestore_id integer)
     RETURNS boolean
 AS $$
     SELECT modified <> compacted OR compacted IS NULL
@@ -1362,14 +1332,14 @@ AS $$
 $$ LANGUAGE SQL STABLE;
 
 
-CREATE OR REPLACE FUNCTION attribute_directory.requires_compacting(attribute_directory.attributestore)
+CREATE FUNCTION attribute_directory.requires_compacting(attribute_directory.attributestore)
     RETURNS boolean
 AS $$
     SELECT attribute_directory.requires_compacting($1.id);
 $$ LANGUAGE SQL STABLE;
 
 
-CREATE OR REPLACE FUNCTION attribute_directory.compact(attribute_directory.attributestore)
+CREATE FUNCTION attribute_directory.compact(attribute_directory.attributestore)
     RETURNS attribute_directory.attributestore
 AS $$
 DECLARE
@@ -1433,8 +1403,11 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql VOLATILE;
 
+COMMENT ON FUNCTION attribute_directory.compact(attribute_directory.attributestore) IS
+'Remove all subsequent records with duplicate attribute values and update the modified of the first';
 
-CREATE OR REPLACE FUNCTION attribute_directory.direct_dependers(name text)
+
+CREATE FUNCTION attribute_directory.direct_dependers(name text)
     RETURNS SETOF name
 AS $$
     SELECT dependee.relname AS name
@@ -1451,10 +1424,10 @@ AS $$
 $$ LANGUAGE SQL STABLE;
 
 
-CREATE OR REPLACE FUNCTION attribute_directory.dependers(name name, level integer)
+-- Stub function to be able to create a recursive one.
+CREATE FUNCTION attribute_directory.dependers(name name, level integer)
     RETURNS TABLE(name name, level integer)
 AS $$
--- Stub function to be able to create a recursive one.
     SELECT $1, $2;
 $$ LANGUAGE SQL STABLE;
 
@@ -1464,7 +1437,7 @@ CREATE OR REPLACE FUNCTION attribute_directory.dependers(name name, level intege
 AS $$
     SELECT (d.dependers).* FROM (
         SELECT attribute_directory.dependers(depender, $2 + 1)
-        FROM attribute_directory.direct_dependers($1) depender 
+        FROM attribute_directory.direct_dependers($1) depender
     ) d
     UNION ALL
     SELECT depender, $2
@@ -1472,21 +1445,21 @@ AS $$
 $$ LANGUAGE SQL STABLE;
 
 
-CREATE OR REPLACE FUNCTION attribute_directory.dependers(name name)
+CREATE FUNCTION attribute_directory.dependers(name name)
     RETURNS TABLE(name name, level integer)
 AS $$
     SELECT * FROM attribute_directory.dependers($1, 1);
 $$ LANGUAGE SQL STABLE;
 
 
-CREATE OR REPLACE FUNCTION attribute_directory.at_ptr_function_name(attribute_directory.attributestore)
+CREATE FUNCTION attribute_directory.at_ptr_function_name(attribute_directory.attributestore)
     RETURNS name
 AS $$
     SELECT (attribute_directory.to_table_name($1) || '_at_ptr')::name;
 $$ LANGUAGE SQL IMMUTABLE;
 
 
-CREATE OR REPLACE FUNCTION attribute_directory.create_at_func_ptr_sql(attribute_directory.attributestore)
+CREATE FUNCTION attribute_directory.create_at_func_ptr_sql(attribute_directory.attributestore)
     RETURNS text[]
 AS $function$
     SELECT ARRAY[
@@ -1512,7 +1485,7 @@ $$ LANGUAGE SQL STABLE',
 $function$ LANGUAGE sql STABLE;
 
 
-CREATE OR REPLACE FUNCTION attribute_directory.create_at_func_ptr(attribute_directory.attributestore)
+CREATE FUNCTION attribute_directory.create_at_func_ptr(attribute_directory.attributestore)
     RETURNS attribute_directory.attributestore
 AS $$
     SELECT public.action(
@@ -1522,12 +1495,12 @@ AS $$
 $$ LANGUAGE sql VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION attribute_directory.create_entity_at_func_ptr_sql(attribute_directory.attributestore)
+CREATE FUNCTION attribute_directory.create_entity_at_func_ptr_sql(attribute_directory.attributestore)
     RETURNS text[]
 AS $function$
     SELECT ARRAY[
         format(
-            'CREATE OR REPLACE FUNCTION attribute_history.%I(entity_id integer, timestamp with time zone)
+            'CREATE FUNCTION attribute_history.%I(entity_id integer, timestamp with time zone)
     RETURNS timestamp with time zone
     AS $$
         SELECT max(timestamp)
@@ -1547,7 +1520,7 @@ AS $function$
 $function$ LANGUAGE sql VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION attribute_directory.create_entity_at_func_ptr(attribute_directory.attributestore)
+CREATE FUNCTION attribute_directory.create_entity_at_func_ptr(attribute_directory.attributestore)
     RETURNS attribute_directory.attributestore
 AS $$
     SELECT public.action(
@@ -1557,13 +1530,13 @@ AS $$
 $$ LANGUAGE sql VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION attribute_directory.create_at_func(attribute_directory.attributestore)
+CREATE FUNCTION attribute_directory.create_at_func(attribute_directory.attributestore)
     RETURNS attribute_directory.attributestore
 AS $function$
     SELECT public.action(
         $1,
         format(
-            'CREATE OR REPLACE FUNCTION attribute_history.%I(timestamp with time zone)
+            'CREATE FUNCTION attribute_history.%I(timestamp with time zone)
     RETURNS SETOF attribute_history.%I
 AS $$
 SELECT a.*
@@ -1591,7 +1564,7 @@ $$ LANGUAGE SQL STABLE;',
 $function$ LANGUAGE SQL VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION attribute_directory.drop_entity_at_func_sql(attribute_directory.attributestore)
+CREATE FUNCTION attribute_directory.drop_entity_at_func_sql(attribute_directory.attributestore)
     RETURNS text
 AS $$
 SELECT format(
@@ -1601,7 +1574,7 @@ SELECT format(
 $$ LANGUAGE sql STABLE;
 
 
-CREATE OR REPLACE FUNCTION attribute_directory.drop_entity_at_func(attribute_directory.attributestore)
+CREATE FUNCTION attribute_directory.drop_entity_at_func(attribute_directory.attributestore)
     RETURNS attribute_directory.attributestore
 AS $$
     SELECT public.action(
@@ -1611,12 +1584,12 @@ AS $$
 $$ LANGUAGE sql VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION attribute_directory.create_entity_at_func_sql(attribute_directory.attributestore)
+CREATE FUNCTION attribute_directory.create_entity_at_func_sql(attribute_directory.attributestore)
     RETURNS text[]
 AS $function$
     SELECT ARRAY[
         format(
-            'CREATE OR REPLACE FUNCTION attribute_history.%I(entity_id integer, timestamp with time zone)
+            'CREATE FUNCTION attribute_history.%I(entity_id integer, timestamp with time zone)
     RETURNS attribute_history.%I
 AS $$
 SELECT *
@@ -1638,7 +1611,7 @@ $$ LANGUAGE sql STABLE;',
 $function$ LANGUAGE sql STABLE;
 
 
-CREATE OR REPLACE FUNCTION attribute_directory.create_entity_at_func(attribute_directory.attributestore)
+CREATE FUNCTION attribute_directory.create_entity_at_func(attribute_directory.attributestore)
     RETURNS attribute_directory.attributestore
 AS $function$
     SELECT public.action(
@@ -1649,7 +1622,7 @@ $function$ LANGUAGE sql VOLATILE;
 
 
 
-CREATE OR REPLACE FUNCTION attribute_directory.create_dependees(attribute_directory.attributestore)
+CREATE FUNCTION attribute_directory.create_dependees(attribute_directory.attributestore)
     RETURNS attribute_directory.attributestore
 AS $$
     SELECT
@@ -1667,7 +1640,7 @@ AS $$
 $$ LANGUAGE SQL VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION attribute_directory.drop_dependees(attribute_directory.attributestore)
+CREATE FUNCTION attribute_directory.drop_dependees(attribute_directory.attributestore)
     RETURNS attribute_directory.attributestore
 AS $$
     SELECT
