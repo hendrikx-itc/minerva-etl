@@ -12,7 +12,7 @@ CREATE TABLE dimension."month" (
     "end" timestamp with time zone
 );
 
-GRANT ALL ON TABLE dimension."month" TO minerva_admin;
+ALTER TABLE dimension."month" OWNER TO minerva_admin;
 GRANT SELECT ON TABLE dimension."month" TO minerva;
 GRANT INSERT,DELETE,UPDATE ON TABLE dimension."month" TO minerva_writer;
 
@@ -26,7 +26,7 @@ CREATE TABLE dimension.week (
     week_iso_8601 smallint
 );
 
-GRANT ALL ON TABLE dimension.week TO minerva_admin;
+ALTER TABLE dimension.week OWNER TO minerva_admin;
 GRANT SELECT ON TABLE dimension.week TO minerva;
 GRANT INSERT,DELETE,UPDATE ON TABLE dimension.week TO minerva_writer;
 
@@ -38,7 +38,7 @@ CREATE TABLE dimension."day" (
     "end" timestamp with time zone
 );
 
-GRANT ALL ON TABLE dimension."day" TO minerva_admin;
+ALTER TABLE dimension."day" OWNER TO minerva_admin;
 GRANT SELECT ON TABLE dimension."day" TO minerva;
 GRANT INSERT,DELETE,UPDATE ON TABLE dimension."day" TO minerva_writer;
 
@@ -50,7 +50,7 @@ CREATE TABLE dimension.hour (
     "end" timestamp with time zone
 );
 
-GRANT ALL ON TABLE dimension.hour TO minerva_admin;
+ALTER TABLE dimension.hour OWNER TO minerva_admin;
 GRANT SELECT ON TABLE dimension.hour TO minerva;
 GRANT INSERT,DELETE,UPDATE ON TABLE dimension.hour TO minerva_writer;
 
@@ -62,7 +62,7 @@ CREATE TABLE dimension.quarter (
     "end" timestamp with time zone
 );
 
-GRANT ALL ON TABLE dimension.quarter TO minerva_admin;
+ALTER TABLE dimension.quarter OWNER TO minerva_admin;
 GRANT SELECT ON TABLE dimension.quarter TO minerva;
 GRANT INSERT,DELETE,UPDATE ON TABLE dimension.quarter TO minerva_writer;
 
@@ -74,7 +74,7 @@ CREATE TABLE dimension."5m" (
     "end" timestamp with time zone
 );
 
-GRANT ALL ON TABLE dimension."5m" TO minerva_admin;
+ALTER TABLE dimension."5m" OWNER TO minerva_admin;
 GRANT SELECT ON TABLE dimension."5m" TO minerva;
 GRANT INSERT,DELETE,UPDATE ON TABLE dimension."5m" TO minerva_writer;
 
@@ -86,7 +86,7 @@ CREATE TABLE dimension."four_consec_qtr" (
     "end" timestamp with time zone
 );
 
-GRANT ALL ON TABLE dimension."four_consec_qtr" TO minerva_admin;
+ALTER TABLE dimension."four_consec_qtr" OWNER TO minerva_admin;
 GRANT SELECT ON TABLE dimension."four_consec_qtr" TO minerva;
 GRANT INSERT,DELETE,UPDATE ON TABLE dimension."four_consec_qtr" TO minerva_writer;
 
@@ -99,7 +99,7 @@ CREATE TABLE dimension."month_15m" (
 
 CREATE INDEX month_15m_timestamp_idx ON dimension."month_15m"(timestamp);
 
-GRANT ALL ON TABLE dimension."month_15m" TO minerva_admin;
+ALTER TABLE dimension."month_15m" OWNER TO minerva_admin;
 GRANT SELECT ON TABLE dimension."month_15m" TO minerva;
 GRANT INSERT,DELETE,UPDATE ON TABLE dimension."month_15m" TO minerva_writer;
 
@@ -112,7 +112,7 @@ CREATE TABLE dimension."week_15m" (
 
 CREATE INDEX week_15m_timestamp_idx ON dimension."week_15m"(timestamp);
 
-GRANT ALL ON TABLE dimension."week_15m" TO minerva_admin;
+ALTER TABLE dimension."week_15m" OWNER TO minerva_admin;
 GRANT SELECT ON TABLE dimension."week_15m" TO minerva;
 GRANT INSERT,DELETE,UPDATE ON TABLE dimension."week_15m" TO minerva_writer;
 
@@ -123,6 +123,6 @@ CREATE TABLE dimension."day_15m" (
     timestamp_15m timestamp with time zone PRIMARY KEY
 );
 
-GRANT ALL ON TABLE dimension."day_15m" TO minerva_admin;
+ALTER TABLE dimension."day_15m" OWNER TO minerva_admin;
 GRANT SELECT ON TABLE dimension."day_15m" TO minerva;
 GRANT INSERT,DELETE,UPDATE ON TABLE dimension."day_15m" TO minerva_writer;

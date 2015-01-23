@@ -19,6 +19,5 @@ CREATE UNLOGGED TABLE entity_tag.entitytaglink_staging (
 
 ALTER TABLE entity_tag.entitytaglink_staging OWNER TO minerva_admin;
 
-GRANT ALL ON TABLE entity_tag.entitytaglink_staging TO minerva_admin;
 GRANT SELECT ON TABLE entity_tag.entitytaglink_staging TO minerva;
 GRANT INSERT,DELETE,UPDATE ON TABLE entity_tag.entitytaglink_staging TO minerva_writer;

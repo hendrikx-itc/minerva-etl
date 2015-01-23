@@ -36,11 +36,9 @@ ALTER TABLE ONLY attribute_directory.attributestore
     ADD CONSTRAINT attribute_attributestore_datasource_id_fkey
     FOREIGN KEY(datasource_id) REFERENCES directory.datasource(id);
 
-GRANT ALL ON TABLE attribute_directory.attributestore TO minerva_admin;
 GRANT SELECT ON TABLE attribute_directory.attributestore TO minerva;
 GRANT INSERT,DELETE,UPDATE ON TABLE attribute_directory.attributestore TO minerva_writer;
 
-GRANT ALL ON SEQUENCE attribute_directory.attributestore_id_seq TO minerva_admin;
 GRANT SELECT ON SEQUENCE attribute_directory.attributestore_id_seq TO minerva;
 GRANT UPDATE ON SEQUENCE attribute_directory.attributestore_id_seq TO minerva_writer;
 
@@ -92,11 +90,9 @@ ALTER TABLE ONLY attribute_directory.attribute
     FOREIGN KEY(attributestore_id) REFERENCES attribute_directory.attributestore(id)
     ON DELETE CASCADE;
 
-GRANT ALL ON TABLE attribute_directory.attribute TO minerva_admin;
 GRANT SELECT ON TABLE attribute_directory.attribute TO minerva;
 GRANT INSERT,DELETE,UPDATE ON TABLE attribute_directory.attribute TO minerva_writer;
 
-GRANT ALL ON SEQUENCE attribute_directory.attribute_id_seq TO minerva_admin;
 GRANT SELECT ON SEQUENCE attribute_directory.attribute_id_seq TO minerva;
 GRANT UPDATE ON SEQUENCE attribute_directory.attribute_id_seq TO minerva_writer;
 
@@ -120,7 +116,6 @@ ALTER TABLE ONLY attribute_directory.attribute_tag_link
     ADD CONSTRAINT attribute_tag_link_attribute_id_fkey FOREIGN KEY (attribute_id) REFERENCES attribute_directory.attribute(id)
     ON DELETE CASCADE;
 
-GRANT ALL ON TABLE attribute_directory.attribute_tag_link TO minerva_admin;
 GRANT SELECT ON TABLE attribute_directory.attribute_tag_link TO minerva;
 GRANT INSERT,DELETE,UPDATE ON TABLE attribute_directory.attribute_tag_link TO minerva_writer;
 
@@ -140,7 +135,6 @@ ALTER TABLE ONLY attribute_directory.attributestore_modified
     ADD CONSTRAINT attributestore_modified_attributestore_id_fkey FOREIGN KEY (attributestore_id) REFERENCES attribute_directory.attributestore(id)
     ON DELETE CASCADE;
 
-GRANT ALL ON TABLE attribute_directory.attributestore_modified TO minerva_admin;
 GRANT SELECT ON TABLE attribute_directory.attributestore_modified TO minerva;
 GRANT INSERT,DELETE,UPDATE ON TABLE attribute_directory.attributestore_modified TO minerva_writer;
 
@@ -160,7 +154,6 @@ ALTER TABLE ONLY attribute_directory.attributestore_curr_materialized
     ADD CONSTRAINT attributestore_curr_materialized_attributestore_id_fkey FOREIGN KEY (attributestore_id) REFERENCES attribute_directory.attributestore(id)
     ON DELETE CASCADE;
 
-GRANT ALL ON TABLE attribute_directory.attributestore_curr_materialized TO minerva_admin;
 GRANT SELECT ON TABLE attribute_directory.attributestore_curr_materialized TO minerva;
 GRANT INSERT,DELETE,UPDATE ON TABLE attribute_directory.attributestore_curr_materialized TO minerva_writer;
 
@@ -180,6 +173,5 @@ ALTER TABLE ONLY attribute_directory.attributestore_compacted
     ADD CONSTRAINT attributestore_compacted_attributestore_id_fkey FOREIGN KEY (attributestore_id) REFERENCES attribute_directory.attributestore(id)
     ON DELETE CASCADE;
 
-GRANT ALL ON TABLE attribute_directory.attributestore_compacted TO minerva_admin;
 GRANT SELECT ON TABLE attribute_directory.attributestore_compacted TO minerva;
 GRANT INSERT,DELETE,UPDATE ON TABLE attribute_directory.attributestore_compacted TO minerva_writer;

@@ -120,10 +120,9 @@ CREATE AGGREGATE sum_array(anyarray)
 CREATE OR REPLACE FUNCTION public.divide_array(anyarray, anyelement)
     RETURNS anyarray
 AS $$
-SELECT array_agg(arr / $2) FROM
-(
-    SELECT unnest($1) AS arr
-) AS foo;
+SELECT
+  array_agg(public.safe_division(arr, $2))
+FROM unnest($1) AS arr;
 $$ LANGUAGE SQL STABLE STRICT;
 
 
@@ -131,6 +130,27 @@ CREATE OR REPLACE FUNCTION public.divide_array(anyarray, anyarray)
     RETURNS anyarray
 AS $$
 SELECT array_agg(public.safe_division(arr1, arr2)) FROM
+(
+    SELECT
+    unnest($1[1:least(array_length($1,1), array_length($2,1))]) AS arr1,
+    unnest($2[1:least(array_length($1,1), array_length($2,1))]) AS arr2
+) AS foo;
+$$ LANGUAGE SQL STABLE STRICT;
+
+
+CREATE OR REPLACE FUNCTION public.multiply_array(anyarray, anyelement)
+    RETURNS anyarray
+AS $$
+SELECT
+  array_agg(arr * $2)
+FROM unnest($1) AS arr;
+$$ LANGUAGE SQL STABLE STRICT;
+
+
+CREATE OR REPLACE FUNCTION public.multiply_array(anyarray, anyarray)
+    RETURNS anyarray
+AS $$
+SELECT array_agg(arr1 * arr2) FROM
 (
     SELECT
     unnest($1[1:least(array_length($1,1), array_length($2,1))]) AS arr1,
@@ -150,6 +170,15 @@ CREATE OR REPLACE FUNCTION public.to_pdf(text)
 AS $$
 	SELECT array_agg(nullif(x, '')::int)
     FROM unnest(string_to_array($1, ',')) AS x;
+$$ LANGUAGE SQL STABLE STRICT;
+
+
+CREATE OR REPLACE FUNCTION public.array_to_char(anyarray, format text) RETURNS text[]
+AS $$
+SELECT
+  array_agg(trim(format('%s', to_char(arr_item, $2))))
+FROM
+  unnest($1) AS arr_item;
 $$ LANGUAGE SQL STABLE STRICT;
 
 

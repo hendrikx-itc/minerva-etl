@@ -27,9 +27,13 @@ def select(conn, minerva_query, relation_group_name):
     sql = "SELECT {} {}".format(entity_id_column, q)
 
     with closing(conn.cursor()) as cursor:
+        cursor.execute('SET enable_bitmapscan TO off')
+
         cursor.execute(sql, args)
 
         rows = cursor.fetchall()
+
+        cursor.execute('SET enable_bitmapscan TO on')
 
     return map(itemgetter(0), rows)
 
