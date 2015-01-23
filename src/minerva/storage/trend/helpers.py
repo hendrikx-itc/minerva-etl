@@ -43,7 +43,8 @@ def get_trend_by_id(conn, trend_id):
         "FROM trend.trend t "
         "JOIN trend.trendstore_trend_link ttl on ttl.trend_id = t.id "
         "JOIN trend.trendstore ts on ts.id = ttl.trendstore_id "
-        "WHERE t.id = %s")
+        "WHERE t.id = %s"
+    )
 
     args = (trend_id, )
 
@@ -63,8 +64,10 @@ def get_previous_timestamp(timestamp, granularity):
     :param timestamp: non-naive timestamp
     :param granularity: granularity in seconds to subtract from timestamp
     """
-    previous = (timestamp.astimezone(pytz.utc) -
-        timedelta(0, granularity)).astimezone(timestamp.tzinfo)
+    previous = (
+        timestamp.astimezone(pytz.utc) - timedelta(0, granularity)
+    ).astimezone(timestamp.tzinfo)
+
     utc_offset_delta = timestamp.utcoffset() - previous.utcoffset()
     return previous + utc_offset_delta
 
@@ -76,8 +79,10 @@ def get_next_timestamp(timestamp, granularity):
     :param timestamp: non-naive timestamp
     :param granularity: granularity in seconds to subtract from timestamp
     """
-    next = (timestamp.astimezone(pytz.utc) +
-        timedelta(0, granularity)).astimezone(timestamp.tzinfo)
+    next = (
+        timestamp.astimezone(pytz.utc) + timedelta(0, granularity)
+    ).astimezone(timestamp.tzinfo)
+
     utc_offset_delta = timestamp.utcoffset() - next.utcoffset()
     return next + utc_offset_delta
 
@@ -135,28 +140,34 @@ def get_table_names(trendstores, start, end):
     """
     Returns table names containing trend data corresponding to specification.
     """
-    return list(set(chain(*[trendstore.table_names(start, end)
-            for trendstore in trendstores])))
+    return list(set(
+        chain(*[
+            trendstore.table_names(start, end)
+            for trendstore in trendstores
+        ])
+    ))
 
 
-def get_table_names_v4(cursor, datasources, granularity, entitytype, start,
-        end):
+def get_table_names_v4(
+        cursor, datasources, granularity, entitytype, start, end):
     """
     A get_table_names like function that supports both v3 and v4 trendstores.
     """
     if isinstance(granularity, int):
         granularity = create_granularity(granularity)
 
-    trendstores = [TrendStore.get(cursor, datasource, entitytype,
-        granularity) for datasource in datasources]
+    trendstores = [
+        TrendStore.get(cursor, datasource, entitytype, granularity)
+        for datasource in datasources
+    ]
 
     return get_table_names(trendstores, start, end)
 
 
 def get_relation_name(conn, source_entitytype_name, target_entitytype_name):
-    relation_name = None
-
-    relationtype_name = "{}->{}".format(source_entitytype_name, target_entitytype_name)
+    relationtype_name = "{}->{}".format(
+        source_entitytype_name, target_entitytype_name
+    )
     query = "SELECT name FROM relation.type WHERE lower(name) = lower(%s)"
 
     with closing(conn.cursor()) as cursor:

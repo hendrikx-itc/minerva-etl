@@ -46,8 +46,8 @@ class TrendStore(object):
     """
     All data belonging to a specific datasource, entitytype and granularity.
     """
-    def __init__(self, datasource, entitytype, granularity, partition_size,
-                 type):
+    def __init__(
+            self, datasource, entitytype, granularity, partition_size, type):
         self.id = None
         self.datasource = datasource
         self.entitytype = entitytype
@@ -64,8 +64,9 @@ class TrendStore(object):
         granularity_name = DATA_TABLE_POSTFIXES.get(
             self.granularity.name, self.granularity.name)
 
-        return "{}_{}_{}".format(self.datasource.name, self.entitytype.name,
-                granularity_name)
+        return "{}_{}_{}".format(
+            self.datasource.name, self.entitytype.name, granularity_name
+        )
 
     def make_table_name(self, timestamp):
         table_basename = self.make_table_basename()
@@ -121,14 +122,18 @@ class TrendStore(object):
 
             for column_name, current_data_type, data_type in \
                     zip(column_names, current_data_types, data_types):
-                required_data_type = datatype.max_datatype(current_data_type, data_type)
+                required_data_type = datatype.max_datatype(
+                    current_data_type, data_type
+                )
 
                 if required_data_type != current_data_type:
                     changes.append((column_name, required_data_type))
 
                     logging.info(
-                        "Column {0:s} requires change from type {1} to {2}".format(
-                            column_name, current_data_type, required_data_type))
+                        "Column {0:s} requires change from type "
+                        "{1} to {2}".format(
+                            column_name, current_data_type, required_data_type)
+                    )
 
             query = (
                 "SELECT trend.modify_trendstore_columns("
@@ -187,8 +192,10 @@ class TrendStore(object):
         return cursor.fetchall()
 
     def create(self, cursor):
-        column_names = ["datasource_id", "entitytype_id", "granularity",
-                "partition_size", "type", "version"]
+        column_names = [
+            "datasource_id", "entitytype_id", "granularity", "partition_size",
+            "type", "version"
+        ]
 
         columns = map(Column, column_names)
 
@@ -226,15 +233,18 @@ class TrendStore(object):
 
             return self
 
-    column_names = ["id", "datasource_id", "entitytype_id", "granularity",
-            "partition_size", "type", "version"]
+    column_names = [
+        "id", "datasource_id", "entitytype_id", "granularity",
+        "partition_size", "type", "version"
+    ]
 
     columns = map(Column, column_names)
 
     get_query = schema.trendstore.select(columns).where_(ands([
         Eq(Column("datasource_id")),
         Eq(Column("entitytype_id")),
-        Eq(Column("granularity"))]))
+        Eq(Column("granularity"))
+    ]))
 
     get_by_id_query = schema.trendstore.select(columns).where_(Eq(Column("id")))
 
@@ -245,14 +255,18 @@ class TrendStore(object):
         cls.get_query.execute(cursor, args)
 
         if cursor.rowcount > 1:
-            raise Exception("more than 1 ({}) trendstore matches".format(
-                    cursor.rowcount))
+            raise Exception(
+                "more than 1 ({}) trendstore matches".format(cursor.rowcount)
+            )
         elif cursor.rowcount == 1:
-            trendstore_id, datasource_id, entitytype_id, granularity_str, \
-                    partition_size, type, version = cursor.fetchone()
+            (
+                trendstore_id, datasource_id, entitytype_id, granularity_str,
+                partition_size, type, version
+            ) = cursor.fetchone()
 
-            trendstore = TrendStore(datasource, entitytype, granularity,
-                    partition_size, type)
+            trendstore = TrendStore(
+                datasource, entitytype, granularity, partition_size, type
+            )
 
             trendstore.id = trendstore_id
 
@@ -265,16 +279,19 @@ class TrendStore(object):
         cls.get_by_id_query.execute(cursor, args)
 
         if cursor.rowcount == 1:
-            trendstore_id, datasource_id, entitytype_id, granularity_str, \
-                    partition_size, type, version = cursor.fetchone()
+            (
+                trendstore_id, datasource_id, entitytype_id, granularity_str,
+                partition_size, type, version
+            ) = cursor.fetchone()
 
             datasource = get_datasource_by_id(cursor, datasource_id)
             entitytype = get_entitytype_by_id(cursor, entitytype_id)
 
             granularity = create_granularity(granularity_str)
 
-            trendstore = TrendStore(datasource, entitytype, granularity,
-                    partition_size, type)
+            trendstore = TrendStore(
+                datasource, entitytype, granularity, partition_size, type
+            )
 
             trendstore.id = trendstore_id
 
@@ -432,14 +449,17 @@ class ExtractPartition(DbAction):
         entitytype = get_entitytype_by_id(cursor, entity.entitytype_id)
         datapackage = state["datapackage"]
 
-        trendstore = TrendStore.get(cursor, self.datasource, entitytype,
-                datapackage.granularity)
+        trendstore = TrendStore.get(
+            cursor, self.datasource, entitytype, datapackage.granularity
+        )
 
         if not trendstore:
             partition_size = 86400
 
-            trendstore = TrendStore(self.datasource, entitytype,
-                    datapackage.granularity, partition_size, "table").create(cursor)
+            trendstore = TrendStore(
+                self.datasource, entitytype, datapackage.granularity,
+                partition_size, "table"
+            ).create(cursor)
 
         partition = trendstore.partition(datapackage.timestamp)
 
@@ -487,8 +507,9 @@ class MarkModified(DbAction):
         timestamp = self.timestamp(state)
 
         try:
-            mark_modified(cursor, partition.table(), timestamp,
-                    state["modified"])
+            mark_modified(
+                cursor, partition.table(), timestamp, state["modified"]
+            )
         except UniqueViolation:
             return no_op
 
@@ -503,17 +524,22 @@ class CopyFrom(DbAction):
         datapackage = self.datapackage(state)
 
         try:
-            store_copy_from(cursor, partition.table(), datapackage,
-                    state["modified"])
+            store_copy_from(
+                cursor, partition.table(), datapackage, state["modified"]
+            )
         except NoCopyInProgress:
             return no_op
         except NoSuchTable:
-            data_types = compose(DataPackage.deduce_data_types, self.datapackage)
+            data_types = compose(
+                DataPackage.deduce_data_types, self.datapackage
+            )
             trend_names = compose(attrgetter("trend_names"), self.datapackage)
             fix = CreatePartition(self.partition, trend_names, data_types)
             return insert_before(fix)
         except NoSuchColumnError:
-            data_types = compose(DataPackage.deduce_data_types, self.datapackage)
+            data_types = compose(
+                DataPackage.deduce_data_types, self.datapackage
+            )
             trend_names = compose(attrgetter("trend_names"), self.datapackage)
             fix = CheckColumnsExist(self.partition, trend_names, data_types)
             return insert_before(fix)
@@ -521,7 +547,9 @@ class CopyFrom(DbAction):
             fix = Update(self.partition, self.datapackage)
             return replace(fix)
         except DataTypeMismatch:
-            data_types = compose(DataPackage.deduce_data_types, self.datapackage)
+            data_types = compose(
+                DataPackage.deduce_data_types, self.datapackage
+            )
             trend_names = compose(attrgetter("trend_names"), self.datapackage)
             fix = CheckColumnTypes(self.partition, trend_names, data_types)
             return insert_before(fix)
@@ -538,18 +566,23 @@ class BatchInsert(DbAction):
 
         try:
             try:
-                store_batch_insert(cursor, partition.table(), datapackage,
-                        state["modified"])
+                store_batch_insert(
+                    cursor, partition.table(), datapackage, state["modified"]
+                )
             except Exception as exc:
                 logging.debug("exception: {}".format(type(exc).__name__))
                 raise exc
         except NoSuchTable:
-            data_types = compose(DataPackage.deduce_data_types, self.datapackage)
+            data_types = compose(
+                DataPackage.deduce_data_types, self.datapackage
+            )
             trend_names = compose(attrgetter("trend_names"), self.datapackage)
             fix = CreatePartition(self.partition, trend_names, data_types)
             return insert_before(fix)
         except NoSuchColumnError:
-            data_types = compose(DataPackage.deduce_data_types, self.datapackage)
+            data_types = compose(
+                DataPackage.deduce_data_types, self.datapackage
+            )
             trend_names = compose(attrgetter("trend_names"), self.datapackage)
             fix = CheckColumnsExist(self.partition, trend_names, data_types)
             return insert_before(fix)
@@ -557,7 +590,9 @@ class BatchInsert(DbAction):
             fix = Update(self.partition, self.datapackage)
             return replace(fix)
         except DataTypeMismatch:
-            data_types = compose(DataPackage.deduce_data_types, self.datapackage)
+            data_types = compose(
+                DataPackage.deduce_data_types, self.datapackage
+            )
             trend_names = compose(attrgetter("trend_names"), self.datapackage)
             fix = CheckColumnTypes(self.partition, trend_names, data_types)
             return insert_before(fix)
@@ -573,19 +608,27 @@ class Update(DbAction):
         datapackage = self.datapackage(state)
 
         try:
-            store_update(cursor, partition.table(), datapackage, state["modified"])
+            store_update(
+                cursor, partition.table(), datapackage, state["modified"]
+            )
         except NoSuchTable:
-            data_types = compose(DataPackage.deduce_data_types, self.datapackage)
+            data_types = compose(
+                DataPackage.deduce_data_types, self.datapackage
+            )
             trend_names = compose(attrgetter("trend_names"), self.datapackage)
             fix = CreatePartition(self.partition, trend_names, data_types)
             return insert_before(fix)
         except NoSuchColumnError:
-            data_types = compose(DataPackage.deduce_data_types, self.datapackage)
+            data_types = compose(
+                DataPackage.deduce_data_types, self.datapackage
+            )
             trend_names = compose(attrgetter("trend_names"), self.datapackage)
             fix = CheckColumnsExist(self.partition, trend_names, data_types)
             return insert_before(fix)
         except DataTypeMismatch:
-            data_types = compose(DataPackage.deduce_data_types, self.datapackage)
+            data_types = compose(
+                DataPackage.deduce_data_types, self.datapackage
+            )
             trend_names = compose(attrgetter("trend_names"), self.datapackage)
             fix = CheckColumnTypes(self.partition, trend_names, data_types)
             return insert_before(fix)
@@ -678,8 +721,9 @@ def store_copy_from(cursor, table, datapackage, modified):
     :param table: Name of table, including schema
     :param datapackage: A DataPackage object
     """
-    copy_from_file = create_copy_from_file(datapackage.timestamp, modified,
-            datapackage.rows)
+    copy_from_file = create_copy_from_file(
+        datapackage.timestamp, modified, datapackage.rows
+    )
 
     copy_from_query = create_copy_from_query(table, datapackage.trend_names)
 
@@ -719,10 +763,14 @@ def create_copy_from_lines(timestamp, modified, data_rows):
 def create_copy_from_line(timestamp, modified, data_row):
     entity_id, values = data_row
 
-    trend_value_part = "\t".join(escape_value(format_value(value)) for value in values)
+    trend_value_part = "\t".join(
+        escape_value(format_value(value)) for value in values
+    )
 
-    return u"{0:d}\t'{1!s}'\t'{2!s}'\t{3}\n".format(entity_id,
-            timestamp.isoformat(), modified.isoformat(), trend_value_part)
+    return u"{0:d}\t'{1!s}'\t'{2!s}'\t{3}\n".format(
+        entity_id, timestamp.isoformat(), modified.isoformat(),
+        trend_value_part
+    )
 
 
 def create_copy_from_query(table, trend_names):
@@ -749,16 +797,19 @@ def store_update(cursor, table, datapackage, modified):
     store_copy_from(cursor, tmp_table, datapackage, modified)
 
     # Update existing records
-    store_using_update(cursor, tmp_table, table, datapackage.trend_names,
-            modified)
+    store_using_update(
+        cursor, tmp_table, table, datapackage.trend_names, modified
+    )
 
     # Fill in missing records
-    store_using_tmp(cursor, tmp_table, table, datapackage.trend_names, modified)
+    store_using_tmp(cursor, tmp_table, table, datapackage.trend_names)
 
 
 def store_using_update(cursor, tmp_table, table, column_names, modified):
-    set_columns = ", ".join("\"{0}\"={1}.\"{0}\"".format(name, tmp_table.render())
-            for name in column_names)
+    set_columns = ", ".join(
+        "\"{0}\"={1}.\"{0}\"".format(name, tmp_table.render())
+        for name in column_names
+    )
 
     update_query = (
         'UPDATE {0} SET modified=greatest(%s, {0}.modified), {1} '
@@ -774,7 +825,7 @@ def store_using_update(cursor, tmp_table, table, column_names, modified):
         raise translate_postgresql_exception(exc)
 
 
-def store_using_tmp(cursor, tmp_table, table, column_names, modified):
+def store_using_tmp(cursor, tmp_table, table, column_names):
     """
     Store the data using the PostgreSQL specific COPY FROM command and a
     temporary table. The temporary table is joined against the target table
@@ -783,22 +834,29 @@ def store_using_tmp(cursor, tmp_table, table, column_names, modified):
     all_column_names = ['entity_id', 'timestamp']
     all_column_names.extend(column_names)
 
-    tmp_column_names = ", ".join('tmp."{0}"'.format(name)
-            for name in all_column_names)
-    dest_column_names = ", ".join('"{0}"'.format(name)
-            for name in all_column_names)
+    tmp_column_names = ", ".join(
+        'tmp."{0}"'.format(name)
+        for name in all_column_names
+    )
+
+    dest_column_names = ", ".join(
+        '"{0}"'.format(name)
+        for name in all_column_names
+    )
 
     insert_query = (
         "INSERT INTO {table} ({dest_columns}) "
         "SELECT {tmp_columns} FROM {tmp_table} AS tmp "
         "LEFT JOIN {table} ON "
-            "tmp.\"timestamp\" = {table}.\"timestamp\" "
-            "AND tmp.entity_id = {table}.entity_id "
-        "WHERE {table}.entity_id IS NULL").format(
-            table=table.render(),
-            dest_columns=dest_column_names,
-            tmp_columns=tmp_column_names,
-            tmp_table=tmp_table.render())
+        "tmp.\"timestamp\" = {table}.\"timestamp\" "
+        "AND tmp.entity_id = {table}.entity_id "
+        "WHERE {table}.entity_id IS NULL"
+    ).format(
+        table=table.render(),
+        dest_columns=dest_column_names,
+        tmp_columns=tmp_column_names,
+        tmp_table=tmp_table.render()
+    )
 
     try:
         cursor.execute(insert_query)
@@ -810,8 +868,10 @@ def store_batch_insert(cursor, table, datapackage, modified):
     column_names = ["entity_id", "timestamp", "modified"]
     column_names.extend(datapackage.trend_names)
 
-    dest_column_names = ",".join('"{0}"'.format(column_name)
-            for column_name in column_names)
+    dest_column_names = ",".join(
+        '"{0}"'.format(column_name)
+        for column_name in column_names
+    )
 
     parameters = ", ".join(["%s"] * len(column_names))
 
@@ -819,8 +879,10 @@ def store_batch_insert(cursor, table, datapackage, modified):
         "INSERT INTO {0} ({1}) "
         "VALUES ({2})").format(table.render(), dest_column_names, parameters)
 
-    rows = [(entity_id, datapackage.timestamp, modified) + tuple(values)
-            for entity_id, values in datapackage.rows]
+    rows = [
+        (entity_id, datapackage.timestamp, modified) + tuple(values)
+        for entity_id, values in datapackage.rows
+    ]
 
     logging.debug(cursor.mogrify(query, first(rows)))
 
@@ -901,18 +963,22 @@ def refine_datapackage(cursor, raw_datapackage):
 
     refined_rows = zip(entity_ids, refined_value_rows)
 
-    timestamp = pytz.UTC.localize(datetime.strptime(raw_datapackage.timestamp,
-            "%Y-%m-%dT%H:%M:%S"))
+    timestamp = pytz.UTC.localize(
+        datetime.strptime(raw_datapackage.timestamp, "%Y-%m-%dT%H:%M:%S")
+    )
 
     granularity = ensure_granularity(raw_datapackage.granularity)
 
-    return DataPackage(granularity, timestamp, raw_datapackage.trend_names,
-            refined_rows)
+    return DataPackage(
+        granularity, timestamp, raw_datapackage.trend_names, refined_rows
+    )
 
 
 def get_data_types(cursor, table, column_names):
-    return [get_data_type(cursor, table, column_name)
-            for column_name in column_names]
+    return [
+        get_data_type(cursor, table, column_name)
+        for column_name in column_names
+    ]
 
 
 def get_data_type(cursor, table, column_name):

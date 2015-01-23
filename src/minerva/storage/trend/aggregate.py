@@ -30,16 +30,18 @@ from minerva.db.query import Table
 from minerva.storage.trend.tables import PARTITION_SIZES
 
 
-def get_aggregate_shard(conn, entities_sql, entitytype_id, granularity,
-                        formula_str, shard_index):
+def get_aggregate_shard(
+        conn, entities_sql, entitytype_id, granularity, formula_str,
+        shard_index):
     start, end = shard_interval(granularity, shard_index)
 
     return get_aggregate_data(conn, entities_sql, entitytype_id,
                               granularity, formula_str, start, end)
 
 
-def get_aggregate_data(conn, entities_query, entitytype_id, granularity,
-                       formula_str, start, end):
+def get_aggregate_data(
+        conn, entities_query, entitytype_id, granularity, formula_str, start,
+        end):
     formula = arith_expr.parseString(formula_str, parseAll=True)[0]
 
     get_tm = partial(get_trend_meta, conn, entitytype_id, granularity)
@@ -86,15 +88,16 @@ def get_aggregate_data(conn, entities_query, entitytype_id, granularity,
     return sorted(rows, key=itemgetter(0))
 
 
-def get_trend_meta(conn, entitytype_id, granularity, datasource_name,
-                   trend_name):
+def get_trend_meta(
+        conn, entitytype_id, granularity, datasource_name, trend_name):
     """
     Return tuple (datasource_name, trend_name, table_name)
     """
     criteria = [
         "ts.entitytype_id = %s",
         "ts.granularity = %s",
-        "trend.name = %s"]
+        "trend.name = %s"
+    ]
 
     criteria_args = [entitytype_id, granularity.name, trend_name]
 
@@ -111,14 +114,13 @@ def get_trend_meta(conn, entitytype_id, granularity, datasource_name,
         "ON ts.id = ttl.trendstore_id "
         "JOIN directory.datasource d "
         "ON d.id = ts.datasource_id "
-        "WHERE {}").format(" AND ".join(criteria))
+        "WHERE {}"
+    ).format(" AND ".join(criteria))
 
     args = tuple(criteria_args)
 
     with closing(conn.cursor()) as cursor:
         cursor.execute(sql, args)
-
-        #raise Exception(cursor.mogrify(sql, args))
 
         return cursor.fetchone()
 
@@ -228,7 +230,8 @@ real = (Combine(Word(nums) + Optional("." + Word(nums))
 identifier_part = Word(alphanums + '_') | QuotedString('"', unquoteResults=True)
 
 identifier = Optional(
-     identifier_part + Suppress(".")) + identifier_part
+    identifier_part + Suppress(".")
+) + identifier_part
 
 funcName = Word(alphas)
 
@@ -275,7 +278,7 @@ class Context(object):
 
         logging.debug("meta: {}".format(trend_meta))
 
-        if not trend_ident in self.trends:
+        if trend_ident not in self.trends:
             self.trends.add(trend_ident)
             self.table_by_trend[trend_ident] = table_name
 
@@ -308,7 +311,7 @@ def get_partition_timestamp_for(timezone, partition_size, timestamp):
 
     ref = offset_hack(timezone.localize(EPOCH))
 
-    #Deal with missing hour in case of summer time
+    # Deal with missing hour in case of summer time
     utc_offset_delta = localized_timestamp.utcoffset() - ref.utcoffset()
 
     timestamp_offset = localized_timestamp - ref + utc_offset_delta
@@ -360,7 +363,8 @@ def compile_list_sql(_conn, entity_ids):
     return (
         "SELECT id, dn, entitytype_id "
         "FROM directory.entity "
-        "WHERE id IN ({})").format(",".join(map(str, entity_ids)))
+        "WHERE id IN ({})"
+    ).format(",".join(map(str, entity_ids)))
 
 
 def compile_minerva_query_sql(conn, minerva_query):

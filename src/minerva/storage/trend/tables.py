@@ -34,8 +34,10 @@ PARTITION_SIZES = {
     "month": 365 * 86400}
 
 # Table name postfixes by interval size
-DATA_TABLE_POSTFIXES = {"300": "5m", "900": "qtr", "3600": "hr",
-    "43200": "12hr", "86400": "day", "604800": "wk"}
+DATA_TABLE_POSTFIXES = {
+    "300": "5m", "900": "qtr", "3600": "hr", "43200": "12hr", "86400": "day",
+    "604800": "wk"
+}
 
 TABLE_NAME_REGEX = re.compile("^(.+)_(.+)_(.+)_([0-9]+)$")
 
@@ -65,7 +67,7 @@ class InvalidTrendTableName(Exception):
 
 
 def offset_hack(ref):
-    #Get right offset (backward compatibility)
+    # Get right offset (backward compatibility)
     if ref.utcoffset().total_seconds() > 0:
         ref += timedelta(1)
     return ref.replace(hour=0, minute=0)
@@ -99,8 +101,10 @@ def create_trend_table(conn, schema, table, column_names, data_types):
     :param schema: name of the database schema to create the table in
     :param table: name of table to be created, or Table instance
     """
-    columns_part = "".join(["\"{0}\" {1}, ".format(name, data_type)
-            for (name, data_type) in zip(column_names, data_types)])
+    columns_part = "".join(
+        "\"{0}\" {1}, ".format(name, data_type)
+        for (name, data_type) in zip(column_names, data_types)
+    )
 
     if isinstance(table, str):
         table = Table(schema, table)
@@ -126,7 +130,9 @@ def create_trend_table(conn, schema, table, column_names, data_types):
         'CREATE INDEX "idx_{0}_timestamp" ON {1} '
         'USING btree (timestamp)'.format(table.name, table.render()))
 
-    owner_query = "ALTER TABLE {} OWNER TO minerva_writer".format(table.render())
+    owner_query = "ALTER TABLE {} OWNER TO minerva_writer".format(
+        table.render()
+    )
 
     with closing(conn.cursor()) as cursor:
         try:
@@ -144,7 +150,8 @@ def create_trend_table(conn, schema, table, column_names, data_types):
                 pass
             else:
                 raise NonRecoverableError(
-                    "ProgrammingError({0}): {1}".format(exc.pgcode, exc.pgerror))
+                    "ProgrammingError({0}): {1}".format(exc.pgcode, exc.pgerror)
+                )
         else:
             grant(conn, "TABLE", "SELECT", table.render(), "minerva")
             grant(conn, "TABLE", "TRIGGER", table.render(), "minerva_writer")
@@ -179,12 +186,16 @@ def check_column_types(conn, schema, table, column_names, data_types):
     current_data_types = get_data_types(conn, schema, table, column_names)
 
     with closing(conn.cursor()) as cursor:
-        for column_name, current_data_type, data_type in zip(column_names,
-                current_data_types, data_types):
-            required_data_type = datatype.max_datatype(current_data_type, data_type)
+        for column_name, current_data_type, data_type in zip(
+                column_names, current_data_types, data_types):
+            required_data_type = datatype.max_datatype(
+                current_data_type, data_type
+            )
 
             if required_data_type != current_data_type:
-                logging.debug("{} != {}".format(required_data_type, current_data_type))
+                logging.debug(
+                    "{} != {}".format(required_data_type, current_data_type)
+                )
 
                 args = table, column_name, required_data_type
 

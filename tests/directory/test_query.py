@@ -24,13 +24,13 @@ def test_simple():
     sql = compile_sql(minerva_query, relation_group_name)
 
     expected_sql = (
-        "FROM directory.entitytaglink tl_0_0 "
-        "JOIN directory.tag t_0_0 ON t_0_0.id = tl_0_0.tag_id "
-        "AND lower(t_0_0.name) = lower(%s)")
+        ' FROM (VALUES(NULL)) dummy '
+        'JOIN directory.entity_link_denorm eld ON %s <@ eld.tags'
+    )
 
-    expected_args = ["Cell"]
+    expected_args = [[u"cell"]]
 
-    expected_entity_id_column = "tl_0_0.entity_id"
+    expected_entity_id_column = "eld.entity_id"
 
     expected = (expected_sql, expected_args, expected_entity_id_column)
 

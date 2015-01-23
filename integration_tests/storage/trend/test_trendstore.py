@@ -25,6 +25,8 @@ from minerva_db import clear_database
 class TestStore(object):
     def __init__(self):
         self.conn = None
+        self.datasource = None
+        self.entitytype = None
 
     def setup(self):
         self.conn = connect()
@@ -45,8 +47,10 @@ class TestStore(object):
         partition_size = 3600
 
         with closing(self.conn.cursor()) as cursor:
-            trendstore = TrendStore(self.datasource, self.entitytype,
-                    granularity, partition_size, "table").create(cursor)
+            trendstore = TrendStore(
+                self.datasource, self.entitytype, granularity, partition_size,
+                "table"
+            ).create(cursor)
 
         assert isinstance(trendstore, TrendStore)
 

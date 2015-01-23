@@ -50,17 +50,22 @@ class Partition(object):
         table_name_col = Column("table_name")
         timestamp_col = Column("timestamp")
 
-        return schema.modified.select([end_col]).where_(
-                And(
-                    Eq(table_name_col, self.name),
-                    Eq(timestamp_col)))
+        return schema.modified.select(
+            [end_col]
+        ).where_(
+            And(
+                Eq(table_name_col, self.name),
+                Eq(timestamp_col)
+            )
+        )
 
     def _max_modified(self):
         timestamp_col = Column("timestamp")
         table = self.table()
 
-        return table.select(Call("max", Column("modified"))).where_(
-                Eq(timestamp_col))
+        return table.select(
+            Call("max", Column("modified"))
+        ).where_(Eq(timestamp_col))
 
     def create(self, cursor):
         query = (

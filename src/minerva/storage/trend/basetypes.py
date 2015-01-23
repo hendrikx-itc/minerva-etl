@@ -23,8 +23,9 @@ class Trend(object):
         self.granularity = ensure_granularity(granularity)
 
     def __repr__(self):
-        return "<Trend({0}/{1}/{2}/{3})>".format(self.name, self.datasource_id,
-            self.entitytype_id, self.granularity)
+        return "<Trend({0}/{1}/{2}/{3})>".format(
+            self.name, self.datasource_id, self.entitytype_id, self.granularity
+        )
 
     def __str__(self):
         return self.name

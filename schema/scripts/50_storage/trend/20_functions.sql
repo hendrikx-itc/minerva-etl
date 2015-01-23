@@ -570,23 +570,21 @@ $$ LANGUAGE plpgsql;
 
 
 CREATE FUNCTION trend.alter_column_types(namespace_name name, table_name name, columns trend.column_info[])
-    RETURNS void
+    RETURNS dep_recurse.obj_ref
 AS $$
-DECLARE
-    column_alterations varchar;
-BEGIN
-    SELECT
-        array_to_string(array_agg(format('ALTER %I TYPE %s USING CAST (%I AS %s)', cs.name, cs.datatype, cs.name, cs.datatype)), ', ') INTO column_alterations
-    FROM unnest(columns) AS cs;
-
-    PERFORM dep_recurse.alter(
-        dep_recurse.table_ref('trend', base_table_name),
+    SELECT dep_recurse.alter(
+        dep_recurse.table_ref('trend', table_name),
         ARRAY[
-            format('ALTER TABLE %I.%I %s', namespace_name, table_name, column_alterations)
+            format(
+                'ALTER TABLE %I.%I %s',
+                namespace_name,
+                table_name,
+                array_to_string(array_agg(format('ALTER %I TYPE %s USING CAST (%I AS %s)', c.name, c.datatype, c.name, c.datatype)), ', ')
+            )
         ]
-    );
-END;
-$$ LANGUAGE plpgsql;
+    )
+    FROM unnest(columns) AS c;
+$$ LANGUAGE sql VOLATILE;
 
 
 CREATE FUNCTION trend.view_name(trend.view)
@@ -1308,7 +1306,7 @@ BEGIN
 
     GET DIAGNOSTICS result.row_count = ROW_COUNT;
 
-    SELECT (trend.mark_modified(dst_partition.table_name, timestamp, trend.get_max_modified(target, timestamp))).end INTO result.max_modified;
+    SELECT (trend.mark_modified(target.id, timestamp, trend.get_max_modified(target, timestamp))).end INTO result.max_modified;
 
     RETURN result;
 END;

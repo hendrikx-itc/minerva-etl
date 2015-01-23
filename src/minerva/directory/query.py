@@ -63,7 +63,7 @@ def compile_sql(minerva_query, relation_group_name, entity_id_column=None):
             query_part, entity_id_column, eld_alias = make_any_c_from()
 
     query_parts.append(query_part)
-    args.append(map(unicode.lower, first_component['value']))
+    args.append(map(unicode.lower, map(unicode, first_component['value'])))
 
     last_type = first_component['type']
 

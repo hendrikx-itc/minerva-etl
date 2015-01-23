@@ -406,14 +406,16 @@ def retrieve_related(conn, schema, relation_table_name, table_names,
         by JOINing on field 'id' = entity_id
     :param limit: Optional limit
     """
-    where_parts = []
     all_rows = []
 
-    #group tables by partition size signature to be able to JOIN them later
+    # group tables by partition size signature to be able to JOIN them later
     tables_by_partition_signature = {}
+
     for table_name in table_names:
         signature = table_name.split("_")[-1]
-        tables_by_partition_signature.setdefault(signature, []).append(table_name)
+        tables_by_partition_signature.setdefault(
+            signature, []
+        ).append(table_name)
 
     for table_names in tables_by_partition_signature.values():
         full_base_tbl_name = "{0}.\"{1}\"".format(schema, table_names[0])
@@ -422,7 +424,8 @@ def retrieve_related(conn, schema, relation_table_name, table_names,
 
         query = (
             "SELECT r.source_id, r.target_id, {1}.\"timestamp\", {0} "
-            "FROM {1} ").format(trend_columns_part, full_base_tbl_name)
+            "FROM {1} "
+        ).format(trend_columns_part, full_base_tbl_name)
 
         join_parts = []
         for table_name in table_names[1:]:
@@ -447,21 +450,27 @@ def retrieve_related(conn, schema, relation_table_name, table_names,
 
         params = []
         if start == end and start is not None:
-            where_parts.append("{0}.\"timestamp\" = %s".format(full_base_tbl_name))
+            where_parts.append(
+                "{0}.\"timestamp\" = %s".format(full_base_tbl_name)
+            )
             params = [start]
         else:
-            if not start is None:
-                where_parts.append("{0}.\"timestamp\" > %s".format(full_base_tbl_name))
+            if start is not None:
+                where_parts.append(
+                    "{0}.\"timestamp\" > %s".format(full_base_tbl_name)
+                )
                 params.append(start)
 
-            if not end is None:
-                where_parts.append("{0}.\"timestamp\" <= %s".format(full_base_tbl_name))
+            if end is not None:
+                where_parts.append(
+                    "{0}.\"timestamp\" <= %s".format(full_base_tbl_name)
+                )
                 params.append(end)
 
         if where_parts:
             query += " WHERE " + " AND ".join(where_parts)
 
-        if not limit is None:
+        if limit is not None:
             query += " LIMIT {0:d}".format(limit)
 
         with closing(conn.cursor()) as cursor:
@@ -477,7 +486,8 @@ def retrieve_related(conn, schema, relation_table_name, table_names,
     return all_rows
 
 
-def store(conn, schema, table_name, trend_names, timestamp, data_rows,
+def store(
+        conn, schema, table_name, trend_names, timestamp, data_rows,
         sub_query=None):
     retry = True
     attempt = 0
@@ -503,12 +513,16 @@ def store(conn, schema, table_name, trend_names, timestamp, data_rows,
                         delete_by_sub_query(conn, table_name, timestamp, sub_query)
                     except NoSuchTable as exc:
                         data_types = extract_data_types(data_rows)
-                        fix = partial(create_trend_table, conn, schema, table_name,
-                                trend_names, data_types)
+                        fix = partial(
+                            create_trend_table, conn, schema, table_name,
+                            trend_names, data_types
+                        )
                         raise RecoverableError(str(exc), fix)
 
-            store_fn(conn, schema, table_name, trend_names, timestamp, modified,
-                    data_rows)
+            store_fn(
+                conn, schema, table_name, trend_names, timestamp, modified,
+                data_rows
+            )
 
             with closing(conn.cursor()) as cursor:
                 mark_modified(cursor, schema, table_name, timestamp, modified)
@@ -550,31 +564,42 @@ def mark_modified(cursor, schema, table_name, timestamp, modified):
         raise RecoverableError(str(exc), no_op)
 
 
-def store_insert(conn, schema, table_name, trend_names, timestamp, modified,
-        data_rows):
+def store_insert(
+        conn, schema, table_name, trend_names, timestamp, modified, data_rows):
     try:
         if len(data_rows) <= LARGE_BATCH_THRESHOLD:
-            store_batch_insert(conn, schema, table_name, trend_names, timestamp,
-                    modified, data_rows)
+            store_batch_insert(
+                conn, schema, table_name, trend_names, timestamp, modified,
+                data_rows
+            )
         else:
-            store_copy_from(conn, schema, table_name, trend_names, timestamp,
-                    modified, data_rows)
+            store_copy_from(
+                conn, schema, table_name, trend_names, timestamp, modified,
+                data_rows
+            )
     except DataTypeMismatch as exc:
         data_types = extract_data_types(data_rows)
-        fix = partial(check_column_types, conn, schema, table_name, trend_names,
-                data_types)
+        fix = partial(
+            check_column_types, conn, schema, table_name, trend_names,
+            data_types
+        )
         raise RecoverableError(str(exc), fix)
     except NoSuchTable as exc:
         data_types = extract_data_types(data_rows)
-        fix = partial(create_trend_table, conn, schema, table_name, trend_names,
-                data_types)
+        fix = partial(
+            create_trend_table, conn, schema, table_name, trend_names,
+            data_types
+        )
         raise RecoverableError(str(exc), fix)
     except NoSuchColumnError as exc:
-        fix = partial(check_columns_exist, conn, schema, table_name, trend_names)
+        fix = partial(
+            check_columns_exist, conn, schema, table_name, trend_names
+        )
         raise RecoverableError(str(exc), fix)
 
 
-def store_insert_tmp(conn, tmp_table_name, trend_names, timestamp, modified,
+def store_insert_tmp(
+        conn, tmp_table_name, trend_names, timestamp, modified,
         data_rows):
     """
     Same as store_insert, but for temporary tables
@@ -583,30 +608,41 @@ def store_insert_tmp(conn, tmp_table_name, trend_names, timestamp, modified,
 
     try:
         if len(data_rows) <= LARGE_BATCH_THRESHOLD:
-            store_batch_insert(conn, None, tmp_table_name, trend_names, timestamp,
-                    modified, data_rows)
+            store_batch_insert(
+                conn, None, tmp_table_name, trend_names, timestamp, modified,
+                data_rows
+
+            )
         else:
-            store_copy_from(conn, None, tmp_table_name, trend_names, timestamp,
-                    modified, data_rows)
+            store_copy_from(
+                conn, None, tmp_table_name, trend_names, timestamp, modified,
+                data_rows
+            )
     except DataTypeMismatch as exc:
         data_types = extract_data_types(data_rows)
-        fix = partial(check_column_types, conn, SCHEMA, table_name, trend_names,
-                data_types)
+        fix = partial(
+            check_column_types, conn, SCHEMA, table_name, trend_names,
+            data_types
+        )
         raise RecoverableError(str(exc), fix)
     except NoSuchColumnError as exc:
         fix = partial(check_columns_exist, conn, SCHEMA, table_name, trend_names)
         raise RecoverableError(str(exc), fix)
 
 
-def store_update(conn, schema, table_name, trend_names, timestamp, modified,
+def store_update(
+        conn, schema, table_name, trend_names, timestamp, modified,
         data_rows):
-    store_using_tmp(conn, schema, table_name, trend_names, timestamp, modified,
-            data_rows)
-    store_using_update(conn, schema, table_name, trend_names, timestamp, modified,
-            data_rows)
+    store_using_tmp(
+        conn, schema, table_name, trend_names, timestamp, modified, data_rows
+    )
+    store_using_update(
+        conn, schema, table_name, trend_names, timestamp, modified, data_rows
+    )
 
 
-def store_copy_from(conn, schema, table, trend_names, timestamp, modified,
+def store_copy_from(
+        conn, schema, table, trend_names, timestamp, modified,
         data_rows):
     """
     Store the data using the PostgreSQL specific COPY FROM command
@@ -669,8 +705,9 @@ def create_copy_from_line(timestamp, modified, data_row):
 
     trend_value_part = "\t".join(format_value(value) for value in values)
 
-    return u"{0:d}\t'{1!s}'\t'{2!s}'\t{3}\n".format(entity_id,
-            timestamp.isoformat(), modified.isoformat(), trend_value_part)
+    return u"{0:d}\t'{1!s}'\t'{2!s}'\t{3}\n".format(
+        entity_id, timestamp.isoformat(), modified.isoformat(), trend_value_part
+    )
 
 
 def create_copy_from_query(schema, table, trend_names):
@@ -679,11 +716,14 @@ def create_copy_from_query(schema, table, trend_names):
 
     full_table_name = create_full_table_name(schema, table)
 
-    return "COPY {0}({1}) FROM STDIN".format(full_table_name,
-        ",".join('"{0}"'.format(column_name) for column_name in column_names))
+    return "COPY {0}({1}) FROM STDIN".format(
+        full_table_name,
+        ",".join('"{0}"'.format(column_name) for column_name in column_names)
+    )
 
 
-def store_using_update(conn, schema, table, trend_names, timestamp, modified,
+def store_using_update(
+        conn, schema, table, trend_names, timestamp, modified,
         data_rows):
     set_columns = ", ".join("\"{0}\"=%s".format(name) for name in trend_names)
 
@@ -691,24 +731,30 @@ def store_using_update(conn, schema, table, trend_names, timestamp, modified,
 
     update_query = (
         'UPDATE {0} SET modified=greatest(modified, %s), {1} '
-        'WHERE entity_id=%s AND "timestamp"=%s').format(full_table_name, set_columns)
+        'WHERE entity_id=%s AND "timestamp"=%s'
+    ).format(full_table_name, set_columns)
 
-    rows = [list(chain((modified,), values, (entity_id, timestamp)))
-            for entity_id, values in data_rows]
+    rows = [
+        list(chain((modified,), values, (entity_id, timestamp)))
+        for entity_id, values in data_rows
+    ]
 
     with closing(conn.cursor()) as cursor:
         try:
             cursor.executemany(update_query, rows)
         except psycopg2.DatabaseError as exc:
             if exc.pgcode == psycopg2.errorcodes.UNDEFINED_COLUMN:
-                fix = partial(check_columns_exist, conn, schema, table, trend_names)
+                fix = partial(
+                    check_columns_exist, conn, schema, table, trend_names
+                )
 
                 raise RecoverableError(str(exc), fix)
             else:
                 raise NonRecoverableError(str(exc))
 
 
-def store_using_tmp(conn, schema, table, trend_names, timestamp, modified,
+def store_using_tmp(
+        conn, schema, table, trend_names, timestamp, modified,
         data_rows):
     """
     Store the data using the PostgreSQL specific COPY FROM command and a
@@ -717,45 +763,56 @@ def store_using_tmp(conn, schema, table, trend_names, timestamp, modified,
     """
     tmp_table_name = create_temp_table_from(conn, schema, table)
 
-    store_insert_tmp(conn, tmp_table_name, trend_names, timestamp, modified,
-            data_rows)
+    store_insert_tmp(
+        conn, tmp_table_name, trend_names, timestamp, modified, data_rows
+    )
 
     column_names = ['entity_id', 'timestamp']
     column_names.extend(trend_names)
 
-    tmp_column_names = ",".join('tmp."{0}"'.format(name) for name in column_names)
+    tmp_column_names = ",".join(
+        'tmp."{0}"'.format(name) for name in column_names
+    )
     dest_column_names = ",".join('"{0}"'.format(name) for name in column_names)
 
     full_table_name = create_full_table_name(schema, table)
 
     insert_query = " ".join([
         "INSERT INTO {0} ({1})".format(full_table_name, dest_column_names),
-        "SELECT {0} FROM \"{1}\" AS tmp".format(tmp_column_names, tmp_table_name),
-        "LEFT JOIN {0} ON tmp.\"timestamp\" = {0}.\"timestamp\" "
-            "AND tmp.entity_id = {0}.entity_id".format(full_table_name),
-        "WHERE \"{0}\".entity_id IS NULL".format(table)])
+        "SELECT {0} FROM \"{1}\" AS tmp".format(
+            tmp_column_names, tmp_table_name
+        ),
+        "LEFT JOIN {0} ON tmp.\"timestamp\" = {0}.\"timestamp\"",
+        "AND tmp.entity_id = {0}.entity_id".format(full_table_name),
+        "WHERE \"{0}\".entity_id IS NULL".format(table)
+    ])
 
     with closing(conn.cursor()) as cursor:
         try:
             cursor.execute(insert_query)
         except psycopg2.Error as exc:
             if exc.pgcode == psycopg2.errorcodes.UNDEFINED_COLUMN:
-                fix = partial(check_columns_exist, conn, schema, table, trend_names)
+                fix = partial(
+                    check_columns_exist, conn, schema, table, trend_names
+                )
                 raise RecoverableError(str(exc), fix)
             elif exc.pgcode == psycopg2.errorcodes.UNIQUE_VIOLATION:
                 conn.rollback()
-                store_insert_rows(conn, schema, table, trend_names, timestamp, modified,
-                        data_rows)
+                store_insert_rows(
+                    conn, schema, table, trend_names, timestamp, modified,
+                    data_rows
+                )
             else:
                 raise NonRecoverableError(str(exc))
 
 
-def store_insert_rows(conn, schema, table, trend_names, timestamp, modified,
-        data_rows):
+def store_insert_rows(
+        conn, schema, table, trend_names, timestamp, modified, data_rows):
     column_names = ["entity_id", "timestamp", "modified"]
     column_names.extend(trend_names)
-    columns = ",".join('"{0}"'.format(column_name)
-            for column_name in column_names)
+    columns = ",".join(
+        '"{0}"'.format(column_name) for column_name in column_names
+    )
     data_placeholders = ", ".join(["%s"] * len(column_names))
 
     full_table_name = create_full_table_name(schema, table)
@@ -765,8 +822,9 @@ def store_insert_rows(conn, schema, table, trend_names, timestamp, modified,
         "WHERE entity_id = %s AND timestamp = %s"
     ).format(full_table_name)
 
-    insert_query = "INSERT INTO {0} ({1}) VALUES ({2})".	format(
-        full_table_name, columns, data_placeholders)
+    insert_query = "INSERT INTO {0} ({1}) VALUES ({2})".format(
+        full_table_name, columns, data_placeholders
+    )
 
     with closing(conn.cursor()) as cursor:
         for entity_id, values in data_rows:
@@ -777,13 +835,15 @@ def store_insert_rows(conn, schema, table, trend_names, timestamp, modified,
                 cursor.execute(insert_query, data)
 
 
-def store_batch_insert(conn, schema, table, trend_names, timestamp, modified,
-        data_rows):
+def store_batch_insert(
+        conn, schema, table, trend_names, timestamp, modified, data_rows):
     column_names = ["entity_id", "timestamp", "modified"]
     column_names.extend(trend_names)
 
-    dest_column_names = ",".join('"{0}"'.format(column_name)
-            for column_name in column_names)
+    dest_column_names = ",".join(
+        '"{0}"'.format(column_name)
+        for column_name in column_names
+    )
 
     parameters = ", ".join(["%s"] * len(column_names))
 
@@ -860,7 +920,8 @@ def aggregate(conn, schema, source, target, trend_names, timestamp):
 
     (ds, gp, et_name) = source
     source_table_names = get_table_names(
-        [ds], gp, et_name, interval[0], interval[1])
+        [ds], gp, et_name, interval[0], interval[1]
+    )
 
     target_table_name = make_table_name(*(target + (timestamp,)))
 
@@ -901,7 +962,7 @@ def aggregate(conn, schema, source, target, trend_names, timestamp):
     retry = True
     attempt = 0
 
-    #Strategy followed in code below is like trend_storage.store() function
+    # Strategy followed in code below is like trend_storage.store() function
     while retry is True:
         retry = False
         attempt += 1
@@ -914,8 +975,12 @@ def aggregate(conn, schema, source, target, trend_names, timestamp):
         except psycopg2.DatabaseError as exc:
             conn.rollback()
             columns = [("samples", "integer")]
-            columns.extend(zip(trend_names,
-                get_data_types(conn, schema, source_table_names[-1], trend_names)))
+            columns.extend(zip(
+                trend_names,
+                get_data_types(
+                    conn, schema, source_table_names[-1], trend_names
+                )
+            ))
 
             if exc.pgcode == psycopg2.errorcodes.NUMERIC_VALUE_OUT_OF_RANGE:
                 max_values = []
@@ -928,19 +993,28 @@ def aggregate(conn, schema, source, target, trend_names, timestamp):
                         "WHERE timestamp > %s AND timestamp <= %s "
                         "GROUP BY entity_id) AS sums"
                     ).format(
-                            ",".join(["MAX(\"{0}\")".format(tn) for tn in trend_names]),
-                            ",".join(["SUM(\"{0}\") AS \"{0}\"".format(tn) for tn in trend_names]),
-                            schema,
-                            source_table_name)
+                        ",".join(
+                            "MAX(\"{0}\")".format(tn) for tn in trend_names
+                        ),
+                        ",".join(
+                            "SUM(\"{0}\") AS \"{0}\"".format(tn)
+                            for tn in trend_names
+                        ),
+                        schema,
+                        source_table_name
+                    )
 
                     with closing(conn.cursor()) as cursor:
                         cursor.execute(query_max_values, interval)
                         max_values.append(cursor.fetchone())
 
-                data_types = [datatype.extract_from_value(v)
-                        for v in map(max, zip(*max_values))]
-                check_column_types(conn, schema, target_table_name, trend_names,
-                        data_types)
+                data_types = [
+                    datatype.extract_from_value(v)
+                    for v in map(max, zip(*max_values))
+                ]
+                check_column_types(
+                    conn, schema, target_table_name, trend_names, data_types
+                )
 
                 retry = True
             elif exc.pgcode == psycopg2.errorcodes.UNIQUE_VIOLATION:
@@ -950,13 +1024,16 @@ def aggregate(conn, schema, source, target, trend_names, timestamp):
                 # retry = True
             elif exc.pgcode == psycopg2.errorcodes.UNDEFINED_COLUMN:
                 column_names, data_types = zip(*columns)
-                add_missing_columns(conn, schema, target_table_name,
-                        zip(column_names, data_types))
+                add_missing_columns(
+                    conn, schema, target_table_name,
+                    zip(column_names, data_types)
+                )
                 retry = True
             elif exc.pgcode == psycopg2.errorcodes.UNDEFINED_TABLE:
                 column_names, data_types = zip(*columns)
-                create_trend_table(conn, schema, target_table_name, column_names,
-                        data_types)
+                create_trend_table(
+                    conn, schema, target_table_name, column_names, data_types
+                )
                 retry = True
             else:
                 raise NonRecoverableError("{0}, {1!s} in query '{2}'".format(

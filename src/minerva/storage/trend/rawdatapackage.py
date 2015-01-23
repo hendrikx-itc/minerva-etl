@@ -11,7 +11,7 @@ this software.
 """
 from minerva.storage.trend.datapackage import DataPackage
 
-from minerva.directory.distinguishedname import explode
+from minerva.directory.distinguishedname import explode, entitytype_name_from_dn
 from minerva.util import grouped_by
 
 
@@ -67,12 +67,3 @@ def package_group(key, packages):
         rows.append(row)
 
     return RawDataPackage(granularity, timestamp_str, field_names, rows)
-
-
-def entitytype_name_from_dn(dn):
-    """
-    Return the entitytype name from a Distinguished Name
-    """
-    parts = explode(dn)
-
-    return parts[-1][0]

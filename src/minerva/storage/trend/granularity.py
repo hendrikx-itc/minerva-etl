@@ -121,14 +121,22 @@ class GranularitySeconds(Granularity):
                 return tz.localize(most_recent)
         except AttributeError:
             if minerva_tz:
-                _most_recent = datetime.datetime.combine(most_recent, datetime.time(
-                        most_recent.hour, most_recent.minute, most_recent.second,
-                        tzinfo=minerva_tz))
+                _most_recent = datetime.datetime.combine(
+                    most_recent,
+                    datetime.time(
+                        most_recent.hour, most_recent.minute,
+                        most_recent.second, tzinfo=minerva_tz
+                    )
+                )
                 return _most_recent.astimezone(tz)
             else:
-                return datetime.datetime.combine(most_recent, datetime.time(
-                        most_recent.hour, most_recent.minute, most_recent.second,
-                        tzinfo=tz))
+                return datetime.datetime.combine(
+                    most_recent,
+                    datetime.time(
+                        most_recent.hour, most_recent.minute,
+                        most_recent.second, tzinfo=tz
+                    )
+                )
 
 
 class GranularityMonth(Granularity):

@@ -72,12 +72,6 @@ AS $$
 $$ LANGUAGE SQL VOLATILE;
 
 
-CREATE TYPE materialization.materialization_result AS (
-    processed_max_modified timestamp with time zone,
-    row_count integer
-);
-
-
 CREATE FUNCTION materialization.missing_columns(src trend.trendstore, dst trend.trendstore)
 	RETURNS TABLE (name character varying, datatype character varying)
 AS $$
@@ -145,10 +139,12 @@ AS $$
 $$ LANGUAGE SQL VOLATILE;
 
 
-CREATE FUNCTION materialization.materialize(src trend.trendstore, dst trend.trendstore, "timestamp" timestamp with time zone)
-	RETURNS materialization.materialization_result
+CREATE FUNCTION materialization.materialize(type materialization.type, "timestamp" timestamp with time zone)
+	RETURNS integer
 AS $$
 DECLARE
+    src_trendstore trend.trendstore;
+    dst_trendstore trend.trendstore;
 	schema_name character varying;
 	table_name character varying;
 	dst_table_name character varying;
@@ -160,18 +156,25 @@ DECLARE
 	column_defs_part character varying;
 	modified timestamp with time zone;
 	row_count integer;
-	result materialization.materialization_result;
 	replicated_server_conn system.setting;
 	tmp_source_states materialization.source_fragment_state[];
 BEGIN
 	schema_name = 'trend';
-	table_name = trend.to_base_table_name(src);
-	dst_table_name = trend.to_base_table_name(dst);
 
-	PERFORM materialization.add_missing_trends($1, $2);
-	PERFORM materialization.modify_mismatching_trends($1, $2);
+    SELECT * INTO src_trendstore FROM trend.trendstore WHERE id = type.src_trendstore_id;
+    SELECT * INTO dst_trendstore FROM trend.trendstore WHERE id = type.dst_trendstore_id;
 
-	dst_partition = trend.attributes_to_partition(dst, trend.timestamp_to_index(dst.partition_size, $3));
+	table_name = trend.to_base_table_name(src_trendstore);
+	dst_table_name = trend.to_base_table_name(dst_trendstore);
+
+	PERFORM materialization.add_missing_trends(src_trendstore, dst_trendstore);
+	PERFORM materialization.modify_mismatching_trends(src_trendstore, dst_trendstore);
+
+	dst_partition = trend.attributes_to_partition(
+        dst_trendstore,
+        trend.timestamp_to_index(dst_trendstore.partition_size, "timestamp")
+    );
+
 	EXECUTE format('DELETE FROM trend.%I WHERE timestamp = %L', dst_partition.table_name, timestamp);
 
 	SELECT
@@ -179,13 +182,15 @@ BEGIN
 	FROM
 		trend.table_columns(schema_name, table_name);
 
-	sources_query = format('SELECT source_states
+	sources_query = format(
+        'SELECT source_states
 	FROM materialization.materializables mz
 	JOIN materialization.type ON type.id = mz.type_id
 	WHERE
-		mz.timestamp = %L AND
-		type.src_trendstore_id = %L AND
-		type.dst_trendstore_id = %L;', $3, src.id, dst.id);
+		mz.timestamp = %L AND mz.type_id = %L;',
+        "timestamp",
+        type.id
+    );
 
 	data_query = format('SELECT %s FROM %I.%I WHERE timestamp = %L',
 		columns_part, schema_name, table_name, timestamp);
@@ -212,68 +217,39 @@ BEGIN
 			dst_partition.table_name, columns_part, conn_str, data_query, column_defs_part);
 	END IF;
 
-	GET DIAGNOSTICS result.row_count = ROW_COUNT;
+	GET DIAGNOSTICS row_count = ROW_COUNT;
 
-	UPDATE materialization.state SET processed_states = tmp_source_states
-	FROM materialization.type
-	WHERE type.id = state.type_id AND state.timestamp = $3
-	AND type.src_trendstore_id = $1.id
-	AND type.dst_trendstore_id = $2.id;
+	UPDATE materialization.state
+    SET processed_states = tmp_source_states
+	WHERE state.type_id = $1.id AND state.timestamp = $2;
 
-	IF result.row_count = 0 THEN
-		RAISE NOTICE 'NO ROWS materialized FOR materialization of % -> %, %', src::text, dst::text, timestamp;
-		RETURN result;
+	IF row_count = 0 THEN
+		RAISE NOTICE 'NO ROWS materialized FOR materialization of %, %', $1::text, timestamp;
+		RETURN row_count;
 	END IF;
 
-	PERFORM trend.mark_modified(dst_partition.table_name, "timestamp");
+	PERFORM trend.mark_modified($1.dst_trendstore_id, "timestamp");
 
-	RETURN result;
+	RETURN row_count;
 END;
 $$ LANGUAGE plpgsql VOLATILE;
 
 
-CREATE FUNCTION materialization.materialize(src_trendstore_id integer, dst_trendstore_id integer, "timestamp" timestamp with time zone)
-	RETURNS materialization.materialization_result
-AS $$
-	SELECT materialization.materialize(src, dst, $3)
-		FROM trend.trendstore src, trend.trendstore dst
-		WHERE src.id = $1 AND dst.id = $2;
-$$ LANGUAGE SQL VOLATILE;
-
-
-CREATE FUNCTION materialization.materialization(src text, dst text, "timestamp" timestamp with time zone)
-	RETURNS materialization.materialization_result
-AS $$
-	SELECT materialization.materialize(src, dst, $3)
-	FROM
-		trend.trendstore src,
-		trend.trendstore dst
-	WHERE src::text = $1 and dst::text = $2;
-$$ LANGUAGE SQL VOLATILE;
-
-
 CREATE FUNCTION materialization.materialize(materialization text, "timestamp" timestamp with time zone)
-	RETURNS materialization.materialization_result
+	RETURNS integer
 AS $$
-	SELECT materialization.materialize(mt.src_trendstore_id, mt.dst_trendstore_id, $2)
-	FROM materialization.type mt
-	WHERE materialization.to_char(mt) = $1;
-$$ LANGUAGE SQL VOLATILE;
-
-
-CREATE FUNCTION materialization.materialize(materialization.type, "timestamp" timestamp with time zone)
-	RETURNS materialization.materialization_result
-AS $$
-	SELECT materialization.materialize($1.src_trendstore_id, $1.dst_trendstore_id, $2);
+	SELECT materialization.materialize(type, $2)
+	FROM materialization.type
+	WHERE materialization.to_char(type) = $1;
 $$ LANGUAGE SQL VOLATILE;
 
 
 CREATE FUNCTION materialization.materialize(id integer, "timestamp" timestamp with time zone)
-	RETURNS materialization.materialization_result
+	RETURNS integer
 AS $$
-	SELECT materialization.materialize(mt.src_trendstore_id, mt.dst_trendstore_id, $2)
-	FROM materialization.type mt
-	WHERE mt.id = $1;
+	SELECT materialization.materialize(type, $2)
+	FROM materialization.type
+	WHERE id = $1;
 $$ LANGUAGE SQL VOLATILE;
 
 
