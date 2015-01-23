@@ -72,23 +72,27 @@ AS $$
 DECLARE
     result system.job_type;
 BEGIN
-    IF pg_try_advisory_xact_lock(0) THEN
-        SELECT job.id, job.type, job.description, job.size, js.config INTO result
+    LOOP
+        SELECT job_queue.job_id, job.type, job.description, job.size, js.config INTO result
             FROM system.job_queue
-            JOIN system.job ON job_id = id
+            JOIN system.job ON job_queue.job_id = job.id
             JOIN system.job_source js ON js.id = job.job_source_id
+            WHERE pg_try_advisory_xact_lock(job_queue.job_id)
             ORDER BY job_id ASC LIMIT 1;
 
         IF result IS NOT NULL THEN
-            UPDATE system.job SET state = 'running', started = NOW() WHERE id = result.id;
-
             DELETE FROM system.job_queue WHERE job_id = result.id;
+
+            IF NOT found THEN
+                -- race: job was just assigned, retry
+                CONTINUE;
+            END IF;
+
+            UPDATE system.job SET state = 'running', started = NOW() WHERE id = result.id;
         END IF;
 
         RETURN result;
-    ELSE
-        RETURN NULL;
-    END IF;
+    END LOOP;
 END;
 $$ LANGUAGE plpgsql VOLATILE;
 

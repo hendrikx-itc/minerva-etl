@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-Dump Minerva configuration
+Dump Minerva sample data
 """
 import os
 import sys
@@ -17,7 +17,7 @@ def main():
     default_minerva_instance = os.environ.get("DEFAULT_MINERVA_INSTANCE")
 
     parser = argparse.ArgumentParser(
-        description="Create tags between entities")
+        description="Export sample data from Minerva database")
 
     parser.add_argument(
         "--version", action="version", version=version,
@@ -33,7 +33,11 @@ def main():
 
     parser.add_argument(
         "--exclude-materialized", action="store_true", default=False,
-        help="exclude trendstores that are populated by materialization")
+        help="exclude materialized data")
+
+    parser.add_argument(
+        "--trendstore", nargs="*"
+    )
 
     args = parser.parse_args()
 
@@ -49,13 +53,13 @@ def main():
     )
 
     with closing(minerva_instance.connect(user=user)) as conn:
-        for line in dump(conn, partial(trendstore_query, args.exclude_materialized)):
+        for line in dump(conn, partial(trendstore_query, args.trendstore, args.exclude_materialized)):
             print(line)
 
 
-def trendstore_query(exclude_materialized):
+def trendstore_query(trendstores, exclude_materialized):
     query = (
-        "SELECT trendstore.id, datasource.name, entitytype.name, trendstore.granularity "
+        "SELECT trendstore.id, trend.to_base_table_name(trendstore) base_table_name, trend.staging_table_name(trendstore), datasource.name, entitytype.name, trendstore.granularity "
         "FROM trend.trendstore "
         "JOIN directory.datasource ON datasource.id = trendstore.datasource_id "
         "JOIN directory.entitytype ON entitytype.id = trendstore.entitytype_id "
@@ -69,8 +73,18 @@ def trendstore_query(exclude_materialized):
 
     query += (
         "WHERE trendstore.type = 'table' "
-        "ORDER BY datasource.name, entitytype.name, trendstore.granularity"
     )
+
+    if trendstores:
+        query += "AND trendstore::text IN ({}) ".format(
+            ','.join("'{}'".format(trendstore) for trendstore in trendstores)
+        )
+
+    query += (
+        "ORDER BY base_table_name"
+    )
+
+    query += " LIMIT 3"
 
     return query
 
@@ -91,42 +105,51 @@ def dump(conn, trendstore_query):
 
         trendstores = cursor.fetchall()
 
-        for id, datasource_name, entitytype_name, granularity in trendstores:
+        for trendstore_id, table_name, staging_table_name, datasource_name, entitytype_name, granularity in trendstores:
+            yield "BEGIN;"
 
-            yield "SELECT trend.create_trendstore("
-            yield "    '{}',".format(datasource_name)
-            yield "    '{}',".format(entitytype_name)
-            yield "    '{}',".format(granularity)
-            yield "    ARRAY["
-            cursor.execute("SELECT * FROM trend.show_trends(%s)", (id,))
+            yield "INSERT INTO trend.{}(".format(staging_table_name)
+
+            cursor.execute("SELECT * FROM trend.show_trends(%s)", (trendstore_id,))
             trends = cursor.fetchall()
             yield ",\n".join(
-                "        ('{}', '{}', '{}')".format(trend_name, datatype, description)
+                '        "{}"'.format(trend_name)
                 for trend_name, datatype, description in trends
             )
-            yield "    ]::trend.trend_descr[]"
-            yield ");"
-            yield ""
 
-        cursor.execute(attributestore_query())
+            yield ")"
+            yield "VALUES"
 
-        attributestores = cursor.fetchall()
-
-        for id, datasource_name, entitytype_name in attributestores:
-            yield "SELECT attribute_directory.create_attributestore("
-            yield "    '{}',".format(datasource_name)
-            yield "    '{}',".format(entitytype_name)
-            yield "    ARRAY["
-
-            cursor.execute("SELECT name, datatype, description FROM attribute_directory.attribute WHERE attributestore_id = %s", (id,))
-
-            yield ",\n".join(
-                "        ({}, {}, {})".format(format_str(attribute_name), format_str(datatype), format_str(description))
-                for attribute_name, datatype, description in cursor.fetchall()
+            columns_part = ",".join(
+                '"{}"'.format(trend_name)
+                for trend_name, datatype, description in trends
             )
 
-            yield "    ]::attribute_directory.attribute_descr[]"
-            yield ");"
+            literal_mappers = [AS_LITERAL.get(datatype) for trend_name, datatype, description in trends]
+
+            query = (
+                'SELECT {} '
+                'FROM trend."{}" LIMIT 3'
+            ).format(columns_part, table_name)
+
+            cursor.execute(query)
+
+            rows = cursor.fetchall()
+
+            for row in rows:
+                yield "("
+                yield ",\n".join(literal_mapper(value) for literal_mapper, value in zip(literal_mappers, row))
+                yield "),"
+
+            yield ";"
+            yield ""
+
+            yield "SELECT "
+            yield "    trend.transfer_staged(trendstore) "
+            yield "FROM trend.trendstore "
+            yield "WHERE trendstore::text = '{}';".format(table_name)
+
+            yield "COMMIT;"
             yield ""
 
 
@@ -135,6 +158,14 @@ def format_str(value):
         return 'NULL'
     else:
         return "'{}'".format(value)
+
+
+AS_LITERAL = {
+    'integer': str,
+    'bigint': str,
+    'interval': format_str,
+    'numeric': str
+}
 
 
 if __name__ == "__main__":

@@ -6,6 +6,7 @@
 .directory
 .project
 .pydevproject
+.idea
 .settings/*
 build/*
 debian/python-minerva.*
