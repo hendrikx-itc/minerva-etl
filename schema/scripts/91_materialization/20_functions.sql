@@ -350,20 +350,20 @@ $$ LANGUAGE plpgsql IMMUTABLE;
 CREATE FUNCTION materialization.define(trend.view)
     RETURNS materialization.type
 AS $$
-    SELECT materialization.add_missing_trends(
-         materialization.define(
-            ts,
-            trend.attributes_to_trendstore(
-          materialization.materialized_datasource_name(ds.name),
-          et.name,
-          ts.granularity
-      )
+SELECT materialization.add_missing_trends(
+    materialization.define(
+        ts,
+        trend.attributes_to_trendstore(
+            materialization.materialized_datasource_name(ds.name),
+            et.name,
+            ts.granularity
         )
     )
-    FROM trend.trendstore ts
-    JOIN directory.datasource ds on ds.id = ts.datasource_id
-    JOIN directory.entitytype et on et.id = ts.entitytype_id
-    WHERE ts.id = $1.trendstore_id;
+)
+FROM trend.trendstore ts
+JOIN directory.datasource ds on ds.id = ts.datasource_id
+JOIN directory.entitytype et on et.id = ts.entitytype_id
+WHERE ts.id = $1.trendstore_id;
 $$ LANGUAGE SQL VOLATILE;
 
 COMMENT ON FUNCTION materialization.define(trend.view)
