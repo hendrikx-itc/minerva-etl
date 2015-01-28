@@ -3,11 +3,11 @@ BEGIN;
 SELECT plan(2);
 
 SELECT attribute_directory.create_attributestore(
-	'some_datasource_name',
-	'some_entitytype_name',
-	ARRAY[
-		('x', 'integer', 'some column with integer values')
-	]::attribute_directory.attribute_descr[]
+    'some_datasource_name',
+    'some_entitytype_name',
+    ARRAY[
+        ('x', 'integer', 'some column with integer values')
+    ]::attribute_directory.attribute_descr[]
 );
 
 INSERT INTO attribute_staging."some_datasource_name_some_entitytype_name"(

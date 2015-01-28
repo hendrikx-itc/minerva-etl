@@ -1064,7 +1064,7 @@ AS $$
 BEGIN
     INSERT INTO attribute_directory.attribute(attributestore_id, name, datatype, description) (
         SELECT $1.id, name, datatype, description
-	FROM unnest($2) atts
+    FROM unnest($2) atts
     );
 
     RETURN $1;
@@ -1076,7 +1076,7 @@ CREATE FUNCTION attribute_directory.create_attributestore(datasource_name text, 
     RETURNS attribute_directory.attributestore
 AS $$
     SELECT attribute_directory.init(
-	attribute_directory.add_attributes(attribute_directory.define_attributestore($1, $2), $3)
+    attribute_directory.add_attributes(attribute_directory.define_attributestore($1, $2), $3)
     );
 $$ LANGUAGE SQL VOLATILE;
 

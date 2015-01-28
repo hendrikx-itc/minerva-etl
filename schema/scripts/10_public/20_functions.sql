@@ -85,35 +85,35 @@ FROM pg_stat_replication;';
 
 
 CREATE FUNCTION public.safe_division(numerator anyelement, denominator anyelement)
-	RETURNS anyelement
+    RETURNS anyelement
 AS $$
 SELECT CASE
-	WHEN $2 = 0 THEN
-		NULL
-	ELSE
-		$1 / $2
-	END;
+    WHEN $2 = 0 THEN
+        NULL
+    ELSE
+        $1 / $2
+    END;
 $$ LANGUAGE SQL IMMUTABLE;
 
 ALTER FUNCTION safe_division(anyelement, anyelement)
-	OWNER TO postgres;
+    OWNER TO postgres;
 
 
 CREATE FUNCTION public.add_array(anyarray, anyarray) RETURNS anyarray
 AS $$
 SELECT array_agg((arr1 + arr2)) FROM
 (
-	SELECT
-		unnest($1[1:least(array_length($1,1), array_length($2,1))]) AS arr1,
-		unnest($2[1:least(array_length($1,1), array_length($2,1))]) AS arr2
+    SELECT
+        unnest($1[1:least(array_length($1,1), array_length($2,1))]) AS arr1,
+        unnest($2[1:least(array_length($1,1), array_length($2,1))]) AS arr2
 ) AS foo;
 $$ LANGUAGE SQL STABLE STRICT;
 
 
 CREATE AGGREGATE sum_array(anyarray)
 (
-	sfunc = public.add_array,
-	stype = anyarray
+    sfunc = public.add_array,
+    stype = anyarray
 );
 
 
@@ -146,9 +146,9 @@ $$ LANGUAGE SQL IMMUTABLE STRICT;
 
 
 CREATE FUNCTION public.to_pdf(text)
-	RETURNS int[]
+    RETURNS int[]
 AS $$
-	SELECT array_agg(nullif(x, '')::int)
+    SELECT array_agg(nullif(x, '')::int)
     FROM unnest(string_to_array($1, ',')) AS x;
 $$ LANGUAGE SQL STABLE STRICT;
 

@@ -1,9 +1,9 @@
 -- Table 'type'
 
 CREATE TABLE entity_tag.type (
-	id serial,
-	name name UNIQUE,
-	taggroup_id integer REFERENCES directory.taggroup(id) ON DELETE CASCADE
+    id serial,
+    name name UNIQUE,
+    taggroup_id integer REFERENCES directory.taggroup(id) ON DELETE CASCADE
 );
 
 ALTER TABLE entity_tag.type OWNER TO minerva_admin;

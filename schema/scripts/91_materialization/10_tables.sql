@@ -8,13 +8,13 @@ GRANT USAGE ON SCHEMA materialization TO minerva;
 -- Table 'type'
 
 CREATE TABLE materialization.type (
-	id serial NOT NULL,
-	src_trendstore_id integer NOT NULL,
-	dst_trendstore_id integer NOT NULL,
-	processing_delay interval NOT NULL,
-	stability_delay interval NOT NULL,
-	reprocessing_period interval NOT NULL,
-	enabled boolean NOT NULL DEFAULT FALSE,
+    id serial NOT NULL,
+    src_trendstore_id integer NOT NULL,
+    dst_trendstore_id integer NOT NULL,
+    processing_delay interval NOT NULL,
+    stability_delay interval NOT NULL,
+    reprocessing_period interval NOT NULL,
+    enabled boolean NOT NULL DEFAULT FALSE,
     cost integer NOT NULL DEFAULT 10
 );
 
@@ -36,36 +36,36 @@ COMMENT ON COLUMN materialization.type.enabled IS
 ALTER TABLE materialization.type OWNER TO minerva_admin;
 
 ALTER TABLE ONLY materialization.type
-	ADD CONSTRAINT type_pkey PRIMARY KEY (id);
+    ADD CONSTRAINT type_pkey PRIMARY KEY (id);
 
 GRANT SELECT ON TABLE materialization.type TO minerva;
 GRANT INSERT,DELETE,UPDATE ON TABLE materialization.type TO minerva_writer;
 
 ALTER TABLE ONLY materialization.type
-	ADD CONSTRAINT materialization_type_src_trendstore_id_fkey
-	FOREIGN KEY (src_trendstore_id) REFERENCES trend.trendstore(id)
-	ON DELETE CASCADE;
+    ADD CONSTRAINT materialization_type_src_trendstore_id_fkey
+    FOREIGN KEY (src_trendstore_id) REFERENCES trend.trendstore(id)
+    ON DELETE CASCADE;
 
 ALTER TABLE ONLY materialization.type
-	ADD CONSTRAINT materialization_type_dst_trendstore_id_fkey
-	FOREIGN KEY (dst_trendstore_id) REFERENCES trend.trendstore(id)
-	ON DELETE CASCADE;
+    ADD CONSTRAINT materialization_type_dst_trendstore_id_fkey
+    FOREIGN KEY (dst_trendstore_id) REFERENCES trend.trendstore(id)
+    ON DELETE CASCADE;
 
 CREATE UNIQUE INDEX ix_materialization_type_uniqueness
-	ON materialization.type (src_trendstore_id, dst_trendstore_id);
+    ON materialization.type (src_trendstore_id, dst_trendstore_id);
 
 
 -- table state
 
 CREATE TYPE materialization.source_fragment AS (
-	trendstore_id integer,
-	timestamp timestamp with time zone
+    trendstore_id integer,
+    timestamp timestamp with time zone
 );
 
 
 CREATE TYPE materialization.source_fragment_state AS (
-	fragment materialization.source_fragment,
-	modified timestamp with time zone
+    fragment materialization.source_fragment,
+    modified timestamp with time zone
 );
 
 COMMENT ON TYPE materialization.source_fragment_state IS
@@ -73,12 +73,12 @@ COMMENT ON TYPE materialization.source_fragment_state IS
 
 
 CREATE TABLE materialization.state (
-	type_id integer NOT NULL,
-	timestamp timestamp with time zone NOT NULL,
-	max_modified timestamp with time zone NOT NULL,
-	source_states materialization.source_fragment_state[] DEFAULT NULL,
-	processed_states materialization.source_fragment_state[] DEFAULT NULL,
-	job_id integer DEFAULT NULL
+    type_id integer NOT NULL,
+    timestamp timestamp with time zone NOT NULL,
+    max_modified timestamp with time zone NOT NULL,
+    source_states materialization.source_fragment_state[] DEFAULT NULL,
+    processed_states materialization.source_fragment_state[] DEFAULT NULL,
+    job_id integer DEFAULT NULL
 );
 
 COMMENT ON COLUMN materialization.state.type_id IS
@@ -97,12 +97,12 @@ COMMENT ON COLUMN materialization.state.job_id IS
 ALTER TABLE materialization.state OWNER TO minerva_admin;
 
 ALTER TABLE ONLY materialization.state
-	ADD CONSTRAINT state_pkey PRIMARY KEY (type_id, timestamp);
+    ADD CONSTRAINT state_pkey PRIMARY KEY (type_id, timestamp);
 
 ALTER TABLE ONLY materialization.state
-	ADD CONSTRAINT materialization_state_type_id_fkey
-	FOREIGN KEY (type_id) REFERENCES materialization.type(id)
-	ON DELETE CASCADE;
+    ADD CONSTRAINT materialization_state_type_id_fkey
+    FOREIGN KEY (type_id) REFERENCES materialization.type(id)
+    ON DELETE CASCADE;
 
 GRANT SELECT ON TABLE materialization.state TO minerva;
 GRANT INSERT,DELETE,UPDATE ON TABLE materialization.state TO minerva_writer;
@@ -122,11 +122,11 @@ ALTER TABLE ONLY materialization.type_tag_link
 
 ALTER TABLE ONLY materialization.type_tag_link
     ADD CONSTRAINT type_tag_link_tag_id_fkey FOREIGN KEY (tag_id) REFERENCES directory.tag(id)
-	ON DELETE CASCADE;
+    ON DELETE CASCADE;
 
 ALTER TABLE ONLY materialization.type_tag_link
-	ADD CONSTRAINT type_tag_link_type_id_fkey FOREIGN KEY (type_id) REFERENCES materialization.type(id)
-	ON DELETE CASCADE;
+    ADD CONSTRAINT type_tag_link_type_id_fkey FOREIGN KEY (type_id) REFERENCES materialization.type(id)
+    ON DELETE CASCADE;
 
 GRANT SELECT ON TABLE materialization.type_tag_link TO minerva;
 GRANT INSERT,DELETE,UPDATE ON TABLE materialization.type_tag_link TO minerva_writer;

@@ -4,12 +4,12 @@ SELECT plan(2);
 
 
 SELECT trend.create_trendstore(
-	'test-data',
-	'Node',
-	'900',
-	ARRAY[
-		('x', 'integer', 'some column with integer values')
-	]::trend.trend_descr[]
+    'test-data',
+    'Node',
+    '900',
+    ARRAY[
+        ('x', 'integer', 'some column with integer values')
+    ]::trend.trend_descr[]
 );
 
 
@@ -28,9 +28,9 @@ SELECT materialization.define(
 
 
 SELECT has_table(
-	'trend',
-	'test_Node_qtr',
-	'materialized trend table should exist'
+    'trend',
+    'test_Node_qtr',
+    'materialized trend table should exist'
 );
 
 

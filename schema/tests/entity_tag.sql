@@ -8,11 +8,11 @@ VALUES ('technology', true);
 
 -- Define the tag definition as a view
 SELECT entity_tag.define(
-	'technology',
-	'technology',
-	$$SELECT * FROM (VALUES
-	((directory.dn_to_entity('Cell=001')).id, 'LTE'),
-	((directory.dn_to_entity('Cell=002')).id, 'UMTS')
+    'technology',
+    'technology',
+    $$SELECT * FROM (VALUES
+    ((directory.dn_to_entity('Cell=001')).id, 'LTE'),
+    ((directory.dn_to_entity('Cell=002')).id, 'UMTS')
 ) AS foo(entity_id, tag);$$
 );
 

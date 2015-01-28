@@ -3,11 +3,11 @@ BEGIN;
 SELECT plan(3);
 
 SELECT attribute_directory.create_attributestore(
-	'test',
-	'Node',
-	ARRAY[
-		('x', 'integer', 'some column with integer values')
-	]::attribute_directory.attribute_descr[]
+    'test',
+    'Node',
+    ARRAY[
+        ('x', 'integer', 'some column with integer values')
+    ]::attribute_directory.attribute_descr[]
 );
 
 --

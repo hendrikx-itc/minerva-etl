@@ -1,11 +1,11 @@
 CREATE FUNCTION virtual_entity.update(name name)
-	RETURNS integer
+    RETURNS integer
 AS $$
 DECLARE
-	result integer;
+    result integer;
 BEGIN
-	EXECUTE format('SELECT count(directory.dn_to_entity(v.dn)) FROM virtual_entity.%I v LEFT JOIN directory.entity ON entity.dn = v.dn WHERE entity.dn IS NULL', name) INTO result;
+    EXECUTE format('SELECT count(directory.dn_to_entity(v.dn)) FROM virtual_entity.%I v LEFT JOIN directory.entity ON entity.dn = v.dn WHERE entity.dn IS NULL', name) INTO result;
 
-	RETURN result;
+    RETURN result;
 END;
 $$ LANGUAGE plpgsql VOLATILE;

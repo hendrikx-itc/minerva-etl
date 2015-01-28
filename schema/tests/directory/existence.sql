@@ -15,9 +15,9 @@ SELECT '2014-12-30 14:00'::timestamp with time zone;
 $$ LANGUAGE sql IMMUTABLE;
 
 SELECT directory.dns_to_entity_ids(ARRAY[
-	'Network=001,Cell=a001',
-	'Network=001,Cell=a002',
-	'Network=001,Cell=a003'
+    'Network=001,Cell=a001',
+    'Network=001,Cell=a002',
+    'Network=001,Cell=a003'
 ]);
 
 -------------------------
