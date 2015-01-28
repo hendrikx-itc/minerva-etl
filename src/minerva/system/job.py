@@ -19,8 +19,9 @@ class Job(object):
     """
     Represents a Minerva job for processing by a node.
     """
-    def __init__(self, id, job_source_id, type, description, size=0,
-                 created=None, started=None, finished=None, state=None):
+    def __init__(
+            self, id, job_source_id, type, description, size=0,
+            created=None, started=None, finished=None, state=None):
         self.id = id
         self.job_source_id = job_source_id
         self.type = type
@@ -32,5 +33,7 @@ class Job(object):
         self.state = state
 
     def enqueue(self, conn):
-        enqueue_job(conn, self.type, json.dumps(self.description), self.size,
-                    self.job_source_id)
+        enqueue_job(
+            conn, self.type, json.dumps(self.description), self.size,
+            self.job_source_id
+        )

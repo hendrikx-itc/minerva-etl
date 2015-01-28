@@ -219,7 +219,9 @@ def get_tags_for_entity_id(conn, entity_id):
         cursor.execute(query, args)
 
         if cursor.rowcount > 0:
-            return [Tag(id, name, group_id, description)
-                    for id, name, group_id, description in cursor.fetchall()]
+            return [
+                Tag(id, name, group_id, description)
+                for id, name, group_id, description in cursor.fetchall()
+            ]
         else:
             return []

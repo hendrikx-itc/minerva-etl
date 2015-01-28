@@ -28,7 +28,8 @@ class Attribute(object):
         query = (
             "SELECT name, datatype, description "
             "FROM attribute_directory.attribute "
-            "WHERE id = %s")
+            "WHERE id = %s"
+        )
         args = id,
         cursor.execute(query, args)
 
@@ -47,7 +48,8 @@ class Attribute(object):
         query = (
             "INSERT INTO attribute_directory.attribute "
             "(attributestore_id, name, datatype, description) "
-            "VALUES (%s, %s, %s, %s)")
+            "VALUES (%s, %s, %s, %s)"
+        )
 
         args = (self.attributestore.id, self.name, self.datatype,
                 self.description)

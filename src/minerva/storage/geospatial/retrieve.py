@@ -25,22 +25,23 @@ from minerva.storage.geospatial.tables import make_box_2d
 from minerva.storage.geospatial.types import set_srid, transform_srid
 
 
-def get_entities_in_region(conn, database_srid, region, region_srid,
-                           entitytype):
+def get_entities_in_region(
+        conn, database_srid, region, region_srid, entitytype):
 
-    bbox2d = transform_srid(set_srid(make_box_2d(region), region_srid),
-                            database_srid)
+    bbox2d = transform_srid(
+        set_srid(make_box_2d(region), region_srid), database_srid
+    )
 
     relation_name = get_relation_name(conn, "Cell", entitytype.name)
     relation_site_cell_name = get_relation_name(conn, "Cell", "Site")
 
     query = (
-        "SELECT r.target_id "
-        "FROM relation.\"{0}\" r "
-        "JOIN relation.\"{1}\" site_rel on site_rel.source_id = r.source_id "
-        "JOIN gis.site site ON site.entity_id = site_rel.target_id "
-        "AND site.position && {2}").format(
-        relation_name, relation_site_cell_name, bbox2d)
+        'SELECT r.target_id '
+        'FROM relation."{0}" r '
+        'JOIN relation."{1}" site_rel on site_rel.source_id = r.source_id '
+        'JOIN gis.site site ON site.entity_id = site_rel.target_id '
+        'AND site.position && {2}'
+    ).format(relation_name, relation_site_cell_name, bbox2d)
 
     with closing(conn.cursor()) as cursor:
         try:
@@ -55,17 +56,18 @@ def get_entities_in_region(conn, database_srid, region, region_srid,
 
 
 def get_cells_in_region(conn, database_srid, region, region_srid):
-    bbox2d = transform_srid(set_srid(make_box_2d(region), region_srid),
-                            database_srid)
+    bbox2d = transform_srid(
+        set_srid(make_box_2d(region), region_srid), database_srid
+    )
 
     relation_site_cell_name = get_relation_name(conn, "Cell", "Site")
 
     query = (
-        "SELECT site_rel.source_id "
-        "FROM relation.\"{0}\" site_rel on site_rel.source_id = r.source_id "
-        "JOIN gis.site site ON site.entity_id = site_rel.target_id "
-        "AND site.position && {1}").format(
-        relation_site_cell_name, bbox2d)
+        'SELECT site_rel.source_id '
+        'FROM relation."{0}" site_rel on site_rel.source_id = r.source_id '
+        'JOIN gis.site site ON site.entity_id = site_rel.target_id '
+        'AND site.position && {1}'
+    ).format(relation_site_cell_name, bbox2d)
 
     with closing(conn.cursor()) as cursor:
         try:
@@ -100,15 +102,16 @@ def get_sites_in_region(conn, database_srid, region, region_srid):
     return [entity_id for entity_id, in rows]
 
 
-def retrieve_trend(conn, database_srid, region, region_srid, datasource,
-                   entitytype, attribute_name, granularity_str, timestamp,
-                   limit=None):
+def retrieve_trend(
+        conn, database_srid, region, region_srid, datasource, entitytype,
+        attribute_name, granularity_str, timestamp, limit=None):
 
     granularity = create_granularity(granularity_str)
 
     with closing(conn.cursor()) as cursor:
-        trendstore = TrendStore.get(cursor, datasource, entitytype,
-                                    granularity)
+        trendstore = TrendStore.get(
+            cursor, datasource, entitytype, granularity
+        )
 
     partition = trendstore.partition(timestamp)
     table = partition.table()
@@ -117,25 +120,27 @@ def retrieve_trend(conn, database_srid, region, region_srid, datasource,
 
     relation_name = get_relation_name(conn, "Cell", "Site")
 
-    bbox2d = transform_srid(set_srid(make_box_2d(region), region_srid),
-                            database_srid)
+    bbox2d = transform_srid(
+        set_srid(make_box_2d(region), region_srid), database_srid
+    )
 
     query = (
-        "SELECT base_table.entity_id, base_table.\"{0}\" "
-        "FROM {1} base_table "
-        "JOIN relation.\"{2}\" site_rel "
-        "ON site_rel.source_id = base_table.entity_id "
-        "JOIN gis.site site ON site.entity_id = site_rel.target_id "
-        "AND site.position && {3} "
-        "WHERE base_table.\"timestamp\" = %(timestamp)s").format(
-        attribute_name, full_base_tbl_name, relation_name, bbox2d)
+        'SELECT base_table.entity_id, base_table."{0}" '
+        'FROM {1} base_table '
+        'JOIN relation."{2}" site_rel '
+        'ON site_rel.source_id = base_table.entity_id '
+        'JOIN gis.site site ON site.entity_id = site_rel.target_id '
+        'AND site.position && {3} '
+        'WHERE base_table."timestamp" = %(timestamp)s'
+    ).format(attribute_name, full_base_tbl_name, relation_name, bbox2d)
 
     args = {
         "left": region["left"],
         "bottom": region["bottom"],
         "right": region["right"],
         "top": region["top"],
-        "timestamp": timestamp}
+        "timestamp": timestamp
+    }
 
     with closing(conn.cursor()) as cursor:
         try:
@@ -149,15 +154,16 @@ def retrieve_trend(conn, database_srid, region, region_srid, datasource,
     return dict((entity_id, value) for entity_id, value in rows)
 
 
-def retrieve_related_trend(conn, database_srid, region, region_srid,
-                           datasource, entitytype, attribute_name,
-                           granularity_str, timestamp, limit=None):
+def retrieve_related_trend(
+        conn, database_srid, region, region_srid, datasource, entitytype,
+        attribute_name, granularity_str, timestamp, limit=None):
 
     granularity = create_granularity(granularity_str)
 
     with closing(conn.cursor()) as cursor:
-        trendstore = TrendStore.get(cursor, datasource, entitytype,
-                                    granularity)
+        trendstore = TrendStore.get(
+            cursor, datasource, entitytype, granularity
+        )
 
     partition = trendstore.partition(timestamp)
     table = partition.table()
@@ -167,26 +173,30 @@ def retrieve_related_trend(conn, database_srid, region, region_srid,
     relation_name = get_relation_name(conn, "Cell", entitytype.name)
     relation_cell_site_name = get_relation_name(conn, "Cell", "Site")
 
-    bbox2d = transform_srid(set_srid(make_box_2d(region), region_srid),
-                            database_srid)
+    bbox2d = transform_srid(
+        set_srid(make_box_2d(region), region_srid), database_srid
+    )
 
     query = (
-        "SELECT r.source_id, r.target_id, base_table.\"{0}\" "
-        "FROM {1} base_table "
-        "JOIN relation.\"{2}\" r ON r.target_id = base_table.entity_id "
-        "JOIN relation.\"{3}\" site_rel on site_rel.source_id = r.source_id "
-        "JOIN gis.site site ON site.entity_id = site_rel.target_id "
-        "AND site.position && {4} "
-        "WHERE base_table.\"timestamp\" = %(timestamp)s").format(
+        'SELECT r.source_id, r.target_id, base_table."{0}" '
+        'FROM {1} base_table '
+        'JOIN relation."{2}" r ON r.target_id = base_table.entity_id '
+        'JOIN relation."{3}" site_rel on site_rel.source_id = r.source_id '
+        'JOIN gis.site site ON site.entity_id = site_rel.target_id '
+        'AND site.position && {4} '
+        'WHERE base_table."timestamp" = %(timestamp)s'
+    ).format(
         attribute_name, full_base_tbl_name, relation_name,
-        relation_cell_site_name, bbox2d)
+        relation_cell_site_name, bbox2d
+    )
 
     args = {
         "left": region["left"],
         "bottom": region["bottom"],
         "right": region["right"],
         "top": region["top"],
-        "timestamp": timestamp}
+        "timestamp": timestamp
+    }
 
     with closing(conn.cursor()) as cursor:
         try:
@@ -206,30 +216,34 @@ def retrieve_related_trend(conn, database_srid, region, region_srid,
     return result
 
 
-def retrieve_attribute(conn, database_srid, region, region_srid, datasource,
-                       entitytype, attribute_name, srid, limit=None):
+def retrieve_attribute(
+        conn, database_srid, region, region_srid, datasource, entitytype,
+        attribute_name, srid, limit=None):
     with closing(conn.cursor()) as cursor:
-        attributestore = AttributeStore.get_by_attributes(cursor, datasource, entitytype)
+        attributestore = AttributeStore.get_by_attributes(
+            cursor, datasource, entitytype
+        )
     full_base_tbl_name = attributestore.history_table.render()
 
     relation_name = get_relation_name(conn, "Cell", "Site")
 
-    bbox2d = transform_srid(set_srid(make_box_2d(region), region_srid),
-                            database_srid)
+    bbox2d = transform_srid(
+        set_srid(make_box_2d(region), region_srid), database_srid
+    )
 
-    query ="""
-SELECT public.first(entity_id) AS entity_id, min(timestamp) AS "timestamp", 
-\"{0}\" FROM ( SELECT entity_id, timestamp, \"{0}\", sum(change) OVER w2 AS run 
-FROM ( SELECT entity_id, timestamp, \"{0}\", 
-  CASE WHEN \"{0}\"  <> lag(\"{0}\" ) OVER w THEN 1 ELSE 0 END AS change
-  FROM ( SELECT base_table.entity_id, base_table.timestamp, base_table.\"{0}\" 
-    FROM {1} base_table
-    JOIN relation.\"{2}\" site_rel ON site_rel.source_id = base_table.entity_id 
-    JOIN gis.site site ON site.entity_id = site_rel.target_id AND 
-    site.position && {3} ) a WINDOW w AS (PARTITION BY entity_id ORDER BY 
-    timestamp asc)) t WINDOW w2 AS (PARTITION BY entity_id ORDER BY 
-    timestamp ASC)) runs GROUP BY entity_id, \"{0}\" , run""".format(
-        attribute_name, full_base_tbl_name, relation_name, bbox2d)
+    query = (
+        'SELECT public.first(entity_id) AS entity_id, min(timestamp) AS "timestamp", \n'
+        '"{0}" FROM ( SELECT entity_id, timestamp, "{0}", sum(change) OVER w2 AS run \n'
+        'FROM ( SELECT entity_id, timestamp, "{0}", \n'
+        '  CASE WHEN "{0}"  <> lag("{0}" ) OVER w THEN 1 ELSE 0 END AS change\n'
+        '  FROM ( SELECT base_table.entity_id, base_table.timestamp, base_table."{0}" \n'
+        '    FROM {1} base_table\n'
+        '    JOIN relation."{2}" site_rel ON site_rel.source_id = base_table.entity_id \n'
+        '    JOIN gis.site site ON site.entity_id = site_rel.target_id AND \n'
+        '    site.position && {3} ) a WINDOW w AS (PARTITION BY entity_id ORDER BY \n'
+        '    timestamp asc)) t WINDOW w2 AS (PARTITION BY entity_id ORDER BY \n'
+        '    timestamp ASC)) runs GROUP BY entity_id, "{0}" , run'
+    ).format(attribute_name, full_base_tbl_name, relation_name, bbox2d)
 
     with closing(conn.cursor()) as cursor:
         try:
@@ -242,7 +256,7 @@ FROM ( SELECT entity_id, timestamp, \"{0}\",
 
     result = {}
     for entity_id, timestamp, value in rows:
-        if not value is None:
+        if value is not None:
             if entity_id not in result:
                 result[entity_id] = []
             result[entity_id].append((timestamp, value))
@@ -250,35 +264,41 @@ FROM ( SELECT entity_id, timestamp, \"{0}\",
     return result
 
 
-def retrieve_related_attribute(conn, database_srid, region, region_srid,
-                               datasource, entitytype, attribute_name, limit):
+def retrieve_related_attribute(
+        conn, database_srid, region, region_srid, datasource, entitytype,
+        attribute_name, limit):
 
     with closing(conn.cursor()) as cursor:
-        attributestore = AttributeStore.get_by_attributes(cursor, datasource, entitytype)
+        attributestore = AttributeStore.get_by_attributes(
+            cursor, datasource, entitytype
+        )
     full_base_tbl_name = attributestore.history_table.render()
 
     relation_name = get_relation_name(conn, "Cell", entitytype.name)
     relation_cell_site_name = get_relation_name(conn, "Cell", "Site")
 
-    bbox2d = transform_srid(set_srid(make_box_2d(region), region_srid),
-                            database_srid)
+    bbox2d = transform_srid(
+        set_srid(make_box_2d(region), region_srid), database_srid
+    )
 
-    query ="""
-SELECT public.first(entity_id) AS entity_id, public.first(related_id) AS related_id, 
-min(timestamp) AS "timestamp", \"{0}\" FROM ( 
-SELECT entity_id, related_id, timestamp, \"{0}\", sum(change) OVER w2 AS run 
-FROM ( SELECT entity_id, related_id, timestamp, \"{0}\", 
-  CASE WHEN \"{0}\"  <> lag(\"{0}\" ) OVER w THEN 1 ELSE 0 END AS change
-  FROM ( SELECT r.source_id as entity_id,  r.target_id as related_id, 
-    base_table.timestamp, base_table.\"{0}\" FROM {1} base_table
-    JOIN relation.\"{2}\" r ON r.target_id = base_table.entity_id 
-    JOIN relation.\"{3}\" site_rel on site_rel.source_id = r.source_id 
-    JOIN gis.site site ON site.entity_id = site_rel.target_id AND 
-    site.position && {4} ) a WINDOW w AS (PARTITION BY entity_id ORDER BY 
-    timestamp asc)) t WINDOW w2 AS (PARTITION BY entity_id ORDER BY 
-    timestamp ASC)) runs GROUP BY entity_id, \"{0}\" , run""".format(
+    query = (
+         "SELECT public.first(entity_id) AS entity_id, public.first(related_id) AS related_id, \n"
+         "min(timestamp) AS \"timestamp\", \"{0}\" FROM ( \n"
+         "SELECT entity_id, related_id, timestamp, \"{0}\", sum(change) OVER w2 AS run \n"
+         "FROM ( SELECT entity_id, related_id, timestamp, \"{0}\", \n"
+         "  CASE WHEN \"{0}\"  <> lag(\"{0}\" ) OVER w THEN 1 ELSE 0 END AS change\n"
+         "  FROM ( SELECT r.source_id as entity_id,  r.target_id as related_id, \n"
+         "    base_table.timestamp, base_table.\"{0}\" FROM {1} base_table\n"
+         "    JOIN relation.\"{2}\" r ON r.target_id = base_table.entity_id \n"
+         "    JOIN relation.\"{3}\" site_rel on site_rel.source_id = r.source_id \n"
+         "    JOIN gis.site site ON site.entity_id = site_rel.target_id AND \n"
+         "    site.position && {4} ) a WINDOW w AS (PARTITION BY entity_id ORDER BY \n"
+         "    timestamp asc)) t WINDOW w2 AS (PARTITION BY entity_id ORDER BY \n"
+         "    timestamp ASC)) runs GROUP BY entity_id, \"{0}\" , run"
+    ).format(
         attribute_name, full_base_tbl_name, relation_name, 
-        relation_cell_site_name, bbox2d)
+        relation_cell_site_name, bbox2d
+    )
 
     with closing(conn.cursor()) as cursor:
         try:
@@ -291,13 +311,14 @@ FROM ( SELECT entity_id, related_id, timestamp, \"{0}\",
 
     result = {}
     for entity_id, related_id, timestamp, value in rows:
-        if not value is None:
+        if value is not None:
             if entity_id not in result:
                 result[entity_id] = {}
             if related_id not in result[entity_id]:
                 result[entity_id][related_id] = []
 
             result[entity_id][related_id].append(
-                (timestamp, value))
+                (timestamp, value)
+            )
 
     return result

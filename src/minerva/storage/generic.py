@@ -37,9 +37,9 @@ class MaxRetriesError(Exception):
 
 def create_full_table_name(schema, table):
     if schema is not None:
-        return "\"{0}\".\"{1}\"".format(schema, table)
+        return '"{0}"."{1}"'.format(schema, table)
     else:
-        return "\"{0}\"".format(table)
+        return '"{0}"'.format(table)
 
 
 def format_value(value, encoding="utf-8"):
@@ -50,8 +50,11 @@ def format_value(value, encoding="utf-8"):
     if value is None:
         return u"\\N"
     elif isinstance(value, tuple) or isinstance(value, list):
-        return "{{{}}}".format(",".join('"{}"'.format(
-            format_value(part, encoding)) for part in value))
+        return "{{{}}}".format(
+            ",".join(
+                '"{}"'.format(format_value(part, encoding)) for part in value
+            )
+        )
     elif isinstance(value, unicode):
         return value
     else:
@@ -62,17 +65,22 @@ def escape_value(value):
     if value == u"\\N":
         return value
     else:
-        return value.replace('\\', '\\\\').replace('\r', '\\r').replace('\n', '\\n')
+        return value.replace(
+            '\\', '\\\\'
+        ).replace(
+            '\r', '\\r'
+        ).replace('\n', '\\n')
 
 
 def create_column(conn, schema, table, column_name, data_type):
     """
-    Create a new column with matching datatype for the specified trend.
+    Create a new column with matching data type for the specified trend.
     """
     full_table_name = create_full_table_name(schema, table)
 
     query = "ALTER TABLE {0} ADD COLUMN \"{1}\" {2};".format(
-        full_table_name, column_name, data_type)
+        full_table_name, column_name, data_type
+    )
 
     with closing(conn.cursor()) as cursor:
         try:
@@ -86,18 +94,17 @@ def create_column(conn, schema, table, column_name, data_type):
 
 
 def extract_data_types(data_rows):
-    datatypes = None
+    data_types = None
 
     for _entity_id, values in data_rows:
-        row_datatypes = [datatype.extract_from_value(value)
-                         for value in values]
+        row_data_types = map(datatype.extract_from_value, values)
 
-        if datatypes is None:
-            datatypes = row_datatypes
+        if data_types is None:
+            data_types = row_data_types
         else:
-            datatypes = datatype.max_datatypes(datatypes, row_datatypes)
+            data_types = datatype.max_datatypes(data_types, row_data_types)
 
-    return datatypes
+    return data_types
 
 
 def get_data_types(conn, schema, table, column_names):
@@ -111,7 +118,8 @@ def get_data_types(conn, schema, table, column_names):
         "AND a.attname = %s "
         "AND a.attrelid = c.oid "
         "AND a.atttypid = t.oid "
-        "AND c.relnamespace = n.oid")
+        "AND c.relnamespace = n.oid"
+    )
 
     with closing(conn.cursor()) as cursor:
         for column_name in column_names:
@@ -124,15 +132,18 @@ def get_data_types(conn, schema, table, column_names):
 
                 data_types.append(data_type)
             else:
-                raise NonRecoverableError("No such column: {0}.{1}".format(
-                    table, column_name))
+                raise NonRecoverableError(
+                    "No such column: {0}.{1}".format(
+                        table, column_name
+                    )
+                )
 
     return data_types
 
 
 def check_column_types(conn, schema, table, column_names, data_types):
     """
-    Check if database column types match trend datatype and correct it if
+    Check if database column types match trend data type and correct it if
     necessary.
     """
     current_data_types = get_data_types(conn, schema, table, column_names)
@@ -142,21 +153,26 @@ def check_column_types(conn, schema, table, column_names, data_types):
         for column_name, current_data_type, data_type in zip(
                 column_names, current_data_types, data_types):
             required_data_type = datatype.max_datatype(
-                current_data_type, data_type)
+                current_data_type, data_type
+            )
 
             if required_data_type != current_data_type:
-                logging.debug("{} != {}".format(required_data_type,
-                                                current_data_type))
+                logging.debug(
+                    "{} != {}".format(required_data_type, current_data_type)
+                )
 
                 query = (
-                    "ALTER TABLE {0} "
-                    "ALTER \"{1}\" TYPE {2} "
-                    "USING CAST(\"{1}\" AS {2})").format(
-                    full_table_name, column_name, required_data_type)
+                    'ALTER TABLE {0} '
+                    'ALTER "{1}" TYPE {2} '
+                    'USING CAST("{1}" AS {2})'
+                ).format(full_table_name, column_name, required_data_type)
 
                 cursor.execute(query)
 
                 logging.info(
                     "Column {0:s} modified from type {1} to {2}".format(
-                        column_name, current_data_type, required_data_type))
+                        column_name, current_data_type, required_data_type
+                    )
+                )
+
     conn.commit()

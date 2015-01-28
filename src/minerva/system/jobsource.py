@@ -33,7 +33,7 @@ class JobSource(object):
 
     @staticmethod
     def deserialize_config(config):
-        """Parse as JSON and return dictionary wrappend in Struct."""
+        """Parse as JSON and return dictionary wrapped in Struct."""
         return Struct(json.loads(config))
 
     @staticmethod

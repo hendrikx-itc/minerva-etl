@@ -78,7 +78,7 @@ def retrieve_aggregated(cursor, trendstore, column_identifiers, interval,
 
     args = {"start": start, "end": end}
 
-    #Deal with 'samples' column
+    # Deal with 'samples' column
     if column_exists(cursor, source_tables[-1], "samples"):
         select_samples_part = "SUM(samples)"
         select_samples_column = "samples,"

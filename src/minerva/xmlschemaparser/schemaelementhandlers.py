@@ -28,7 +28,7 @@ class SchemaContext(object):
 
     def startschema(self, targetNamespace):
         self.schema = Schema()
-        #self.schema.settargetnamespace(targetNamespace)
+        # self.schema.settargetnamespace(targetNamespace)
         self.schema.targetnamespace = targetNamespace
         self.schema.prefixmappings = self.prefixmappings
         self.prefixmappings = {}
@@ -59,7 +59,8 @@ class SchemaContext(object):
                 break
 
         if isinstance(element.parent, Schema):
-            # If the parent is the Schema element, than this is a 'top level' element
+            # If the parent is the Schema element, than this is a 'top level'
+            # element
             self.schema.toplevelelements.append(element)
 
     def start_fractiondigits(self, value):
@@ -104,7 +105,10 @@ class SchemaContext(object):
         basetyperef = QName(*QName.split(base))
 
         if basetyperef.namespacename in self.schema.prefixmappings:
-            basetyperef = QName(self.schema.prefixmappings[basetyperef.namespacename], basetyperef.localname)
+            basetyperef = QName(
+                self.schema.prefixmappings[basetyperef.namespacename],
+                basetyperef.localname
+            )
 
         extension.basetypereference = basetyperef
 
@@ -145,7 +149,9 @@ class SchemaContext(object):
 
         self.startxmlelement(complexType)
 
-    def start_element(self, name=None, type=None, ref=None, substitutionGroup=None, minOccurs=None, maxOccurs=None):
+    def start_element(
+            self, name=None, type=None, ref=None, substitutionGroup=None,
+            minOccurs=None, maxOccurs=None):
         element = Element()
         element.name = name
 
@@ -153,7 +159,10 @@ class SchemaContext(object):
             (namespacename, localname) = QName.split(ref)
 
             if namespacename in self.schema.prefixmappings:
-                elementref = QName(self.schema.prefixmappings[namespacename], localname)
+                elementref = QName(
+                    self.schema.prefixmappings[namespacename],
+                    localname
+                )
             else:
                 elementref = QName(namespacename, localname)
 
@@ -163,7 +172,10 @@ class SchemaContext(object):
             (namespacename, localname) = QName.split(type)
 
             if namespacename in self.schema.prefixmappings:
-                typename = QName(self.schema.prefixmappings[namespacename], localname)
+                typename = QName(
+                    self.schema.prefixmappings[namespacename],
+                    localname
+                )
             else:
                 typename = QName(namespacename, localname)
 
@@ -173,7 +185,10 @@ class SchemaContext(object):
             (namespacename, localname) = QName.split(substitutionGroup)
 
             if namespacename in self.schema.prefixmappings:
-                elementref = QName(self.schema.prefixmappings[namespacename], localname)
+                elementref = QName(
+                    self.schema.prefixmappings[namespacename],
+                    localname
+                )
             else:
                 elementref = QName(namespacename, localname)
 

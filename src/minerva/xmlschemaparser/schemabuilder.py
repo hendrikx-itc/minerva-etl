@@ -36,7 +36,9 @@ class SchemaBuilder(object):
         schemadochandler = XmlDocHandler()
         schemadochandler.onstartprefixmapping = generated_schemacontext.startprefixmapping
 
-        schemacontext = SchemaBuilder.build_schemacontext(generated_schemacontext)
+        schemacontext = SchemaBuilder.build_schemacontext(
+            generated_schemacontext
+        )
 
         schemadochandler.schemacontext = schemacontext
 
@@ -54,7 +56,9 @@ class SchemaBuilder(object):
         """
         Sets up all schema XML element handlers
         """
-        namespace = xmlnamespace.XmlNamespace(u"http://www.w3.org/2001/XMLSchema")
+        namespace = xmlnamespace.XmlNamespace(
+            u"http://www.w3.org/2001/XMLSchema"
+        )
 
         schema_type = XmlElementType(None, None)
         schema_type.attributes = set(["targetNamespace"])

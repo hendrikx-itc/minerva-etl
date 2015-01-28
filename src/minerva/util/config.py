@@ -38,8 +38,10 @@ def get_config(default, configfile):
 
 def parse_size(size_str):
     unit_symbols = ["B", "kB", "MB", "GB", "TB"]
-    size_units = dict((unit.lower(), pow(1024, order))
-                      for order, unit in enumerate(unit_symbols))
+    size_units = dict(
+        (unit.lower(), pow(1024, order))
+        for order, unit in enumerate(unit_symbols)
+    )
 
     pattern = "([1-9][0-9]*)({0:s})".format("|".join(unit_symbols))
 

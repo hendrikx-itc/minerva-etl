@@ -41,7 +41,10 @@ class EntityIdRef(EntityRef):
         return "%s", self.entity_id
 
     def get_entitytype(self, cursor):
-        cursor.execute("SELECT entitytype_id FROM directory.entity WHERE id = %s", (self.entity_id,))
+        cursor.execute(
+            "SELECT entitytype_id FROM directory.entity WHERE id = %s",
+            (self.entity_id,)
+        )
 
         if cursor.rowcount > 0:
             entitytype_id, = cursor.fetchone()

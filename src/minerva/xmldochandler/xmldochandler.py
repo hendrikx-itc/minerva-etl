@@ -51,7 +51,7 @@ class XmlDocHandler(ContentHandler):
                 for attribute_name in attributes:
                     attribute_key = (None, attribute_name)
 
-                    value = attrs.get(attribute_key, None)
+                    value = attrs.get(attribute_key)
 
                     if value:
                         args[attribute_name] = value

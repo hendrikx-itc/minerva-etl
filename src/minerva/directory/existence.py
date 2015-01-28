@@ -16,11 +16,15 @@ class Existence(object):
 
         with closing(self.conn.cursor()) as cursor:
             cursor.copy_expert(
-                create_copy_from_query('directory.existence_staging', column_names),
+                create_copy_from_query(
+                    'directory.existence_staging', column_names
+                ),
                 create_copy_from_file(((dn,) for dn in self.dns), ("s",))
             )
 
-            cursor.execute('SELECT directory.transfer_existence(%s)', (timestamp,))
+            cursor.execute(
+                'SELECT directory.transfer_existence(%s)', (timestamp,)
+            )
 
         self.conn.commit()
 

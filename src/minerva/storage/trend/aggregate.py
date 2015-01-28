@@ -35,8 +35,9 @@ def get_aggregate_shard(
         shard_index):
     start, end = shard_interval(granularity, shard_index)
 
-    return get_aggregate_data(conn, entities_sql, entitytype_id,
-                              granularity, formula_str, start, end)
+    return get_aggregate_data(
+        conn, entities_sql, entitytype_id, granularity, formula_str, start, end
+    )
 
 
 def get_aggregate_data(
@@ -56,7 +57,8 @@ def get_aggregate_data(
 
     first_trend_join = (
         'JOIN {0} '
-        'ON {0}.entity_id = e.id').format(first_partition_table.render())
+        'ON {0}.entity_id = e.id'
+    ).format(first_partition_table.render())
 
     trend_joins = [first_trend_join]
 
@@ -64,9 +66,8 @@ def get_aggregate_data(
         trend_join = (
             'JOIN {0} '
             'ON {0}.entity_id = e.id '
-            'AND {0}.timestamp = {1}.timestamp').format(
-            partition_table.render(),
-            first_partition_table.render())
+            'AND {0}.timestamp = {1}.timestamp'
+        ).format(partition_table.render(), first_partition_table.render())
 
         trend_joins.append(trend_join)
 
@@ -75,9 +76,11 @@ def get_aggregate_data(
         'FROM ({2}) e '
         '{3} '
         'WHERE {0}.timestamp > %(start)s AND {0}.timestamp <= %(end)s '
-        'GROUP BY {0}.timestamp').format(
+        'GROUP BY {0}.timestamp'
+    ).format(
         first_partition_table.render(), formula_sql, entities_query,
-        " ".join(trend_joins))
+        " ".join(trend_joins)
+    )
 
     args = {'start': start, 'end': end}
 
@@ -167,7 +170,7 @@ def eval_signop(tokens):
 
 
 def operator_operands(tokenlist):
-    "generator to extract operators and operands in pairs"
+    """generator to extract operators and operands in pairs"""
     it = iter(tokenlist)
 
     return izip(it, it)
@@ -223,9 +226,11 @@ def eval_brackets(tokens):
 
 
 integer = Word(nums)
-real = (Combine(Word(nums) + Optional("." + Word(nums))
-        + oneOf("E e") + Optional(oneOf('+ -')) + Word(nums))
-        | Combine(Word(nums) + "." + Word(nums)))
+real = (
+    Combine(Word(nums) + Optional("." + Word(nums))
+    + oneOf("E e") + Optional(oneOf('+ -')) + Word(nums))
+    | Combine(Word(nums) + "." + Word(nums))
+)
 
 identifier_part = Word(alphanums + '_') | QuotedString('"', unquoteResults=True)
 
@@ -284,7 +289,7 @@ class Context(object):
 
         self.tables.add(table_name)
 
-        return "\"{}\".\"{}\"".format(table_name, trend_name)
+        return '"{}"."{}"'.format(table_name, trend_name)
 
 
 def shard_interval(granularity, shard_index):
@@ -351,8 +356,9 @@ def timestamp_range(start, end, step):
 def partitions_for_period(timezone, partition_size, start, end):
     partition_delta = datetime.timedelta(seconds=partition_size)
 
-    timestamp_to_partition_timestamp = partial(get_partition_timestamp_for,
-                                               timezone, partition_size)
+    timestamp_to_partition_timestamp = partial(
+        get_partition_timestamp_for, timezone, partition_size
+    )
 
     timestamps = timestamp_range(start, end, partition_delta)
 
@@ -385,7 +391,8 @@ def build_sql_minerva_query(minerva_query):
     sql_minerva_query_parts = map(cs_to_sql, iter_cs(minerva_query))
 
     return "ARRAY[{}]::directory.query_part[]".format(
-        ",".join(sql_minerva_query_parts))
+        ",".join(sql_minerva_query_parts)
+    )
 
 
 def cs_to_sql(cs):

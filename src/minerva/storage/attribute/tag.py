@@ -26,7 +26,7 @@ def tag_attributes(conn, tag_links):
 
     query = (
         "INSERT INTO attribute_directory.attribute_tag_link "
-            "(attribute_id, tag_id) "
+        "(attribute_id, tag_id) "
         "(SELECT tmp.attribute_id, tag.id "
         "FROM {} tmp "
         "JOIN directory.tag tag ON lower(tag.name) = lower(tmp.tag) "
@@ -76,7 +76,8 @@ def flush_tag_links(conn, tag_name):
     query = (
         "DELETE FROM attribute_directory.attribute_tag_link atl "
         "USING directory.tag tag "
-        "WHERE tag.id = atl.tag_id AND lower(tag.name) = lower(%s)")
+        "WHERE tag.id = atl.tag_id AND lower(tag.name) = lower(%s)"
+    )
 
     args = (tag_name,)
 

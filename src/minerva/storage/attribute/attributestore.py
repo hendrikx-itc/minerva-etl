@@ -26,10 +26,11 @@ from minerva.storage.attribute.attribute import Attribute
 
 MAX_RETRIES = 10
 
-DATATYPE_MISMATCH_ERRORS = set((
+DATATYPE_MISMATCH_ERRORS = {
     psycopg2.errorcodes.DATATYPE_MISMATCH,
     psycopg2.errorcodes.NUMERIC_VALUE_OUT_OF_RANGE,
-    psycopg2.errorcodes.INVALID_TEXT_REPRESENTATION))
+    psycopg2.errorcodes.INVALID_TEXT_REPRESENTATION
+}
 
 
 class NoSuchAttributeError(Exception):
@@ -197,7 +198,8 @@ class AttributeStore(object):
             "INSERT INTO attribute_directory.attributestore"
             "(datasource_id, entitytype_id) "
             "VALUES (%s, %s) "
-            "RETURNING id")
+            "RETURNING id"
+        )
         args = self.datasource.id, self.entitytype.id
         cursor.execute(query, args)
         self.id = head(cursor.fetchone())
@@ -212,7 +214,8 @@ class AttributeStore(object):
         query = (
             "SELECT attribute_directory.init(attributestore) "
             "FROM attribute_directory.attributestore "
-            "WHERE id = %s")
+            "WHERE id = %s"
+        )
 
         args = self.id,
 
@@ -225,7 +228,8 @@ class AttributeStore(object):
         query = (
             "SELECT attribute_directory.compact(attributestore) "
             "FROM attribute_directory.attributestore "
-            "WHERE id = %s")
+            "WHERE id = %s"
+        )
         args = self.id,
         cursor.execute(query, args)
 

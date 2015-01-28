@@ -33,16 +33,16 @@ def prepare_statements(conn, statements):
 def disable_transactions(conn):
     """
     Set isolation level to ISOLATION_LEVEL_AUTOCOMMIT so that every query is
-    automatically commited.
+    automatically committed.
     """
     conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
 
 
 def full_table_name(name, schema=None):
-    if not schema is None:
-        return "\"{0:s}\".\"{1:s}\"".format(schema, name)
+    if schema is not None:
+        return '"{0:s}"."{1:s}"'.format(schema, name)
     else:
-        return "\"{0}\"".format(name)
+        return '"{0}"'.format(name)
 
 
 def get_column_names(conn, schema_name, table_name):
@@ -54,7 +54,8 @@ def get_column_names(conn, schema_name, table_name):
         "JOIN pg_class c ON c.oid = a.attrelid "
         "JOIN pg_namespace n ON n.oid = c.relnamespace "
         "WHERE n.nspname = %s AND c.relname = %s "
-        "AND a.attnum > 0 AND not attisdropped")
+        "AND a.attnum > 0 AND not attisdropped"
+    )
 
     with closing(conn.cursor()) as cursor:
         cursor.execute(query, (schema_name, table_name))
@@ -96,22 +97,30 @@ def drop_all_tables(conn, schema):
     with closing(conn.cursor()) as cursor:
         query = (
             "SELECT table_name FROM information_schema.tables WHERE "
-            "table_schema = '{0:s}'").format(schema)
+            "table_schema = '{0:s}'"
+        ).format(schema)
+
         cursor.execute(query)
 
         rows = cursor.fetchall()
 
         for (table_name, ) in rows:
-            cursor.execute("DROP TABLE {0:s} CASCADE".format(
-                full_table_name(table_name, schema)))
+            cursor.execute(
+                "DROP TABLE {0:s} CASCADE".format(
+                    full_table_name(table_name, schema)
+                )
+            )
 
     conn.commit()
 
 
 def table_exists(conn, schema, table):
     with closing(conn.cursor()) as cursor:
-        cursor.execute("SELECT COUNT(*) FROM information_schema.tables WHERE \
-table_schema = '{0:s}' AND table_name = '{1:s}'".format(schema, table))
+        cursor.execute(
+            "SELECT COUNT(*) FROM information_schema.tables "
+            "WHERE table_schema = '{0:s}' "
+            "AND table_name = '{1:s}'".format(schema, table)
+        )
 
         (num, ) = cursor.fetchone()
 
@@ -120,9 +129,12 @@ table_schema = '{0:s}' AND table_name = '{1:s}'".format(schema, table))
 
 def column_exists(conn, schema, table, column):
     with closing(conn.cursor()) as cursor:
-        cursor.execute("SELECT COUNT(*) FROM information_schema.columns WHERE \
-table_schema = '{0:s}' AND table_name = '{1:s}' AND \
-column_name = '{2:s}';".format(schema, table, column))
+        cursor.execute(
+            "SELECT COUNT(*) FROM information_schema.columns "
+            "WHERE table_schema = '{0:s}' "
+            "AND table_name = '{1:s}' "
+            "AND column_name = '{2:s}';".format(schema, table, column)
+        )
 
         (num, ) = cursor.fetchone()
 
@@ -133,7 +145,9 @@ def schema_exists(conn, name):
     with closing(conn.cursor()) as cursor:
         query = (
             "SELECT COUNT(*) FROM information_schema.schemata WHERE "
-            "schema_name = '{0:s}'").format(name)
+            "schema_name = '{0:s}'"
+        ).format(name)
+
         cursor.execute(query)
 
         (num, ) = cursor.fetchone()
@@ -143,14 +157,18 @@ def schema_exists(conn, name):
 
 def create_schema(conn, name, owner):
     with closing(conn.cursor()) as cursor:
-        cursor.execute("SELECT COUNT(*) FROM pg_catalog.pg_namespace WHERE \
-nspname = '{0:s}';".format(name))
+        cursor.execute(
+            "SELECT COUNT(*) FROM pg_catalog.pg_namespace "
+            "WHERE nspname = '{0:s}';".format(name)
+        )
 
         (num, ) = cursor.fetchone()
 
         if num == 0:
-            cursor.execute("CREATE SCHEMA \"{0:s}\"\
-AUTHORIZATION {1:s}".format(name, owner))
+            cursor.execute(
+                "CREATE SCHEMA \"{0:s}\" "
+                "AUTHORIZATION {1:s}".format(name, owner)
+            )
             conn.commit()
         else:
             raise ExistsError("Schema {0:s} already exists".format(name))
@@ -165,8 +183,10 @@ def alter_table_owner(conn, table, owner):
 
 def create_user(conn, name, password=None, groups=None):
     with closing(conn.cursor()) as cursor:
-        cursor.execute("SELECT COUNT(*) FROM pg_catalog.pg_shadow WHERE \
-usename = '{0:s}';".format(name))
+        cursor.execute(
+            "SELECT COUNT(*) FROM pg_catalog.pg_shadow "
+            "WHERE usename = '{0:s}';".format(name)
+        )
 
         (num, ) = cursor.fetchone()
 
@@ -179,7 +199,7 @@ usename = '{0:s}';".format(name))
 
             cursor.execute(query)
 
-            if not groups is None:
+            if groups is not None:
                 if hasattr(groups, "__iter__"):
                     for group in groups:
                         query = "GRANT {0:s} TO {1:s}".format(group, name)
@@ -196,15 +216,17 @@ def create_group(conn, name, group=None):
     @param group: parent group
     """
     with closing(conn.cursor()) as cursor:
-        cursor.execute("SELECT COUNT(*) FROM pg_catalog.pg_group WHERE \
-groname = '{0:s}';".format(name))
+        cursor.execute(
+            "SELECT COUNT(*) FROM pg_catalog.pg_group "
+            "WHERE groname = '{0:s}';".format(name)
+        )
 
         (num, ) = cursor.fetchone()
 
         if num == 0:
-            cursor.execute("CREATE ROLE \"{0:s}\"".format(name))
+            cursor.execute('CREATE ROLE "{0:s}"'.format(name))
 
-        if not group is None:
+        if group is not None:
             query = "GRANT {0:s} TO {1:s}".format(group, name)
             cursor.execute(query)
 
@@ -216,13 +238,17 @@ def create_db(conn, name, owner):
     Create a new database using template0 with UTF8 encoding.
     """
     with closing(conn.cursor()) as cursor:
-        cursor.execute("SELECT COUNT(*) FROM pg_catalog.pg_database WHERE \
-datname = '{0:s}';".format(name))
+        cursor.execute(
+            "SELECT COUNT(*) FROM pg_catalog.pg_database "
+            "WHERE datname = '{0:s}';".format(name)
+        )
 
         (num, ) = cursor.fetchone()
 
         if num == 0:
-            cursor.execute("CREATE DATABASE \"{0:s}\" WITH ENCODING='UTF8' \
-OWNER=\"{1:s}\" TEMPLATE template0".format(name, owner))
+            cursor.execute(
+                'CREATE DATABASE "{0:s}" WITH ENCODING=\'UTF8\' '
+                'OWNER="{1:s}" TEMPLATE template0'.format(name, owner)
+            )
 
     conn.commit()

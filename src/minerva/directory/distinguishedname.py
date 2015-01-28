@@ -30,7 +30,7 @@ def implode(parts):
         "{0}={1}".format(type_name, name) for type_name, name in parts)
 
 
-def splitparts(distinguished_name):
+def split_parts(distinguished_name):
     """
     Split the parts of a distinguished name into a list.
     """

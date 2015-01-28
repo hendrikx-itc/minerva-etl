@@ -141,7 +141,8 @@ def get_filtered_relations(conn, relation_type, filter=(MATCH_ALL, MATCH_ALL)):
             "AND et_s.name = %s "
             "JOIN directory.entity t ON t.id = r.target_id "
             "JOIN directory.entitytype et_t ON et_t.id = t.entitytype_id "
-            "AND et_t.name = %s")
+            "AND et_t.name = %s"
+        )
 
         args = relation_type
     else:
@@ -231,7 +232,8 @@ def make_entitytaglinks(conn, entity_ids, tag_names):
         with closing(conn.cursor()) as cursor:
             query = (
                 "CREATE TEMPORARY TABLE temp_entitytaglink "
-                "(LIKE directory.entitytaglink) ON COMMIT DROP")
+                "(LIKE directory.entitytaglink) ON COMMIT DROP"
+            )
 
             cursor.execute(query)
 
@@ -253,7 +255,8 @@ def make_entitytaglinks(conn, entity_ids, tag_names):
                 "LEFT JOIN directory.entitytaglink etl ON "
                 "etl.entity_id = t.entity_id and "
                 "etl.tag_id = t.tag_id "
-                "WHERE etl.entity_id IS NULL")
+                "WHERE etl.entity_id IS NULL"
+            )
 
             cursor.execute(query)
 

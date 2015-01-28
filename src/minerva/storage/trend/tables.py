@@ -92,7 +92,9 @@ def add_missing_columns(conn, schema, table_name, columns_to_check):
     with closing(conn.cursor()) as cursor:
         for (column_name, data_type) in columns_to_check:
             if not column_exists(conn, schema, table_name, column_name):
-                create_column(cursor, Table(schema, table_name), column_name, data_type)
+                create_column(
+                    cursor, Table(schema, table_name), column_name, data_type
+                )
 
 
 def create_trend_table(conn, schema, table, column_names, data_types):
@@ -120,15 +122,18 @@ def create_trend_table(conn, schema, table, column_names, data_types):
 
     alter_query = (
         "ALTER TABLE {0} ALTER COLUMN modified "
-        "SET DEFAULT CURRENT_TIMESTAMP".format(table.render()))
+        "SET DEFAULT CURRENT_TIMESTAMP".format(table.render())
+    )
 
     index_query_modified = (
         'CREATE INDEX "idx_{0}_modified" ON {1} '
-        'USING btree (modified)'.format(table.name, table.render()))
+        'USING btree (modified)'.format(table.name, table.render())
+    )
 
     index_query_timestamp = (
         'CREATE INDEX "idx_{0}_timestamp" ON {1} '
-        'USING btree (timestamp)'.format(table.name, table.render()))
+        'USING btree (timestamp)'.format(table.name, table.render())
+    )
 
     owner_query = "ALTER TABLE {} OWNER TO minerva_writer".format(
         table.render()
@@ -170,7 +175,8 @@ def create_temp_table_from(conn, schema, table):
 
     query = (
         "CREATE TEMPORARY TABLE \"{0}\" (LIKE {1}) "
-        "ON COMMIT DROP").format(tmp_table_name, table.render())
+        "ON COMMIT DROP"
+    ).format(tmp_table_name, table.render())
 
     with closing(conn.cursor()) as cursor:
         cursor.execute(query)
@@ -216,7 +222,8 @@ def create_column(cursor, table, column_name, data_type):
 
     query = (
         "ALTER TABLE {0} "
-        "ADD COLUMN \"{1}\" {2}").format(table_ref, column_name, data_type)
+        "ADD COLUMN \"{1}\" {2}"
+    ).format(table_ref, column_name, data_type)
 
     try:
         cursor.execute(query)

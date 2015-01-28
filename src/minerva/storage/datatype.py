@@ -68,7 +68,7 @@ def matches_smallint(value):
     except TypeError:
         return False
     else:
-        return int_val >= INT16_MIN and int_val <= INT16_MAX
+        return INT16_MIN <= int_val <= INT16_MAX
 
 
 def parse_smallint(value):
@@ -77,9 +77,12 @@ def parse_smallint(value):
 
     int_val = int(value)
 
-    if not (int_val >= INT16_MIN and int_val <= INT16_MAX):
-        raise ValueError("{0:d} is not in range {1:d} - {2:d}".format(
-            int_val, INT16_MIN, INT16_MAX))
+    if not (INT16_MIN <= int_val <= INT16_MAX):
+        raise ValueError(
+            "{0:d} is not in range {1:d} - {2:d}".format(
+                int_val, INT16_MIN, INT16_MAX
+            )
+        )
 
     return int_val
 
@@ -101,7 +104,7 @@ def matches_integer(value):
     except TypeError:
         return False
     else:
-        return int_val >= INT32_MIN and int_val <= INT32_MAX
+        return INT32_MIN <= int_val <= INT32_MAX
 
 
 def parse_integer(value):
@@ -110,9 +113,12 @@ def parse_integer(value):
 
     int_val = int(value)
 
-    if not (int_val >= INT32_MIN and int_val <= INT32_MAX):
-        raise ValueError("{0:d} is not in range {1:d} - {2:d}".format(
-            int_val, INT32_MIN, INT32_MAX))
+    if not (INT32_MIN <= int_val <= INT32_MAX):
+        raise ValueError(
+            "{0:d} is not in range {1:d} - {2:d}".format(
+                int_val, INT32_MIN, INT32_MAX
+            )
+        )
 
     return int_val
 
@@ -132,7 +138,7 @@ def matches_bigint(value):
     except (TypeError, ValueError):
         return False
     else:
-        return int_val >= INT64_MIN and int_val <= INT64_MAX
+        return INT64_MIN <= int_val <= INT64_MAX
 
 
 def parse_bigint(value):
@@ -141,7 +147,7 @@ def parse_bigint(value):
 
     int_val = int(value)
 
-    if not (int_val >= INT64_MIN and int_val <= INT64_MAX):
+    if not (INT64_MIN <= int_val <= INT64_MAX):
         raise ValueError("{0:d} is not in range {1:d} - {2:d}".format(
             int_val, INT64_MIN, INT64_MAX))
 
@@ -190,8 +196,9 @@ def parse_float(value):
     return float(value)
 
 
-TIMESTAMP_REGEX = re.compile("^([0-9]{4})-([0-9]{2})-([0-9]{2}) \
-([0-9]{2}):([0-9]{2}):([0-9]{2})$")
+TIMESTAMP_REGEX = re.compile(
+    "^([0-9]{4})-([0-9]{2})-([0-9]{2}) ([0-9]{2}):([0-9]{2}):([0-9]{2})$"
+)
 
 
 def matches_timestamp(value):
@@ -220,8 +227,9 @@ def parse_timestamp(value):
 
     (year, month, date, hour, minute, second) = match.groups()
 
-    datetime_val = datetime(int(year), int(month), int(date), int(hour),
-                            int(minute), int(second))
+    datetime_val = datetime(
+        int(year), int(month), int(date), int(hour), int(minute), int(second)
+    )
 
     return datetime_val
 
@@ -329,7 +337,7 @@ def parse_bits(value):
 def matches_bits(value):
     try:
         int(value, 2)
-    except:
+    except ValueError:
         return False
     else:
         return True
@@ -363,13 +371,15 @@ ALL_TYPES = [
     "real",
     "double precision",
     "timestamp without time zone",
-    "numeric"]
+    "numeric"
+]
 
 # The set of type ids of types that are integer
-INTEGER_TYPES = set([
+INTEGER_TYPES = {
     "bigint",
     "integer",
-    "smallint"])
+    "smallint"
+}
 
 TYPE_ORDER = [
     "smallint",
@@ -382,11 +392,14 @@ TYPE_ORDER = [
     "smallint[]",
     "integer[]",
     "text[]",
-    "text"]
+    "text"
+]
 
 
-TYPE_ORDER_RANKS = dict((data_type, i)
-                        for i, data_type in enumerate(TYPE_ORDER))
+TYPE_ORDER_RANKS = dict(
+    (data_type, i)
+    for i, data_type in enumerate(TYPE_ORDER)
+)
 
 
 def max_datatype(left, right):
@@ -397,13 +410,17 @@ def max_datatype(left, right):
 
 
 def max_datatypes(current_datatypes, new_datatypes):
-    return [max_datatype(current_datatype, new_datatype)
-            for current_datatype, new_datatype
-            in zip(current_datatypes, new_datatypes)]
+    return [
+        max_datatype(current_datatype, new_datatype)
+        for current_datatype, new_datatype
+        in zip(current_datatypes, new_datatypes)
+    ]
 
 
-ORDERED_MATCH_FUNCS = [(data_type, MATCH_FUNCS_BY_TYPE[data_type])
-                       for data_type in TYPE_ORDER]
+ORDERED_MATCH_FUNCS = [
+    (data_type, MATCH_FUNCS_BY_TYPE[data_type])
+    for data_type in TYPE_ORDER
+]
 
 
 def deduce_from_value(value):

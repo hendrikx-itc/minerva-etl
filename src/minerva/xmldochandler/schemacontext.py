@@ -33,34 +33,35 @@ class SchemaContext(object):
 
     def get_elementhandler(self, namespace_uri, localname):
         """
-        Return a root element handler from a name tuple (namespaceuri, localname)
+        Return a root element handler from a name tuple
+        (namespace_uri, localname)
         """
-        namespace = self.namespaces.get(namespace_uri, None)
+        namespace = self.namespaces.get(namespace_uri)
 
         if namespace:
-            return namespace.root_elementhandlers.get(localname, None)
+            return namespace.root_elementhandlers.get(localname)
         elif self.default_namespace:
-            return self.default_namespace.root_elementhandlers.get(localname, None)
+            return self.default_namespace.root_elementhandlers.get(localname)
 
         return None
 
     def get_elementtype(self, namespace_uri, name):
-        namespace = self.namespaces.get(namespace_uri, None)
+        namespace = self.namespaces.get(namespace_uri)
 
         elementtype = None
 
         if namespace:
-            elementtype = namespace.named_types.get(name, None)
+            elementtype = namespace.named_types.get(name)
 
         return elementtype
 
     def get_elementhandler_by_path(self, namespace_uri, name_path):
         """
-        Return an element handler from a name namespaceuri and a name
+        Return an element handler from a name namespace_uri and a name
         path where the name path looks like the following example:
         /mdc/md/neid
         """
-        namespace = self.namespaces.get(namespace_uri, None)
+        namespace = self.namespaces.get(namespace_uri)
 
         if namespace:
             return namespace.get_elementhandler(name_path)
@@ -68,7 +69,7 @@ class SchemaContext(object):
         return None
 
     def get_namespace(self, name):
-        namespace = self.namespaces.get(name, None)
+        namespace = self.namespaces.get(name)
 
         if not namespace:
             namespace = XmlNamespace(name)
@@ -81,10 +82,17 @@ class SchemaContext(object):
         Link base types to types
         """
         for basetypereference in self.basetypereferences:
-            basetype = self.get_elementtype(basetypereference.ref.namespacename, basetypereference.ref.localname)
+            basetype = self.get_elementtype(
+                basetypereference.ref.namespacename,
+                basetypereference.ref.localname
+            )
 
             if not basetype:
-                raise Exception("Could not resolve base type [{0}]".format(basetypereference.ref))
+                raise Exception(
+                    "Could not resolve base type [{0}]".format(
+                        basetypereference.ref
+                    )
+                )
 
             basetypereference.setsubject(basetype)
 
@@ -93,28 +101,42 @@ class SchemaContext(object):
         Hack to support substitutions
         """
         for substitution in self.substitutions:
-            for elementtype in self.all_types:
-                if substitution.substitutiongroup.localname in elementtype.child_elementhandlers():
-                    elementtype.add_child_elementhandlers(substitution.elementhandler)
+            for element_type in self.all_types:
+                if substitution.substitutiongroup.localname in element_type.child_elementhandlers():
+                    element_type.add_child_elementhandlers(
+                        substitution.elementhandler
+                    )
 
     def link_handlers(self):
         """
         Link the element handlers to the types
         """
-        for (namespaceuri, namespace) in self.namespaces.iteritems():
+        for (namespace_uri, namespace) in self.namespaces.iteritems():
             for elementrelation in namespace.elementrelations:
-                elementhandler = self.get_elementhandler_by_path(elementrelation.namespaceuri, elementrelation.elementpath)
+                elementhandler = self.get_elementhandler_by_path(
+                    elementrelation.namespaceuri, elementrelation.elementpath
+                )
 
                 if not elementhandler:
-                    raise Exception("Could not resolve relation to element handler with path [{0}]".format(elementrelation.elementpath))
+                    raise Exception(
+                        "Could not resolve relation to element handler with "
+                        "path [{0}]".format(elementrelation.elementpath)
+                    )
 
                 elementrelation.elementtype.child_elementhandlers[elementhandler.name] = elementhandler
 
     def link_elementreferences(self):
         for elementreference in self.elementreferences:
-            real_handler = self.get_elementhandler(elementreference.ref.namespacename, elementreference.ref.localname)
+            real_handler = self.get_elementhandler(
+                elementreference.ref.namespacename,
+                elementreference.ref.localname
+            )
 
             if not real_handler:
-                raise Exception("No handler found for reference {0}".format(elementreference.ref))
+                raise Exception(
+                    "No handler found for reference {0}".format(
+                        elementreference.ref
+                    )
+                )
 
             elementreference.setsubject(real_handler)

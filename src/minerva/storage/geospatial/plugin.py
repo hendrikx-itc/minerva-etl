@@ -40,8 +40,9 @@ class GeospatialPlugin(object):
         store_sites(self.conn, self.site_srid, rows)
 
     def get_entities_in_region(self, region, srid, entitytype):
-        return get_entities_in_region(self.conn, self.site_srid, region,
-                                      srid, entitytype)
+        return get_entities_in_region(
+            self.conn, self.site_srid, region, srid, entitytype
+        )
 
     def get_cells_in_region(self, region, srid):
         return get_cells_in_region(self.conn, self.site_srid, region, srid)
@@ -50,47 +51,63 @@ class GeospatialPlugin(object):
         return get_sites_in_region(self.conn, self.site_srid, region, srid)
 
     def retrieve_trend(self, region, srid, trend, timestamp, limit=None):
-        entitytype = helpers.get_entitytype_by_id(self.conn,
-                                                  trend["entitytype_id"])
-        datasource = helpers.get_datasource_by_id(self.conn,
-                                                  trend["datasource_id"])
+        entitytype = helpers.get_entitytype_by_id(
+            self.conn, trend["entitytype_id"]
+        )
 
-        return retrieve_trend(self.conn, self.site_srid, region, srid,
-                              datasource, entitytype, trend["name"],
-                              trend["granularity"],
-                              timestamp, limit)
+        datasource = helpers.get_datasource_by_id(
+            self.conn, trend["datasource_id"]
+        )
 
-    def retrieve_related_trend(self, region, srid, trend, timestamp,
-                               limit=None):
-        entitytype = helpers.get_entitytype_by_id(self.conn,
-                                                  trend["entitytype_id"])
-        datasource = helpers.get_datasource_by_id(self.conn,
-                                                  trend["datasource_id"])
+        return retrieve_trend(
+            self.conn, self.site_srid, region, srid, datasource, entitytype,
+            trend["name"], trend["granularity"], timestamp, limit
+        )
 
-        return retrieve_related_trend(self.conn, self.site_srid, region, srid,
-                                      datasource, entitytype, trend["name"],
-                                      trend["granularity"], timestamp, limit)
+    def retrieve_related_trend(
+            self, region, srid, trend, timestamp, limit=None):
+        entitytype = helpers.get_entitytype_by_id(
+            self.conn, trend["entitytype_id"]
+        )
+
+        datasource = helpers.get_datasource_by_id(
+            self.conn, trend["datasource_id"]
+        )
+
+        return retrieve_related_trend(
+            self.conn, self.site_srid, region, srid, datasource, entitytype,
+            trend["name"], trend["granularity"], timestamp, limit
+        )
 
     def retrieve_attribute(self, region, srid, attribute, limit=None):
-        entitytype = helpers.get_entitytype_by_id(self.conn,
-                                                  attribute["entitytype_id"])
-        datasource = helpers.get_datasource_by_id(self.conn,
-                                                  attribute["datasource_id"])
+        entitytype = helpers.get_entitytype_by_id(
+            self.conn, attribute["entitytype_id"]
+        )
 
-        return retrieve_attribute(self.conn, self.site_srid, region, srid,
-                                  datasource, entitytype, attribute["name"],
-                                  limit)
+        datasource = helpers.get_datasource_by_id(
+            self.conn, attribute["datasource_id"]
+        )
+
+        return retrieve_attribute(
+            self.conn, self.site_srid, region, srid, datasource, entitytype,
+            attribute["name"], limit
+        )
 
     def retrieve_related_attribute(self, region, srid, attribute, limit=None):
-        entitytype = helpers.get_entitytype_by_id(self.conn,
-                                                  attribute["entitytype_id"])
-        datasource = helpers.get_datasource_by_id(self.conn,
-                                                  attribute["datasource_id"])
+        entitytype = helpers.get_entitytype_by_id(
+            self.conn, attribute["entitytype_id"]
+        )
 
-        return retrieve_related_attribute(self.conn, self.site_srid,
-                                          region, srid, datasource, entitytype,
-                                          attribute["name"], limit)
+        datasource = helpers.get_datasource_by_id(
+            self.conn, attribute["datasource_id"]
+        )
+
+        return retrieve_related_attribute(
+            self.conn, self.site_srid, region, srid, datasource, entitytype,
+            attribute["name"], limit
+        )
 
     def create_sql_for_region(self, entitytype, region, srid):
-        return create_sql_for_bbox(self.conn, entitytype, self.site_srid,
-                                   region, srid)
+        return create_sql_for_bbox(
+            self.conn, entitytype, self.site_srid, region, srid
+        )

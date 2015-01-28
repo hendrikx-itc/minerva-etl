@@ -23,8 +23,10 @@ setup(
     author_email="info@hendrikx-itc.nl",
     version=__version__,
     license="GPL",
-    install_requires=["pytz", "psycopg2>=2.2.1", "DBUtils", "PyYAML",
-                      "configobj", "python-dateutil", "pyparsing"],
+    install_requires=[
+        "pytz", "psycopg2>=2.2.1", "DBUtils", "PyYAML", "configobj",
+        "python-dateutil", "pyparsing"
+    ],
     test_suite="nose.collector",
     packages=[
         "minerva",
@@ -43,7 +45,8 @@ setup(
         "minerva.xmldochandler.xmlschema",
         "minerva.xmlschemaparser",
         "minerva.schemacontextbuilder",
-        "minerva.instance"],
+        "minerva.instance"
+    ],
     package_dir={"": "src"},
     package_data={
         "minerva": ["defaults/*"]

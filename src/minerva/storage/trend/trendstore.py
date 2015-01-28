@@ -47,7 +47,8 @@ class TrendStore(object):
     All data belonging to a specific datasource, entitytype and granularity.
     """
     def __init__(
-            self, datasource, entitytype, granularity, partition_size, type):
+            self, datasource, entitytype, granularity, partition_size, type,
+            trends):
         self.id = None
         self.datasource = datasource
         self.entitytype = entitytype
@@ -56,6 +57,7 @@ class TrendStore(object):
         self.type = type
         self.version = 4
         self.partitioning = Partitioning(partition_size)
+        self.trends = trends
 
     def __str__(self):
         return self.make_table_basename()
@@ -139,7 +141,9 @@ class TrendStore(object):
                 "SELECT trend.modify_trendstore_columns("
                 "%s, "
                 "%s::trend.column_info[]"
-                ")")
+                ")"
+            )
+
             args = self.id, changes
 
             cursor.execute(query, args)
@@ -151,7 +155,7 @@ class TrendStore(object):
 
         table_names = map(self.make_table_name, timestamps)
 
-        #HACK for dealing with intervals that are small but span two tables
+        # HACK for dealing with intervals that are small but span two tables
         # (e.g. 2012-1-5 0:00 - 2012-1-5 1:00 for qtr tables)
         end_table = self.make_table_name(end)
 
@@ -170,7 +174,8 @@ class TrendStore(object):
             "SELECT t.id, t.name "
             "FROM trend.trendstore_trend_link ttl "
             "JOIN trend.trend t ON t.id = ttl.trend_id "
-            "WHERE ttl.trendstore_id = %s AND t.name = %s")
+            "WHERE ttl.trendstore_id = %s AND t.name = %s"
+        )
 
         args = self.id, trend_name
 
@@ -181,9 +186,9 @@ class TrendStore(object):
 
     def get_trends(self, cursor):
         query = (
-            "SELECT t.id, t.name FROM trend.trendstore_trend_link ttl "
-            "JOIN trend.trend t ON t.id = ttl.trend_id "
-            "WHERE ttl.trendstore_id = %s")
+            "SELECT id, name FROM trend.trend "
+            "WHERE trendstore_id = %s"
+        )
 
         args = (self.id, )
 
@@ -199,8 +204,10 @@ class TrendStore(object):
 
         columns = map(Column, column_names)
 
-        args = (self.datasource.id, self.entitytype.id, self.granularity.name,
-                self.partition_size, self.type, self.version)
+        args = (
+            self.datasource.id, self.entitytype.id, self.granularity.name,
+            self.partition_size, self.type, self.version
+        )
 
         query = schema.trendstore.insert(columns).returning("id")
 
@@ -216,18 +223,21 @@ class TrendStore(object):
         if self.id is None:
             return self.create(cursor)
         else:
-            args = (self.datasource.id, self.entitytype.id, self.granularity.name,
-                    self.partition_size, self.type, self.version, self.id)
+            args = (
+                self.datasource.id, self.entitytype.id, self.granularity.name,
+                self.partition_size, self.type, self.version, self.id
+            )
 
             query = (
                 "UPDATE trend.trendstore SET "
-                    "datasource_id = %s, "
-                    "entitytype_id = %s, "
-                    "granularity = %s, "
-                    "partition_size = %s, "
-                    "type = %s, "
-                    "version = %s "
-                "WHERE id = %s")
+                "datasource_id = %s, "
+                "entitytype_id = %s, "
+                "granularity = %s, "
+                "partition_size = %s, "
+                "type = %s, "
+                "version = %s "
+                "WHERE id = %s"
+            )
 
             cursor.execute(query, args)
 
@@ -264,13 +274,13 @@ class TrendStore(object):
                 partition_size, type, version
             ) = cursor.fetchone()
 
-            trendstore = TrendStore(
-                datasource, entitytype, granularity, partition_size, type
+            trend_store = TrendStore(
+                datasource, entitytype, granularity, partition_size, type, []
             )
 
-            trendstore.id = trendstore_id
+            trend_store.id = trendstore_id
 
-            return trendstore
+            return trend_store
 
     @classmethod
     def get_by_id(cls, cursor, id):
@@ -287,10 +297,13 @@ class TrendStore(object):
             datasource = get_datasource_by_id(cursor, datasource_id)
             entitytype = get_entitytype_by_id(cursor, entitytype_id)
 
+            trends = []  # TODO
+
             granularity = create_granularity(granularity_str)
 
             trendstore = TrendStore(
-                datasource, entitytype, granularity, partition_size, type
+                datasource, entitytype, granularity, partition_size, type,
+                trends
             )
 
             trendstore.id = trendstore_id
@@ -301,7 +314,8 @@ class TrendStore(object):
         query = (
             "SELECT 1 FROM trend.trendstore_trend_link ttl "
             "JOIN trend.trend t ON t.id = ttl.trend_id "
-            "WHERE ttl.trendstore_id = %s AND t.name = %s")
+            "WHERE ttl.trendstore_id = %s AND t.name = %s"
+        )
 
         args = self.id, trend_name
 
@@ -338,7 +352,9 @@ class TrendStore(object):
         def f(cursor):
             query = (
                 "DELETE FROM {} "
-                "WHERE timestamp = %s").format(self.base_table().render())
+                "WHERE timestamp = %s"
+            ).format(self.base_table().render())
+
             args = timestamp,
 
             cursor.execute(query, args)
@@ -351,33 +367,36 @@ def assure_trendstore_trend_link(cursor, trendstore, trend_name):
         trend = trendstore.get_trend(cursor, trend_name)
 
         if not trend:
-            trend = create_trend(cursor, trend_name)
+            trend = create_trend(cursor, trend_name, trendstore.id)
             logging.info("created trend {}".format(trend_name))
 
         trend_id = trend[0]
 
         link_trend_to_trendstore(cursor, trendstore, trend_id)
-        logging.info("linked trend {} to trendstore {}".format(
-                trend_name, trendstore))
+        logging.info(
+            "linked trend {} to trendstore {}".format(trend_name, trendstore)
+        )
 
 
 def link_trend_to_trendstore(cursor, trendstore, trend_id):
     query = (
         "INSERT INTO trend.trendstore_trend_link (trendstore_id, trend_id) "
-        "VALUES (%s, %s)")
+        "VALUES (%s, %s)"
+    )
 
     args = trendstore.id, trend_id
 
     cursor.execute(query, args)
 
 
-def create_trend(cursor, name, description=""):
+def create_trend(cursor, name, trendstore_id, description=""):
     query = (
-        "INSERT INTO trend.trend (name, description) "
-        "VALUES (%s, %s) "
-        "RETURNING id")
+        "INSERT INTO trend.trend (name, trendstore_id, description) "
+        "VALUES (%s, %s, %s) "
+        "RETURNING id"
+    )
 
-    args = name, description
+    args = name, trendstore_id, description
 
     cursor.execute(query, args)
 
@@ -403,7 +422,8 @@ def store_raw(datasource, raw_datapackage):
         ExtractPartition(datasource, dn),
         GetTimestamp(),
         insert_action(read("partition"), read("datapackage")),
-        MarkModified(read("partition"), read("timestamp")))
+        MarkModified(read("partition"), read("timestamp"))
+    )
 
 
 read = partial(methodcaller, 'get')
@@ -449,19 +469,19 @@ class ExtractPartition(DbAction):
         entitytype = get_entitytype_by_id(cursor, entity.entitytype_id)
         datapackage = state["datapackage"]
 
-        trendstore = TrendStore.get(
+        trend_store = TrendStore.get(
             cursor, self.datasource, entitytype, datapackage.granularity
         )
 
-        if not trendstore:
+        if not trend_store:
             partition_size = 86400
 
-            trendstore = TrendStore(
+            trend_store = TrendStore(
                 self.datasource, entitytype, datapackage.granularity,
                 partition_size, "table"
             ).create(cursor)
 
-        partition = trendstore.partition(datapackage.timestamp)
+        partition = trend_store.partition(datapackage.timestamp)
 
         logging.debug(partition.name)
 
@@ -681,32 +701,6 @@ class CheckColumnTypes(DbAction):
         partition.check_column_types(trend_names, data_types)(cursor)
 
 
-class DeleteBySubQuery(DbAction):
-    def __init__(self, table, timestamp, entityselection, trend_names):
-        self.table = table
-        self.timestamp = timestamp
-        self.entityselection = entityselection
-        self.trend_names = trend_names
-
-    def execute(self, cursor, state):
-        table = self.table(state)
-        timestamp = self.timestamp(state)
-        entityselection = self.entityselection(state)
-        trend_names = self.trend_names(state)
-
-        actual_column_names = set(get_column_names(cursor, table))
-
-        required_column_names = schema.system_columns_set | set(trend_names)
-
-        if required_column_names != actual_column_names:
-            return drop_action()
-
-        try:
-            delete_by_entityselection(cursor, table, timestamp, entityselection)
-        except NoSuchTable:
-            return drop_action()
-
-
 def get_timestamp(cursor):
     cursor.execute("SELECT NOW()")
 
@@ -756,8 +750,10 @@ def create_copy_from_file(timestamp, modified, data_rows):
 
 
 def create_copy_from_lines(timestamp, modified, data_rows):
-    return (create_copy_from_line(timestamp, modified, data_row)
-            for data_row in data_rows)
+    return (
+        create_copy_from_line(timestamp, modified, data_row)
+        for data_row in data_rows
+    )
 
 
 def create_copy_from_line(timestamp, modified, data_row):
@@ -778,8 +774,10 @@ def create_copy_from_query(table, trend_names):
 
     quote = partial(str.format, '"{}"')
 
-    query = "COPY {0}({1}) FROM STDIN WITH NULL '\\N'".format(table.render(),
-        ",".join(map(quote, column_names)))
+    query = "COPY {0}({1}) FROM STDIN WITH NULL '\\N'".format(
+        table.render(),
+        ",".join(map(quote, column_names))
+    )
 
     return query
 
@@ -877,7 +875,8 @@ def store_batch_insert(cursor, table, datapackage, modified):
 
     query = (
         "INSERT INTO {0} ({1}) "
-        "VALUES ({2})").format(table.render(), dest_column_names, parameters)
+        "VALUES ({2})"
+    ).format(table.render(), dest_column_names, parameters)
 
     rows = [
         (entity_id, datapackage.timestamp, modified) + tuple(values)
@@ -906,7 +905,8 @@ def create_temp_table_from(cursor, table):
 
     query = (
         "CREATE TEMPORARY TABLE {0} (LIKE {1}) "
-        "ON COMMIT DROP").format(tmp_table.render(), table.render())
+        "ON COMMIT DROP"
+    ).format(tmp_table.render(), table.render())
 
     cursor.execute(query)
 
@@ -922,36 +922,14 @@ def get_column_names(cursor, table):
         "JOIN pg_class c ON c.oid = a.attrelid "
         "JOIN pg_namespace n ON n.oid = c.relnamespace "
         "WHERE n.nspname = %s AND c.relname = %s "
-        "AND a.attnum > 0 AND not attisdropped")
+        "AND a.attnum > 0 AND not attisdropped"
+    )
 
     args = table.schema.name, table.name
 
     cursor.execute(query, args)
 
     return map(first, cursor.fetchall())
-
-
-def delete_by_entityselection(cursor, table, timestamp, entityselection):
-    """
-    Delete rows from table for a specific timestamp and entity_ids in
-    entityselection
-    """
-    entityselection.create_temp_table(cursor, "entity_filter")
-
-    delete_query = (
-        "DELETE FROM {} d "
-        "USING entity_filter f "
-        "WHERE d.timestamp = %s AND f.entity_id = d.entity_id"
-    ).format(table.render())
-
-    args = (timestamp,)
-
-    logging.debug(cursor.mogrify(delete_query, args))
-
-    try:
-        cursor.execute(delete_query, args)
-    except psycopg2.DatabaseError as exc:
-        raise translate_postgresql_exception(exc)
 
 
 def refine_datapackage(cursor, raw_datapackage):
@@ -989,7 +967,8 @@ def get_data_type(cursor, table, column_name):
         "AND n.nspname = %s "
         "AND a.attname = %s "
         "AND a.attrelid = c.oid "
-        "AND c.relnamespace = n.oid")
+        "AND c.relnamespace = n.oid"
+    )
 
     args = table.name, table.schema.name, column_name
 
@@ -998,7 +977,9 @@ def get_data_type(cursor, table, column_name):
     if cursor.rowcount > 0:
         return cursor.fetchone()[0]
     else:
-        raise Exception("No such column: {0}.{1}".format(table.name, column_name))
+        raise Exception(
+            "No such column: {0}.{1}".format(table.name, column_name)
+        )
 
 
 def refine_values(raw_values):

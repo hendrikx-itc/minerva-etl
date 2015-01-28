@@ -33,7 +33,8 @@ class AttributePlugin(object):
 
         with closing(self.conn.cursor()) as cursor:
             attributestore = AttributeStore.from_attributes(
-                cursor, datasource, entitytype, attributes)
+                cursor, datasource, entitytype, attributes
+            )
 
         self.conn.commit()
 
@@ -42,20 +43,23 @@ class AttributePlugin(object):
     def retrieve_attributes_for_entity(self, entity_id, attributes):
         return retrieve_attributes_for_entity(self.conn, entity_id, attributes)
 
-    def retrieve(self, datasource, entitytype, attribute_names, entities,
-                 timestamp=None):
+    def retrieve(
+            self, datasource, entitytype, attribute_names, entities,
+            timestamp=None):
         attributestore = AttributeStore(datasource, entitytype)
 
-        return retrieve(self.conn, attributestore.table, attribute_names,
-                        entities, timestamp)
+        return retrieve(
+            self.conn, attributestore.table, attribute_names, entities,
+            timestamp
+        )
 
-    def retrieve_current(self, datasource, entitytype, attribute_names,
-                         entities):
+    def retrieve_current(
+            self, datasource, entitytype, attribute_names, entities):
 
         attributestore = AttributeStore(datasource, entitytype)
 
-        return retrieve_current(self.conn, attributestore.curr_table,
-                                attribute_names, entities)
+        return retrieve_current(
+            self.conn, attributestore.curr_table, attribute_names, entities)
 
     def store_raw(self, datasource, raw_datapackage):
         if not raw_datapackage.is_empty():

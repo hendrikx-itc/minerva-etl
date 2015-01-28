@@ -20,8 +20,9 @@ from minerva.instance.error import ConfigurationError
 INSTANCES_PATH = "/etc/minerva/instances"
 CLASSES_PATH = "/usr/lib/minerva/classes"
 
-EXPECTED_EXCEPTIONS = (psycopg2.InterfaceError, psycopg2.InternalError,
-                       psycopg2.OperationalError)
+EXPECTED_EXCEPTIONS = (
+    psycopg2.InterfaceError, psycopg2.InternalError, psycopg2.OperationalError
+)
 
 
 class MinervaInstance(object):
@@ -36,7 +37,8 @@ class MinervaInstance(object):
             user=user,
             host=self.config["database"]["host"],
             port=self.config["database"]["port"],
-            name=self.config["database"]["name"])
+            name=self.config["database"]["name"]
+        )
 
     def connect_logging(self, logger, **kwargs):
         db_conf = self.config["database"]
@@ -87,7 +89,8 @@ class MinervaInstance(object):
             "failures": EXPECTED_EXCEPTIONS,
             "database": db_conf.get("name"),
             "host": db_conf.get("host"),
-            "port": db_conf.get("port")}
+            "port": db_conf.get("port")
+        }
 
         merged_kwargs.update(kwargs)
 
@@ -99,8 +102,10 @@ class MinervaInstance(object):
 
     @staticmethod
     def load_config(name):
-        instance_config_path = os.path.join(INSTANCES_PATH,
-                                            "{}.conf".format(name))
+        instance_config_path = os.path.join(
+            INSTANCES_PATH,
+            "{}.conf".format(name)
+        )
 
         if not(os.path.isfile(instance_config_path)):
             raise ConfigurationError("no such instance '{}'".format(name))

@@ -21,7 +21,7 @@ import itertools
 import psycopg2.errorcodes
 
 from minerva.db.generic import UniqueViolation
-from minerva.directory.distinguishedname import splitparts, type_indexes, \
+from minerva.directory.distinguishedname import split_parts, type_indexes, \
     explode, implode
 from minerva.directory.basetypes import DataSource, Entity, EntityType
 from minerva.directory import helpers_v4
@@ -118,22 +118,30 @@ def add_datasource(conn, name, description, timezone):
     warnings.warn("deprecated", DeprecationWarning)
 
     with closing(conn.cursor()) as cursor:
-        cursor.execute("SELECT id FROM directory.datasource WHERE name=%s",
-                       (name,))
+        cursor.execute(
+            "SELECT id FROM directory.datasource WHERE name=%s",
+            (name,)
+        )
 
         if cursor.rowcount == 1:
             (datasource_id,) = cursor.fetchone()
         else:
             try:
-                cursor.execute("INSERT INTO directory.datasource \
-(id, name, description, timezone) \
-VALUES (DEFAULT, %s, %s, %s) RETURNING id", (name, description, timezone))
+                query = (
+                    "INSERT INTO directory.datasource "
+                    "(id, name, description, timezone) "
+                    "VALUES (DEFAULT, %s, %s, %s) RETURNING id"
+                )
+
+                cursor.execute(query, (name, description, timezone))
             except psycopg2.Error as exc:
                 conn.rollback()
 
                 if exc.pgcode == psycopg2.errorcodes.UNIQUE_VIOLATION:
-                    cursor.execute("SELECT id FROM directory.datasource \
-WHERE name=%s", (name,))
+                    cursor.execute(
+                        "SELECT id FROM directory.datasource WHERE name=%s",
+                        (name,)
+                    )
 
                     (datasource_id,) = cursor.fetchone()
                 else:
@@ -158,7 +166,8 @@ def create_datasource(conn, name, description, timezone):
     if "_" in name:
         raise InvalidNameError(
             "Datasource name '{0}' contains underscores. "
-            "This is not allowed.".format(name))
+            "This is not allowed.".format(name)
+        )
 
     with closing(conn.cursor()) as cursor:
         try:
@@ -166,14 +175,17 @@ def create_datasource(conn, name, description, timezone):
                 "INSERT INTO directory.datasource "
                 "(id, name, description, timezone) "
                 "VALUES (DEFAULT, %s, %s, %s) RETURNING id",
-                (name, description, timezone))
+                (name, description, timezone)
+            )
         except psycopg2.Error as exc:
             conn.rollback()
 
             if exc.pgcode == psycopg2.errorcodes.UNIQUE_VIOLATION:
                 cursor.execute(
                     "SELECT id FROM directory.datasource "
-                    "WHERE name=%s", (name,))
+                    "WHERE name=%s",
+                    (name,)
+                )
 
                 (datasource_id,) = cursor.fetchone()
             else:
@@ -190,9 +202,10 @@ def create_entitytype(conn, name, description):
     """
     Create a new entity type and add it to the database.
     """
-    query = " ".join([
-        "INSERT INTO directory.entitytype (id, name, description)",
-        "VALUES (DEFAULT, %s, %s) RETURNING id"])
+    query = (
+        "INSERT INTO directory.entitytype (id, name, description) "
+        "VALUES (DEFAULT, %s, %s) RETURNING id"
+    )
 
     with closing(conn.cursor()) as cursor:
         try:
@@ -220,15 +233,16 @@ def get_entitytype_by_id(conn, entitytype_id):
     :param conn: A psycopg2 database connection.
     :param entitytype_id: Id of the entity type to return.
     """
-    sql = (
+    query = (
         "SELECT name, description "
         "FROM directory.entitytype "
-        "WHERE id=%s")
+        "WHERE id=%s"
+    )
 
     args = (entitytype_id,)
 
     with closing(conn.cursor()) as cursor:
-        cursor.execute(sql, args)
+        cursor.execute(query, args)
 
         if cursor.rowcount > 0:
             (name, description) = cursor.fetchone()
@@ -243,15 +257,16 @@ def get_entitytype(conn, name):
     """
     Return the entitytype with name `name`.
     """
-    sql = (
+    query = (
         "SELECT id, name, description "
         "FROM directory.entitytype "
-        "WHERE lower(name) = lower(%s)")
+        "WHERE lower(name) = lower(%s)"
+    )
 
     args = (name,)
 
     with closing(conn.cursor()) as cursor:
-        cursor.execute(sql, args)
+        cursor.execute(query, args)
 
         if cursor.rowcount > 0:
             (entitytype_id, name, description) = cursor.fetchone()
@@ -286,9 +301,11 @@ def get_child_ids(conn, base_entity, entitytype):
         cursor.execute(
             "SELECT id FROM directory.entity "
             "WHERE entitytype_id = %s AND dn LIKE %s",
-            (entitytype.id, base_entity.dn + ",%"))
+            (entitytype.id, base_entity.dn + ",%")
+        )
 
         return (entity_id for entity_id, in cursor.fetchall())
+
 
 def get_related_entity_ids_for_relation(conn, base_entity_id, relation_name):
     """
@@ -296,7 +313,8 @@ def get_related_entity_ids_for_relation(conn, base_entity_id, relation_name):
     """
     query = (
         "SELECT target_id FROM relation.\"{0}\" "
-        "WHERE source_id = %s").format(relation_name)
+        "WHERE source_id = %s"
+    ).format(relation_name)
 
     with closing(conn.cursor()) as cursor:
         cursor.execute(query, (base_entity_id, ))
@@ -314,13 +332,15 @@ def get_related_entity_ids(conn, base_entity, entitytype):
 
     source_entitytype = get_entitytype_by_id(conn, base_entity.entitytype_id)
 
-    relation_tablename = "{}->{}".format(source_entitytype.name,
-                                         entitytype.name)
+    relation_tablename = "{}->{}".format(
+        source_entitytype.name, entitytype.name
+    )
 
     query = (
         "SELECT target_id FROM relation.\"{0}\" "
         "JOIN directory.entity e ON e.id = target_id AND e.entitytype_id = %s "
-        "WHERE source_id = %s").format(relation_tablename)
+        "WHERE source_id = %s"
+    ).format(relation_tablename)
 
     with closing(conn.cursor()) as cursor:
         cursor.execute(query, (entitytype.id, base_entity.id))
@@ -343,7 +363,8 @@ def get_related_entitytypes(conn, entity_type_name):
         "AND s_et.name = %s "
         "JOIN relation.all r ON r.source_id = s.id "
         "JOIN directory.entity t ON r.target_id = t.id "
-        "JOIN directory.entitytype t_et ON t_et.id = t.entitytype_id")
+        "JOIN directory.entitytype t_et ON t_et.id = t.entitytype_id"
+    )
 
     with closing(conn.cursor()) as cursor:
         cursor.execute(query, (entity_type_name,))
@@ -375,7 +396,8 @@ def get_filtered_relations(conn, relation_type, filter=(MATCH_ALL, MATCH_ALL)):
             "AND et_s.name = %s "
             "JOIN directory.entity t ON t.id = r.target_id "
             "JOIN directory.entitytype et_t ON et_t.id = t.entitytype_id "
-            "AND et_t.name = %s")
+            "AND et_t.name = %s"
+        )
 
         args = relation_type
     else:
@@ -415,8 +437,9 @@ def get_relations(conn, relation_type):
     """
     source_entitytype_name, target_entitytype_name = relation_type
 
-    relationtype_name = "{}->{}".format(source_entitytype_name,
-                                        target_entitytype_name)
+    relationtype_name = "{}->{}".format(
+        source_entitytype_name, target_entitytype_name
+    )
 
     try:
         get_relationtype_id(conn, relationtype_name)
@@ -429,7 +452,8 @@ def get_relations(conn, relation_type):
             "AND et_s.name = %s "
             "JOIN directory.entity t ON t.id = r.target_id "
             "JOIN directory.entitytype et_t ON et_t.id = t.entitytype_id "
-            "AND et_t.name = %s ")
+            "AND et_t.name = %s "
+        )
 
         args = relation_type
     else:
@@ -544,7 +568,7 @@ def create_entity(conn, dn):
     :param conn: A psycopg2 connection to a Minerva Directory database.
     :param dn: The distinguished name of the entity.
     """
-    dnparts = splitparts(dn)
+    dnparts = split_parts(dn)
 
     if len(dnparts) == 0:
         raise Exception("Invalid DN: '{0}'".format(dn))
@@ -592,7 +616,8 @@ def make_entitytaglinks(conn, entity_ids, tag_names):
                 "LEFT JOIN directory.entitytaglink etl ON "
                 "etl.entity_id = t.entity_id and "
                 "etl.tag_id = t.tag_id "
-                "WHERE etl.entity_id IS NULL")
+                "WHERE etl.entity_id IS NULL"
+            )
 
             cursor.execute(query)
 

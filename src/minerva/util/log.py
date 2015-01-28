@@ -33,8 +33,9 @@ def parse_loglevel(level_str):
         return level_map[level_str]
 
 
-def setup_logging(verbose=True, level="INFO", directory=None, filename=None,
-                  rotation_size="10MB"):
+def setup_logging(
+        verbose=True, level="INFO", directory=None, filename=None,
+        rotation_size="10MB"):
     """
     Setup logging.
     """
@@ -52,13 +53,15 @@ def setup_logging(verbose=True, level="INFO", directory=None, filename=None,
     if not(directory is None and filename is None):
         max_log_size = parse_size(rotation_size)
 
-        filepath = os.path.join(directory, filename)
+        file_path = os.path.join(directory, filename)
 
-        handler = RotatingFileHandler(filepath, maxBytes=max_log_size,
-                                      backupCount=5)
+        handler = RotatingFileHandler(
+            file_path, maxBytes=max_log_size, backupCount=5
+        )
 
         handler.setFormatter(
-            logging.Formatter("%(asctime)s %(levelname)s %(message)s"))
+            logging.Formatter("%(asctime)s %(levelname)s %(message)s")
+        )
 
         root_logger.setLevel(parse_loglevel(level))
         root_logger.addHandler(handler)
@@ -67,8 +70,12 @@ def setup_logging(verbose=True, level="INFO", directory=None, filename=None,
 
 
 def subprocess_with_logging(command):
-    process = subprocess.Popen(command.split(), stdout=subprocess.PIPE,
-                               stderr=subprocess.STDOUT)
+    process = subprocess.Popen(
+        command.split(),
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT
+    )
+
     stdoutdata, stderrdata = process.communicate()
     if stdoutdata is not None:
         logging.info("%s", stdoutdata)

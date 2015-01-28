@@ -21,7 +21,8 @@ class View(object):
         query = (
             "SELECT (trend.define_view(trendstore, %s)).id "
             "FROM trend.trendstore "
-            "WHERE id = %s")
+            "WHERE id = %s"
+        )
 
         args = self.sql, self.trendstore.id
 
@@ -37,7 +38,8 @@ class View(object):
         query = (
             "SELECT trend.create_view(view) "
             "FROM trend.view "
-            "WHERE id = %s")
+            "WHERE id = %s"
+        )
 
         args = self.id,
 

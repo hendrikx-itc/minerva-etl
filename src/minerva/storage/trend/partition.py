@@ -71,7 +71,8 @@ class Partition(object):
         query = (
             "SELECT trend.create_partition(trendstore, %s) "
             "FROM trend.trendstore "
-            "WHERE id = %s")
+            "WHERE id = %s"
+        )
         args = self.index, self.trendstore.id
 
         try:
@@ -91,7 +92,8 @@ class Partition(object):
         def f(cursor):
             query = (
                 "DELETE FROM {} "
-                "WHERE timestamp = %s").format(self.table.render())
+                "WHERE timestamp = %s"
+            ).format(self.table.render())
             args = timestamp,
 
             cursor.execute(query, args)

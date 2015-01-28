@@ -43,9 +43,10 @@ def calc_hash(values):
 
 def insert_cell_in_current(cursor, timestamp, values_hash, cell):
     query = (
-        "INSERT INTO \"{0}\".\"{1}_curr\" "
-        "(entity_id, timestamp, hash, azimuth, type) "
-        "VALUES (%s, %s, %s, %s, %s)").format(SCHEMA, CELL_TABLENAME)
+        'INSERT INTO "{0}"."{1}_curr" '
+        '(entity_id, timestamp, hash, azimuth, type) '
+        'VALUES (%s, %s, %s, %s, %s)'
+    ).format(SCHEMA, CELL_TABLENAME)
 
     args = cell.entity_id, timestamp, values_hash, cell.azimuth, cell.type
 
@@ -53,23 +54,27 @@ def insert_cell_in_current(cursor, timestamp, values_hash, cell):
         cursor.execute(query, args)
     except psycopg2.DatabaseError as exc:
         if exc.pgcode == psycopg2.errorcodes.UNIQUE_VIOLATION:
-            fix = partial(remove_from_current, cursor, CELL_TABLENAME,
-                          cell.entity_id)
+            fix = partial(
+                remove_from_current, cursor, CELL_TABLENAME, cell.entity_id
+            )
             raise RecoverableError(str(exc), fix)
         else:
-            raise NonRecoverableError("{0}, {1!s} in query '{2}'".format(
-                                      exc.pgcode, exc, query))
+            raise NonRecoverableError(
+                "{0}, {1!s} in query '{2}'".format(exc.pgcode, exc, query)
+            )
     except (psycopg2.DataError, psycopg2.ProgrammingError,
             psycopg2.IntegrityError) as exc:
         raise NonRecoverableError(
-            "{0}, {1!s} in query '{2}'".format(exc.pgcode, exc, query))
+            "{0}, {1!s} in query '{2}'".format(exc.pgcode, exc, query)
+        )
 
 
 def insert_cell_in_archive(cursor, timestamp, values_hash, cell):
     query = (
-        "INSERT INTO \"{0}\".\"{1}\" "
-        "(entity_id, timestamp, hash, azimuth, type) "
-        "VALUES (%s, %s, %s, %s, %s)").format(SCHEMA, CELL_TABLENAME)
+        'INSERT INTO "{0}"."{1}" '
+        '(entity_id, timestamp, hash, azimuth, type) '
+        'VALUES (%s, %s, %s, %s, %s)'
+    ).format(SCHEMA, CELL_TABLENAME)
 
     args = cell.entity_id, timestamp, values_hash, cell.azimuth, cell.type
 
@@ -82,11 +87,13 @@ def insert_cell_in_archive(cursor, timestamp, values_hash, cell):
             raise RecoverableError(str(exc), fix)
         else:
             raise NonRecoverableError(
-                "{0}, {1!s} in query '{2}'".format(exc.pgcode, exc, query))
+                "{0}, {1!s} in query '{2}'".format(exc.pgcode, exc, query)
+            )
     except (psycopg2.DataError, psycopg2.ProgrammingError,
             psycopg2.IntegrityError) as exc:
         raise NonRecoverableError(
-            "{0}, {1!s} in query '{2}'".format(exc.pgcode, exc, query))
+            "{0}, {1!s} in query '{2}'".format(exc.pgcode, exc, query)
+        )
 
 
 def insert_site_in_current(cursor, target_srid, timestamp, site, values_hash):
@@ -95,8 +102,8 @@ def insert_site_in_current(cursor, target_srid, timestamp, site, values_hash):
     query = (
         "INSERT INTO {0}.{1}_curr "
         "(entity_id, timestamp, hash, position) "
-        "VALUES (%s, %s, %s, {2})").format(SCHEMA, SITE_TABLENAME,
-                                           position_part)
+        "VALUES (%s, %s, %s, {2})"
+    ).format(SCHEMA, SITE_TABLENAME, position_part)
 
     args = site.entity_id, timestamp, values_hash
 
@@ -109,21 +116,23 @@ def insert_site_in_current(cursor, target_srid, timestamp, site, values_hash):
             raise RecoverableError(str(exc), fix)
         else:
             raise NonRecoverableError(
-                "{0}, {1!s} in query '{2}'".format(exc.pgcode, exc, query))
+                "{0}, {1!s} in query '{2}'".format(exc.pgcode, exc, query)
+            )
     except (psycopg2.DataError, psycopg2.ProgrammingError,
             psycopg2.IntegrityError) as exc:
         raise NonRecoverableError(
-            "{0}, {1!s} in query '{2}'".format(exc.pgcode, exc, query))
+            "{0}, {1!s} in query '{2}'".format(exc.pgcode, exc, query)
+        )
 
 
 def insert_site_in_archive(cursor, target_srid, timestamp, site, values_hash):
     position_part = transform_srid(site.position.as_sql(), target_srid)
 
     query = (
-        "INSERT INTO \"{0}\".\"{1}\" "
-        "(entity_id, timestamp, position, hash) "
-        "VALUES (%s, %s, {2}, %s)").format(SCHEMA, SITE_TABLENAME,
-                                           position_part)
+        'INSERT INTO "{0}"."{1}" '
+        '(entity_id, timestamp, position, hash) '
+        'VALUES (%s, %s, {2}, %s)'
+    ).format(SCHEMA, SITE_TABLENAME, position_part)
 
     args = site.entity_id, timestamp, values_hash
 
@@ -145,8 +154,9 @@ def insert_site_in_archive(cursor, target_srid, timestamp, site, values_hash):
 
 def remove_from_current(cursor, tablename, entity_id):
     query = (
-        "DELETE FROM \"{0}\".\"{1}_curr\" "
-        "WHERE entity_id=%s").format(SCHEMA, tablename)
+        'DELETE FROM "{0}"."{1}_curr" '
+        'WHERE entity_id=%s'
+    ).format(SCHEMA, tablename)
 
     args = (entity_id,)
 
@@ -155,8 +165,9 @@ def remove_from_current(cursor, tablename, entity_id):
 
 def remove_from_archive(cursor, tablename, timestamp, entity_id):
     query = (
-        "DELETE FROM \"{0}\".\"{1}\" "
-        "WHERE entity_id=%s AND timestamp=%s").format(SCHEMA, tablename)
+        'DELETE FROM "{0}"."{1}" '
+        'WHERE entity_id=%s AND timestamp=%s'
+    ).format(SCHEMA, tablename)
 
     args = (entity_id, timestamp)
 
@@ -165,15 +176,17 @@ def remove_from_archive(cursor, tablename, timestamp, entity_id):
 
 def get_current_hash(cursor, tablename, entity_id):
     query = (
-        "SELECT hash, timestamp "
-        "FROM \"{0}\".\"{1}_curr\" "
-        "WHERE entity_id=%s").format(SCHEMA, tablename)
+        'SELECT hash, timestamp '
+        'FROM "{0}"."{1}_curr" '
+        'WHERE entity_id=%s'
+    ).format(SCHEMA, tablename)
 
     try:
         cursor.execute(query, (entity_id,))
     except psycopg2.ProgrammingError as exc:
         raise NonRecoverableError(
-            "{0}, {1!s} in query '{2}'".format(exc.pgcode, exc, query))
+            "{0}, {1!s} in query '{2}'".format(exc.pgcode, exc, query)
+        )
 
     if cursor.rowcount > 0:
         previous_hash, previous_timestamp = cursor.fetchone()
@@ -184,9 +197,10 @@ def get_current_hash(cursor, tablename, entity_id):
 
 def get_archived_timestamps_and_hashes(cursor, tablename, entity_id):
     query = (
-        "SELECT timestamp, hash "
-        "FROM \"{0}\".\"{1}\" "
-        "WHERE entity_id = %s").format(SCHEMA, tablename)
+        'SELECT timestamp, hash '
+        'FROM "{0}"."{1}" '
+        'WHERE entity_id = %s'
+    ).format(SCHEMA, tablename)
 
     args = (entity_id,)
 
@@ -199,7 +213,8 @@ def copy_to_archive(cursor, table_name, entity_id):
     query = (
         'INSERT INTO {0}."{1}" '
         'SELECT * FROM {0}."{1}_curr" '
-        'WHERE entity_id = %s').format(SCHEMA, table_name)
+        'WHERE entity_id = %s'
+    ).format(SCHEMA, table_name)
 
     args = (entity_id,)
 
@@ -217,8 +232,9 @@ def store_site(cursor, target_srid, timestamp, site):
         current_hash, current_timestamp = get_current_hash(
             cursor, SITE_TABLENAME, site.entity_id)
     except NoRecordError:
-        insert_site_in_current(cursor, target_srid, timestamp, site,
-                               values_hash)
+        insert_site_in_current(
+            cursor, target_srid, timestamp, site, values_hash
+        )
     else:
         if timestamp >= current_timestamp and current_hash == values_hash:
             pass  # No updated attribute values; do nothing
@@ -227,15 +243,17 @@ def store_site(cursor, target_srid, timestamp, site):
                 copy_to_archive(cursor, SITE_TABLENAME, site.entity_id)
 
             remove_from_current(cursor, SITE_TABLENAME, site.entity_id)
-            insert_site_in_current(cursor, target_srid, timestamp, site,
-                                   values_hash)
+            insert_site_in_current(
+                cursor, target_srid, timestamp, site, values_hash
+            )
 
         elif timestamp < current_timestamp:
             # This should not happen too much (maybe in a data recovering
             # scenario), we're dealing with attribute data that's older than
             # the attribute data in curr table
-            archived_timestamps_and_hashes = get_archived_timestamps_and_hashes(cursor,
-                    SITE_TABLENAME, site.entity_id)
+            archived_timestamps_and_hashes = get_archived_timestamps_and_hashes(
+                cursor, SITE_TABLENAME, site.entity_id
+            )
             archived_timestamps = map(head, archived_timestamps_and_hashes)
 
             if timestamp > max(archived_timestamps):
@@ -263,7 +281,8 @@ def store_site(cursor, target_srid, timestamp, site):
                 archived_timestamps_and_hashes.sort()
                 archived_timestamps_and_hashes.reverse()  # Order from new to old
 
-                #Determine where old attribute data should be placed in archive table
+                # Determine where old attribute data should be placed in
+                # archive table
                 for index, (ts, h) in enumerate(archived_timestamps_and_hashes):
                     if timestamp > ts:
                         archived_timestamp, archived_hash = archived_timestamps_and_hashes[index - 1]
@@ -350,8 +369,11 @@ def sanitize_archive(cursor, table):
 
     cursor.execute(query)
 
-    logging.warning("Sanitized geospatial table {0} (deleted {1} rows)".format(
-        table, cursor.rowcount))
+    logging.warning(
+        "Sanitized geospatial table {0} (deleted {1} rows)".format(
+            table, cursor.rowcount
+        )
+    )
 
 
 def make_box_2d(bbox):
@@ -391,7 +413,8 @@ def create_sql_for_bbox(conn, entitytype, site_srid, region, srid):
             "FROM gis.cell_curr cell "
             "JOIN relation.\"{}\" rel on rel.source_id = cell.entity_id "
             "JOIN gis.site_curr site on rel.target_id = site.entity_id "
-            "WHERE site.position && {}").format(relation_name, box2d)
+            "WHERE site.position && {}"
+        ).format(relation_name, box2d)
     else:
         relation_site_cell_name = get_relation_name(conn, "Cell", "Site")
         relation_name = get_relation_name(conn, "Cell", entitytype.name)
@@ -400,5 +423,5 @@ def create_sql_for_bbox(conn, entitytype, site_srid, region, srid):
             "FROM relation.\"{}\" r "
             "JOIN relation.\"{}\" rel on rel.source_id = r.source_id "
             "JOIN gis.site_curr site on rel.target_id = site.entity_id "
-            "WHERE site.position && {}").format(
-            relation_name, relation_site_cell_name, box2d)
+            "WHERE site.position && {}"
+        ).format(relation_name, relation_site_cell_name, box2d)

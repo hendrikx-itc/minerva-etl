@@ -49,7 +49,7 @@ class XmlNamespace(object):
         path = namepath.lstrip('/').split('/')
 
         root_handler_name = path.pop(0)
-        current_handler = self.root_elementhandlers.get(root_handler_name, None)
+        current_handler = self.root_elementhandlers.get(root_handler_name)
 
         while current_handler and len(path) > 0:
             handler_name = path.pop(0)

@@ -13,7 +13,8 @@ from granularity import ensure_granularity
 
 
 class Trend(object):
-    def __init__(self, id, name, description, datasource_id, entitytype_id,
+    def __init__(
+            self, id, name, description, datasource_id, entitytype_id,
             granularity):
         self.id = id
         self.name = name

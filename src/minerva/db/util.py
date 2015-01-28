@@ -36,7 +36,8 @@ def create_index(conn, table, columns):
     name = "ix_{0}_{1}".format(table, columns[0])
 
     sql = "CREATE INDEX {0} ON {0} ({2})".format(
-        name, table, ",".join(columns))
+        name, table, ",".join(columns)
+    )
 
     exec_sql(conn, sql)
 
@@ -97,8 +98,10 @@ def create_copy_from_file(tuples, formats):
 
     copy_from_file = StringIO.StringIO()
 
-    copy_from_file.writelines("{}\n".format("\t".join(format_tuple(tup)))
-                              for tup in tuples)
+    copy_from_file.writelines(
+        "{}\n".format("\t".join(format_tuple(tup)))
+        for tup in tuples
+    )
 
     copy_from_file.seek(0)
 
@@ -121,7 +124,8 @@ def is_unique(conn, schema, table_name, column):
     query = (
         "SELECT MAX(count) FROM (SELECT COUNT(*) AS count "
         "FROM \"{0}\".\"{1}\" "
-        "GROUP BY \"{2}\") AS foo ").format(schema, table_name, column)
+        "GROUP BY \"{2}\") AS foo "
+    ).format(schema, table_name, column)
 
     with closing(conn.cursor()) as cursor:
         cursor.execute(query)

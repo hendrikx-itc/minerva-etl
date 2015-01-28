@@ -10,14 +10,13 @@ the Free Software Foundation; either version 3, or (at your option) any later
 version.  The full license is in the file COPYING, distributed as part of
 this software.
 """
-import logging
 from minerva.xmlschemaparser import schematypes
 from minerva.xmldochandler import schemacontext
-from minerva.xmldochandler.qname import QName
 from minerva.xmldochandler.xmlelementtype import XmlElementType
 from minerva.xmldochandler.xmlelementtype import XmlElementTypeRef
 from minerva.xmldochandler.xmlelementhandler import XmlElementHandlerRef
 from minerva.xmldochandler.xmlschema import xmlschema_string
+
 
 class SchemaBuilderError(Exception):
     pass
@@ -35,14 +34,16 @@ class Namespace(object):
     def add_element(self, element):
         fullname = element.build_fullname()
 
-        if not fullname in self.elements:
+        if fullname not in self.elements:
             self.elements[fullname] = element
 
     def get_sorted_elementnames(self):
-        return sorted(element.build_fullname() for element in self.elements.itervalues())
+        return sorted(
+            element.build_fullname() for element in self.elements.itervalues()
+        )
 
     def __str__(self):
-        if self.uri != None:
+        if self.uri is not None:
             return self.uri
         else:
             return "Global namespace"
@@ -53,15 +54,15 @@ class Namespace(object):
         """
         result = ""
 
-        if self.uri != None:
+        if self.uri is not None:
             url_elements = urlsplit(self.uri)
 
-            fragment = urlelements[4]
+            fragment = url_elements[4]
 
             if len(fragment) > 0:
                 result = fragment
             else:
-                result = os.path.split(urlelements[2])[1]
+                result = os.path.split(url_elements[2])[1]
 
             result = result.replace(".", "_")
             result = result.replace("-", "_")
@@ -110,7 +111,9 @@ class SchemaContextBuilder(object):
         for (name, namespace) in self.xsd_namespaces.iteritems():
             if namespace.uri != u'http://www.w3.org/2001/XMLSchema':
                 self.current_xsd_namespace = namespace
-                self.xmlnamespace = self.schemacontext.get_namespace(str(self.current_xsd_namespace))
+                self.xmlnamespace = self.schemacontext.get_namespace(
+                    str(self.current_xsd_namespace)
+                )
                 self.complextypes = {}
 
                 self.create_named_types()
@@ -140,8 +143,6 @@ class SchemaContextBuilder(object):
 
     def build_elementhandlers(self, element):
         elementhandlers = []
-
-        containers = set([schematypes.Sequence, schematypes.Choice, schematypes.All])
 
         for childelement in element.get_children():
             if isinstance(childelement, schematypes.Element):
@@ -173,17 +174,22 @@ class SchemaContextBuilder(object):
 
         if xsdtype.complexcontent:
             if xsdtype.complexcontent.extension:
-                basetypereference = XmlElementTypeRef(xsdtype.complexcontent.extension.basetypereference)
+                basetypereference = XmlElementTypeRef(
+                    xsdtype.complexcontent.extension.basetypereference
+                )
                 elementtype.base = basetypereference
                 self.schemacontext.basetypereferences.append(basetypereference)
 
         if xsdtype.basetyperef != None:
-            basetyperelation = BaseTypeRelation(elementtype, str(xsdtype.basetyperef.type.namespace.uri), str(xsdtype.basetyperef.type.name))
+            basetyperelation = BaseTypeRelation(
+                elementtype, str(xsdtype.basetyperef.type.namespace.uri),
+                str(xsdtype.basetyperef.type.name)
+            )
             self.xmlnamespace.basetyperelations.append(basetyperelation)
 
         if len(xsdtype.attributes) > 0:
             for attribute in xsdtype.attributes:
-                #elementtype.addAttribute(AttributeHandler(attribute.name))
+                # elementtype.addAttribute(AttributeHandler(attribute.name))
                 raise Exception("Attribute support not implemented yet")
 
         attribute_names = []
@@ -204,8 +210,6 @@ class SchemaContextBuilder(object):
         return elementtype
 
     def build_elementhandler(self, element):
-        elementhandler = None
-
         if element.typename != None:
             if element.typename.localname == 'string':
                 elementtype = xmlschema_string.XmlSchema_string()
@@ -214,10 +218,14 @@ class SchemaContextBuilder(object):
                 elementtype = xmlschema_string.XmlSchema_string()
                 elementhandler = elementtype.create_elementhandler(element.name)
             else:
-                elementtype = self.schemacontext.get_elementtype(element.typename.namespacename, element.typename.localname)
+                elementtype = self.schemacontext.get_elementtype(
+                    element.typename.namespacename, element.typename.localname
+                )
 
                 if not elementtype:
-                    raise SchemaBuilderError("No type found with name {0:s}".format(element.typename))
+                    raise SchemaBuilderError(
+                        "No type found with name {0:s}".format(element.typename)
+                    )
 
                 elementhandler = elementtype.create_elementhandler(element.name)
         else:
@@ -237,7 +245,11 @@ class SchemaContextBuilder(object):
 
         if element.substitutiongroup:
             elementhandler.substitutiongroup = element.substitutiongroup
-            self.schemacontext.substitutions.append(schemacontext.Substitution(elementhandler, element.substitutiongroup))
+            self.schemacontext.substitutions.append(
+                schemacontext.Substitution(
+                    elementhandler, element.substitutiongroup
+                )
+            )
 
         elementhandler.minoccurs = element.minoccurs
         elementhandler.maxoccurs = element.maxoccurs
@@ -245,7 +257,11 @@ class SchemaContextBuilder(object):
         return elementhandler
 
     def create_elementhandlers(self):
-        root_elementhandler_generator = (self.build_elementhandler(element) for element in self.current_xsd_namespace.elements.values() if not element.xml_element_parent)
+        root_elementhandler_generator = (
+            self.build_elementhandler(element)
+            for element in self.current_xsd_namespace.elements.values()
+            if not element.xml_element_parent
+        )
 
         for elementhandler in root_elementhandler_generator:
             self.xmlnamespace.root_elementhandlers[elementhandler.name] = elementhandler

@@ -147,9 +147,9 @@ def retrieve_related(conn, table_name, attribute_names, entities,
     if where_parts:
         query = query + " WHERE " + " AND ".join(where_parts)
 
-    query = query + " ORDER BY \"timestamp\""
+    query = query + ' ORDER BY "timestamp"'
 
-    if not limit is None:
+    if limit is not None:
         query = query + " LIMIT {0:d}".format(limit)
 
     with closing(conn.cursor()) as cursor:
@@ -161,9 +161,10 @@ def retrieve_related(conn, table_name, attribute_names, entities,
 def retrieve_attributes_for_entity(conn, entity_id, attribute_ids):
     query = (
         "SELECT a.id, a.name, attribute_directory.to_table_name(astore) "
-            "as table_name, et.name as entitytype_name "
+        "AS table_name, et.name AS entitytype_name "
         "FROM attribute_directory.attribute a "
-        "JOIN attribute_directory.attributestore astore on a.attributestore_id = astore.id " 
+        "JOIN attribute_directory.attributestore astore "
+        "ON a.attributestore_id = astore.id "
         "JOIN directory.entitytype et ON et.id = astore.entitytype_id "
         "WHERE a.id IN ({}) "
         "ORDER BY table_name").format(",".join(map(str, attribute_ids)))
@@ -173,8 +174,8 @@ def retrieve_attributes_for_entity(conn, entity_id, attribute_ids):
     result = {}
 
     def prepare_value(value):
-        if not value is None:
-            #if trendvalue is Decimal(Numeric) json cannot serialize it.
+        if value is not None:
+            # if trendvalue is Decimal(Numeric) json cannot serialize it.
             if isinstance(value, Decimal):
                 value = float(value)
         return value
@@ -202,11 +203,13 @@ def retrieve_attributes_for_entity(conn, entity_id, attribute_ids):
             if source_entitytype.name == target_entitytype_name:
                 relation_table_name = "self"
             else:
-                relation_table_name = "{}->{}".format(source_entitytype.name,
-                                                      target_entitytype_name)
+                relation_table_name = "{}->{}".format(
+                    source_entitytype.name, target_entitytype_name
+                )
 
-            data = retrieve_related(conn, table_name, attr_names, [entity.id],
-                                    relation_table_name)
+            data = retrieve_related(
+                conn, table_name, attr_names, [entity.id], relation_table_name
+            )
 
             for index, attr in enumerate(attrs):
                 attr_id = get_id(attr)
@@ -214,7 +217,11 @@ def retrieve_attributes_for_entity(conn, entity_id, attribute_ids):
                 get_timestamp = itemgetter(2)
 
                 result[attr_id] = [
-                    (to_unix_timestamp(get_timestamp(row)),
-                     prepare_value(get_attr_value(row))) for row in data]
+                    (
+                        to_unix_timestamp(get_timestamp(row)),
+                        prepare_value(get_attr_value(row))
+                    )
+                    for row in data
+                ]
 
     return result

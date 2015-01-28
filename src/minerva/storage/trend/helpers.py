@@ -38,8 +38,9 @@ def get_trend_by_id(conn, trend_id):
     Return trend with specified id.
     """
     query = (
-        "SELECT t.id, t.name, t.description, ts.datasource_id, ts.entitytype_id, "
-            "ts.granularity "
+        "SELECT t.id, t.name, t.description, ts.datasource_id, "
+        "ts.entitytype_id, "
+        "ts.granularity "
         "FROM trend.trend t "
         "JOIN trend.trendstore_trend_link ttl on ttl.trend_id = t.id "
         "JOIN trend.trendstore ts on ts.id = ttl.trendstore_id "
@@ -128,12 +129,22 @@ def get_most_recent_timestamp(ts, granularity, minerva_tz=None):
             return tz.localize(most_recent)
     except AttributeError:
         if minerva_tz:
-            _most_recent = datetime.combine(most_recent, time(most_recent.hour,
-                most_recent.minute, most_recent.second, tzinfo=minerva_tz))
+            _most_recent = datetime.combine(
+                most_recent,
+                time(
+                    most_recent.hour, most_recent.minute, most_recent.second,
+                    tzinfo=minerva_tz
+                )
+            )
             return _most_recent.astimezone(tz)
         else:
-            return datetime.combine(most_recent, time(most_recent.hour,
-                most_recent.minute, most_recent.second, tzinfo=tz))
+            return datetime.combine(
+                most_recent,
+                time(
+                    most_recent.hour, most_recent.minute, most_recent.second,
+                    tzinfo=tz
+                )
+            )
 
 
 def get_table_names(trendstores, start, end):
@@ -151,17 +162,17 @@ def get_table_names(trendstores, start, end):
 def get_table_names_v4(
         cursor, datasources, granularity, entitytype, start, end):
     """
-    A get_table_names like function that supports both v3 and v4 trendstores.
+    A get_table_names like function that supports both v3 and v4 trend stores.
     """
     if isinstance(granularity, int):
         granularity = create_granularity(granularity)
 
-    trendstores = [
+    trend_stores = [
         TrendStore.get(cursor, datasource, entitytype, granularity)
         for datasource in datasources
     ]
 
-    return get_table_names(trendstores, start, end)
+    return get_table_names(trend_stores, start, end)
 
 
 def get_relation_name(conn, source_entitytype_name, target_entitytype_name):

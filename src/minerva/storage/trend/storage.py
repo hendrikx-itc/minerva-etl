@@ -55,15 +55,18 @@ class DataTypeMismatch(Exception):
 class NoSuchColumnError(Exception):
     pass
 
-DATATYPE_MISMATCH_ERRORS = set((
+DATATYPE_MISMATCH_ERRORS = {
     psycopg2.errorcodes.DATATYPE_MISMATCH,
     psycopg2.errorcodes.NUMERIC_VALUE_OUT_OF_RANGE,
-    psycopg2.errorcodes.INVALID_TEXT_REPRESENTATION))
+    psycopg2.errorcodes.INVALID_TEXT_REPRESENTATION
+}
 
 
 def refine_data_rows(conn, raw_data_rows):
-    return [(get_or_create_entity(conn, dn).id, refine_values(values))
-        for dn, values in raw_data_rows]
+    return [
+        (get_or_create_entity(conn, dn).id, refine_values(values))
+        for dn, values in raw_data_rows
+    ]
 
 
 def get_or_create_entity(conn, dn):
@@ -88,9 +91,9 @@ def refine_value(value):
         return value
 
 
-def retrieve_aggregated(conn, datasource, granularity, entitytype,
-    column_identifiers, interval, group_by, subquery_filter=None,
-    relation_table_name=None):
+def retrieve_aggregated(
+        conn, datasource, granularity, entitytype, column_identifiers,
+        interval, group_by, subquery_filter=None, relation_table_name=None):
     """
     Return aggregated data
 
@@ -109,20 +112,23 @@ def retrieve_aggregated(conn, datasource, granularity, entitytype,
     start, end = interval
 
     with closing(conn.cursor()) as cursor:
-        source_table_names = get_table_names_v4(cursor, [datasource], granularity,
-                entitytype, start, end)
+        source_table_names = get_table_names_v4(
+            cursor, [datasource], granularity, entitytype, start, end
+        )
 
     def get_trend_names(column_identifier):
         if isinstance(column_identifier, Sql):
             return [a.name for a in column_identifier.args]
         else:
-            trend_names_part = re.match(".*\(([\w, ]+)\)", column_identifier).group(1)
+            trend_names_part = re.match(
+                ".*\(([\w, ]+)\)", column_identifier
+            ).group(1)
 
             return map(str.strip, trend_names_part.split(","))
 
     trend_names = set(chain(*map(get_trend_names, column_identifiers)))
 
-    #Deal with 'samples' column
+    # Deal with 'samples' column
     if column_exists(conn, SCHEMA, source_table_names[-1], "samples"):
         select_samples_part = "SUM(samples)"
         select_samples_column = "samples,"
@@ -184,19 +190,20 @@ def retrieve_aggregated(conn, datasource, granularity, entitytype,
     return all_rows
 
 
-def retrieve_orderedby_time(conn, schema, table_names, columns, entities,
-        start, end, limit=None):
+def retrieve_orderedby_time(
+        conn, schema, table_names, columns, entities, start, end, limit=None):
 
-    all_rows = retrieve(conn, schema, table_names, columns, entities, start,
-        end, limit=None)
+    all_rows = retrieve(
+        conn, schema, table_names, columns, entities, start, end, limit=None
+    )
 
     all_rows.sort(key=itemgetter(1))
 
     return all_rows
 
 
-def retrieve_by_trendids(conn, schema, trends, entities, start, end,
-        limit=None):
+def retrieve_by_trendids(
+        conn, schema, trends, entities, start, end, limit=None):
     """
     Retrieve data.
 
@@ -235,8 +242,10 @@ def retrieve_by_trendids(conn, schema, trends, entities, start, end,
                     tables[tablename].append(trendname)
 
     for table_name, trend_names in tables.items():
-        all_rows.extend(retrieve(conn, schema, [table_name], trend_names,
-            entities, start, end, limit))
+        all_rows.extend(
+            retrieve(conn, schema, [table_name], trend_names,
+            entities, start, end, limit)
+        )
 
     return all_rows
 

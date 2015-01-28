@@ -107,10 +107,10 @@ class SimpleType(SchemaElement):
         basetype = "Unknown"
         name = "Unnamed"
 
-        if self.restriction != None:
+        if self.restriction is not None:
             basetype = str(self.restriction.base)
 
-        if self.name != None:
+        if self.name is not None:
             name = self.name
 
         return "{0}({1})".format(name, basetype)
@@ -206,7 +206,7 @@ class ComplexType(SchemaElement):
         return SchemaElement.add_child(self, element)
 
     def __str__(self):
-        if self.name != None:
+        if self.name is not None:
             return "complextype {0:s}".format(self.name)
         else:
             return "complextype"
@@ -264,7 +264,7 @@ class Attribute(SchemaElement):
         return self._name
 
     def set_name(self, name):
-        if self.ref != None:
+        if self.ref is not None:
             raise Exception("Error: ref and name cannot both be present!")
         self._name = name
 
@@ -302,7 +302,10 @@ class Element(SchemaElement):
         return SchemaElement.add_child(self, element)
 
     def build_elementstack(self):
-        """Builds a stack representing the path from the root element to this element."""
+        """
+        Builds a stack representing the path from the root element to this
+        element.
+        """
         stack = []
         current_element = self
 
@@ -334,7 +337,7 @@ class Element(SchemaElement):
         return "/" + "/".join(names)
 
     def __str__(self):
-        if self.name != None:
+        if self.name is not None:
             return self.name
         else:
             return "ref({0:s})".format(self.ref)
@@ -407,49 +410,41 @@ class Schema(SchemaElement):
         """
         type_ = None
 
-        if typename != None:
-            namespace = None
-
-            if typename.namespacename != None:
-                namespace = self.prefixmappings.get(typename.namespacename, None)
+        if typename is not None:
+            if typename.namespacename is not None:
+                namespace = self.prefixmappings.get(typename.namespacename)
             else:
                 namespace = self.defaultnamespace
 
-            if namespace != None:
-                type_ = namespace.types.get(typename.localname, None)
+            if namespace is not None:
+                type_ = namespace.types.get(typename.localname)
             else:
                 raise Exception('No matching namespace found!')
 
         return type_
 
     def get_substitutiongroup(self, qname):
-        namespace = None
-
-        if qname.namespacename != None:
-            namespace = self.prefixmappings.get(qname.namespacename, None)
+        if qname.namespacename is not None:
+            namespace = self.prefixmappings.get(qname.namespacename)
         else:
             namespace = self.defaultnamespace
 
-        if namespace != None:
+        if namespace is not None:
             substitutiongroup = namespace.get_substitutiongroup(qname.localname)
         else:
-            #self.logger.error('No namespace found to resolve element with qname: ' + str(qname))
             substitutiongroup = SubstitutionGroup(qname.localname)
 
         return substitutiongroup
 
     def get_typereference(self, qname):
-        namespace = None
-
-        if qname.namespacename != None:
-            namespace = self.prefixmappings.get(qname.namespacename, None)
+        if qname.namespacename is not None:
+            namespace = self.prefixmappings.get(qname.namespacename)
         else:
             namespace = self.defaultnamespace
 
-        if namespace != None:
+        if namespace is not None:
             typereference = namespace.get_typereference(qname.localname)
         else:
-            #self.logger.error('No namespace found to resolve type with qname: ' + str(qname))
             typereference = TypeReference(qname.localname)
 
         return typereference
@@ -460,16 +455,14 @@ class Schema(SchemaElement):
         """
         element = None
 
-        if elementname != None:
-            namespace = None
-
-            if elementname.namespacename != None:
-                namespace = self.prefixmappings.get(elementname.namespacename, None)
+        if elementname is not None:
+            if elementname.namespacename is not None:
+                namespace = self.prefixmappings.get(elementname.namespacename)
             else:
                 namespace = self.defaultnamespace
 
-            if namespace != None:
-                element = namespace.elements.get(elementname.localname, None)
+            if namespace is not None:
+                element = namespace.elements.get(elementname.localname)
             else:
                 raise Exception("No matching namespace found")
 

@@ -35,7 +35,8 @@ def tag_trends(conn, tag_links):
         "   LEFT JOIN {0}.trend_tag_link ttl ON "
         "       ttl.trend_id = tmp.trend_id AND ttl.tag_id = tag.id "
         "   WHERE ttl.trend_id IS NULL"
-        ")").format(schema.name, tmp_table_name)
+        ")"
+    ).format(schema.name, tmp_table_name)
 
     with closing(conn.cursor()) as cursor:
         cursor.execute(query)

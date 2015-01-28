@@ -29,8 +29,9 @@ class TrendPlugin(object):
     def get_trend_by_id(self, trend_id):
         return get_trend_by_id(self.conn, trend_id)
 
-    def store(self, datasource, entitytype, gp, ts, trend_names, data_rows,
-        sub_query=None):
+    def store(
+            self, datasource, entitytype, gp, ts, trend_names, data_rows,
+            sub_query=None):
 
         if len(data_rows) == 0:
             return
@@ -38,8 +39,9 @@ class TrendPlugin(object):
         granularity = ensure_granularity(gp)
 
         with closing(self.conn.cursor()) as cursor:
-            trendstore = get_or_create_trendstore(cursor, datasource, entitytype,
-                    granularity)
+            trendstore = get_or_create_trendstore(
+                cursor, datasource, entitytype, granularity
+            )
 
         self.conn.commit()
 
@@ -48,51 +50,61 @@ class TrendPlugin(object):
         transaction = trendstore.store(datapackage)
         transaction.run(self.conn)
 
-    def retrieve(self, datasources, gp, entitytype, trend_names, entities,
-        start, end, subquery_filter=None, relation_table_name=None, limit=None):
+    def retrieve(
+            self, datasources, gp, entitytype, trend_names, entities, start,
+            end, subquery_filter=None, relation_table_name=None, limit=None):
 
         with closing(self.conn.cursor()) as cursor:
             if isinstance(entitytype, str):
                 entitytype = get_entitytype(cursor, entitytype)
 
-            table_names = get_table_names_v4(cursor, datasources, gp, entitytype,
-                    start, end)
+            table_names = get_table_names_v4(
+                cursor, datasources, gp, entitytype, start, end
+            )
 
-        return retrieve(self.conn, schema.name, table_names, trend_names, entities,
+        return retrieve(
+            self.conn, schema.name, table_names, trend_names, entities,
             start, end, subquery_filter, relation_table_name, limit,
             entitytype=entitytype)
 
-    def retrieve_orderedby_time(self, datasources, gp, entitytype, trend_names,
+    def retrieve_orderedby_time(
+            self, datasources, gp, entitytype, trend_names,
             entities, start, end, limit=None):
 
         with closing(self.conn.cursor()) as cursor:
             if isinstance(entitytype, str):
                 entitytype = get_entitytype(cursor, entitytype)
 
-            table_names = get_table_names_v4(cursor, datasources, gp, entitytype,
-                    start, end)
+            table_names = get_table_names_v4(
+                cursor, datasources, gp, entitytype, start, end
+            )
 
-        return retrieve_orderedby_time(self.conn, schema.name, table_names,
-            trend_names, entities, start, end, limit)
+        return retrieve_orderedby_time(
+            self.conn, schema.name, table_names, trend_names, entities, start,
+            end, limit
+        )
 
-    def retrieve_aggregated(self, datasource, granularity, entitytype,
-            column_identifiers, interval, group_by, subquery_filter=None,
+    def retrieve_aggregated(
+            self, datasource, granularity, entitytype, column_identifiers,
+            interval, group_by, subquery_filter=None,
             relation_table_name=None):
 
-        return retrieve_aggregated(self.conn, datasource, granularity, entitytype,
-            column_identifiers, interval, group_by, subquery_filter,
-            relation_table_name)
+        return retrieve_aggregated(
+            self.conn, datasource, granularity, entitytype, column_identifiers,
+            interval, group_by, subquery_filter, relation_table_name
+        )
 
-    def retrieve_related(self, datasources, gp, source_entitytype,
-        target_entitytype, trend_names, start, end, subquery_filter=None,
-            limit=None):
+    def retrieve_related(
+            self, datasources, gp, source_entitytype, target_entitytype,
+            trend_names, start, end, subquery_filter=None, limit=None):
 
         with closing(self.conn.cursor()) as cursor:
             if isinstance(target_entitytype, str):
                 target_entitytype = get_entitytype(cursor, target_entitytype)
 
-            table_names = get_table_names_v4(cursor, datasources, gp,
-                    target_entitytype, start, end)
+            table_names = get_table_names_v4(
+                cursor, datasources, gp, target_entitytype, start, end
+            )
 
         if source_entitytype.name == target_entitytype.name:
             relation_table_name = "self"
@@ -100,8 +112,10 @@ class TrendPlugin(object):
             relation_table_name = "{}->{}".format(
                 source_entitytype.name, target_entitytype.name)
 
-        return retrieve_related(self.conn, schema.name, relation_table_name,
-            table_names, trend_names, start, end, subquery_filter, limit)
+        return retrieve_related(
+            self.conn, schema.name, relation_table_name, table_names,
+            trend_names, start, end, subquery_filter, limit
+        )
 
     def count(self, datasource, gp, entitytype_name, interval, filter=None):
         """
@@ -112,19 +126,22 @@ class TrendPlugin(object):
         with closing(self.conn.cursor()) as cursor:
             entitytype = get_entitytype(cursor, entitytype_name)
 
-            table_names = get_table_names_v4(cursor, [datasource], gp, entitytype,
-                    start, end)
+            table_names = get_table_names_v4(
+                cursor, [datasource], gp, entitytype, start, end
+            )
 
         query = (
             "SELECT COUNT(*) FROM \"{0}\".\"{1}\" "
-            "WHERE timestamp > %s AND timestamp <= %s ")
+            "WHERE timestamp > %s AND timestamp <= %s "
+        )
 
         if filter is not None:
             if len(filter) == 0:
                 return 0
             else:
                 query += "AND entity_id IN ({0}) ".format(
-                    ",".join(str(id) for id in filter))
+                    ",".join(str(id) for id in filter)
+                )
 
         args = (start, end)
 
@@ -141,7 +158,8 @@ class TrendPlugin(object):
 
         return count
 
-    def last_modified(self, interval, datasource, granularity, entitytype_name,
+    def last_modified(
+            self, interval, datasource, granularity, entitytype_name,
             subquery_filter=None):
         """
         Return last modified timestamp for specified datasource, granularity,
@@ -158,22 +176,29 @@ class TrendPlugin(object):
 
         with closing(self.conn.cursor()) as cursor:
             entitytype = get_entitytype(cursor, entitytype_name)
-            table_names = get_table_names_v4(cursor, [datasource], granularity, entitytype,
-                    start, end)
+            table_names = get_table_names_v4(
+                cursor, [datasource], granularity, entitytype, start, end
+            )
 
         if subquery_filter:
-            query = ("SELECT MAX(t.modified) FROM \"{0}\".\"{1}\" AS t "
+            query = (
+                "SELECT MAX(t.modified) FROM \"{0}\".\"{1}\" AS t "
                 "JOIN ({0}) AS filter ON filter.id = t.entity_id "
-                "WHERE t.timestamp > %s AND t.timestamp <= %s ")
+                "WHERE t.timestamp > %s AND t.timestamp <= %s "
+            )
         else:
-            query = ("SELECT MAX(t.modified) FROM \"{0}\".\"{1}\" AS t "
-                "WHERE t.timestamp > %s AND t.timestamp <= %s ")
+            query = (
+                "SELECT MAX(t.modified) FROM \"{0}\".\"{1}\" AS t "
+                "WHERE t.timestamp > %s AND t.timestamp <= %s "
+            )
 
         modifieds = []
         with closing(self.conn.cursor()) as cursor:
             for table_name in table_names:
                 try:
-                    cursor.execute(query.format(schema.name, table_name), interval)
+                    cursor.execute(
+                        query.format(schema.name, table_name), interval
+                    )
                     modified, = cursor.fetchone()
                     modifieds.append(modified)
                 except (psycopg2.ProgrammingError, psycopg2.InternalError):
@@ -192,12 +217,14 @@ class TrendPlugin(object):
         with closing(self.conn.cursor()) as cursor:
             entitytype = get_entitytype(cursor, entitytype_name)
 
-            table_name = get_table_names_v4(cursor, [datasource], gp, entitytype,
-                timestamp, timestamp)[0]
+            table_name = get_table_names_v4(
+                cursor, [datasource], gp, entitytype, timestamp, timestamp
+            )[0]
 
         query = (
-            "SELECT 1 FROM \"{0}\".\"{1}\" WHERE timestamp = %s "
-            "LIMIT 1".format(schema.name, table_name))
+            'SELECT 1 FROM "{0}"."{1}" WHERE timestamp = %s '
+            'LIMIT 1'.format(schema.name, table_name)
+        )
 
         with closing(self.conn.cursor()) as cursor:
             try:
@@ -206,8 +233,9 @@ class TrendPlugin(object):
             except (psycopg2.ProgrammingError, psycopg2.InternalError):
                 return False
 
-    def is_complete(self, interval, datasource, gp, entitytype_name,
-        filter=None, ratio=1):
+    def is_complete(
+            self, interval, datasource, gp, entitytype_name, filter=None,
+            ratio=1):
         """
         Returns False when trend data is considered incomplete for a
         specific interval.
@@ -229,20 +257,24 @@ class TrendPlugin(object):
             except (ZeroDivisionError, TypeError):
                 return None
 
-        complete = False
-        row_count = partial(self.count, datasource, gp, entitytype_name,
-            filter=filter)
+        row_count = partial(
+            self.count, datasource, gp, entitytype_name, filter=filter
+        )
 
         count = row_count(interval)
-        ref_count = row_count([get_previous_timestamp(ts, 7 * 86400)
-                for ts in interval])
+        ref_count = row_count([
+            get_previous_timestamp(ts, 7 * 86400)
+            for ts in interval
+        ])
 
         complete = _ratio(count, ref_count) >= ratio
 
         # Plan B: Try to compare with day earlier
         if ref_count == 0:
-            ref_count = row_count([get_previous_timestamp(ts, 1 * 86400)
-                    for ts in interval])
+            ref_count = row_count([
+                get_previous_timestamp(ts, 1 * 86400)
+                for ts in interval
+            ])
             complete = _ratio(count, ref_count) >= ratio
 
         return complete
@@ -250,7 +282,9 @@ class TrendPlugin(object):
     def store_raw(self, datasource, gp, timestamp, trend_names, raw_data_rows):
         if len(raw_data_rows) > 0:
             granularity = ensure_granularity(gp)
-            raw_datapackage = RawDataPackage(granularity, timestamp, trend_names, raw_data_rows)
+            raw_datapackage = RawDataPackage(
+                granularity, timestamp, trend_names, raw_data_rows
+            )
             transaction = store_raw(datasource, raw_datapackage)
 
             transaction.run(self.conn)
@@ -275,11 +309,12 @@ def get_or_create_trendstore(cursor, datasource, entitytype, granularity):
         partition_size = PARTITION_SIZES.get(granularity.name)
 
         if partition_size is None:
-            raise Exception("unsupported granularity size '{}'".format(
-                    granularity.name))
-
-        return TrendStore(datasource, entitytype, granularity,
-                partition_size, "table").create(cursor)
+            raise Exception(
+                "unsupported granularity size '{}'".format(granularity.name)
+            )
+        return TrendStore(
+            datasource, entitytype, granularity, partition_size, "table"
+        ).create(cursor)
     else:
         return trendstore
 

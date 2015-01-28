@@ -20,8 +20,6 @@ from minerva.db.util import is_unique
 
 
 def get_relation_name(conn, source_entitytype_name, target_entitytype_name):
-    relation_name = None
-
     if source_entitytype_name is None or target_entitytype_name is None:
         return None 
 

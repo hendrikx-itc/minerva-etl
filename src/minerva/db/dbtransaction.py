@@ -91,7 +91,8 @@ class DbTransaction(object):
 
                     if attempt > max_retries:
                         msg = (
-                            "maximum number({}) of retries reached with current transaction [{}]"
+                            "maximum number({}) of retries reached with "
+                            "current transaction [{}]"
                         ).format(max_retries, transaction)
 
                         raise MaxRetriesError(msg)

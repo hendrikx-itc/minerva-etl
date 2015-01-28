@@ -27,15 +27,15 @@ class QName(object):
         Split a full name containing a namespace and local name part and return
         them in a tuple.
         """
-        colonindex = fullname.find(u':')
+        colon_index = fullname.find(u':')
 
-        if colonindex >= 0:
-            return (fullname[:colonindex], fullname[colonindex+1:])
+        if colon_index >= 0:
+            return fullname[:colon_index], fullname[colon_index+1:]
         else:
-            return (None, fullname)
+            return None, fullname
 
     def __str__(self):
-        if self.namespacename != None:
+        if self.namespacename is not None:
             return "{0:s}:{1:s}".format(self.namespacename, self.localname)
         else:
             return str(self.localname)
@@ -44,9 +44,10 @@ class QName(object):
         if not isinstance(other, QName):
             return False
 
-        equal = (self.namespacename == other.namespacename and self.localname == other.localname)
-
-        return equal
+        return (
+            self.namespacename == other.namespacename and
+            self.localname == other.localname
+        )
 
     def __hash__(self):
         return self.__str__().__hash__()

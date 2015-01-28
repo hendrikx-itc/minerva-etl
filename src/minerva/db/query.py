@@ -794,7 +794,8 @@ def filter_tables(references):
 def table_exists(cursor, table):
     criterion = And(
         Eq(Column("relname")),
-        Eq(Column("relkind")))
+        Eq(Column("relkind"))
+    )
 
     query = Select(1, from_=Table("pg_class"), where_=criterion)
 
@@ -813,7 +814,8 @@ def column_exists(cursor, table, column):
         "AND n.nspname = %s "
         "AND a.attname = %s "
         "AND a.attrelid = c.oid "
-        "AND c.relnamespace = n.oid")
+        "AND c.relnamespace = n.oid"
+    )
 
     args = table.name, table.schema.name, column
 

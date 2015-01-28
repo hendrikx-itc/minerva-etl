@@ -46,21 +46,27 @@ def store(conn, aliases, type_name):
 
     with closing(conn.cursor()) as cursor:
 
-        query = ("CREATE TEMPORARY TABLE \"{0}\" "
-            "(LIKE directory.alias) ON COMMIT DROP".format(tmp_table))
+        query = (
+            "CREATE TEMPORARY TABLE \"{0}\" "
+            "(LIKE directory.alias) ON COMMIT DROP".format(tmp_table)
+        )
 
         cursor.execute(query)
 
-        query = ("COPY \"{0}\" (entity_id, name, type_id) "
-            "FROM STDIN".format(tmp_table))
+        query = (
+            "COPY \"{0}\" (entity_id, name, type_id) "
+            "FROM STDIN".format(tmp_table)
+        )
 
         cursor.copy_expert(query, _f)
 
-        query = ("INSERT INTO directory.alias (entity_id, name, type_id) "
+        query = (
+            "INSERT INTO directory.alias (entity_id, name, type_id) "
             "SELECT tmp.entity_id, tmp.name, tmp.type_id FROM \"{0}\" tmp "
             "LEFT JOIN directory.alias a "
             "ON a.entity_id = tmp.entity_id AND a.type_id = tmp.type_id "
-            "WHERE a.entity_id IS NULL ".format(tmp_table))
+            "WHERE a.entity_id IS NULL ".format(tmp_table)
+        )
 
         cursor.execute(query)
 

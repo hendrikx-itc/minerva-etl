@@ -43,20 +43,25 @@ class AttributePlugin(object):
     def retrieve_attributes_for_entity(self, entity_id, attributes):
         return retrieve_attributes_for_entity(self.conn, entity_id, attributes)
 
-    def retrieve(self, datasource, entitytype, attribute_names, entities,
-                 timestamp=None):
+    def retrieve(
+            self, datasource, entitytype, attribute_names, entities,
+            timestamp=None):
         attributestore = AttributeStore(datasource, entitytype)
 
-        return retrieve(self.conn, attributestore.history_table, attribute_names,
-                        entities, timestamp)
+        return retrieve(
+            self.conn, attributestore.history_table, attribute_names, entities,
+            timestamp
+        )
 
-    def retrieve_current(self, datasource, entitytype, attribute_names,
-                         entities, limit=None):
+    def retrieve_current(
+            self, datasource, entitytype, attribute_names, entities,
+            limit=None):
 
         attributestore = AttributeStore(datasource, entitytype)
 
-        return retrieve_current(self.conn, attributestore.table,
-                                attribute_names, entities)
+        return retrieve_current(
+            self.conn, attributestore.table, attribute_names, entities
+        )
 
     def store_raw(self, datasource, rawdatapackage):
         with closing(self.conn.cursor()) as cursor:

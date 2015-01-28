@@ -45,8 +45,10 @@ def render_rst_table(column_names, column_align, column_sizes, rows):
         "-+-", "-", col_widths) + "-+"
     horizontal_sep_header = "+=" + render_horizontal_sep(
         "=+=", "=", col_widths) + "=+"
-    body_rows = ["| " + render_line(
-        col_sep, row, col_widths, column_align) + " |" for row in rows]
+    body_rows = [
+        "| " + render_line(col_sep, row, col_widths, column_align) + " |"
+        for row in rows
+    ]
 
     return (
         [horizontal_sep, header, horizontal_sep_header] +
@@ -89,8 +91,10 @@ def render_table(column_names, column_align, column_sizes, rows):
 
     header = render_line(col_sep, column_names, col_widths, "^" * col_count)
     horizontal_sep = render_horizontal_sep("-+-", "-", col_widths)
-    body = [render_line(col_sep, row, col_widths, column_align)
-            for row in rows]
+    body = [
+        render_line(col_sep, row, col_widths, column_align)
+        for row in rows
+    ]
 
     return [header, horizontal_sep] + body
 
@@ -108,14 +112,17 @@ def calc_column_widths(column_names, rows, column_sizes):
 
 
 def reduce_row(accumulators, row1, row2):
-    return [acc(val1, val2)
-            for acc, val1, val2 in zip(accumulators, row1, row2)]
+    return [
+        acc(val1, val2)
+        for acc, val1, val2 in zip(accumulators, row1, row2)
+    ]
 
 
 def render_line(col_sep, values, widths, alignments):
-    return col_sep.join(render_column(value, width, alignment)
-                        for value, width, alignment
-                        in zip(values, widths, alignments))
+    return col_sep.join(
+        render_column(value, width, alignment)
+        for value, width, alignment in zip(values, widths, alignments)
+    )
 
 
 def render_horizontal_sep(col_sep, hor_sep, widths):
