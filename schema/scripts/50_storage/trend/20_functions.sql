@@ -26,8 +26,8 @@ CREATE FUNCTION trend.to_char(trend.trendstore)
     RETURNS text
 AS $$
     SELECT datasource.name || '_' || entitytype.name || '_' || trend.granularity_to_text($1.granularity)
-        FROM directory.datasource, directory.entitytype
-        WHERE datasource.id = $1.datasource_id AND entitytype.id = $1.entitytype_id;
+    FROM directory.datasource, directory.entitytype
+    WHERE datasource.id = $1.datasource_id AND entitytype.id = $1.entitytype_id;
 $$ LANGUAGE SQL STABLE STRICT;
 
 
@@ -1025,16 +1025,28 @@ CREATE TYPE trend.upgrade_record AS (
 CREATE FUNCTION trend.get_partition(trendstore trend.trendstore, index integer)
     RETURNS trend.partition
 AS $$
-    SELECT partition FROM trend.partition WHERE trendstore_id = $1.id AND table_name = trend.partition_name($1, $2);
+    SELECT partition
+    FROM trend.partition
+    WHERE trendstore_id = $1.id AND table_name = trend.partition_name($1, $2);
 $$ LANGUAGE SQL STABLE;
 
 
 CREATE FUNCTION trend.create_partition(trendstore trend.trendstore, index integer)
     RETURNS trend.partition
 AS $$
-    INSERT INTO trend.partition (table_name, trendstore_id, data_start, data_end, version)
-        VALUES (trend.partition_name($1, $2), $1.id, trend.index_to_timestamp($1.partition_size, $2), trend.index_to_timestamp($1.partition_size, $2 + 1), 4)
-        RETURNING partition;
+    INSERT INTO trend.partition(
+        table_name,
+        trendstore_id,
+        data_start,
+        data_end
+    )
+    VALUES (
+        trend.partition_name($1, $2),
+        $1.id,
+        trend.index_to_timestamp($1.partition_size, $2),
+        trend.index_to_timestamp($1.partition_size, $2 + 1)
+    )
+    RETURNING partition;
 $$ LANGUAGE SQL VOLATILE;
 
 
@@ -1052,25 +1064,13 @@ AS $$
 $$ LANGUAGE SQL STABLE;
 
 
-CREATE FUNCTION trend.infer_trendstore_type(trend.trendstore)
-    RETURNS trend.storetype
-AS $$
-    SELECT
-        CASE relkind
-            WHEN 'r' THEN 'table'::trend.storetype
-            WHEN 'v' THEN 'view'::trend.storetype
-            ELSE NULL
-        END
-    FROM pg_class
-    WHERE relname = trend.to_base_table_name($1);
-$$ LANGUAGE SQL STABLE;
-
-
 CREATE FUNCTION trend.get_column_names(table_name character varying)
     RETURNS character varying[]
 AS $$
-    SELECT array_agg(format('%I', a.attname)::character varying) FROM pg_class c
-        JOIN pg_attribute a ON a.attrelid = c.oid
+    SELECT
+        array_agg(format('%I', a.attname)::character varying)
+    FROM pg_class c
+    JOIN pg_attribute a ON a.attrelid = c.oid
     WHERE c.relname = $1 AND a.attnum >= 0 AND NOT a.attisdropped;
 $$ LANGUAGE SQL STABLE;
 
@@ -1088,7 +1088,10 @@ AS $$
 DECLARE
     max_modified timestamp with time zone;
 BEGIN
-    EXECUTE format('SELECT max(modified) FROM trend.%I WHERE timestamp = $1', trend.to_base_table_name($1)) INTO max_modified USING $2;
+    EXECUTE format(
+        'SELECT max(modified) FROM trend.%I WHERE timestamp = $1',
+        trend.to_base_table_name($1)
+    ) INTO max_modified USING $2;
 
     RETURN max_modified;
 END;
@@ -1098,28 +1101,41 @@ $$ LANGUAGE plpgsql STABLE;
 CREATE FUNCTION trend.update_modified(trendstore_id integer, "timestamp" timestamp with time zone, modified timestamp with time zone)
     RETURNS trend.modified
 AS $$
-    UPDATE trend.modified SET "end" = greatest("end", $3) WHERE "timestamp" = $2 AND trendstore_id = $1 RETURNING modified;
+    UPDATE trend.modified
+    SET "end" = greatest("end", $3)
+    WHERE "timestamp" = $2 AND trendstore_id = $1
+    RETURNING modified;
 $$ LANGUAGE SQL VOLATILE;
 
 
 CREATE FUNCTION trend.store_modified(trendstore_id integer, "timestamp" timestamp with time zone, modified timestamp with time zone)
     RETURNS trend.modified
 AS $$
-    INSERT INTO trend.modified (trendstore_id, "timestamp", start, "end") VALUES ($1, $2, $3, $3) RETURNING modified;
+    INSERT INTO trend.modified(
+        trendstore_id, "timestamp", start, "end"
+    ) VALUES (
+        $1, $2, $3, $3
+    ) RETURNING modified;
 $$ LANGUAGE SQL VOLATILE;
 
 
 CREATE FUNCTION trend.mark_modified(trendstore_id integer, "timestamp" timestamp with time zone, modified timestamp with time zone)
     RETURNS trend.modified
 AS $$
-    SELECT COALESCE(trend.update_modified($1, $2, $3), trend.store_modified($1, $2, $3));
+    SELECT COALESCE(
+        trend.update_modified($1, $2, $3),
+        trend.store_modified($1, $2, $3)
+    );
 $$ LANGUAGE SQL VOLATILE;
 
 
 CREATE FUNCTION trend.mark_modified(trendstore_id integer, "timestamp" timestamp with time zone)
     RETURNS trend.modified
 AS $$
-    SELECT COALESCE(trend.update_modified($1, $2, now()), trend.store_modified($1, $2, now()));
+    SELECT COALESCE(
+        trend.update_modified($1, $2, now()),
+        trend.store_modified($1, $2, now())
+    );
 $$ LANGUAGE SQL VOLATILE;
 
 
@@ -1138,14 +1154,20 @@ $$ LANGUAGE plpgsql VOLATILE;
 CREATE FUNCTION trend.populate_modified(trend.trendstore)
     RETURNS SETOF trend.modified
 AS $$
-    SELECT trend.populate_modified(partition) FROM trend.partition WHERE trendstore_id = $1.id;
+    SELECT
+        trend.populate_modified(partition)
+    FROM trend.partition
+    WHERE trendstore_id = $1.id;
 $$ LANGUAGE SQL VOLATILE;
 
 
 CREATE FUNCTION trend.populate_modified(character varying)
     RETURNS SETOF trend.modified
 AS $$
-    SELECT trend.populate_modified(partition) FROM trend.partition WHERE table_name = $1;
+    SELECT
+        trend.populate_modified(partition)
+    FROM trend.partition
+    WHERE table_name = $1;
 $$ LANGUAGE SQL VOLATILE;
 
 
