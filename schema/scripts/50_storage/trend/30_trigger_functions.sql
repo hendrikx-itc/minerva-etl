@@ -123,19 +123,6 @@ END;
 $$ LANGUAGE plpgsql VOLATILE;
 
 
-CREATE FUNCTION trend.create_base_table_on_insert()
-    RETURNS TRIGGER
-AS $$
-BEGIN
-    IF NEW.type = 'table' THEN
-        PERFORM trend.initialize_trendstore(NEW);
-    END IF;
-
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql VOLATILE;
-
-
 CREATE FUNCTION trend.cleanup_trendstore_on_delete()
     RETURNS TRIGGER
 AS $$

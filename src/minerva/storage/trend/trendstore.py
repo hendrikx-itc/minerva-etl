@@ -197,23 +197,22 @@ class TrendStore(object):
         return cursor.fetchall()
 
     def create(self, cursor):
-        column_names = [
-            "datasource_id", "entitytype_id", "granularity", "partition_size",
-            "type", "version"
-        ]
-
-        columns = map(Column, column_names)
-
         args = (
-            self.datasource.id, self.entitytype.id, self.granularity.name,
-            self.partition_size, self.type, self.version
+            self.datasource.name,
+            self.entitytype.name,
+            self.granularity.name,
+            self.trends
         )
 
-        query = schema.trendstore.insert(columns).returning("id")
+        query = (
+            "SELECT * FROM trend.create_trendstore("
+            "%s, %s, %s, %s::trend.trend_descr[]"
+            ")"
+        )
 
-        query.execute(cursor, args)
+        cursor.execute(query, args)
 
-        trendstore_id, = cursor.fetchone()
+        trendstore_id = cursor.fetchone()[0]
 
         self.id = trendstore_id
 
@@ -312,9 +311,8 @@ class TrendStore(object):
 
     def has_trend(self, cursor, trend_name):
         query = (
-            "SELECT 1 FROM trend.trendstore_trend_link ttl "
-            "JOIN trend.trend t ON t.id = ttl.trend_id "
-            "WHERE ttl.trendstore_id = %s AND t.name = %s"
+            "SELECT 1 FROM trend.trend "
+            "WHERE trendstore_id = %s AND name = %s"
         )
 
         args = self.id, trend_name
@@ -367,26 +365,8 @@ def assure_trendstore_trend_link(cursor, trendstore, trend_name):
         trend = trendstore.get_trend(cursor, trend_name)
 
         if not trend:
-            trend = create_trend(cursor, trend_name, trendstore.id)
+            create_trend(cursor, trend_name, trendstore.id)
             logging.info("created trend {}".format(trend_name))
-
-        trend_id = trend[0]
-
-        link_trend_to_trendstore(cursor, trendstore, trend_id)
-        logging.info(
-            "linked trend {} to trendstore {}".format(trend_name, trendstore)
-        )
-
-
-def link_trend_to_trendstore(cursor, trendstore, trend_id):
-    query = (
-        "INSERT INTO trend.trendstore_trend_link (trendstore_id, trend_id) "
-        "VALUES (%s, %s)"
-    )
-
-    args = trendstore.id, trend_id
-
-    cursor.execute(query, args)
 
 
 def create_trend(cursor, name, trendstore_id, description=""):

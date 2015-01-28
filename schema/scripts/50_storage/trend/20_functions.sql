@@ -213,7 +213,9 @@ but the old mechanism still uses triggers that automatically initialize the tren
 CREATE FUNCTION trend.create_trendstore(datasource_name character varying, entitytype_name character varying, granularity character varying)
     RETURNS trend.trendstore
 AS $$
-    SELECT trend.define_trendstore($1, $2, $3);
+    SELECT trend.initialize_trendstore(
+        trend.define_trendstore($1, $2, $3)
+    );
 $$ LANGUAGE SQL VOLATILE;
 
 
@@ -238,7 +240,9 @@ $$ LANGUAGE sql VOLATILE;
 CREATE FUNCTION trend.create_trendstore(datasource_name character varying, entitytype_name character varying, granularity character varying, type trend.storetype)
     RETURNS trend.trendstore
 AS $$
-    SELECT trend.define_trendstore($1, $2, $3, $4);
+    SELECT trend.initialize_trendstore(
+        trend.define_trendstore($1, $2, $3, $4)
+    );
 $$ LANGUAGE SQL VOLATILE;
 
 
@@ -252,7 +256,7 @@ $$ LANGUAGE SQL VOLATILE;
 CREATE FUNCTION trend.attributes_to_view_trendstore(datasource_name character varying, entitytype_name character varying, granularity character varying)
     RETURNS trend.trendstore
 AS $$
-    SELECT COALESCE(trend.get_trendstore_by_attributes($1, $2, $3), trend.define_trendstore($1, $2, $3, 'view'::trend.storetype));
+    SELECT COALESCE(trend.get_trendstore_by_attributes($1, $2, $3), trend.create_trendstore($1, $2, $3, 'view'::trend.storetype));
 $$ LANGUAGE SQL VOLATILE;
 
 
