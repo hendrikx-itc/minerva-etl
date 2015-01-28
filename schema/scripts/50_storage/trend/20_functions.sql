@@ -284,48 +284,6 @@ AS $$
 $$ LANGUAGE SQL IMMUTABLE STRICT;
 
 
-CREATE FUNCTION trend.generate_table_name(datasource_id integer, entitytype_id integer, granularity varchar, data_start timestamp with time zone)
-    RETURNS text
-AS $$
-DECLARE
-   entitytype_name text;
-   datasource_name text;
-   granularity_txt text;
-   start_txt text;
-BEGIN
-   SELECT name INTO entitytype_name FROM directory.entitytype WHERE id = entitytype_id;
-   SELECT name INTO datasource_name FROM directory.datasource WHERE id = datasource_id;
-
-   granularity_txt = trend.granularity_to_text(granularity);
-
-   start_txt = to_char(data_start, 'YYYYMMDD');
-
-   RETURN lower(datasource_name) || '_' || lower(entitytype_name) || '_' || granularity_txt || '_' || start_txt;
-END;
-$$ LANGUAGE plpgsql STABLE STRICT;
-
-
-CREATE FUNCTION trend.to_table_name_v3(partition trend.partition)
-    RETURNS text
-AS $$
-DECLARE
-    entitytype_name text;
-    datasource_name text;
-    granularity_txt text;
-    start_txt text;
-BEGIN
-    SELECT name INTO entitytype_name FROM directory.entitytype WHERE id = partition.entitytype_id;
-    SELECT name INTO datasource_name FROM directory.datasource WHERE id = partition.datasource_id;
-
-    granularity_txt = trend.granularity_to_text(partition.granularity);
-
-    start_txt = to_char(partition.data_start, 'YYYYMMDD');
-
-    RETURN lower(datasource_name) || '_' || lower(entitytype_name) || '_' || granularity_txt || '_' || start_txt;
-END;
-$$ LANGUAGE plpgsql STABLE STRICT;
-
-
 CREATE FUNCTION trend.parse_granularity(character varying)
     RETURNS interval
 AS $$
