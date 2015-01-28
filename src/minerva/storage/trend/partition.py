@@ -20,13 +20,12 @@ class Partition(object):
     """
     A partition of a trend store.
     """
-    def __init__(self, index, name, trendstore, start, end, version):
+    def __init__(self, index, name, trendstore, start, end):
         self.index = index
         self.name = name
         self.trendstore = trendstore
         self.start = start
         self.end = end
-        self.version = version
 
         self.last_modified = self._last_modified()
         self.max_modified = self._max_modified()

@@ -55,7 +55,6 @@ class TrendStore(object):
         self.granularity = granularity
         self.partition_size = partition_size
         self.type = type
-        self.version = 4
         self.partitioning = Partitioning(partition_size)
         self.trends = trends
 
@@ -94,7 +93,7 @@ class TrendStore(object):
 
         name = self.make_table_name(timestamp)
 
-        return Partition(index, name, self, start, end, 4)
+        return Partition(index, name, self, start, end)
 
     def index_to_interval(self, partition_index):
         return self.partitioning.index_to_interval(partition_index)
@@ -224,7 +223,7 @@ class TrendStore(object):
         else:
             args = (
                 self.datasource.id, self.entitytype.id, self.granularity.name,
-                self.partition_size, self.type, self.version, self.id
+                self.partition_size, self.type, self.id
             )
 
             query = (
@@ -234,7 +233,6 @@ class TrendStore(object):
                 "granularity = %s, "
                 "partition_size = %s, "
                 "type = %s, "
-                "version = %s "
                 "WHERE id = %s"
             )
 
@@ -244,7 +242,7 @@ class TrendStore(object):
 
     column_names = [
         "id", "datasource_id", "entitytype_id", "granularity",
-        "partition_size", "type", "version"
+        "partition_size", "type"
     ]
 
     columns = map(Column, column_names)
@@ -270,7 +268,7 @@ class TrendStore(object):
         elif cursor.rowcount == 1:
             (
                 trendstore_id, datasource_id, entitytype_id, granularity_str,
-                partition_size, type, version
+                partition_size, type
             ) = cursor.fetchone()
 
             trend_store = TrendStore(
@@ -290,7 +288,7 @@ class TrendStore(object):
         if cursor.rowcount == 1:
             (
                 trendstore_id, datasource_id, entitytype_id, granularity_str,
-                partition_size, type, version
+                partition_size, type
             ) = cursor.fetchone()
 
             datasource = get_datasource_by_id(cursor, datasource_id)

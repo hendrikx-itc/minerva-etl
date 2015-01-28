@@ -32,7 +32,6 @@ CREATE TABLE trend.trendstore (
     granularity varchar not null,
     partition_size integer not null,
     type trend.storetype not null DEFAULT 'table',
-    version integer not null DEFAULT 4,
     retention_period interval not null DEFAULT interval '1 month'
 );
 
@@ -129,8 +128,7 @@ CREATE TABLE trend.partition (
     table_name name not null,
     trendstore_id integer,
     data_start timestamp with time zone not null,
-    data_end timestamp with time zone not null,
-    version integer not null default 4
+    data_end timestamp with time zone not null
 );
 
 ALTER TABLE trend.partition OWNER TO minerva_admin;
