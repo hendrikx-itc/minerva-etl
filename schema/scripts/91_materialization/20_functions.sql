@@ -334,13 +334,30 @@ name without the leading ''v''. A new trendstore and datasource are created if
 they do not exist.';
 
 
+CREATE FUNCTION materialization.materialized_datasource_name(name character varying)
+  RETURNS character varying
+AS $$
+BEGIN
+  IF NOT name ~ '^v.*' THEN
+    RAISE EXCEPTION '% does not start with a ''v''', name;
+  ELSE
+    RETURN substring(name, '^v(.*)');
+  END IF;
+END;
+$$ LANGUAGE plpgsql IMMUTABLE;
+
+
 CREATE FUNCTION materialization.define(trend.view)
 	RETURNS materialization.type
 AS $$
 	SELECT materialization.add_missing_trends(
 		 materialization.define(
 			ts,
-			trend.attributes_to_trendstore(substring(ds.name, '^v(.*)'), et.name, ts.granularity)
+			trend.attributes_to_trendstore(
+          materialization.materialized_datasource_name(ds.name),
+          et.name,
+          ts.granularity
+      )
 		)
 	)
 	FROM trend.trendstore ts
