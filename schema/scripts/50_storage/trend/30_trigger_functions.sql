@@ -142,19 +142,6 @@ END;
 $$ LANGUAGE plpgsql;
 
 
-CREATE FUNCTION trend.set_trendstore_defaults()
-    RETURNS TRIGGER
-AS $$
-BEGIN
-    IF NEW.partition_size IS NULL THEN
-        NEW.partition_size = trend.get_default_partition_size(NEW.granularity);
-    END IF;
-
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-
 CREATE FUNCTION trend.drop_view_on_delete()
     RETURNS TRIGGER
 AS $$

@@ -189,77 +189,6 @@ COMMENT ON FUNCTION trend.initialize_trendstore(trend.trendstore) IS
 and capable of storing data.';
 
 
-CREATE FUNCTION trend.define_trendstore(datasource_name character varying, entitytype_name character varying, granularity character varying)
-    RETURNS trend.trendstore
-AS $$
-    INSERT INTO trend.trendstore (
-        datasource_id,
-        entitytype_id,
-        granularity)
-    VALUES (
-        (directory.name_to_datasource($1)).id,
-        (directory.name_to_entitytype($2)).id,
-        $3
-    ) RETURNING *;
-$$ LANGUAGE sql VOLATILE;
-
-COMMENT ON FUNCTION trend.define_trendstore(character varying, character varying, character varying) IS
-'Add a new trendstore record, initialize the trendstore base table, and return
-the new record.\n
-Later on, the definition and initialization will be split into separate steps,
-but the old mechanism still uses triggers that automatically initialize the trendstore.';
-
-
-CREATE FUNCTION trend.create_trendstore(datasource_name character varying, entitytype_name character varying, granularity character varying)
-    RETURNS trend.trendstore
-AS $$
-    SELECT trend.initialize_trendstore(
-        trend.define_trendstore($1, $2, $3)
-    );
-$$ LANGUAGE SQL VOLATILE;
-
-
-CREATE FUNCTION trend.define_trendstore(datasource_name character varying, entitytype_name character varying, granularity character varying, type trend.storetype)
-    RETURNS trend.trendstore
-AS $$
-    INSERT INTO trend.trendstore (
-        datasource_id,
-        entitytype_id,
-        granularity,
-        type
-    )
-    VALUES (
-        (directory.name_to_datasource($1)).id,
-        (directory.name_to_entitytype($2)).id,
-        $3,
-        $4
-    ) RETURNING *;
-$$ LANGUAGE sql VOLATILE;
-
-
-CREATE FUNCTION trend.create_trendstore(datasource_name character varying, entitytype_name character varying, granularity character varying, type trend.storetype)
-    RETURNS trend.trendstore
-AS $$
-    SELECT trend.initialize_trendstore(
-        trend.define_trendstore($1, $2, $3, $4)
-    );
-$$ LANGUAGE SQL VOLATILE;
-
-
-CREATE FUNCTION trend.attributes_to_trendstore(datasource_name character varying, entitytype_name character varying, granularity character varying)
-    RETURNS trend.trendstore
-AS $$
-    SELECT COALESCE(trend.get_trendstore_by_attributes($1, $2, $3), trend.create_trendstore($1, $2, $3));
-$$ LANGUAGE SQL VOLATILE;
-
-
-CREATE FUNCTION trend.attributes_to_view_trendstore(datasource_name character varying, entitytype_name character varying, granularity character varying)
-    RETURNS trend.trendstore
-AS $$
-    SELECT COALESCE(trend.get_trendstore_by_attributes($1, $2, $3), trend.create_trendstore($1, $2, $3, 'view'::trend.storetype));
-$$ LANGUAGE SQL VOLATILE;
-
-
 CREATE FUNCTION trend.get_default_partition_size(granularity varchar)
     RETURNS integer
 AS $$
@@ -286,6 +215,82 @@ AS $$
             24 * 3600 * 7 * 24
         END;
 $$ LANGUAGE SQL IMMUTABLE STRICT;
+
+
+CREATE FUNCTION trend.define_trendstore(datasource_name character varying, entitytype_name character varying, granularity character varying)
+    RETURNS trend.trendstore
+AS $$
+    INSERT INTO trend.trendstore (
+        datasource_id,
+        entitytype_id,
+        granularity,
+        partition_size
+    )
+    VALUES (
+        (directory.name_to_datasource($1)).id,
+        (directory.name_to_entitytype($2)).id,
+        $3,
+        trend.get_default_partition_size($3)
+    ) RETURNING *;
+$$ LANGUAGE sql VOLATILE;
+
+COMMENT ON FUNCTION trend.define_trendstore(character varying, character varying, character varying) IS
+'Add a new trendstore record, initialize the trendstore base table, and return
+the new record.\n
+Later on, the definition and initialization will be split into separate steps,
+but the old mechanism still uses triggers that automatically initialize the trendstore.';
+
+
+CREATE FUNCTION trend.create_trendstore(datasource_name character varying, entitytype_name character varying, granularity character varying)
+    RETURNS trend.trendstore
+AS $$
+    SELECT trend.initialize_trendstore(
+        trend.define_trendstore($1, $2, $3)
+    );
+$$ LANGUAGE SQL VOLATILE;
+
+
+CREATE FUNCTION trend.define_trendstore(datasource_name character varying, entitytype_name character varying, granularity character varying, type trend.storetype)
+    RETURNS trend.trendstore
+AS $$
+    INSERT INTO trend.trendstore (
+        datasource_id,
+        entitytype_id,
+        granularity,
+        partition_size,
+        type
+    )
+    VALUES (
+        (directory.name_to_datasource($1)).id,
+        (directory.name_to_entitytype($2)).id,
+        $3,
+        trend.get_default_partition_size($3),
+        $4
+    ) RETURNING *;
+$$ LANGUAGE sql VOLATILE;
+
+
+CREATE FUNCTION trend.create_trendstore(datasource_name character varying, entitytype_name character varying, granularity character varying, type trend.storetype)
+    RETURNS trend.trendstore
+AS $$
+    SELECT trend.initialize_trendstore(
+        trend.define_trendstore($1, $2, $3, $4)
+    );
+$$ LANGUAGE SQL VOLATILE;
+
+
+CREATE FUNCTION trend.attributes_to_trendstore(datasource_name character varying, entitytype_name character varying, granularity character varying)
+    RETURNS trend.trendstore
+AS $$
+    SELECT COALESCE(trend.get_trendstore_by_attributes($1, $2, $3), trend.create_trendstore($1, $2, $3));
+$$ LANGUAGE SQL VOLATILE;
+
+
+CREATE FUNCTION trend.attributes_to_view_trendstore(datasource_name character varying, entitytype_name character varying, granularity character varying)
+    RETURNS trend.trendstore
+AS $$
+    SELECT COALESCE(trend.get_trendstore_by_attributes($1, $2, $3), trend.create_trendstore($1, $2, $3, 'view'::trend.storetype));
+$$ LANGUAGE SQL VOLATILE;
 
 
 CREATE FUNCTION trend.parse_granularity(character varying)

@@ -40,12 +40,6 @@ CREATE TRIGGER cleanup_trendstore_on_delete
     EXECUTE PROCEDURE trend.cleanup_trendstore_on_delete();
 
 
-CREATE TRIGGER set_trendstore_defaults
-    BEFORE INSERT ON trend.trendstore
-    FOR EACH ROW
-    EXECUTE PROCEDURE trend.set_trendstore_defaults();
-
-
 CREATE TRIGGER drop_view_on_delete
     BEFORE DELETE ON trend.view
     FOR EACH ROW
