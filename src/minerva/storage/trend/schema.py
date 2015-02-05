@@ -1,6 +1,6 @@
 from minerva.db.query import Table
 
-name = "trend"
+name = "trend_directory"
 
 partition = Table(name, "partition")
 modified = Table(name, "modified")

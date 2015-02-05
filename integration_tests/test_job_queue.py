@@ -20,7 +20,7 @@ import psycopg2
 from minerva.test import with_conn, connect
 from minerva.system.jobqueue import enqueue_job, get_job
 from minerva.system.helpers import add_job_source, get_job_source
-from minerva.directory.helpers_v4 import name_to_datasource
+from minerva.directory.datasource import DataSource
 
 
 def clear(conn):
@@ -146,8 +146,6 @@ def test_waiting_locks(conn):
     description_json = '{{"uri": "{}"}}'.format(path)
 
     with closing(conn.cursor()) as cursor:
-        datasource = name_to_datasource(cursor, "dummy-src")
-
         job_source_id = get_job_source(cursor, job_source_name)
 
         if not job_source_id:
@@ -161,11 +159,6 @@ def test_waiting_locks(conn):
         job = get_job(cursor)
 
     conn.commit()
-
-    with closing(conn.cursor()) as cursor:
-        cursor.execute("select relation::regclass, * FROM pg_locks WHERE NOT GRANTED")
-
-        rows = cursor.fetchall()
 
     job_id, job_type, description, size, parser_config = job
 

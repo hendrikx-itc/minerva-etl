@@ -5,7 +5,8 @@ from minerva.test import connect
 
 def clear_database(conn):
     with closing(conn.cursor()) as cursor:
-        cursor.execute("DELETE FROM trend.trend CASCADE")
+        cursor.execute("DELETE FROM trend_directory.trend CASCADE")
+        cursor.execute("DELETE FROM trend_directory.trendstore CASCADE")
         cursor.execute("DELETE FROM directory.datasource CASCADE")
         cursor.execute("DELETE FROM directory.entitytype CASCADE")
 

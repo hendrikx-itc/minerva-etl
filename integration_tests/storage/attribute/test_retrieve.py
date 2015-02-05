@@ -17,7 +17,7 @@ from contextlib import closing
 from nose.tools import assert_not_equal
 
 from minerva.test import with_conn
-from minerva.directory.helpers_v4 import name_to_datasource, name_to_entitytype
+from minerva.directory import DataSource, EntityType
 
 from .minerva_db import clear_database
 
@@ -38,13 +38,15 @@ def test_retrieve(conn):
         ]
         datapackage = DataPackage(trend_names, data_rows)
 
-        entitytype = name_to_entitytype(cursor, "UtranCell")
-        datasource = name_to_datasource(cursor, "integration-test")
+        entitytype = EntityType.from_name(cursor, "UtranCell")
+        datasource = DataSource.from_name(cursor, "integration-test")
 
         data_types = ["text", "real", "smallint"]
 
-        attributes = [Attribute(name, datatype) for name, datatype in
-                      zip(trend_names, data_types)]
+        attributes = [
+            Attribute(name, datatype) for name, datatype in
+            zip(trend_names, data_types)
+        ]
 
         attributestore = AttributeStore(datasource, entitytype, attributes)
         attributestore.create(cursor)

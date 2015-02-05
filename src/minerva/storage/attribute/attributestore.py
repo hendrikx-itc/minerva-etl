@@ -15,12 +15,12 @@ from operator import methodcaller
 
 import psycopg2
 
-from minerva.util import head, expand_args, k
+from minerva.util import head, expand_args, k, no_op
 from minerva.db.query import Table
-from minerva.directory.helpers_v4 import get_entitytype_by_id, \
-    get_datasource_by_id
+from minerva.directory import EntityType, DataSource
 from minerva.db.error import NoSuchColumnError, DataTypeMismatch, \
-    translate_postgresql_exception, translate_postgresql_exceptions
+    translate_postgresql_exception, translate_postgresql_exceptions, \
+    UniqueViolation
 from minerva.db.dbtransaction import DbTransaction, DbAction, insert_before
 from minerva.storage.attribute.attribute import Attribute
 
@@ -43,8 +43,8 @@ class AttributeStore(object):
     """
     Provides the main interface to the attribute storage facilities.
 
-    Use `store` for writing to the attributestore and `retrieve` for reading
-    from the attributestore.
+    Use `store` for writing to the attribute store and `retrieve` for reading
+    from the attribute store.
 
     """
 
@@ -64,14 +64,14 @@ class AttributeStore(object):
         self.curr_table = Table("attribute", self.table_name())
 
     def table_name(self):
-        """Return the table name for this attributestore."""
+        """Return the table name for this attribute store."""
         return "{0}_{1}".format(self.datasource.name, self.entitytype.name)
 
     def update_attributes(self, attributes):
         """Add to, or update current attributes."""
         curr_attributes = list(self.attributes)
 
-        by_name = dict((a.name, a) for a in curr_attributes)
+        by_name = {a.name: a for a in curr_attributes}
 
         for attribute in attributes:
             curr_attribute = by_name.get(attribute.name)
@@ -89,13 +89,14 @@ class AttributeStore(object):
         query = (
             "SELECT id, name, datatype, description "
             "FROM attribute_directory.attribute "
-            "WHERE attributestore_id = %s")
+            "WHERE attributestore_id = %s"
+        )
         args = self.id,
 
         cursor.execute(query, args)
 
         def row_to_attribute(row):
-            """Create Attribute, link to this attributestore and return it."""
+            """Create Attribute, link to this attribute store and return it."""
             attribute_id, name, datatype, description = row
             attribute = Attribute(name, datatype, description)
             attribute.attributestore = self
@@ -109,12 +110,11 @@ class AttributeStore(object):
         """
         Return AttributeStore with specified attributes.
 
-        If an attributestore with specified datasource and entitytype exists,
+        If an attribute store with specified datasource and entitytype exists,
         it is loaded, or a new one is created if it doesn't.
 
         """
-        query = (
-            "SELECT (attribute_directory.to_attributestore(%s, %s)).*")
+        query = "SELECT (attribute_directory.to_attributestore(%s, %s)).*"
 
         args = datasource.id, entitytype.id
 
@@ -134,7 +134,8 @@ class AttributeStore(object):
             "SELECT id "
             "FROM attribute_directory.attributestore "
             "WHERE datasource_id = %s "
-            "AND entitytype_id = %s")
+            "AND entitytype_id = %s"
+        )
         args = datasource.id, entitytype.id
         cursor.execute(query, args)
 
@@ -148,18 +149,20 @@ class AttributeStore(object):
 
     @classmethod
     def get(cls, cursor, id):
-        """Load and return attributestore by its Id."""
+        """Load and return attribute store by its Id."""
         query = (
             "SELECT datasource_id, entitytype_id "
             "FROM attribute_directory.attributestore "
-            "WHERE id = %s")
+            "WHERE id = %s"
+        )
+
         args = id,
         cursor.execute(query, args)
 
         datasource_id, entitytype_id = cursor.fetchone()
 
-        entitytype = get_entitytype_by_id(cursor, entitytype_id)
-        datasource = get_datasource_by_id(cursor, datasource_id)
+        entitytype = EntityType.get(cursor, entitytype_id)
+        datasource = DataSource.get(cursor, datasource_id)
 
         attributestore = AttributeStore(datasource, entitytype)
         attributestore.id = id
@@ -169,7 +172,7 @@ class AttributeStore(object):
 
     @classmethod
     def get_all(cls, cursor):
-        """Load and return all attributestores."""
+        """Load and return all attribute stores."""
         query = (
             "SELECT id, datasource_id, entitytype_id "
             "FROM attribute_directory.attributestore"
@@ -183,8 +186,8 @@ class AttributeStore(object):
 
     @classmethod
     def load_attributestore(cls, cursor, id, datasource_id, entitytype_id):
-        datasource = get_datasource_by_id(cursor, datasource_id)
-        entitytype = get_entitytype_by_id(cursor, entitytype_id)
+        datasource = DataSource.get(cursor, datasource_id)
+        entitytype = EntityType.get(cursor, entitytype_id)
 
         attributestore = AttributeStore(datasource, entitytype)
         attributestore.id = id
@@ -193,7 +196,7 @@ class AttributeStore(object):
         return attributestore
 
     def create(self, cursor):
-        """Create, initialize and return the attributestore."""
+        """Create, initialize and return the attribute store."""
         query = (
             "INSERT INTO attribute_directory.attributestore"
             "(datasource_id, entitytype_id) "
@@ -234,7 +237,7 @@ class AttributeStore(object):
         cursor.execute(query, args)
 
     def store_txn(self, datapackage):
-        """Return transaction to store the data in the attributestore."""
+        """Return transaction to store the data in the attribute store."""
         return DbTransaction(StoreBatch(self, k(datapackage)))
 
     @translate_postgresql_exceptions
@@ -251,11 +254,13 @@ class AttributeStore(object):
 
     def get_data_types(self, attribute_names):
         """Return list of data types corresponding to the `attribute_names`."""
-        attributes_by_name = dict((a.name, a) for a in self.attributes)
+        attributes_by_name = {a.name: a for a in self.attributes}
 
         try:
-            return [attributes_by_name[name].datatype
-                    for name in attribute_names]
+            return [
+                attributes_by_name[name].datatype
+                for name in attribute_names
+            ]
         except KeyError:
             raise NoSuchAttributeError()
 
@@ -264,7 +269,9 @@ class AttributeStore(object):
         cursor.execute(
             "SELECT attribute_directory.transfer_staged(attributestore) "
             "FROM attribute_directory.attributestore "
-            "WHERE id = %s", (self.id,))
+            "WHERE id = %s",
+            (self.id,)
+        )
 
     def check_attributes_exist(self, cursor):
         """Check if attributes exist and create missing."""
@@ -341,7 +348,7 @@ def fetch_one(cursor):
 class StoreBatch(DbAction):
     """
     A DbAction subclass that calls the 'store_batch' method on the
-    attributestore and creates corrective actions if a known error occurs.
+    attribute store and creates corrective actions if a known error occurs.
     """
     def __init__(self, attributestore, datapackage):
         self.attributestore = attributestore
@@ -380,7 +387,7 @@ class StoreBatch(DbAction):
 
 class CheckAttributesExist(DbAction):
 
-    """Calls the 'check_attributes_exist' method on the attributestore."""
+    """Calls the 'check_attributes_exist' method on the attribute store."""
 
     def __init__(self, attributestore):
         self.attributestore = attributestore
@@ -391,7 +398,7 @@ class CheckAttributesExist(DbAction):
 
 class CheckAttributeTypes(DbAction):
 
-    """Calls the 'check_attributes_exist' method on the attributestore."""
+    """Calls the 'check_attributes_exist' method on the attribute store."""
 
     def __init__(self, attributestore):
         self.attributestore = attributestore

@@ -15,65 +15,79 @@ from functools import partial
 from pytz import timezone
 
 from minerva.storage.generic import extract_data_types
-from minerva.directory.helpers_v4 import name_to_datasource, \
-    name_to_entitytype, dn_to_entity
+from minerva.directory import DataSource, EntityType, Entity
 from minerva.storage.trend.test import DataSet
 from minerva.storage.trend.granularity import create_granularity
 from minerva.storage.trend.datapackage import DataPackage
-from minerva.storage.trend.trendstore import TrendStore, store_copy_from
+from minerva.storage.trend.trend import TrendDescriptor
+from minerva.storage.trend.trendstore import TrendStore, store_copy_from, \
+    TrendStoreDescriptor
 
 
 class TestSetQtr(DataSet):
     def __init__(self):
+        self.datasource = None
+        self.entitytype = None
+        self.entities = None
         self.timezone = timezone("Europe/Amsterdam")
         self.timestamp = self.timezone.localize(datetime(2012, 12, 6, 14, 15))
         self.modified = self.timezone.localize(datetime(2012, 12, 6, 14, 36, 4))
         self.trendstore = None
         self.granularity = create_granularity("900")
         self.entitytype_name = "dummy_type"
-        self.dns = ["{}=node_{}".format(self.entitytype_name, i)
-                for i in range(63020, 63025)]
+        self.dns = [
+            "{}=node_{}".format(self.entitytype_name, i)
+            for i in range(63020, 63025)
+        ]
 
 
 class TestSet1Small(TestSetQtr):
     def load(self, cursor):
-        self.datasource = name_to_datasource(cursor, "testset1")
+        self.datasource = DataSource.from_name(cursor, "testset1")
 
-        self.entitytype = name_to_entitytype(cursor, self.entitytype_name)
+        self.entitytype = EntityType.from_name(cursor, self.entitytype_name)
 
-        self.entities = map(partial(dn_to_entity, cursor), self.dns)
+        self.entities = map(partial(Entity.from_dn, cursor), self.dns)
 
-        datapackage = generate_datapackage_a(self.granularity,
-                self.timestamp, self.entities)
+        datapackage = generate_datapackage_a(
+            self.granularity, self.timestamp, self.entities
+        )
 
-        self.trendstore = TrendStore.get(cursor, self.datasource, self.entitytype,
-                self.granularity)
+        self.trendstore = TrendStore.get(
+            cursor, self.datasource, self.entitytype, self.granularity
+        )
 
         if not self.trendstore:
-            self.trendstore = TrendStore(self.datasource, self.entitytype,
-                    self.granularity, partition_size=86400, type="table").create(cursor)
+            self.trendstore = TrendStore.create(TrendStoreDescriptor(
+                self.datasource, self.entitytype, self.granularity, [], partition_size=86400
+            ))(cursor)
 
-        self.partition = store_datapackage(cursor, self.trendstore,
-                datapackage, self.modified)
+        self.partition = store_datapackage(
+            cursor, self.trendstore, datapackage, self.modified
+        )
 
 
 class TestSet1Large(TestSetQtr):
     def load(self, cursor):
-        self.datasource = name_to_datasource(cursor, "testset1")
+        self.datasource = DataSource.from_name(cursor, "testset1")
 
-        self.entitytype = name_to_entitytype(cursor, self.entitytype_name)
+        self.entitytype = EntityType.from_name(cursor, self.entitytype_name)
 
-        self.entities = map(partial(dn_to_entity, cursor), self.dns)
+        self.entities = map(partial(Entity.from_dn, cursor), self.dns)
 
-        datapackage = generate_datapackage_a(self.granularity,
-                self.timestamp, self.entities)
+        datapackage = generate_datapackage_a(
+            self.granularity, self.timestamp, self.entities
+        )
 
-        self.trendstore = TrendStore.get(cursor, self.datasource, self.entitytype,
-                self.granularity)
+        self.trendstore = TrendStore.get(
+            cursor, self.datasource, self.entitytype, self.granularity
+        )
 
         if not self.trendstore:
-            self.trendstore = TrendStore(self.datasource, self.entitytype,
-                    self.granularity, partition_size=86400, type="table").create(cursor)
+            self.trendstore = TrendStore.create(TrendStoreDescriptor(
+                self.datasource, self.entitytype, self.granularity,
+                [], partition_size=86400)
+            )(cursor)
 
         self.partition = store_datapackage(cursor, self.trendstore,
                 datapackage, self.modified)
@@ -93,56 +107,71 @@ class TestData(object):
         self.modified = self.timezone.localize(datetime(2012, 12, 6, 14, 15))
 
     def load(self, cursor):
-        self.entitytype = name_to_entitytype(cursor, self.entitytype_name)
+        self.entitytype = EntityType.from_name(cursor, self.entitytype_name)
 
-        self.entities = map(partial(dn_to_entity, cursor), self.dns)
+        self.entities = map(partial(Entity.from_dn, cursor), self.dns)
 
         granularity = create_granularity("900")
 
         # Data a
 
-        self.datasource_a = name_to_datasource(cursor, "test-source-a")
-        self.trendstore_a = TrendStore(self.datasource_a, self.entitytype,
-                granularity, partition_size=86400, type="table").create(cursor)
-        datapackage = generate_datapackage_a(granularity, self.timestamp_1,
-                self.entities)
-        self.partition_a = store_datapackage(cursor, self.trendstore_a,
-                datapackage, self.modified)
+        self.datasource_a = DataSource.from_name(cursor, "test-source-a")
+        self.trendstore_a = TrendStore.create(TrendStoreDescriptor(
+            self.datasource_a, self.entitytype, granularity,
+            [], partition_size=86400
+        ))(cursor)
+        datapackage = generate_datapackage_a(
+            granularity, self.timestamp_1, self.entities
+        )
+        self.partition_a = store_datapackage(
+            cursor, self.trendstore_a, datapackage, self.modified
+        )
 
         # Data b
 
-        self.datasource_b = name_to_datasource(cursor, "test-source-b")
-        self.trendstore_b = TrendStore(self.datasource_b, self.entitytype,
-                granularity, partition_size=86400, type="table").create(cursor)
-        datapackage = generate_datapackage_b(granularity, self.timestamp_1,
-                self.entities)
-        self.partition_b = store_datapackage(cursor, self.trendstore_b,
-                datapackage, self.modified)
+        self.datasource_b = DataSource.from_name(cursor, "test-source-b")
+        self.trendstore_b = TrendStore.create(TrendStoreDescriptor(
+            self.datasource_b, self.entitytype, granularity, [], partition_size=86400
+        ))(cursor)
+        datapackage = generate_datapackage_b(
+            granularity, self.timestamp_1, self.entities
+        )
+        self.partition_b = store_datapackage(
+            cursor, self.trendstore_b, datapackage, self.modified
+        )
 
         # Data c
 
-        self.datasource_c = name_to_datasource(cursor, "test-source-c")
-        self.trendstore_c = TrendStore(self.datasource_c, self.entitytype,
-                granularity, partition_size=86400, type="table").create(cursor)
-        datapackage = generate_datapackage_c(granularity, self.timestamp_1,
-                self.entities)
-        self.partition_c = store_datapackage(cursor, self.trendstore_c,
-                datapackage, self.modified)
+        self.datasource_c = DataSource.from_name(cursor, "test-source-c")
+        self.trendstore_c = TrendStore.create(TrendStoreDescriptor(
+            self.datasource_c, self.entitytype, granularity, [], partition_size=86400
+        ))(cursor)
+        datapackage = generate_datapackage_c(
+            granularity, self.timestamp_1, self.entities
+        )
+        self.partition_c = store_datapackage(
+            cursor, self.trendstore_c, datapackage, self.modified
+        )
 
         # Data d
 
-        self.datasource_d = name_to_datasource(cursor, "test-source-d")
-        self.trendstore_d = TrendStore(self.datasource_d, self.entitytype,
-                granularity, partition_size=86400, type="table").create(cursor)
-        datapackage_1 = generate_datapackage_d(granularity, self.timestamp_1,
-                self.entities)
-        self.partition_d_1 = store_datapackage(cursor, self.trendstore_d,
-                datapackage_1, self.modified)
+        self.datasource_d = DataSource.from_name(cursor, "test-source-d")
+        self.trendstore_d = TrendStore.create(TrendStoreDescriptor(
+            self.datasource_d, self.entitytype, granularity, [], partition_size=86400
+        ))(cursor)
+        datapackage_1 = generate_datapackage_d(
+            granularity, self.timestamp_1, self.entities
+        )
+        self.partition_d_1 = store_datapackage(
+            cursor, self.trendstore_d, datapackage_1, self.modified
+        )
 
-        datapackage_2 = generate_datapackage_d(granularity, self.timestamp_2,
-                self.entities)
-        self.partition_d_2 = store_datapackage(cursor, self.trendstore_d,
-                datapackage_2, self.modified)
+        datapackage_2 = generate_datapackage_d(
+            granularity, self.timestamp_2, self.entities
+        )
+        self.partition_d_2 = store_datapackage(
+            cursor, self.trendstore_d, datapackage_2, self.modified
+        )
 
 
 def store_datapackage(cursor, trendstore, datapackage, modified):
@@ -150,7 +179,13 @@ def store_datapackage(cursor, trendstore, datapackage, modified):
 
     partition = trendstore.partition(datapackage.timestamp)
     partition.create(cursor)
-    partition.check_columns_exist(datapackage.trend_names, data_types)(cursor)
+
+    trend_descriptors = [
+        TrendDescriptor(name, data_type, '')
+        for name, data_type in zip(datapackage.trend_names, data_types)
+    ]
+
+    trendstore.check_trends_exist(trend_descriptors)(cursor)
 
     store_copy_from(cursor, partition.table(), datapackage, modified)
 

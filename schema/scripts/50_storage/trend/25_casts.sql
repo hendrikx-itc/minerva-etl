@@ -1,3 +1,3 @@
-CREATE CAST (trend.trendstore AS text) WITH FUNCTION trend.to_char(trend.trendstore) AS IMPLICIT;
+CREATE CAST (trend_directory.trendstore AS text) WITH FUNCTION trend_directory.to_char(trend_directory.trendstore) AS IMPLICIT;
 
-CREATE CAST (trend.view AS text) WITH FUNCTION trend.to_char(trend.view) AS IMPLICIT;
+CREATE CAST (trend_directory.view AS text) WITH FUNCTION trend_directory.to_char(trend_directory.view) AS IMPLICIT;

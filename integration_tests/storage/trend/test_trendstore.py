@@ -14,10 +14,12 @@ import datetime
 
 from nose.tools import eq_
 
-from minerva.directory.helpers_v4 import name_to_entitytype, name_to_datasource
+from minerva.directory import EntityType, DataSource
 from minerva.test import connect
-from minerva.storage.trend.trendstore import TrendStore
+from minerva.storage.trend.trendstore import TrendStore, TrendStoreDescriptor
+from minerva.storage.trend.trend import TrendDescriptor
 from minerva.storage.trend.granularity import create_granularity
+from minerva.db.postgresql import get_column_names
 
 from minerva_db import clear_database
 
@@ -34,8 +36,8 @@ class TestStore(object):
         clear_database(self.conn)
 
         with closing(self.conn.cursor()) as cursor:
-            self.data_source = name_to_datasource(cursor, "test-source")
-            self.entity_type = name_to_entitytype(cursor, "test_type")
+            self.data_source = DataSource.from_name(cursor, "test-source")
+            self.entity_type = EntityType.from_name(cursor, "test_type")
 
         self.conn.commit()
 
@@ -47,24 +49,48 @@ class TestStore(object):
         partition_size = 3600
 
         with closing(self.conn.cursor()) as cursor:
-            trend_store = TrendStore(
-                self.data_source, self.entity_type, granularity, partition_size,
-                "table", []
-            ).create(cursor)
+            trend_store = TrendStore.create(TrendStoreDescriptor(
+                self.data_source, self.entity_type, granularity,
+                [], partition_size
+            ))(cursor)
 
         assert isinstance(trend_store, TrendStore)
 
         assert trend_store.id is not None
+
+    def test_create_trend_store_with_trends(self):
+        granularity = create_granularity("900")
+        partition_size = 3600
+
+        with closing(self.conn.cursor()) as cursor:
+            trend_store = TrendStore.create(TrendStoreDescriptor(
+                self.data_source, self.entity_type, granularity,
+                [
+                    TrendDescriptor('x', 'integer', ''),
+                    TrendDescriptor('y', 'double precision', '')
+                ], partition_size
+            ))(cursor)
+
+        assert isinstance(trend_store, TrendStore)
+
+        assert trend_store.id is not None
+
+        column_names = get_column_names(
+            self.conn, 'trend', trend_store.make_table_basename()
+        )
+
+        assert 'x' in column_names
+        assert 'y' in column_names
 
     def test_create_trend_store_with_children(self):
         granularity = create_granularity("900")
         partition_size = 3600
 
         with closing(self.conn.cursor()) as cursor:
-            trend_store = TrendStore(
-                self.data_source, self.entity_type, granularity, partition_size,
-                "table", []
-            ).create(cursor)
+            trend_store = TrendStore.create(TrendStoreDescriptor(
+                self.data_source, self.entity_type, granularity,
+                [], partition_size
+            ))(cursor)
 
             assert trend_store.id is not None
 
@@ -81,10 +107,13 @@ class TestStore(object):
         partition_size = 3600
 
         with closing(self.conn.cursor()) as cursor:
-            TrendStore(
+            TrendStore.create(TrendStoreDescriptor(
                 self.data_source, self.entity_type, granularity,
-                partition_size, "table", []
-            ).create(cursor)
+                [
+                    TrendDescriptor('x', 'integer', ''),
+                    TrendDescriptor('y', 'double precision', '')
+                ], partition_size
+            ))(cursor)
 
             trend_store = TrendStore.get(
                 cursor, self.data_source, self.entity_type, granularity
@@ -92,50 +121,55 @@ class TestStore(object):
 
             eq_(trend_store.datasource.id, self.data_source.id)
             eq_(trend_store.partition_size, partition_size)
-            assert trend_store.id is not None, "trendstore.id is None"
-            eq_(trend_store.version, 4)
+            assert trend_store.id is not None, "trend_store.id is None"
+
+            eq_(len(trend_store.trends), 2)
 
     def test_get_by_id(self):
         granularity = create_granularity("900")
         partition_size = 3600
 
         with closing(self.conn.cursor()) as cursor:
-            t = TrendStore(
-                self.data_source, self.entity_type, granularity, partition_size,
-                "table", []
-            ).create(cursor)
+            t = TrendStore.create(TrendStoreDescriptor(
+                self.data_source, self.entity_type, granularity, [],
+                partition_size
+            ))(cursor)
 
             trend_store = TrendStore.get_by_id(cursor, t.id)
 
             eq_(trend_store.datasource.id, self.data_source.id)
             eq_(trend_store.partition_size, partition_size)
             assert trend_store.id is not None, "trendstore.id is None"
-            eq_(trend_store.version, 4)
 
     def test_check_column_types(self):
         granularity = create_granularity("900")
         partition_size = 3600
 
-        trend_store = TrendStore(
-            self.data_source, self.entity_type, granularity, partition_size,
-            "table", []
+        column_names = ["counter1", "counter2"]
+        initial_data_types = ["smallint", "smallint"]
+        data_types = ["integer", "text"]
+
+        trend_descriptors = [
+            TrendDescriptor(name, data_type, '')
+            for name, data_type in zip(column_names, data_types)
+        ]
+
+        trend_store_descriptor = TrendStoreDescriptor(
+            self.data_source, self.entity_type, granularity,
+            [], partition_size
         )
 
         with closing(self.conn.cursor()) as cursor:
-            trend_store.create(cursor)
+            trend_store = TrendStore.create(trend_store_descriptor)(cursor)
 
-            column_names = ["counter1", "counter2"]
-            initial_data_types = ["smallint", "smallint"]
-            data_types = ["integer", "text"]
-
-            check_columns_exist = trend_store.check_columns_exist(
-                column_names, initial_data_types
+            check_columns_exist = trend_store.check_trends_exist(
+                trend_descriptors
             )
 
             check_columns_exist(cursor)
 
             check_column_types = trend_store.check_column_types(
-                column_names, data_types
+                trend_descriptors
             )
 
             check_column_types(cursor)

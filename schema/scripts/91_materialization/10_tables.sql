@@ -43,12 +43,12 @@ GRANT INSERT,DELETE,UPDATE ON TABLE materialization.type TO minerva_writer;
 
 ALTER TABLE ONLY materialization.type
     ADD CONSTRAINT materialization_type_src_trendstore_id_fkey
-    FOREIGN KEY (src_trendstore_id) REFERENCES trend.trendstore(id)
+    FOREIGN KEY (src_trendstore_id) REFERENCES trend_directory.trendstore(id)
     ON DELETE CASCADE;
 
 ALTER TABLE ONLY materialization.type
     ADD CONSTRAINT materialization_type_dst_trendstore_id_fkey
-    FOREIGN KEY (dst_trendstore_id) REFERENCES trend.trendstore(id)
+    FOREIGN KEY (dst_trendstore_id) REFERENCES trend_directory.trendstore(id)
     ON DELETE CASCADE;
 
 CREATE UNIQUE INDEX ix_materialization_type_uniqueness

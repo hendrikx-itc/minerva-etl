@@ -9,5 +9,7 @@ the Free Software Foundation; either version 3, or (at your option) any later
 version.  The full license is in the file COPYING, distributed as part of
 this software.
 """
-from minerva.directory.basetypes import *
+from minerva.directory.datasource import DataSource
+from minerva.directory.entity import Entity
+from minerva.directory.entitytype import EntityType
 from minerva.directory.helpers import *

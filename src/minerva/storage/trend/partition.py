@@ -34,7 +34,7 @@ class Partition(object):
         return self.name
 
     def table(self):
-        return Table("trend", self.name)
+        return Table("trend_partition", self.name)
 
     def timestamps(self):
         current = self.start
@@ -68,8 +68,8 @@ class Partition(object):
 
     def create(self, cursor):
         query = (
-            "SELECT trend.create_partition(trendstore, %s) "
-            "FROM trend.trendstore "
+            "SELECT trend_directory.create_partition(trendstore, %s) "
+            "FROM trend_directory.trendstore "
             "WHERE id = %s"
         )
         args = self.index, self.trendstore.id
@@ -80,12 +80,6 @@ class Partition(object):
             raise DuplicateTable()
         except psycopg2.ProgrammingError as exc:
             raise translate_postgresql_exception(exc)
-
-    def check_columns_exist(self, column_names, data_types):
-        return self.trendstore.check_columns_exist(column_names, data_types)
-
-    def check_column_types(self, column_names, data_types):
-        return self.trendstore.check_column_types(column_names, data_types)
 
     def clear_timestamp(self, timestamp):
         def f(cursor):

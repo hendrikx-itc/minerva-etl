@@ -2,20 +2,20 @@ BEGIN;
 
 SELECT plan(2);
 
-SELECT trend.create_view(
-    trend.define_view(
-        trend.attributes_to_view_trendstore('test-source', 'test-type', '900'),
+SELECT trend_directory.create_view(
+    trend_directory.define_view(
+        trend_directory.attributes_to_view_trendstore('test-source', 'test-type', '900'),
         'SELECT 1 x, 2 y'
     )
 );
 
 SELECT
     is(x, 1)
-FROM trend."test-source_test-type_qtr";
+FROM trend_directory."test-source_test-type_qtr";
 
 SELECT
-    trend.alter_view(view, 'SELECT 2 x, 3 y')
-FROM trend.view
+    trend_directory.alter_view(view, 'SELECT 2 x, 3 y')
+FROM trend_directory.view
 WHERE view::text = 'test-source_test-type_qtr';
 
 SELECT

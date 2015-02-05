@@ -9,7 +9,7 @@ from nose.tools import assert_raises, raises, eq_
 
 from minerva.directory.basetypes import EntityType, Entity
 from minerva.directory import helpers
-from minerva.db.generic import UniqueViolation
+from minerva.db.error import UniqueViolation
 
 
 def test_create_entitytype():

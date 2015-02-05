@@ -116,11 +116,15 @@ def drop_all_tables(conn, schema):
 
 def table_exists(conn, schema, table):
     with closing(conn.cursor()) as cursor:
-        cursor.execute(
+        query = (
             "SELECT COUNT(*) FROM information_schema.tables "
-            "WHERE table_schema = '{0:s}' "
-            "AND table_name = '{1:s}'".format(schema, table)
+            "WHERE table_schema = %s "
+            "AND table_name = %s"
         )
+
+        args = schema, table
+
+        cursor.execute(query, args)
 
         (num, ) = cursor.fetchone()
 
@@ -129,12 +133,16 @@ def table_exists(conn, schema, table):
 
 def column_exists(conn, schema, table, column):
     with closing(conn.cursor()) as cursor:
-        cursor.execute(
+        query = (
             "SELECT COUNT(*) FROM information_schema.columns "
-            "WHERE table_schema = '{0:s}' "
-            "AND table_name = '{1:s}' "
-            "AND column_name = '{2:s}';".format(schema, table, column)
+            "WHERE table_schema = %s "
+            "AND table_name = %s "
+            "AND column_name = %s"
         )
+
+        args = schema, table, column
+
+        cursor.execute(query, args)
 
         (num, ) = cursor.fetchone()
 

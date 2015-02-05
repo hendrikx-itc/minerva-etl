@@ -27,22 +27,11 @@ from minerva.storage.trend.tables import PARTITION_SIZES
 from minerva.storage.trend.helpers import get_trend_by_id, \
     get_previous_timestamp, get_table_names as get_table_names_v4
 from minerva.storage.trend.trendstore import TrendStore, store_raw
-from minerva.storage.trend.datapackage import DataPackage
-from minerva.storage.trend.rawdatapackage import RawDataPackage
-from minerva.storage.trend.granularity import create_granularity
 
 
-class TrendPlugin(object):
-    DataPackage = DataPackage
-    RawDataPackage = RawDataPackage
-    TrendStore = TrendStore
-    create_granularity = staticmethod(create_granularity)
-
+class TrendEngine(object):
     def __init__(self, conn):
         self.conn = conn
-
-    def api_version(self):
-        return 4
 
     def get_trend_by_id(self, trend_id):
         return get_trend_by_id(self.conn, trend_id)

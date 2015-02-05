@@ -15,7 +15,7 @@ from threading import Thread
 from functools import partial
 
 from minerva.util import head
-from minerva.directory.helpers_v4 import name_to_entitytype, name_to_datasource
+from minerva.directory import EntityType, DataSource
 from minerva.test import connect, with_conn, with_dataset
 from minerva.storage.trend.granularity import create_granularity
 from minerva.storage.trend.test import DataSet
@@ -32,30 +32,31 @@ def query(sql):
     return f
 
 
-drop_table = query(
-    "DROP TABLE IF EXISTS concurrency_test")
+drop_table = query("DROP TABLE IF EXISTS concurrency_test")
 
 
 create_table = query(
     "CREATE TABLE concurrency_test("
     "id integer, "
     "timestamp timestamp with time zone"
-    ")")
+    ")"
+)
 
 
 add_initial_timestamp = query(
     "INSERT INTO concurrency_test (id, timestamp) "
-    "VALUES (1, now()) RETURNING timestamp")
+    "VALUES (1, now()) RETURNING timestamp"
+)
 
 
-get_timestamp = query(
-    "SELECT timestamp FROM concurrency_test WHERE id = 1")
+get_timestamp = query("SELECT timestamp FROM concurrency_test WHERE id = 1")
 
 
 update_timestamp = query(
     "UPDATE concurrency_test "
     "SET timestamp = greatest(timestamp, %s) "
-    "WHERE id = 1")
+    "WHERE id = 1"
+)
 
 
 @with_conn()
@@ -69,8 +70,8 @@ class TestData(DataSet):
         self.granularity = create_granularity("900")
 
     def load(self, cursor):
-        self.datasource = name_to_datasource(cursor, "test-source")
-        self.entitytype = name_to_entitytype(cursor, "test_type")
+        self.datasource = DataSource.from_name(cursor, "test-source")
+        self.entitytype = EntityType.from_name(cursor, "test_type")
 
 
 @with_conn(clear_database)
@@ -84,13 +85,24 @@ def test_store_concurrent(conn, dataset):
     trend_names = ["c1", "c2", "c3"]
     rows = [("Cell={}".format(i), ("1", "2", "3")) for i in range(100)]
 
-    raw_datapackage = RawDataPackage(dataset.granularity, timestamp, trend_names, rows)
+    raw_datapackage = RawDataPackage(
+        dataset.granularity, timestamp, trend_names, rows
+    )
 
     threads = [
-            Thread(target=partial(store_raw_batch, dataset.datasource, raw_datapackage)),
-            Thread(target=partial(store_raw_batch, dataset.datasource, raw_datapackage)),
-            Thread(target=partial(store_raw_batch, dataset.datasource, raw_datapackage)),
-            Thread(target=partial(store_raw_batch, dataset.datasource, raw_datapackage))]
+        Thread(
+            target=partial(store_raw_batch, dataset.datasource, raw_datapackage)
+        ),
+        Thread(
+            target=partial(store_raw_batch, dataset.datasource, raw_datapackage)
+        ),
+        Thread(
+            target=partial(store_raw_batch, dataset.datasource, raw_datapackage)
+        ),
+        Thread(
+            target=partial(store_raw_batch, dataset.datasource, raw_datapackage)
+        )
+    ]
 
     for thread in threads:
         thread.start()

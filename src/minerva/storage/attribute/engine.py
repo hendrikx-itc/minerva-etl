@@ -22,7 +22,7 @@ from minerva.storage.attribute.retrieve import retrieve, retrieve_current, \
     retrieve_attributes_for_entity
 
 
-class AttributePlugin(object):
+class AttributeEngine(object):
     RawDataPackage = RawDataPackage
 
     def __init__(self, conn):

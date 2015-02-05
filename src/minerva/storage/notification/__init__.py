@@ -9,8 +9,4 @@ the Free Software Foundation; either version 3, or (at your option) any later
 version.  The full license is in the file COPYING, distributed as part of
 this software.
 """
-from plugin import NotificationPlugin
-
-
-def create(conn, api_version=4):
-    return NotificationPlugin()
+from engine import NotificationEngine

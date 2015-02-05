@@ -5,7 +5,7 @@ import pytz
 
 from nose.tools import eq_, assert_not_equal
 
-from minerva.directory.helpers_v4 import name_to_datasource, name_to_entitytype
+from minerva.directory import DataSource, EntityType
 from minerva.test import with_conn
 
 from minerva.storage import get_plugin
@@ -53,11 +53,13 @@ def test_get_trendstore(conn):
     granularity = create_granularity("900")
 
     with closing(conn.cursor()) as cursor:
-        datasource = name_to_datasource(cursor, "test-src")
-        entitytype = name_to_entitytype(cursor, "test-type")
+        datasource = DataSource.from_name(cursor, "test-src")
+        entitytype = EntityType.from_name(cursor, "test-type")
 
-        instance.TrendStore(datasource, entitytype, granularity, 86400,
-                "table").create(cursor)
+        instance.TrendStore(
+            datasource, entitytype, granularity, 86400,
+            "table"
+        ).create(cursor)
 
     trendstore = instance.get_trendstore(datasource, entitytype, granularity)
 
@@ -74,7 +76,9 @@ def test_create_datapackage():
     trend_names = ["a", "b", "c"]
     rows = [(123, [1, 2, 3])]
 
-    datapackage = instance.DataPackage(granularity, timestamp, trend_names, rows)
+    datapackage = instance.DataPackage(
+        granularity, timestamp, trend_names, rows
+    )
 
     assert datapackage is not None
 
@@ -86,7 +90,7 @@ def test_store_raw1(conn):
     with closing(conn.cursor()) as cursor:
         clear_database(cursor)
 
-        datasource = name_to_datasource(cursor, "test_source004")
+        datasource = DataSource.from_name(cursor, "test_source004")
 
     conn.commit()
 
@@ -112,7 +116,7 @@ def test_store_raw_fractured_small(conn):
     with closing(conn.cursor()) as cursor:
         clear_database(cursor)
 
-        datasource = name_to_datasource(cursor, "test-source005")
+        datasource = DataSource.from_name(cursor, "test-source005")
 
     conn.commit()
 
@@ -126,8 +130,9 @@ def test_store_raw_fractured_small(conn):
         ("Network=dummy,Subnetwork=test,Element=1", ("1", "2", "3"))
     ]
 
-    raw_datapackage_1 = DataPackage(granularity, timestamp, trend_names_part_1,
-            raw_data_rows)
+    raw_datapackage_1 = DataPackage(
+        granularity, timestamp, trend_names_part_1, raw_data_rows
+    )
 
     plugin.store_raw(datasource, raw_datapackage_1)
 
@@ -137,8 +142,9 @@ def test_store_raw_fractured_small(conn):
         ("Network=dummy,Subnetwork=test,Element=1", ("4", "5", "6"))
     ]
 
-    raw_datapackage_2 = DataPackage(granularity, timestamp, trend_names_part_2,
-            raw_data_rows)
+    raw_datapackage_2 = DataPackage(
+        granularity, timestamp, trend_names_part_2, raw_data_rows
+    )
 
     plugin.store_raw(datasource, raw_datapackage_2)
 
@@ -150,7 +156,7 @@ def test_store_raw_fractured_large(conn):
     with closing(conn.cursor()) as cursor:
         clear_database(cursor)
 
-        datasource = name_to_datasource(cursor, "test-source006")
+        datasource = DataSource.from_name(cursor, "test-source006")
 
     conn.commit()
 
@@ -166,8 +172,9 @@ def test_store_raw_fractured_large(conn):
         (dn_template.format(i), ("1", "2", "3"))
         for i in range(100)]
 
-    raw_datapackage_1 = DataPackage(granularity, timestamp, trend_names_part_1,
-            raw_data_rows_part_1)
+    raw_datapackage_1 = DataPackage(
+        granularity, timestamp, trend_names_part_1, raw_data_rows_part_1
+    )
 
     plugin.store_raw(datasource, raw_datapackage_1)
 
@@ -177,8 +184,9 @@ def test_store_raw_fractured_large(conn):
         (dn_template.format(i), ("4", "5", "6"))
         for i in range(100)]
 
-    raw_datapackage_2 = DataPackage(granularity, timestamp, trend_names_part_2,
-            raw_data_rows_part_2)
+    raw_datapackage_2 = DataPackage(
+        granularity, timestamp, trend_names_part_2, raw_data_rows_part_2
+    )
 
     plugin.store_raw(datasource, raw_datapackage_2)
 
@@ -190,7 +198,8 @@ class EntitySelection(object):
     def fill_temp_table(self, cursor, name):
         query = (
             "INSERT INTO {}(entity_id) "
-            "VALUES (%s)").format(name)
+            "VALUES (%s)"
+        ).format(name)
 
         for entity_id in self.entity_ids:
             cursor.execute(query, (entity_id,))
@@ -201,7 +210,8 @@ class EntitySelection(object):
         """
         tmp_table_query = (
             "CREATE TEMP TABLE {}(entity_id integer NOT NULL) "
-            "ON COMMIT DROP").format(name)
+            "ON COMMIT DROP"
+        ).format(name)
 
         cursor.execute(tmp_table_query)
 

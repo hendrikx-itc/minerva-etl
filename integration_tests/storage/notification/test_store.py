@@ -13,8 +13,9 @@ from contextlib import closing
 from datetime import datetime
 
 from minerva.test import with_conn
-from minerva.directory.helpers_v4 import name_to_datasource
-from minerva.storage.notification.types import NotificationStore, Attribute, Record
+from minerva.directory import DataSource
+from minerva.storage.notification.types import NotificationStore, Attribute, \
+    Record
 
 from minerva_db import clear_database
 
@@ -22,20 +23,21 @@ from minerva_db import clear_database
 @with_conn(clear_database)
 def test_store_record(conn):
     with closing(conn.cursor()) as cursor:
-        datasource = name_to_datasource(cursor, "test-source-003")
+        data_source = DataSource.from_name(cursor, "test-source-003")
 
         attributes = [
             Attribute("a", "integer", "a attribute"),
             Attribute("b", "integer", "b attribute")]
 
-        notificationstore = NotificationStore(datasource, attributes)
+        notification_store = NotificationStore(data_source, attributes)
 
-        notificationstore.create(cursor)
+        notification_store.create(cursor)
 
-        datarecord = Record(
+        record = Record(
             entity_id=100,
             timestamp=datetime(2013, 6, 5, 12, 0, 0),
             attribute_names=["a", "b"],
-            values=[1, 42])
+            values=[1, 42]
+        )
 
-        notificationstore.store_record(datarecord)(cursor)
+        notification_store.store_record(record)(cursor)

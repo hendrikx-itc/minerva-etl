@@ -57,10 +57,6 @@ def main():
         help="new partition size for trendstore")
 
     parser.add_argument(
-        "--new-version", default=None, type=int,
-        help="new version for trendstore")
-
-    parser.add_argument(
         "--drop-old-partitions", action="store_true", default=False,
         help="drop old partitions after migrating")
 
@@ -100,9 +96,8 @@ def main():
         "FROM trend.partition "
         "WHERE "
         "trendstore_id = %s "
-        "AND "
-        "version = %s "
-        "ORDER BY data_start")
+        "ORDER BY data_start"
+    )
 
     with closing(create_connection()) as conn:
         for trendstore_id in args.trendstores:
@@ -115,12 +110,6 @@ def main():
                     continue
 
                 change = False
-
-                current_version = trendstore.version
-
-                if args.new_version and args.new_version != trendstore.version:
-                    trendstore.version = args.new_version
-                    change = True
 
                 if args.partition_size:
                     if args.partition_size == 'auto':
@@ -142,13 +131,15 @@ def main():
                 if not change and not args.force:
                     logging.info(
                         "no changes required for trendstore {}".format(
-                            trendstore))
+                            trendstore
+                        )
+                    )
                     continue
 
                 trendstore.save(cursor)
                 conn.commit()
 
-                tables_query_args = trendstore_id, current_version
+                tables_query_args = trendstore_id
 
                 cursor.execute(tables_query, tables_query_args)
 
@@ -161,7 +152,8 @@ def main():
                     "SELECT timestamp "
                     "FROM {} "
                     "GROUP BY timestamp "
-                    "ORDER BY timestamp").format(table.render())
+                    "ORDER BY timestamp"
+                ).format(table.render())
 
                 with closing(conn.cursor()) as cursor:
                     cursor.execute(timestamps_query)
@@ -170,8 +162,9 @@ def main():
 
                 for timestamp in timestamps:
                     with closing(conn.cursor()) as cursor:
-                        sys.stdout.write("{} - {}... ".format(table.name,
-                                                              timestamp))
+                        sys.stdout.write(
+                            "{} - {}... ".format(table.name, timestamp)
+                        )
                         sys.stdout.flush()
 
                         retries = 5
@@ -181,19 +174,22 @@ def main():
                                 record_count = migrate_chunk(
                                     trendstore_id, table.name, timestamp
                                 )(cursor)
-                            except psycopg2.IntegrityError as exc:
+                            except psycopg2.IntegrityError:
                                 sys.stdout.write(
-                                    "failed: timestamp already exists\n")
+                                    "failed: timestamp already exists\n"
+                                )
                                 sys.stdout.flush()
                                 retries = 0
                             except psycopg2.DatabaseError as exc:
                                 sys.stdout.write(
-                                    "error: {}\n\nretrying...".format(exc))
+                                    "error: {}\n\nretrying...".format(exc)
+                                )
                                 sys.stdout.flush()
                                 retries -= 1
                             else:
                                 sys.stdout.write(
-                                    "{} records\n".format(record_count))
+                                    "{} records\n".format(record_count)
+                                )
                                 sys.stdout.flush()
                                 retries = 0
 
@@ -214,8 +210,10 @@ def main():
 
 def migrate_chunk(trendstore_id, table_name, timestamp):
     query = (
-        "SELECT trend.migrate_chunk_to_v4(trendstore, %s, %s) "
-        "FROM trend.trendstore WHERE id = %s")
+        "SELECT trend.migrate_chunk(trendstore, %s, %s) "
+        "FROM trend.trendstore "
+        "WHERE id = %s"
+    )
     args = table_name, timestamp, trendstore_id
 
     def f(cursor):
@@ -252,12 +250,14 @@ def connect(db_url, logger=None):
     assert scheme == "postgresql", "Only PostgreSQL connections are supported"
 
     create_connection = partial(
-        psycopg2.connect, database=database, user=user,
-        password=password, host=host, port=port)
+        psycopg2.connect, database=database, user=user, password=password,
+        host=host, port=port
+    )
 
     if logger:
         conn = create_connection(
-            connection_factory=psycopg2.extras.LoggingConnection)
+            connection_factory=psycopg2.extras.LoggingConnection
+        )
 
         conn.initialize(logger)
     else:

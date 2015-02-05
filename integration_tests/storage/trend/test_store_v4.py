@@ -12,14 +12,15 @@ this software.
 from contextlib import closing
 import datetime
 
+import pytz
 from nose.tools import eq_
 
 from minerva.db.query import Column, Eq, And
-from minerva.directory.helpers_v4 import name_to_entitytype, name_to_datasource
+from minerva.directory import DataSource, EntityType
 from minerva.test import with_conn, with_dataset
 from minerva.storage.trend.test import DataSet
 from minerva.storage.trend.datapackage import DataPackage
-from minerva.storage.trend.trendstore import TrendStore
+from minerva.storage.trend.trendstore import TrendStore, TrendStoreDescriptor
 from minerva.storage.trend.partitioning import Partitioning
 from minerva.storage.trend.granularity import create_granularity
 
@@ -31,8 +32,8 @@ class TestData(DataSet):
         self.granularity = create_granularity("900")
 
     def load(self, cursor):
-        self.datasource = name_to_datasource(cursor, "test-source")
-        self.entitytype = name_to_entitytype(cursor, "test_type")
+        self.datasource = DataSource.from_name(cursor, "test-source")
+        self.entitytype = EntityType.from_name(cursor, "test_type")
 
 
 @with_conn(clear_database)
@@ -40,11 +41,13 @@ class TestData(DataSet):
 def test_create_trendstore(conn, dataset):
     partition_size = 3600
 
-    trendstore = TrendStore(dataset.datasource, dataset.entitytype,
-            dataset.granularity, partition_size, "table")
+    create_trendstore = TrendStore.create(TrendStoreDescriptor(
+        dataset.datasource, dataset.entitytype, dataset.granularity, [],
+        partition_size
+    ))
 
     with closing(conn.cursor()) as cursor:
-        trendstore.create(cursor)
+        trendstore = create_trendstore(cursor)
 
     assert isinstance(trendstore, TrendStore)
 
@@ -56,16 +59,17 @@ def test_create_trendstore(conn, dataset):
 def test_create_trendstore_with_children(conn, dataset):
     partition_size = 3600
 
-    trendstore = TrendStore(dataset.datasource, dataset.entitytype,
-            dataset.granularity, partition_size, "table")
-
     with closing(conn.cursor()) as cursor:
-        trendstore.create(cursor)
+        trendstore = TrendStore.create(TrendStoreDescriptor(
+            dataset.datasource, dataset.entitytype, dataset.granularity, [],
+            partition_size
+        ))(cursor)
 
         assert trendstore.id is not None
 
-        timestamp = dataset.datasource.tzinfo.localize(
-                datetime.datetime(2013, 5, 6, 14, 45))
+        timestamp = pytz.utc.localize(
+            datetime.datetime(2013, 5, 6, 14, 45)
+        )
 
         partition = trendstore.partition(timestamp)
 
@@ -78,16 +82,18 @@ def test_get_trendstore(conn, dataset):
     partition_size = 3600
 
     with closing(conn.cursor()) as cursor:
-        TrendStore(dataset.datasource, dataset.entitytype, dataset.granularity,
-                partition_size, "table").create(cursor)
+        TrendStore.create(TrendStoreDescriptor(
+            dataset.datasource, dataset.entitytype, dataset.granularity, [],
+            partition_size
+        ))(cursor)
 
-        trendstore = TrendStore.get(cursor, dataset.datasource, dataset.entitytype,
-                dataset.granularity)
+        trendstore = TrendStore.get(
+            cursor, dataset.datasource, dataset.entitytype, dataset.granularity
+        )
 
         eq_(trendstore.datasource.id, dataset.datasource.id)
         eq_(trendstore.partition_size, partition_size)
         assert trendstore.id is not None, "trendstore.id is None"
-        eq_(trendstore.version, 4)
 
 
 @with_conn(clear_database)
@@ -96,27 +102,30 @@ def test_store_copy_from(conn, dataset):
     partition_size = 86400
 
     with closing(conn.cursor()) as cursor:
-        trendstore = TrendStore(dataset.datasource, dataset.entitytype,
-                dataset.granularity, partition_size, "table").create(cursor)
+        trendstore = TrendStore.create(TrendStoreDescriptor(
+            dataset.datasource, dataset.entitytype, dataset.granularity, [],
+            partition_size
+        ))(cursor)
 
     conn.commit()
 
-    timestamp = dataset.datasource.tzinfo.localize(
-            datetime.datetime(2013, 4, 25, 9, 45))
+    timestamp = pytz.utc.localize(
+        datetime.datetime(2013, 4, 25, 9, 45)
+    )
 
     trends = ["a", "b", "c"]
 
     def make_row(index):
-        return (1234 + index, [1, 2, 3 + index])
+        return 1234 + index, [1, 2, 3 + index]
 
     rows = map(make_row, range(100))
 
-    datapackage = DataPackage(dataset.granularity, timestamp, trends, rows)
+    data_package = DataPackage(dataset.granularity, timestamp, trends, rows)
 
-    transaction = trendstore.store(datapackage)
+    transaction = trendstore.store(data_package)
     transaction.run(conn)
 
-    transaction = trendstore.store(datapackage)
+    transaction = trendstore.store(data_package)
     transaction.run(conn)
 
 
@@ -124,33 +133,36 @@ def test_store_copy_from(conn, dataset):
 @with_dataset(TestData)
 def test_store_copy_from_missing_column(conn, dataset):
     partition_size = 86400
-    trendstore = TrendStore(dataset.datasource, dataset.entitytype, dataset.granularity,
-            partition_size, "table")
 
     with closing(conn.cursor()) as cursor:
-        trendstore.create(cursor)
+        trendstore = TrendStore.create(TrendStoreDescriptor(
+            dataset.datasource, dataset.entitytype, dataset.granularity,
+            [], partition_size
+        ))(cursor)
 
     conn.commit()
 
-    timestamp = dataset.datasource.tzinfo.localize(
-            datetime.datetime(2013, 4, 25, 9, 45))
+    timestamp = pytz.utc.localize(
+        datetime.datetime(2013, 4, 25, 9, 45)
+    )
 
     trends = ["a", "b", "c"]
 
     def make_row_x(index):
-        return (1234 + index, [1, 2, 3 + index])
+        return 1234 + index, [1, 2, 3 + index]
 
     rows = map(make_row_x, range(100))
 
-    datapackage = DataPackage(dataset.granularity, timestamp, trends, rows)
+    data_package = DataPackage(dataset.granularity, timestamp, trends, rows)
 
-    transaction = trendstore.store(datapackage)
+    transaction = trendstore.store(data_package)
     transaction.run(conn)
 
     # Store second part with one column extra
 
-    timestamp = dataset.datasource.tzinfo.localize(
-            datetime.datetime(2013, 4, 25, 10, 00))
+    timestamp = pytz.utc.localize(
+        datetime.datetime(2013, 4, 25, 10, 00)
+    )
 
     trends = ["a", "b", "c", "d"]
 
@@ -159,9 +171,9 @@ def test_store_copy_from_missing_column(conn, dataset):
 
     rows = map(make_row_y, range(100))
 
-    datapackage = DataPackage(dataset.granularity, timestamp, trends, rows)
+    data_package = DataPackage(dataset.granularity, timestamp, trends, rows)
 
-    transaction = trendstore.store(datapackage)
+    transaction = trendstore.store(data_package)
     transaction.run(conn)
 
 
@@ -169,16 +181,18 @@ def test_store_copy_from_missing_column(conn, dataset):
 @with_dataset(TestData)
 def test_store(conn, dataset):
     partition_size = 86400
-    trendstore = TrendStore(dataset.datasource, dataset.entitytype, dataset.granularity,
-            partition_size, "table")
 
     with closing(conn.cursor()) as cursor:
-        trendstore.create(cursor)
+        trendstore = TrendStore.create(TrendStoreDescriptor(
+            dataset.datasource, dataset.entitytype, dataset.granularity, [],
+            partition_size
+        ))(cursor)
 
     conn.commit()
 
-    timestamp = dataset.datasource.tzinfo.localize(
-            datetime.datetime(2013, 4, 25, 9, 45))
+    timestamp = pytz.utc.localize(
+        datetime.datetime(2013, 4, 25, 9, 45)
+    )
 
     trends = ["a", "b", "c"]
 
@@ -228,10 +242,12 @@ def test_store(conn, dataset):
 def test_generate_index(conn, dataset):
     partition_size = 86400
 
-    start = dataset.datasource.tzinfo.localize(
-            datetime.datetime(2013, 4, 25, 9, 45))
-    end = dataset.datasource.tzinfo.localize(
-            datetime.datetime(2013, 4, 27, 9, 45))
+    start = pytz.utc.localize(
+        datetime.datetime(2013, 4, 25, 9, 45)
+    )
+    end = pytz.utc.localize(
+        datetime.datetime(2013, 4, 27, 9, 45)
+    )
 
     partitioning = Partitioning(partition_size)
 
@@ -241,7 +257,7 @@ def test_generate_index(conn, dataset):
         args = partition_size, timestamp
 
         with closing(conn.cursor()) as cursor:
-            cursor.callproc("trend.timestamp_to_index", args)
+            cursor.callproc("trend_directory.timestamp_to_index", args)
 
             postgresql_partition_index, = cursor.fetchone()
 
@@ -252,22 +268,25 @@ def test_generate_index(conn, dataset):
 @with_dataset(TestData)
 def test_store_add_column(conn, dataset):
     partition_size = 86400
-    trendstore = TrendStore(dataset.datasource, dataset.entitytype, dataset.granularity,
-            partition_size, "table")
 
     with closing(conn.cursor()) as cursor:
-        trendstore.create(cursor)
+        trendstore = TrendStore.create(TrendStoreDescriptor(
+            dataset.datasource, dataset.entitytype, dataset.granularity, [],
+            partition_size
+        ))(cursor)
 
     conn.commit()
 
-    timestamp = dataset.datasource.tzinfo.localize(
-            datetime.datetime(2013, 4, 25, 10, 45))
+    timestamp = pytz.utc.localize(
+        datetime.datetime(2013, 4, 25, 10, 45)
+    )
 
     trends = ["a", "b", "c"]
 
     rows = [
         (1234, [1, 2, 3]),
-        (2345, [4, 5, 6])]
+        (2345, [4, 5, 6])
+    ]
 
     datapackage = DataPackage(dataset.granularity, timestamp, trends, rows)
 
@@ -292,7 +311,8 @@ def test_store_add_column(conn, dataset):
     trends = ["a", "b", "c", "d"]
 
     rows = [
-        (2345, [4, 5, 7, "2013-04-25 11:00:00"])]
+        (2345, [4, 5, 7, "2013-04-25 11:00:00"])
+    ]
 
     datapackage = DataPackage(dataset.granularity, timestamp, trends, rows)
 
@@ -311,22 +331,25 @@ def test_store_add_column(conn, dataset):
 @with_dataset(TestData)
 def test_store_alter_column(conn, dataset):
     partition_size = 86400
-    trendstore = TrendStore(dataset.datasource, dataset.entitytype, dataset.granularity,
-            partition_size, "table")
 
     with closing(conn.cursor()) as cursor:
-        trendstore.create(cursor)
+        trendstore = TrendStore.create(TrendStoreDescriptor(
+            dataset.datasource, dataset.entitytype, dataset.granularity, [],
+            partition_size
+        ))(cursor)
 
     conn.commit()
 
-    timestamp = dataset.datasource.tzinfo.localize(
-            datetime.datetime(2013, 4, 25, 11, 00))
+    timestamp = pytz.utc.localize(
+        datetime.datetime(2013, 4, 25, 11, 00)
+    )
 
     trends = ["a", "b", "c"]
 
     rows = [
         (1234, [1, 2, 3]),
-        (2345, [4, 5, 6])]
+        (2345, [4, 5, 6])
+    ]
 
     datapackage = DataPackage(dataset.granularity, timestamp, trends, rows)
 
@@ -337,7 +360,8 @@ def test_store_alter_column(conn, dataset):
 
     condition = And(
         Eq(Column("entity_id"), 2345),
-        Eq(Column("timestamp"), timestamp))
+        Eq(Column("timestamp"), timestamp)
+    )
 
     query = table.select(Column("c")).where_(condition)
 
@@ -351,7 +375,8 @@ def test_store_alter_column(conn, dataset):
     trends = ["a", "b", "c"]
 
     rows = [
-        (2345, [4, 5, "2013-04-25 11:00:00"])]
+        (2345, [4, 5, "2013-04-25 11:00:00"])
+    ]
 
     datapackage = DataPackage(dataset.granularity, timestamp, trends, rows)
 

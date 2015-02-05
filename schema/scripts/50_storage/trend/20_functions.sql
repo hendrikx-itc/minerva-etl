@@ -1,4 +1,4 @@
-CREATE FUNCTION trend.granularity_to_text(granularity varchar)
+CREATE FUNCTION trend_directory.granularity_to_text(granularity varchar)
     RETURNS text
 AS $$
     SELECT CASE $1
@@ -19,177 +19,161 @@ AS $$
         ELSE
             $1
         END;
-$$ LANGUAGE SQL IMMUTABLE STRICT;
+$$ LANGUAGE sql IMMUTABLE STRICT;
 
 
-CREATE FUNCTION trend.to_char(trend.trendstore)
-    RETURNS text
+CREATE FUNCTION trend_directory.to_base_table_name(trendstore trend_directory.trendstore)
+    RETURNS name
 AS $$
-    SELECT datasource.name || '_' || entitytype.name || '_' || trend.granularity_to_text($1.granularity)
+    SELECT format(
+        '%s_%s_%s',
+        datasource.name,
+        entitytype.name,
+        trend_directory.granularity_to_text($1.granularity)
+    )::name
     FROM directory.datasource, directory.entitytype
     WHERE datasource.id = $1.datasource_id AND entitytype.id = $1.entitytype_id;
-$$ LANGUAGE SQL STABLE STRICT;
+$$ LANGUAGE sql STABLE STRICT;
 
 
-CREATE FUNCTION trend.to_char(trend.view)
+CREATE FUNCTION trend_directory.to_char(trend_directory.trendstore)
     RETURNS text
 AS $$
-    SELECT trendstore::text FROM trend.trendstore WHERE id = $1.trendstore_id;
-$$ LANGUAGE SQL STABLE STRICT;
+    SELECT trend_directory.to_base_table_name($1)::text;
+$$ LANGUAGE sql STABLE STRICT;
 
 
-CREATE FUNCTION trend.to_base_table_name(trendstore trend.trendstore)
+CREATE FUNCTION trend_directory.to_char(trend_directory.view)
     RETURNS text
 AS $$
-    SELECT datasource.name || '_' || entitytype.name || '_' || trend.granularity_to_text($1.granularity)
-        FROM directory.datasource, directory.entitytype
-        WHERE datasource.id = $1.datasource_id AND entitytype.id = $1.entitytype_id;
-$$ LANGUAGE SQL STABLE STRICT;
+    SELECT trendstore::text FROM trend_directory.trendstore WHERE id = $1.trendstore_id;
+$$ LANGUAGE sql STABLE STRICT;
 
 
-CREATE FUNCTION trend.get_trendstore_by_attributes(datasource_name character varying, entitytype_name character varying, granularity character varying)
-    RETURNS trend.trendstore
+CREATE FUNCTION trend_directory.get_trendstore_by_attributes(
+        datasource_name character varying, entitytype_name character varying,
+        granularity character varying)
+    RETURNS trend_directory.trendstore
 AS $$
     SELECT ts
-    FROM trend.trendstore ts
+    FROM trend_directory.trendstore ts
     JOIN directory.datasource ds ON ds.id = ts.datasource_id
     JOIN directory.entitytype et ON et.id = ts.entitytype_id
     WHERE lower(ds.name) = lower($1) AND lower(et.name) = lower($2) AND ts.granularity = $3;
-$$ LANGUAGE SQL STABLE;
+$$ LANGUAGE sql STABLE;
 
 
-CREATE TYPE trend.trend_with_type AS (id integer, name character varying, data_type character varying);
+CREATE TYPE trend_directory.trend_with_type AS (
+    id integer,
+    name character varying,
+    data_type character varying
+);
 
 
-CREATE FUNCTION trend.add_trend_to_trendstore(trendstore_obj trend.trendstore, trend trend.trend_with_type)
-    RETURNS VOID
-AS $$
-DECLARE
-    base_table_name character varying;
-    link_exists boolean;
-BEGIN
-    EXECUTE 'SELECT exists(SELECT 1 FROM trend.trendstore_trend_link WHERE trend_id=$1 AND trendstore_id = $2)' INTO link_exists USING trend.id, trendstore_obj.id;
-
-    IF NOT link_exists THEN
-        INSERT INTO trend.trendstore_trend_link (trend_id, trendstore_id)
-            VALUES (trend.id, trendstore_obj.id);
-    END IF;
-
-    base_table_name = trend.to_base_table_name(trendstore_obj);
-
-    IF NOT trend.column_exists(base_table_name, trend.name) THEN
-        PERFORM dep_recurse.alter(
-            dep_recurse.table_ref('trend', base_table_name),
-            ARRAY[
-                format('ALTER TABLE trend.%I ADD COLUMN %I %s;', base_table_name, trend.name, trend.data_type)
-            ]
-        );
-    END IF;
-END;
-$$ LANGUAGE plpgsql VOLATILE;
-
-
-CREATE FUNCTION trend.add_trend_to_trendstore(trendstore trend.trendstore, trend_name name, data_type character varying)
-    RETURNS trend.trend
-AS $$
-DECLARE
-    base_table_name character varying;
-    new_trend trend.trend;
-BEGIN
-    new_trend = trend.attributes_to_trend(trendstore, trend_name);
-
-    base_table_name = trend.to_base_table_name(trendstore);
-
-    IF NOT trend.column_exists(base_table_name, new_trend.name) THEN
-        PERFORM dep_recurse.alter(
-            dep_recurse.table_ref('trend', base_table_name),
-            ARRAY[
-                format('ALTER TABLE trend.%I ADD COLUMN %I %s;', base_table_name, new_trend.name, data_type)
-            ]
-        );
-    END IF;
-
-    RETURN new_trend;
-END;
-$$ LANGUAGE plpgsql VOLATILE;
-
-
-CREATE FUNCTION trend.create_trends(trend.trendstore, trend.trend_descr[])
-    RETURNS SETOF trend.trend
-AS $$
-    SELECT trend.add_trend_to_trendstore($1, t.name::character varying, t.datatype) FROM unnest($2) t;
-$$ LANGUAGE SQL VOLATILE;
-
-
-CREATE FUNCTION trend.create_partition_table(name text)
-    RETURNS void
-AS $$
-DECLARE
-    sql text;
-    full_table_name text;
-BEGIN
-    EXECUTE format('CREATE TABLE %I.%I (
-        entity_id integer NOT NULL,
-        "timestamp" timestamp with time zone NOT NULL,
-        modified timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        PRIMARY KEY (entity_id, "timestamp")
-        );', 'trend', name);
-
-    EXECUTE format('ALTER TABLE %I.%I OWNER TO minerva_writer;', 'trend', name);
-
-    EXECUTE format('GRANT SELECT ON TABLE %I.%I TO minerva;', 'trend', name);
-    EXECUTE format('GRANT INSERT,DELETE,UPDATE ON TABLE %I.%I TO minerva_writer;', 'trend', name);
-
-    EXECUTE format('CREATE INDEX ON %I.%I USING btree (modified);', 'trend', name);
-
-    EXECUTE format('CREATE INDEX ON %I.%I USING btree (timestamp);', 'trend', name);
-END;
-$$ LANGUAGE plpgsql VOLATILE STRICT;
-
-
-CREATE FUNCTION trend.staging_table_name(trend.trendstore)
-    RETURNS name
-AS $$
-    SELECT (trend.to_base_table_name($1) || '_staging')::name;
-$$ LANGUAGE SQL STABLE;
-
-
-CREATE FUNCTION trend.create_staging_table_sql(trendstore trend.trendstore)
+CREATE FUNCTION trend_directory.create_base_table_sql(name text, trend_directory.trend[])
     RETURNS text[]
 AS $$
 SELECT ARRAY[
-    format('CREATE UNLOGGED TABLE trend.%I () INHERITS (trend.%I);', trend.staging_table_name($1), trend.to_base_table_name(trendstore)),
-    format('ALTER TABLE ONLY trend.%I ADD PRIMARY KEY (entity_id, "timestamp");', trend.staging_table_name($1)),
-    format('ALTER TABLE trend.%I OWNER TO minerva_writer;', trend.staging_table_name($1)),
-    format('GRANT SELECT ON TABLE trend.%I TO minerva;', trend.staging_table_name($1)),
-    format('GRANT INSERT,DELETE,UPDATE ON TABLE trend.%I TO minerva_writer;', trend.staging_table_name($1))
+    format(
+        'CREATE TABLE trend.%I ('
+        'entity_id integer NOT NULL, '
+        '"timestamp" timestamp with time zone NOT NULL, '
+        'modified timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP, '
+        '%s'
+        'PRIMARY KEY (entity_id, "timestamp") '
+        ');',
+        name,
+        (SELECT array_to_string(array_agg(format('%I %s,', t.name, t.data_type)), ' ') FROM unnest($2) t)
+    ),
+
+    format('ALTER TABLE trend.%I OWNER TO minerva_writer;', name),
+
+    format('GRANT SELECT ON TABLE trend.%I TO minerva;', name),
+    format('GRANT INSERT,DELETE,UPDATE ON TABLE trend.%I TO minerva_writer;', name),
+
+    format('CREATE INDEX ON trend.%I USING btree (modified);', name),
+
+    format('CREATE INDEX ON trend.%I USING btree (timestamp);', name)
+];
+$$ LANGUAGE sql STABLE STRICT;
+
+
+CREATE FUNCTION trend_directory.create_base_table(name name, trend_directory.trend[])
+    RETURNS name
+AS $$
+    SELECT public.action($1, trend_directory.create_base_table_sql($1, $2))
+$$ LANGUAGE sql VOLATILE STRICT;
+
+
+CREATE FUNCTION trend_directory.create_base_table(trend_directory.trendstore, trend_directory.trend[])
+    RETURNS trend_directory.trendstore
+AS $$
+    SELECT trend_directory.create_base_table(trend_directory.to_base_table_name($1), $2);
+    SELECT $1;
+$$ LANGUAGE sql VOLATILE;
+
+
+CREATE FUNCTION trend_directory.get_trendstore_trends(trend_directory.trendstore)
+    RETURNS trend_directory.trend[]
+AS $$
+    SELECT COALESCE(array_agg(trend), ARRAY[]::trend_directory.trend[])
+    FROM trend_directory.trend
+    WHERE trendstore_id = $1.id
+$$ LANGUAGE sql STABLE;
+
+
+CREATE FUNCTION trend_directory.create_base_table(trend_directory.trendstore)
+    RETURNS trend_directory.trendstore
+AS $$
+    SELECT trend_directory.create_base_table(
+        $1,
+        trend_directory.get_trendstore_trends($1)
+    );
+$$ LANGUAGE sql VOLATILE;
+
+
+CREATE FUNCTION trend_directory.staging_table_name(trend_directory.trendstore)
+    RETURNS name
+AS $$
+    SELECT (trend_directory.to_base_table_name($1) || '_staging')::name;
+$$ LANGUAGE sql STABLE;
+
+
+CREATE FUNCTION trend_directory.create_staging_table_sql(trendstore trend_directory.trendstore)
+    RETURNS text[]
+AS $$
+SELECT ARRAY[
+    format('CREATE UNLOGGED TABLE trend.%I () INHERITS (trend.%I);', trend_directory.staging_table_name($1), trend_directory.to_base_table_name(trendstore)),
+    format('ALTER TABLE ONLY trend.%I ADD PRIMARY KEY (entity_id, "timestamp");', trend_directory.staging_table_name($1)),
+    format('ALTER TABLE trend.%I OWNER TO minerva_writer;', trend_directory.staging_table_name($1)),
+    format('GRANT SELECT ON TABLE trend.%I TO minerva;', trend_directory.staging_table_name($1)),
+    format('GRANT INSERT,DELETE,UPDATE ON TABLE trend.%I TO minerva_writer;', trend_directory.staging_table_name($1))
 ];
 $$ LANGUAGE sql STABLE;
 
 
-CREATE FUNCTION trend.create_staging_table(trendstore trend.trendstore)
-    RETURNS trend.trendstore
+CREATE FUNCTION trend_directory.create_staging_table(trendstore trend_directory.trendstore)
+    RETURNS trend_directory.trendstore
 AS $$
-    SELECT public.action($1, trend.create_staging_table_sql($1));
+    SELECT public.action($1, trend_directory.create_staging_table_sql($1));
 $$ LANGUAGE sql VOLATILE STRICT;
 
 
-CREATE FUNCTION trend.initialize_trendstore(trend.trendstore)
-    RETURNS trend.trendstore
+CREATE FUNCTION trend_directory.initialize_trendstore(trend_directory.trendstore)
+    RETURNS trend_directory.trendstore
 AS $$
-    SELECT trend.create_partition_table(trend.to_base_table_name($1));
-
-    SELECT trend.create_staging_table($1);
+    SELECT trend_directory.create_base_table($1);
+    SELECT trend_directory.create_staging_table($1);
 
     SELECT $1;
 $$ LANGUAGE sql VOLATILE;
 
-COMMENT ON FUNCTION trend.initialize_trendstore(trend.trendstore) IS
+COMMENT ON FUNCTION trend_directory.initialize_trendstore(trend_directory.trendstore) IS
 'Create all database objects required for the trendstore to be fully functional
 and capable of storing data.';
 
 
-CREATE FUNCTION trend.get_default_partition_size(granularity varchar)
+CREATE FUNCTION trend_directory.get_default_partition_size(granularity varchar)
     RETURNS integer
 AS $$
     SELECT CASE $1
@@ -214,46 +198,16 @@ AS $$
         WHEN 'month' THEN
             24 * 3600 * 7 * 24
         END;
-$$ LANGUAGE SQL IMMUTABLE STRICT;
+$$ LANGUAGE sql IMMUTABLE STRICT;
 
 
-CREATE FUNCTION trend.define_trendstore(datasource_name character varying, entitytype_name character varying, granularity character varying)
-    RETURNS trend.trendstore
+CREATE FUNCTION trend_directory.define_trendstore(
+        datasource_name character varying, entitytype_name character varying,
+        granularity character varying, partition_size integer,
+        type trend_directory.storetype)
+    RETURNS trend_directory.trendstore
 AS $$
-    INSERT INTO trend.trendstore (
-        datasource_id,
-        entitytype_id,
-        granularity,
-        partition_size
-    )
-    VALUES (
-        (directory.name_to_datasource($1)).id,
-        (directory.name_to_entitytype($2)).id,
-        $3,
-        trend.get_default_partition_size($3)
-    ) RETURNING *;
-$$ LANGUAGE sql VOLATILE;
-
-COMMENT ON FUNCTION trend.define_trendstore(character varying, character varying, character varying) IS
-'Add a new trendstore record, initialize the trendstore base table, and return
-the new record.\n
-Later on, the definition and initialization will be split into separate steps,
-but the old mechanism still uses triggers that automatically initialize the trendstore.';
-
-
-CREATE FUNCTION trend.create_trendstore(datasource_name character varying, entitytype_name character varying, granularity character varying)
-    RETURNS trend.trendstore
-AS $$
-    SELECT trend.initialize_trendstore(
-        trend.define_trendstore($1, $2, $3)
-    );
-$$ LANGUAGE SQL VOLATILE;
-
-
-CREATE FUNCTION trend.define_trendstore(datasource_name character varying, entitytype_name character varying, granularity character varying, type trend.storetype)
-    RETURNS trend.trendstore
-AS $$
-    INSERT INTO trend.trendstore (
+    INSERT INTO trend_directory.trendstore (
         datasource_id,
         entitytype_id,
         granularity,
@@ -264,36 +218,128 @@ AS $$
         (directory.name_to_datasource($1)).id,
         (directory.name_to_entitytype($2)).id,
         $3,
-        trend.get_default_partition_size($3),
-        $4
+        $4,
+        $5
     ) RETURNING *;
 $$ LANGUAGE sql VOLATILE;
 
 
-CREATE FUNCTION trend.create_trendstore(datasource_name character varying, entitytype_name character varying, granularity character varying, type trend.storetype)
-    RETURNS trend.trendstore
+CREATE FUNCTION trend_directory.define_trendstore(
+        datasource_name character varying, entitytype_name character varying,
+        granularity character varying
+    )
+    RETURNS trend_directory.trendstore
 AS $$
-    SELECT trend.initialize_trendstore(
-        trend.define_trendstore($1, $2, $3, $4)
+    SELECT trend_directory.define_trendstore(
+        $1,
+        $2,
+        $3,
+        trend_directory.get_default_partition_size($3),
+        'table'
     );
-$$ LANGUAGE SQL VOLATILE;
+$$ LANGUAGE sql VOLATILE;
 
 
-CREATE FUNCTION trend.attributes_to_trendstore(datasource_name character varying, entitytype_name character varying, granularity character varying)
-    RETURNS trend.trendstore
+CREATE FUNCTION trend_directory.define_trendstore(
+        datasource_name character varying, entitytype_name character varying,
+        granularity character varying, type trend_directory.storetype)
+    RETURNS trend_directory.trendstore
 AS $$
-    SELECT COALESCE(trend.get_trendstore_by_attributes($1, $2, $3), trend.create_trendstore($1, $2, $3));
-$$ LANGUAGE SQL VOLATILE;
+    SELECT trend_directory.define_trendstore(
+        $1,
+        $2,
+        $3,
+        trend_directory.get_default_partition_size($3),
+        $4
+    );
+$$ LANGUAGE sql VOLATILE;
 
 
-CREATE FUNCTION trend.attributes_to_view_trendstore(datasource_name character varying, entitytype_name character varying, granularity character varying)
-    RETURNS trend.trendstore
+CREATE FUNCTION trend_directory.create_trendstore(
+        datasource_name character varying, entitytype_name character varying,
+        granularity character varying)
+    RETURNS trend_directory.trendstore
 AS $$
-    SELECT COALESCE(trend.get_trendstore_by_attributes($1, $2, $3), trend.create_trendstore($1, $2, $3, 'view'::trend.storetype));
-$$ LANGUAGE SQL VOLATILE;
+    SELECT trend_directory.initialize_trendstore(
+        trend_directory.define_trendstore($1, $2, $3)
+    );
+$$ LANGUAGE sql VOLATILE;
 
 
-CREATE FUNCTION trend.parse_granularity(character varying)
+CREATE FUNCTION trend_directory.define_trends(
+        trend_directory.trendstore,
+        trend_directory.trend_descr[])
+    RETURNS trend_directory.trendstore
+AS $$
+    INSERT INTO trend_directory.trend(name, data_type, trendstore_id, description) (
+        SELECT name, data_type, $1.id, description FROM unnest($2)
+    );
+
+    SELECT $1;
+$$ LANGUAGE sql VOLATILE;
+
+
+CREATE FUNCTION trend_directory.define_trendstore(
+        datasource_name character varying, entitytype_name character varying,
+        granularity character varying, trends trend_directory.trend_descr[],
+        partition_size integer, type trend_directory.storetype)
+    RETURNS trend_directory.trendstore
+AS $$
+    SELECT trend_directory.define_trends(
+        trend_directory.define_trendstore($1, $2, $3, $5, $6),
+        $4
+    );
+$$ LANGUAGE sql VOLATILE;
+
+
+CREATE FUNCTION trend_directory.define_trendstore(
+        datasource_name character varying, entitytype_name character varying,
+        granularity character varying, trends trend_directory.trend_descr[])
+    RETURNS trend_directory.trendstore
+AS $$
+    SELECT trend_directory.define_trends(
+        trend_directory.define_trendstore($1, $2, $3),
+        $4
+    );
+$$ LANGUAGE sql VOLATILE;
+
+
+CREATE FUNCTION trend_directory.create_trendstore(
+        datasource_name character varying, entitytype_name character varying,
+        granularity character varying, type trend_directory.storetype)
+    RETURNS trend_directory.trendstore
+AS $$
+    SELECT trend_directory.initialize_trendstore(
+        trend_directory.define_trendstore($1, $2, $3, $4)
+    );
+$$ LANGUAGE sql VOLATILE;
+
+
+CREATE FUNCTION trend_directory.attributes_to_trendstore(
+        datasource_name character varying, entitytype_name character varying,
+        granularity character varying)
+    RETURNS trend_directory.trendstore
+AS $$
+    SELECT COALESCE(
+        trend_directory.get_trendstore_by_attributes($1, $2, $3),
+        trend_directory.create_trendstore($1, $2, $3)
+    );
+$$ LANGUAGE sql VOLATILE;
+
+
+CREATE FUNCTION trend_directory.attributes_to_view_trendstore(
+        datasource_name character varying, entitytype_name character varying,
+        granularity character varying)
+    RETURNS trend_directory.trendstore
+AS $$
+    SELECT COALESCE(
+        trend_directory.get_trendstore_by_attributes($1, $2, $3),
+        trend_directory.define_trendstore($1, $2, $3, 'view'::trend_directory.storetype)
+    );
+$$ LANGUAGE sql VOLATILE;
+
+
+CREATE FUNCTION trend_directory.parse_granularity(character varying)
     RETURNS interval
 AS $$
     SELECT CASE
@@ -304,17 +350,18 @@ AS $$
         WHEN $1 ~ '^[0-9]+$' THEN
             $1::interval
         END;
-$$ LANGUAGE SQL IMMUTABLE STRICT;
+$$ LANGUAGE sql IMMUTABLE STRICT;
 
 
-CREATE FUNCTION trend.partition_name(trendstore trend.trendstore, index integer)
+CREATE FUNCTION trend_directory.partition_name(trendstore trend_directory.trendstore, index integer)
     RETURNS name
 AS $$
-    SELECT CAST((trend.to_base_table_name($1) || '_' || $2) AS name);
-$$ LANGUAGE SQL STABLE STRICT;
+    SELECT (trend_directory.to_base_table_name($1) || '_' || $2)::name;
+$$ LANGUAGE sql STABLE STRICT;
 
 
-CREATE FUNCTION trend.timestamp_to_index(partition_size integer, "timestamp" timestamp with time zone)
+CREATE FUNCTION trend_directory.timestamp_to_index(
+        partition_size integer, "timestamp" timestamp with time zone)
     RETURNS integer
 AS $$
 DECLARE
@@ -335,25 +382,28 @@ END;
 $$ LANGUAGE plpgsql IMMUTABLE STRICT;
 
 
-CREATE FUNCTION trend.partition_name(trendstore trend.trendstore, timestamp with time zone)
+CREATE FUNCTION trend_directory.partition_name(
+        trendstore trend_directory.trendstore, timestamp with time zone)
     RETURNS name
 AS $$
-    SELECT trend.partition_name($1, trend.timestamp_to_index($1.partition_size, $2));
-$$ LANGUAGE SQL STABLE STRICT;
+    SELECT trend_directory.partition_name(
+        $1, trend_directory.timestamp_to_index($1.partition_size, $2)
+    );
+$$ LANGUAGE sql STABLE STRICT;
 
 
-CREATE FUNCTION trend.to_table_name_v4(partition trend.partition)
+CREATE FUNCTION trend_directory.to_table_name(partition trend_directory.partition)
     RETURNS text
 AS $$
     -- Use partition data_end because this is a valid Minerva timestamp within
     -- the range of the partition, data_start is not.
-    SELECT trend.partition_name(trendstore, $1.data_end)::text
-    FROM trend.trendstore
+    SELECT trend_directory.partition_name(trendstore, $1.data_end)::text
+    FROM trend_directory.trendstore
     WHERE id = $1.trendstore_id;
-$$ LANGUAGE SQL STABLE STRICT;
+$$ LANGUAGE sql STABLE STRICT;
 
 
-CREATE FUNCTION trend.get_index_on(character varying, character varying)
+CREATE FUNCTION trend_directory.get_index_on(character varying, character varying)
     RETURNS name
 AS $$
     SELECT
@@ -363,7 +413,7 @@ AS $$
             pg_class i,
             pg_index ix,
             pg_attribute a
-    where
+    WHERE
             t.oid = ix.indrelid
             and i.oid = ix.indexrelid
             and a.attrelid = t.oid
@@ -371,10 +421,12 @@ AS $$
             and t.relkind = 'r'
             and t.relname = $1
             and a.attname = $2;
-$$ LANGUAGE SQL STABLE;
+$$ LANGUAGE sql STABLE;
 
 
-CREATE FUNCTION trend.create_partition_table_v4(base_name text, name text, data_start timestamp with time zone, data_end timestamp with time zone)
+CREATE FUNCTION trend_directory.create_partition_table(
+        base_name text, name text, data_start timestamp with time zone,
+        data_end timestamp with time zone)
     RETURNS void
 AS $$
 DECLARE
@@ -382,59 +434,64 @@ DECLARE
     full_table_name text;
     index_name text;
 BEGIN
-    EXECUTE format('CREATE TABLE %I.%I (
+    EXECUTE format('CREATE TABLE trend_partition.%I (
     CHECK ("timestamp" > %L AND "timestamp" <= %L)
-    ) INHERITS (%I.%I);', 'trend', name, data_start, data_end, 'trend', base_name);
+    ) INHERITS (trend.%I);', name, data_start, data_end, base_name);
 
-    EXECUTE format('ALTER TABLE ONLY %I.%I
-    ADD PRIMARY KEY (entity_id, "timestamp");', 'trend', name);
+    EXECUTE format('ALTER TABLE ONLY trend_partition.%I
+    ADD PRIMARY KEY (entity_id, "timestamp");', name);
 
-    EXECUTE format('CREATE INDEX ON %I.%I USING btree (modified);', 'trend', name);
+    EXECUTE format('CREATE INDEX ON trend_partition.%I USING btree (modified);', name);
 
-    EXECUTE format('CREATE INDEX ON %I.%I USING btree (timestamp);', 'trend', name);
+    EXECUTE format('CREATE INDEX ON trend_partition.%I USING btree (timestamp);', name);
 
-    EXECUTE format('ALTER TABLE %I.%I OWNER TO minerva_writer;', 'trend', name);
+    EXECUTE format('ALTER TABLE trend_partition.%I OWNER TO minerva_writer;', name);
 
-    EXECUTE format('GRANT SELECT ON TABLE %I.%I TO minerva;', 'trend', name);
-    EXECUTE format('GRANT INSERT,DELETE,UPDATE ON TABLE %I.%I TO minerva_writer;', 'trend', name);
+    EXECUTE format('GRANT SELECT ON TABLE trend_partition.%I TO minerva;', name);
+    EXECUTE format('GRANT INSERT,DELETE,UPDATE ON TABLE trend_partition.%I TO minerva_writer;', name);
 
-    index_name = trend.get_index_on(name, 'timestamp');
+    index_name = trend_directory.get_index_on(name, 'timestamp');
 
-    PERFORM trend.cluster_table_on_timestamp(name);
+    PERFORM trend_directory.cluster_partition_table_on_timestamp(name);
 END;
 $$ LANGUAGE plpgsql VOLATILE STRICT;
 
 
-CREATE FUNCTION trend.transfer_staged(trendstore trend.trendstore)
+CREATE FUNCTION trend_directory.transfer_staged(trendstore trend_directory.trendstore)
     RETURNS void
-    LANGUAGE plpgsql
 AS $$
 DECLARE
     ts timestamp with time zone;
-    partition trend.partition;
+    partition trend_directory.partition;
 BEGIN
-    FOR ts IN EXECUTE format('SELECT timestamp FROM trend.%I GROUP BY timestamp', trend.staging_table_name(trendstore))
+    FOR ts IN EXECUTE format('SELECT timestamp FROM trend_directory.%I GROUP BY timestamp', trend_directory.staging_table_name(trendstore))
     LOOP
-        partition = trend.attributes_to_partition(trendstore, trend.timestamp_to_index(trendstore.partition_size, ts));
+        partition = trend_directory.attributes_to_partition(trendstore, trend_directory.timestamp_to_index(trendstore.partition_size, ts));
 
-        EXECUTE format('INSERT INTO trend.%I SELECT * FROM trend.%I WHERE timestamp = $1', partition.table_name, trend.staging_table_name(trendstore)) USING ts;
+        EXECUTE format('INSERT INTO trend_directory.%I SELECT * FROM trend_directory.%I WHERE timestamp = $1', partition.table_name, trend_directory.staging_table_name(trendstore)) USING ts;
     END LOOP;
 
-    EXECUTE format('TRUNCATE trend.%I', trend.staging_table_name(trendstore));
-END;
-$$;
-
-
-CREATE FUNCTION trend.cluster_table_on_timestamp(name text)
-    RETURNS void
-AS $$
-BEGIN
-    EXECUTE format('CLUSTER %I.%I USING %I', 'trend', name, trend.get_index_on(name, 'timestamp'));
+    EXECUTE format('TRUNCATE trend_directory.%I', trend_directory.staging_table_name(trendstore));
 END;
 $$ LANGUAGE plpgsql VOLATILE;
 
 
-CREATE FUNCTION trend.create_partition_column(partition_name varchar, trend_id integer, datatype varchar)
+CREATE FUNCTION trend_directory.cluster_partition_table_on_timestamp(name text)
+    RETURNS text
+AS $$
+    SELECT public.action(
+        $1,
+        format(
+            'CLUSTER trend_partition.%I USING %I',
+            name,
+            trend_directory.get_index_on(name, 'timestamp')
+        )
+    );
+$$ LANGUAGE sql VOLATILE;
+
+
+CREATE FUNCTION trend_directory.create_partition_column(
+        partition_name varchar, trend_id integer, datatype varchar)
     RETURNS void
 AS $$
 DECLARE
@@ -442,63 +499,85 @@ DECLARE
 BEGIN
     SELECT name INTO trend_name FROM trend WHERE id = trend_id;
 
-    EXECUTE format('ALTER TABLE %I ADD COLUMN %I %I;', partition_name, trend_name, datatype);
+    EXECUTE format(
+        'ALTER TABLE %I ADD COLUMN %I %I;',
+        partition_name,
+        trend_name,
+        datatype
+    );
 END;
 $$ LANGUAGE plpgsql;
 
 
-CREATE FUNCTION trend.render_view_query(view_id integer)
+CREATE FUNCTION trend_directory.render_view_query(view_id integer)
     RETURNS text
 AS $$
-    SELECT sql FROM trend.view WHERE id = view_id;
-$$ LANGUAGE SQL;
+    SELECT sql FROM trend_directory.view WHERE id = view_id;
+$$ LANGUAGE sql;
 
 
-CREATE FUNCTION trend.modify_partition_column(partition_name varchar, column_name varchar, datatype varchar)
+CREATE FUNCTION trend_directory.modify_partition_column(
+        partition_name varchar, column_name varchar, datatype varchar)
     RETURNS void
 AS $$
 BEGIN
     PERFORM dep_recurse.alter(
         dep_recurse.table_ref('trend', base_table_name),
         ARRAY[
-            format('ALTER TABLE trend.%I ALTER %I TYPE %s USING CAST(%I AS %s);', partition_name, column_name, datatype, column_name, datatype)
+            format(
+                'ALTER TABLE trend_directory.%I ALTER %I TYPE %s USING CAST(%I AS %s);',
+                partition_name,
+                column_name,
+                datatype,
+                column_name,
+                datatype
+            )
         ]
     );
 END;
 $$ LANGUAGE plpgsql;
 
 
-CREATE FUNCTION trend.modify_trendstore_column(trendstore_id integer, column_name varchar, datatype varchar)
+CREATE FUNCTION trend_directory.modify_trendstore_column(
+        trendstore_id integer, column_name varchar, datatype varchar)
     RETURNS void
 AS $$
 DECLARE
     base_table_name varchar;
 BEGIN
-    SELECT trend.to_base_table_name(trendstore) INTO base_table_name
-        FROM trend.trendstore
+    SELECT trend_directory.to_base_table_name(trendstore) INTO base_table_name
+        FROM trend_directory.trendstore
         WHERE trendstore.id = trendstore_id;
 
     PERFORM dep_recurse.alter(
         dep_recurse.table_ref('trend', base_table_name),
         ARRAY[
-            format('ALTER TABLE trend.%I ALTER %I TYPE %s USING CAST(%I AS %s);', base_table_name, column_name, datatype, column_name, datatype)
+            format(
+                'ALTER TABLE trend_directory.%I ALTER %I TYPE %s USING CAST(%I AS %s);',
+                base_table_name,
+                column_name,
+                datatype,
+                column_name,
+                datatype
+            )
         ]
     );
 END;
 $$ LANGUAGE plpgsql;
 
 
-CREATE TYPE trend.column_info AS (
+CREATE TYPE trend_directory.column_info AS (
     name varchar,
     datatype varchar
 );
 
 
-CREATE FUNCTION trend.table_columns(namespace name, "table" name)
-    RETURNS SETOF trend.column_info
+CREATE FUNCTION trend_directory.table_columns(namespace name, "table" name)
+    RETURNS SETOF trend_directory.column_info
 AS $$
     SELECT
-        a.attname::character varying, format_type(a.atttypid, a.atttypmod)::character varying
+        a.attname::character varying,
+        format_type(a.atttypid, a.atttypmod)::character varying
     FROM
         pg_catalog.pg_class c
     JOIN
@@ -510,33 +589,40 @@ AS $$
         c.relname = $2 AND
         a.attisdropped = false AND
         a.attnum > 0;
-$$ LANGUAGE SQL STABLE;
+$$ LANGUAGE sql STABLE;
 
 
-CREATE FUNCTION trend.modify_trendstore_columns(trendstore_id integer, columns trend.column_info[])
+CREATE FUNCTION trend_directory.modify_trendstore_columns(
+        trendstore_id integer, columns trend_directory.column_info[])
     RETURNS void
 AS $$
 DECLARE
-    dependent_views trend.view[];
+    dependent_views trend_directory.view[];
 BEGIN
     IF array_length(columns, 1) IS NULL THEN
         RETURN;
     END IF;
 
-    SELECT array_agg(trend.drop_view(dependent_view)) INTO dependent_views
-        FROM trend.get_dependent_views(trendstore_id) dependent_view;
+    SELECT array_agg(trend_directory.drop_view(dependent_view)) INTO dependent_views
+        FROM trend_directory.get_dependent_views(trendstore_id) dependent_view;
 
-    PERFORM trend.alter_column_types('trend', trend.to_base_table_name(trendstore), columns)
-        FROM trend.trendstore
-        WHERE trendstore.id = trendstore_id;
+    PERFORM
+        trend_directory.alter_column_types(
+            'trend',
+            trend_directory.to_base_table_name(trendstore),
+            columns
+        )
+    FROM trend_directory.trendstore
+    WHERE trendstore.id = trendstore_id;
 
-    PERFORM trend.create_view(dependent_view)
+    PERFORM trend_directory.create_view(dependent_view)
         FROM unnest(dependent_views) AS dependent_view;
 END;
 $$ LANGUAGE plpgsql;
 
 
-CREATE FUNCTION trend.alter_column_types(namespace_name name, table_name name, columns trend.column_info[])
+CREATE FUNCTION trend_directory.alter_column_types(
+        namespace_name name, table_name name, columns trend_directory.column_info[])
     RETURNS dep_recurse.obj_ref
 AS $$
     SELECT dep_recurse.alter(
@@ -546,7 +632,18 @@ AS $$
                 'ALTER TABLE %I.%I %s',
                 namespace_name,
                 table_name,
-                array_to_string(array_agg(format('ALTER %I TYPE %s USING CAST (%I AS %s)', c.name, c.datatype, c.name, c.datatype)), ', ')
+                array_to_string(
+                    array_agg(
+                        format(
+                            'ALTER %I TYPE %s USING CAST (%I AS %s)',
+                            c.name,
+                            c.datatype,
+                            c.name,
+                            c.datatype
+                        )
+                    ),
+                    ', '
+                )
             )
         ]
     )
@@ -554,49 +651,49 @@ AS $$
 $$ LANGUAGE sql VOLATILE;
 
 
-CREATE FUNCTION trend.view_name(trend.view)
-    RETURNS varchar
+CREATE FUNCTION trend_directory.view_name(trend_directory.view)
+    RETURNS name
 AS $$
-    SELECT trend.to_base_table_name(trendstore)
-    FROM trend.trendstore
+    SELECT trend_directory.to_base_table_name(trendstore)
+    FROM trend_directory.trendstore
     WHERE trendstore.id = $1.trendstore_id;
-$$ LANGUAGE SQL;
+$$ LANGUAGE sql;
 
 
-CREATE FUNCTION trend.drop_view(view trend.view)
-    RETURNS trend.view
+CREATE FUNCTION trend_directory.drop_view(view trend_directory.view)
+    RETURNS trend_directory.view
 AS $$
 BEGIN
-    EXECUTE format('DROP VIEW IF EXISTS trend.%I', trend.view_name(view));
+    EXECUTE format('DROP VIEW IF EXISTS trend_directory.%I', trend_directory.view_name(view));
 
-    PERFORM trend.unlink_view_dependencies(view);
+    PERFORM trend_directory.unlink_view_dependencies(view);
 
-    PERFORM trend.delete_view_trends(view);
+    PERFORM trend_directory.delete_view_trends(view);
 
     RETURN view;
 END;
 $$ LANGUAGE plpgsql VOLATILE;
 
 
-CREATE FUNCTION trend.update_view_sql(trend.view, text)
-    RETURNS trend.view
+CREATE FUNCTION trend_directory.update_view_sql(trend_directory.view, text)
+    RETURNS trend_directory.view
 AS $$
-    UPDATE trend.view SET sql = $2 WHERE id = $1.id RETURNING *;
+    UPDATE trend_directory.view SET sql = $2 WHERE id = $1.id RETURNING *;
 $$ LANGUAGE sql VOLATILE;
 
 
-CREATE FUNCTION trend.alter_view(trend.view, text)
-    RETURNS trend.view
+CREATE FUNCTION trend_directory.alter_view(trend_directory.view, text)
+    RETURNS trend_directory.view
 AS $$
 DECLARE
-    result trend.view;
+    result trend_directory.view;
 BEGIN
-    result = trend.update_view_sql($1, $2);
+    result = trend_directory.update_view_sql($1, $2);
 
     PERFORM dep_recurse.alter(
         dep_recurse.view_ref('trend', $1::text),
         ARRAY[
-            format('SELECT trend.recreate_view(view) FROM trend.view WHERE id = %L', $1.id)
+            format('SELECT trend_directory.recreate_view(view) FROM trend_directory.view WHERE id = %L', $1.id)
         ]
     );
 
@@ -605,19 +702,19 @@ END;
 $$ LANGUAGE plpgsql VOLATILE;
 
 
-CREATE FUNCTION trend.create_view_sql(trend.view)
+CREATE FUNCTION trend_directory.create_view_sql(trend_directory.view)
     RETURNS text[]
 AS $$
 SELECT ARRAY[
-    format('CREATE VIEW trend.%I AS %s;', trend.view_name($1), $1.sql),
-    format('ALTER TABLE trend.%I OWNER TO minerva_writer;', trend.view_name($1)),
-    format('GRANT SELECT ON TABLE trend.%I TO minerva;', trend.view_name($1))
+    format('CREATE VIEW trend_directory.%I AS %s;', trend_directory.view_name($1), $1.sql),
+    format('ALTER TABLE trend_directory.%I OWNER TO minerva_writer;', trend_directory.view_name($1)),
+    format('GRANT SELECT ON TABLE trend_directory.%I TO minerva;', trend_directory.view_name($1))
 ];
 $$ LANGUAGE sql STABLE;
 
 
 -- View required by function 'link_view_dependencies'
-CREATE VIEW trend.view_dependencies AS
+CREATE VIEW trend_directory.view_dependencies AS
     SELECT dependent.relname AS src, pg_attribute.attname column_name, dependee.relname AS dst
     FROM pg_depend
     JOIN pg_rewrite ON pg_depend.objid = pg_rewrite.oid
@@ -630,107 +727,166 @@ CREATE VIEW trend.view_dependencies AS
             pg_depend.refobjsubid = pg_attribute.attnum
     WHERE n.nspname = 'trend' AND pg_attribute.attnum > 0;
 
-ALTER VIEW trend.view_dependencies OWNER TO minerva_admin;
+ALTER VIEW trend_directory.view_dependencies OWNER TO minerva_admin;
 
-GRANT SELECT ON TABLE trend.view_dependencies TO minerva;
+GRANT SELECT ON TABLE trend_directory.view_dependencies TO minerva;
 
 
-CREATE FUNCTION trend.link_view_dependencies(trend.view)
-    RETURNS trend.view
+CREATE FUNCTION trend_directory.link_view_dependencies(trend_directory.view)
+    RETURNS trend_directory.view
 AS $$
-    INSERT INTO trend.view_trendstore_link (view_id, trendstore_id)
+    INSERT INTO trend_directory.view_trendstore_link (view_id, trendstore_id)
     SELECT $1.id, ts.id
-    FROM trend.view_dependencies vdeps
-    JOIN trend.trendstore ts ON trend.to_base_table_name(ts) = vdeps.src
-    LEFT JOIN trend.view_trendstore_link vtl ON vtl.view_id = $1.id AND vtl.trendstore_id = ts.id
-    WHERE vdeps.dst = trend.view_name($1) AND vtl.view_id IS NULL
+    FROM trend_directory.view_dependencies vdeps
+    JOIN trend_directory.trendstore ts ON trend_directory.to_base_table_name(ts) = vdeps.src
+    LEFT JOIN trend_directory.view_trendstore_link vtl ON vtl.view_id = $1.id AND vtl.trendstore_id = ts.id
+    WHERE vdeps.dst = trend_directory.view_name($1) AND vtl.view_id IS NULL
     GROUP BY ts.id
     RETURNING $1;
 $$ LANGUAGE sql VOLATILE;
 
 
-CREATE FUNCTION trend.get_view_column_names(view_name character varying)
-    RETURNS SETOF name
+CREATE FUNCTION trend_directory.get_view_trends(view_name name)
+    RETURNS SETOF trend_directory.trend_descr
 AS $$
-    SELECT a.attname FROM pg_class c
-        JOIN pg_attribute a ON a.attrelid = c.oid
+    SELECT (a.attname, 'integer', 'deduced from view')::trend_directory.trend_descr
+    FROM pg_class c
+    JOIN pg_attribute a ON a.attrelid = c.oid
     WHERE c.relname = $1 AND a.attnum >= 0 AND NOT a.attisdropped;
 $$ LANGUAGE sql STABLE;
 
 
-CREATE FUNCTION trend.create_trend(name character varying, trendstore_id integer, description character varying)
-    RETURNS trend.trend
+CREATE FUNCTION trend_directory.define_trend(
+        name name, data_type text, trendstore_id integer,
+        description text)
+    RETURNS trend_directory.trend
 AS $$
-    INSERT INTO trend.trend (name, trendstore_id, description) VALUES ($1, $2, $3) RETURNING trend;
-$$ LANGUAGE SQL VOLATILE;
-
-
-CREATE FUNCTION trend.get_trendstore(view trend.view)
-    RETURNS trend.trendstore
-AS $$
-    SELECT trendstore FROM trend.trendstore WHERE id = $1.trendstore_id;
-$$ LANGUAGE sql STABLE;
-
-
-CREATE FUNCTION trend.create_view_trends(view trend.view)
-    RETURNS SETOF trend.trend
-AS $$
-    SELECT
-        trend.create_trend(v.column_name::character varying, id(trend.get_trendstore($1)), 'auto-created for view')
-    FROM (SELECT trend.get_view_column_names(trend.view_name($1)) column_name) v
-    WHERE v.column_name::character varying NOT IN ('entity_id', 'timestamp', 'samples', 'function_set_ids');
+    INSERT INTO trend_directory.trend (name, data_type, trendstore_id, description)
+    VALUES ($1, $2, $3, $4)
+    RETURNING trend;
 $$ LANGUAGE sql VOLATILE;
 
 
-CREATE FUNCTION trend.create_view(trend.view)
-    RETURNS trend.view
+CREATE FUNCTION trend_directory.add_trend_to_trendstore(
+        trend_directory.trendstore, trend_directory.trend)
+    RETURNS trend_directory.trend
 AS $$
-    SELECT public.action($1, trend.create_view_sql($1));
+    SELECT dep_recurse.alter(
+        dep_recurse.table_ref('trend', trend_directory.to_base_table_name($1)),
+        ARRAY[
+            format(
+                'ALTER TABLE trend_directory.%I ADD COLUMN %I %s;',
+                trend_directory.to_base_table_name($1), $2.name, $2.data_type
+            )
+        ]
+    );
 
-    SELECT trend.link_view_dependencies($1);
+    SELECT $2;
+$$ LANGUAGE sql VOLATILE;
 
-    SELECT trend.create_view_trends($1);
+
+CREATE FUNCTION trend_directory.add_trend_to_trendstore(
+         trend_directory.trendstore, name,
+        data_type text, description text)
+    RETURNS trend_directory.trend
+AS $$
+    SELECT trend_directory.add_trend_to_trendstore(
+        $1,
+        trend_directory.define_trend($2, $3, $1.id, $4)
+    )
+$$ LANGUAGE sql VOLATILE;
+
+
+CREATE FUNCTION trend_directory.create_trends(trend_directory.trendstore, trend_directory.trend_descr[])
+    RETURNS SETOF trend_directory.trend
+AS $$
+    SELECT trend_directory.add_trend_to_trendstore(
+        $1,
+        name,
+        data_type,
+        ''
+    )
+    FROM unnest($2);
+$$ LANGUAGE sql VOLATILE;
+
+
+CREATE FUNCTION trend_directory.get_trendstore(view trend_directory.view)
+    RETURNS trend_directory.trendstore
+AS $$
+    SELECT trendstore FROM trend_directory.trendstore WHERE id = $1.trendstore_id;
+$$ LANGUAGE sql STABLE;
+
+
+CREATE FUNCTION trend_directory.create_view_trends(view trend_directory.view)
+    RETURNS SETOF trend_directory.trend
+AS $$
+    SELECT
+        trend_directory.define_trend(
+            vt.name,
+            vt.data_type,
+            id(trend_directory.get_trendstore($1)),
+            vt.description
+        )
+    FROM trend_directory.get_view_trends(trend_directory.view_name($1)) vt
+    WHERE vt.name NOT IN ('entity_id', 'timestamp', 'samples');
+$$ LANGUAGE sql VOLATILE;
+
+
+CREATE FUNCTION trend_directory.create_view(trend_directory.view)
+    RETURNS trend_directory.view
+AS $$
+    SELECT public.action($1, trend_directory.create_view_sql($1));
+
+    SELECT trend_directory.link_view_dependencies($1);
+
+    SELECT trend_directory.create_view_trends($1);
 
     SELECT $1;
 $$ LANGUAGE sql VOLATILE;
 
 
-CREATE FUNCTION trend.create_view(text)
-    RETURNS trend.view
+CREATE FUNCTION trend_directory.create_view(text)
+    RETURNS trend_directory.view
 AS $$
-    SELECT trend.create_view(view) FROM trend.view WHERE view::text = $1;
-$$ LANGUAGE SQL VOLATILE;
+    SELECT trend_directory.create_view(view) FROM trend_directory.view WHERE view::text = $1;
+$$ LANGUAGE sql VOLATILE;
 
 
-CREATE FUNCTION trend.recreate_view(view trend.view)
-    RETURNS trend.view
+CREATE FUNCTION trend_directory.recreate_view(view trend_directory.view)
+    RETURNS trend_directory.view
 AS $$
-    SELECT trend.create_view(trend.drop_view($1));
-$$ LANGUAGE SQL VOLATILE;
+    SELECT trend_directory.create_view(trend_directory.drop_view($1));
+$$ LANGUAGE sql VOLATILE;
 
 
-CREATE FUNCTION trend.recreate_view(text)
-    RETURNS trend.view
+CREATE FUNCTION trend_directory.recreate_view(text)
+    RETURNS trend_directory.view
 AS $$
-    SELECT trend.create_view(trend.drop_view(view)) FROM trend.view WHERE view::text = $1;
-$$ LANGUAGE SQL VOLATILE;
+    SELECT trend_directory.create_view(trend_directory.drop_view(view))
+    FROM trend_directory.view
+    WHERE view::text = $1;
+$$ LANGUAGE sql VOLATILE;
 
 
-CREATE FUNCTION trend.delete_view_trends(view trend.view)
+CREATE FUNCTION trend_directory.delete_view_trends(view trend_directory.view)
     RETURNS void
 AS $$
-    DELETE FROM trend.trend USING trend.trendstore_trend_link ttl WHERE trend.id = ttl.trend_id AND ttl.trendstore_id = $1.trendstore_id;
-$$ LANGUAGE SQL VOLATILE;
+    DELETE FROM trend_directory.trend
+    WHERE trendstore_id = $1.trendstore_id;
+$$ LANGUAGE sql VOLATILE;
 
 
-CREATE FUNCTION trend.unlink_view_dependencies(trend.view)
-    RETURNS trend.view
+CREATE FUNCTION trend_directory.unlink_view_dependencies(trend_directory.view)
+    RETURNS trend_directory.view
 AS $$
-    DELETE FROM trend.view_trendstore_link WHERE view_id = $1.id RETURNING $1;
-$$ LANGUAGE SQL VOLATILE;
+    DELETE FROM trend_directory.view_trendstore_link
+    WHERE view_id = $1.id
+    RETURNING $1;
+$$ LANGUAGE sql VOLATILE;
 
 
-CREATE FUNCTION trend.get_most_recent_timestamp(dest_granularity integer, ts timestamp with time zone)
+CREATE FUNCTION trend_directory.get_most_recent_timestamp(
+        dest_granularity integer, ts timestamp with time zone)
     RETURNS timestamp with time zone
 AS $$
 DECLARE
@@ -755,14 +911,15 @@ END;
 $$ LANGUAGE plpgsql IMMUTABLE;
 
 
-CREATE FUNCTION trend.is_integer(varchar)
+CREATE FUNCTION trend_directory.is_integer(varchar)
     RETURNS boolean
 AS $$
     SELECT $1 ~ '^[1-9][0-9]*$'
-$$ LANGUAGE SQL IMMUTABLE;
+$$ LANGUAGE sql IMMUTABLE;
 
 
-CREATE FUNCTION trend.get_most_recent_timestamp(dest_granularity varchar, ts timestamp with time zone)
+CREATE FUNCTION trend_directory.get_most_recent_timestamp(
+        dest_granularity varchar, ts timestamp with time zone)
     RETURNS timestamp with time zone
 AS $$
 DECLARE
@@ -770,10 +927,10 @@ DECLARE
     rounded_minutes integer;
     seconds integer;
 BEGIN
-    IF trend.is_integer(dest_granularity) THEN
+    IF trend_directory.is_integer(dest_granularity) THEN
         seconds = cast(dest_granularity as integer);
 
-        return trend.get_most_recent_timestamp(seconds, ts);
+        return trend_directory.get_most_recent_timestamp(seconds, ts);
     ELSIF dest_granularity = 'month' THEN
         return date_trunc('month', ts);
     ELSE
@@ -785,13 +942,14 @@ END;
 $$ LANGUAGE plpgsql IMMUTABLE;
 
 
-CREATE FUNCTION trend.get_timestamp_for(granularity integer, ts timestamp with time zone)
+CREATE FUNCTION trend_directory.get_timestamp_for(
+        granularity integer, ts timestamp with time zone)
     RETURNS timestamp with time zone
 AS $$
 DECLARE
     most_recent_timestamp timestamp with time zone;
 BEGIN
-    most_recent_timestamp = trend.get_most_recent_timestamp($1, $2);
+    most_recent_timestamp = trend_directory.get_most_recent_timestamp($1, $2);
 
     IF most_recent_timestamp != ts THEN
         IF granularity = 86400 THEN
@@ -806,16 +964,17 @@ END;
 $$ LANGUAGE plpgsql IMMUTABLE;
 
 
-CREATE FUNCTION trend.get_timestamp_for(granularity varchar, ts timestamp with time zone)
+CREATE FUNCTION trend_directory.get_timestamp_for(
+        granularity varchar, ts timestamp with time zone)
     RETURNS timestamp with time zone
 AS $$
 DECLARE
     most_recent_timestamp timestamp with time zone;
 BEGIN
-    most_recent_timestamp = trend.get_most_recent_timestamp($1, $2);
+    most_recent_timestamp = trend_directory.get_most_recent_timestamp($1, $2);
 
     IF most_recent_timestamp != ts THEN
-        IF trend.is_integer(granularity) THEN
+        IF trend_directory.is_integer(granularity) THEN
             IF granularity = '86400' THEN
                 return most_recent_timestamp + ('1 day')::INTERVAL;
             ELSE
@@ -831,74 +990,45 @@ END;
 $$ LANGUAGE plpgsql IMMUTABLE;
 
 
-CREATE FUNCTION trend.index_to_timestamp(partition_size integer, index integer)
+CREATE FUNCTION trend_directory.index_to_timestamp(partition_size integer, index integer)
     RETURNS timestamp with time zone
 AS $$
     SELECT to_timestamp($1 * $2 + 1);
-$$ LANGUAGE SQL IMMUTABLE STRICT;
+$$ LANGUAGE sql IMMUTABLE STRICT;
 
 
-CREATE FUNCTION trend.get_trends(trendstore_id integer)
-    RETURNS SETOF trend.trend_with_type
+CREATE FUNCTION trend_directory.get_trends(trendstore_id integer)
+    RETURNS SETOF trend_directory.trend_with_type
 AS $$
 DECLARE
-    trendstore_obj trend.trendstore;
+    trendstore_obj trend_directory.trendstore;
 BEGIN
     SELECT * INTO trendstore_obj FROM trendstore WHERE id = trendstore_id;
 
-    RETURN QUERY SELECT * FROM get_trends_for_v4_trendstore(trendstore_obj);
+    RETURN QUERY SELECT * FROM get_trends_for_trendstore(trendstore_obj);
 END;
 $$ LANGUAGE plpgsql STABLE;
 
 
-CREATE FUNCTION trend.get_trend(trendstore trend.trendstore, trend_name character varying)
-    RETURNS trend.trend
+CREATE FUNCTION trend_directory.get_trend(
+        trendstore trend_directory.trendstore, trend_name name)
+    RETURNS trend_directory.trend
 AS $$
     SELECT t
-    FROM trend.trend t
-    JOIN trend.trendstore_trend_link ttl ON ttl.trend_id = t.id
+    FROM trend_directory.trend t
+    JOIN trend_directory.trendstore_trend_link ttl ON ttl.trend_id = t.id
     WHERE ttl.trendstore_id = $1.id AND t.name = $2;
-$$ LANGUAGE SQL STABLE;
+$$ LANGUAGE sql STABLE;
 
 
-CREATE FUNCTION trend.get_trends_for_v3_trendstore(trendstore_obj trend.trendstore)
-    RETURNS SETOF trend.trend_with_type
+CREATE FUNCTION trend_directory.get_trends_for_trendstore(trendstore_obj trend_directory.trendstore)
+    RETURNS SETOF trend_directory.trend_with_type
 AS $$
 DECLARE
-    r trend.trend_with_type%rowtype;
+    r trend_directory.trend_with_type%rowtype;
 BEGIN
-    FOR r IN SELECT t.id, t.name, trend.max_datatype(pg_catalog.format_type(a.atttypid, a.atttypmod))
-        FROM trend.trend t
-        JOIN trend.trend_partition_link tpl
-            ON tpl.trend_id = t.id
-        JOIN trend.partition p
-            ON tpl.partition_table_name = p.table_name
-        JOIN pg_class c
-            ON c.relname = p.table_name
-        JOIN pg_attribute a
-            ON a.attrelid = c.oid AND a.attname = t.name
-        WHERE
-            p.datasource_id = trendstore_obj.datasource_id AND
-            p.entitytype_id = trendstore_obj.entitytype_id AND
-            p.granularity = trendstore_obj.granularity
-        GROUP BY t.id, t.name LOOP
-
-        RETURN NEXT r;
-    END LOOP;
-
-    RETURN;
-END;
-$$ LANGUAGE plpgsql STABLE;
-
-
-CREATE FUNCTION trend.get_trends_for_v4_trendstore(trendstore_obj trend.trendstore)
-    RETURNS SETOF trend.trend_with_type
-AS $$
-DECLARE
-    r trend.trend_with_type%rowtype;
-BEGIN
-    FOR r IN SELECT t.* FROM trend.trendstore_trend_link ttl
-        JOIN trend.trend t ON t.id = ttl.trend_id
+    FOR r IN SELECT t.* FROM trend_directory.trendstore_trend_link ttl
+        JOIN trend_directory.trend t ON t.id = ttl.trend_id
         WHERE ttl.trendstore_id = trendstore_obj.id LOOP
 
         RETURN NEXT r;
@@ -909,62 +1039,75 @@ END;
 $$ LANGUAGE plpgsql STABLE;
 
 
-CREATE FUNCTION trend.trendstore_has_trend_with_name(trendstore trend.trendstore, trend_name character varying)
+CREATE FUNCTION trend_directory.trendstore_has_trend_with_name(
+        trendstore trend_directory.trendstore, trend_name character varying)
     RETURNS boolean
 AS $$
-    SELECT exists(SELECT 1 FROM trend.trendstore_trend_link ttl JOIN trend.trend t ON ttl.trend_id = t.id WHERE ttl.trendstore_id = $1.id AND t.name = $2);
-$$ LANGUAGE SQL STABLE;
+    SELECT exists(
+        SELECT 1
+        FROM trend_directory.trendstore_trend_link ttl
+        JOIN trend_directory.trend t ON ttl.trend_id = t.id
+        WHERE ttl.trendstore_id = $1.id AND t.name = $2
+    );
+$$ LANGUAGE sql STABLE;
 
 
-CREATE FUNCTION trend.attributes_to_trend(trend.trendstore, name)
-    RETURNS trend.trend
+CREATE FUNCTION trend_directory.attributes_to_trend(trend_directory.trendstore, name name, data_type text)
+    RETURNS trend_directory.trend
 AS $$
     SELECT COALESCE(
-        trend.get_trend($1, $2::character varying),
-        trend.create_trend($2::character varying, $1.id, '')
+        trend_directory.get_trend($1, $2),
+        trend_directory.define_trend($2, $3, $1.id, '')
     );
-$$ LANGUAGE SQL VOLATILE;
-
-
-CREATE FUNCTION trend.remove_trend_from_trendstore(trendstore trend.trendstore, trend_name character varying)
-    RETURNS trend.trendstore
-AS $$
-    DELETE FROM trend.trend WHERE trendstore_id = $1.id;
-    SELECT public.action($1, format('ALTER TABLE trend.%I DROP COLUMN %I;', trend.to_base_table_name(trendstore), trend_name));
 $$ LANGUAGE sql VOLATILE;
 
 
-CREATE FUNCTION trend.remove_trend_from_trendstore(trendstore text, trend_name character varying)
-    RETURNS trend.trendstore
+CREATE FUNCTION trend_directory.remove_trend_from_trendstore(
+        trendstore trend_directory.trendstore, trend_name character varying)
+    RETURNS trend_directory.trendstore
 AS $$
-    SELECT trend.remove_trend_from_trendstore(trendstore, $2) from trend.trendstore where trendstore::text = $1;
-$$ LANGUAGE SQL VOLATILE;
+    DELETE FROM trend_directory.trend WHERE trendstore_id = $1.id;
+
+    SELECT public.action(
+        $1,
+        format(
+            'ALTER TABLE trend_directory.%I DROP COLUMN %I;',
+            trend_directory.to_base_table_name(trendstore),
+            trend_name
+        )
+    );
+$$ LANGUAGE sql VOLATILE;
 
 
-CREATE FUNCTION trend.column_exists(table_name character varying, column_name character varying)
+CREATE FUNCTION trend_directory.remove_trend_from_trendstore(
+        trendstore text, trend_name character varying)
+    RETURNS trend_directory.trendstore
+AS $$
+    SELECT trend_directory.remove_trend_from_trendstore(trendstore, $2)
+    FROM trend_directory.trendstore
+    WHERE trendstore::text = $1;
+$$ LANGUAGE sql VOLATILE;
+
+
+CREATE FUNCTION trend_directory.column_exists(
+        table_name name, column_name name)
     RETURNS boolean
 AS $$
-DECLARE
-    result boolean;
-BEGIN
     SELECT EXISTS(
         SELECT 1
         FROM pg_attribute a
         JOIN pg_class c ON c.oid = a.attrelid
         JOIN pg_namespace n ON c.relnamespace = n.oid
         WHERE c.relname = table_name AND a.attname = column_name AND n.nspname = 'trend'
-    ) INTO result;
-
-    RETURN result;
-END;
-$$ LANGUAGE plpgsql VOLATILE;
+    );
+$$ LANGUAGE sql VOLATILE;
 
 
-CREATE FUNCTION trend.datatype_order (datatype character varying)
+CREATE FUNCTION trend_directory.datatype_order(data_type character varying)
     RETURNS integer
 AS $$
 BEGIN
-    CASE datatype
+    CASE data_type
         WHEN 'smallint' THEN
             RETURN 1;
         WHEN 'integer' THEN
@@ -996,11 +1139,12 @@ END;
 $$ LANGUAGE plpgsql IMMUTABLE STRICT;
 
 
-CREATE FUNCTION trend.greatest_datatype(datatype_a character varying, datatype_b character varying)
+CREATE FUNCTION trend_directory.greatest_datatype(
+        datatype_a character varying, datatype_b character varying)
     RETURNS character varying
 AS $$
 BEGIN
-    IF trend.datatype_order(datatype_b) > trend.datatype_order(datatype_a) THEN
+    IF trend_directory.datatype_order(datatype_b) > trend_directory.datatype_order(datatype_a) THEN
         RETURN datatype_b;
     ELSE
         RETURN datatype_a;
@@ -1009,88 +1153,86 @@ END;
 $$ LANGUAGE plpgsql IMMUTABLE;
 
 
-CREATE AGGREGATE trend.max_datatype (character varying)
+CREATE AGGREGATE trend_directory.max_datatype (character varying)
 (
-    sfunc = trend.greatest_datatype,
+    sfunc = trend_directory.greatest_datatype,
     stype = character varying,
     initcond = 'smallint'
 );
 
-CREATE TYPE trend.upgrade_record AS (
+CREATE TYPE trend_directory.upgrade_record AS (
     timestamp timestamp with time zone,
     number_of_rows integer
 );
 
 
-CREATE FUNCTION trend.get_partition(trendstore trend.trendstore, index integer)
-    RETURNS trend.partition
+CREATE FUNCTION trend_directory.get_partition(trendstore trend_directory.trendstore, index integer)
+    RETURNS trend_directory.partition
 AS $$
     SELECT partition
-    FROM trend.partition
-    WHERE trendstore_id = $1.id AND table_name = trend.partition_name($1, $2);
-$$ LANGUAGE SQL STABLE;
+    FROM trend_directory.partition
+    WHERE trendstore_id = $1.id AND table_name = trend_directory.partition_name($1, $2);
+$$ LANGUAGE sql STABLE;
 
 
-CREATE FUNCTION trend.create_partition(trendstore trend.trendstore, index integer)
-    RETURNS trend.partition
+CREATE FUNCTION trend_directory.create_partition(trendstore trend_directory.trendstore, index integer)
+    RETURNS trend_directory.partition
 AS $$
-    INSERT INTO trend.partition(
+    INSERT INTO trend_directory.partition(
         table_name,
         trendstore_id,
         data_start,
         data_end
     )
     VALUES (
-        trend.partition_name($1, $2),
+        trend_directory.partition_name($1, $2),
         $1.id,
-        trend.index_to_timestamp($1.partition_size, $2),
-        trend.index_to_timestamp($1.partition_size, $2 + 1)
+        trend_directory.index_to_timestamp($1.partition_size, $2),
+        trend_directory.index_to_timestamp($1.partition_size, $2 + 1)
     )
     RETURNING partition;
-$$ LANGUAGE SQL VOLATILE;
+$$ LANGUAGE sql VOLATILE;
 
 
-CREATE FUNCTION trend.attributes_to_partition(trendstore trend.trendstore, index integer)
-    RETURNS trend.partition
+CREATE FUNCTION trend_directory.attributes_to_partition(
+        trendstore trend_directory.trendstore, index integer)
+    RETURNS trend_directory.partition
 AS $$
-    SELECT COALESCE(trend.get_partition($1, $2), trend.create_partition($1, $2));
-$$ LANGUAGE SQL VOLATILE;
+    SELECT COALESCE(
+        trend_directory.get_partition($1, $2),
+        trend_directory.create_partition($1, $2)
+    );
+$$ LANGUAGE sql VOLATILE;
 
 
-CREATE FUNCTION trend.partition_exists(table_name character varying)
+CREATE FUNCTION trend_directory.partition_exists(table_name character varying)
     RETURNS boolean
 AS $$
-    SELECT exists(select relname from pg_class where relname=$1 and (relkind IN ('r', 'v')));
-$$ LANGUAGE SQL STABLE;
+    SELECT exists(
+        SELECT relname
+        FROM pg_class
+        WHERE relname=$1 AND (relkind IN ('r', 'v'))
+    );
+$$ LANGUAGE sql STABLE;
 
 
-CREATE FUNCTION trend.get_column_names(table_name character varying)
-    RETURNS character varying[]
+CREATE FUNCTION trend_directory.get_trendstore(id integer)
+    RETURNS trend_directory.trendstore
 AS $$
-    SELECT
-        array_agg(format('%I', a.attname)::character varying)
-    FROM pg_class c
-    JOIN pg_attribute a ON a.attrelid = c.oid
-    WHERE c.relname = $1 AND a.attnum >= 0 AND NOT a.attisdropped;
-$$ LANGUAGE SQL STABLE;
+    SELECT * FROM trend_directory.trendstore WHERE id = $1
+$$ LANGUAGE sql;
 
 
-CREATE FUNCTION trend.get_trendstore(id integer)
-    RETURNS trend.trendstore
-AS $$
-    SELECT * FROM trend.trendstore WHERE id = $1
-$$ LANGUAGE SQL;
-
-
-CREATE FUNCTION trend.get_max_modified(trend.trendstore, timestamp with time zone)
+CREATE FUNCTION trend_directory.get_max_modified(
+        trend_directory.trendstore, timestamp with time zone)
     RETURNS timestamp with time zone
 AS $$
 DECLARE
     max_modified timestamp with time zone;
 BEGIN
     EXECUTE format(
-        'SELECT max(modified) FROM trend.%I WHERE timestamp = $1',
-        trend.to_base_table_name($1)
+        'SELECT max(modified) FROM trend_directory.%I WHERE timestamp = $1',
+        trend_directory.to_base_table_name($1)
     ) INTO max_modified USING $2;
 
     RETURN max_modified;
@@ -1098,215 +1240,243 @@ END;
 $$ LANGUAGE plpgsql STABLE;
 
 
-CREATE FUNCTION trend.update_modified(trendstore_id integer, "timestamp" timestamp with time zone, modified timestamp with time zone)
-    RETURNS trend.modified
+CREATE FUNCTION trend_directory.update_modified(
+        trendstore_id integer, "timestamp" timestamp with time zone,
+        modified timestamp with time zone)
+    RETURNS trend_directory.modified
 AS $$
-    UPDATE trend.modified
+    UPDATE trend_directory.modified
     SET "end" = greatest("end", $3)
     WHERE "timestamp" = $2 AND trendstore_id = $1
     RETURNING modified;
-$$ LANGUAGE SQL VOLATILE;
+$$ LANGUAGE sql VOLATILE;
 
 
-CREATE FUNCTION trend.store_modified(trendstore_id integer, "timestamp" timestamp with time zone, modified timestamp with time zone)
-    RETURNS trend.modified
+CREATE FUNCTION trend_directory.store_modified(
+        trendstore_id integer, "timestamp" timestamp with time zone,
+        modified timestamp with time zone)
+    RETURNS trend_directory.modified
 AS $$
-    INSERT INTO trend.modified(
+    INSERT INTO trend_directory.modified(
         trendstore_id, "timestamp", start, "end"
     ) VALUES (
         $1, $2, $3, $3
     ) RETURNING modified;
-$$ LANGUAGE SQL VOLATILE;
+$$ LANGUAGE sql VOLATILE;
 
 
-CREATE FUNCTION trend.mark_modified(trendstore_id integer, "timestamp" timestamp with time zone, modified timestamp with time zone)
-    RETURNS trend.modified
+CREATE FUNCTION trend_directory.mark_modified(
+        trendstore_id integer, "timestamp" timestamp with time zone,
+        modified timestamp with time zone)
+    RETURNS trend_directory.modified
 AS $$
     SELECT COALESCE(
-        trend.update_modified($1, $2, $3),
-        trend.store_modified($1, $2, $3)
+        trend_directory.update_modified($1, $2, $3),
+        trend_directory.store_modified($1, $2, $3)
     );
-$$ LANGUAGE SQL VOLATILE;
+$$ LANGUAGE sql VOLATILE;
 
 
-CREATE FUNCTION trend.mark_modified(trendstore_id integer, "timestamp" timestamp with time zone)
-    RETURNS trend.modified
+CREATE FUNCTION trend_directory.mark_modified(
+        trendstore_id integer, "timestamp" timestamp with time zone)
+    RETURNS trend_directory.modified
 AS $$
     SELECT COALESCE(
-        trend.update_modified($1, $2, now()),
-        trend.store_modified($1, $2, now())
+        trend_directory.update_modified($1, $2, now()),
+        trend_directory.store_modified($1, $2, now())
     );
-$$ LANGUAGE SQL VOLATILE;
+$$ LANGUAGE sql VOLATILE;
 
 
-CREATE FUNCTION trend.populate_modified(partition trend.partition)
-    RETURNS SETOF trend.modified
+CREATE FUNCTION trend_directory.populate_modified(partition trend_directory.partition)
+    RETURNS SETOF trend_directory.modified
 AS $$
 BEGIN
     RETURN QUERY EXECUTE format(
-        'SELECT (trend.mark_modified(%L, "timestamp", max(modified))).*
-FROM trend.%I GROUP BY timestamp',
+        'SELECT (trend_directory.mark_modified(%L, "timestamp", max(modified))).*
+FROM trend_directory.%I GROUP BY timestamp',
         partition.trendstore_id, partition.table_name);
 END;
 $$ LANGUAGE plpgsql VOLATILE;
 
 
-CREATE FUNCTION trend.populate_modified(trend.trendstore)
-    RETURNS SETOF trend.modified
+CREATE FUNCTION trend_directory.populate_modified(trend_directory.trendstore)
+    RETURNS SETOF trend_directory.modified
 AS $$
     SELECT
-        trend.populate_modified(partition)
-    FROM trend.partition
+        trend_directory.populate_modified(partition)
+    FROM trend_directory.partition
     WHERE trendstore_id = $1.id;
-$$ LANGUAGE SQL VOLATILE;
+$$ LANGUAGE sql VOLATILE;
 
 
-CREATE FUNCTION trend.populate_modified(character varying)
-    RETURNS SETOF trend.modified
+CREATE FUNCTION trend_directory.populate_modified(character varying)
+    RETURNS SETOF trend_directory.modified
 AS $$
     SELECT
-        trend.populate_modified(partition)
-    FROM trend.partition
+        trend_directory.populate_modified(partition)
+    FROM trend_directory.partition
     WHERE table_name = $1;
-$$ LANGUAGE SQL VOLATILE;
+$$ LANGUAGE sql VOLATILE;
 
 
-CREATE FUNCTION trend.available_timestamps(partition trend.partition)
+CREATE FUNCTION trend_directory.available_timestamps(partition trend_directory.partition)
     RETURNS SETOF timestamp with time zone
 AS $$
 BEGIN
-    RETURN QUERY EXECUTE format('SELECT "timestamp" FROM trend.%I GROUP BY timestamp', partition.table_name);
+    RETURN QUERY EXECUTE format(
+        'SELECT "timestamp" FROM trend_directory.%I GROUP BY timestamp',
+        partition.table_name
+    );
 END;
 $$ LANGUAGE plpgsql VOLATILE;
 
 
-CREATE FUNCTION trend.get_dependent_view_names(table_name name)
+CREATE FUNCTION trend_directory.get_dependent_view_names(table_name name)
     RETURNS SETOF name
 AS $$
     SELECT dst
-    FROM trend.view_dependencies
+    FROM trend_directory.view_dependencies
     WHERE src = $1
     GROUP BY dst;
-$$ LANGUAGE SQL STABLE;
+$$ LANGUAGE sql STABLE;
 
 
-CREATE FUNCTION trend.get_dependent_views(table_name name)
-    RETURNS SETOF trend.view
+CREATE FUNCTION trend_directory.get_dependent_views(table_name name)
+    RETURNS SETOF trend_directory.view
 AS $$
     SELECT view
-    FROM trend.get_dependent_view_names($1) AS view_name
-    JOIN trend.view ON trend.view_name(view) = view_name;
-$$ LANGUAGE SQL STABLE;
+    FROM trend_directory.get_dependent_view_names($1) AS view_name
+    JOIN trend_directory.view ON trend_directory.view_name(view) = view_name;
+$$ LANGUAGE sql STABLE;
 
 
-CREATE FUNCTION trend.get_dependent_views(trend.trendstore)
-    RETURNS SETOF trend.view
+CREATE FUNCTION trend_directory.get_dependent_views(trend_directory.trendstore)
+    RETURNS SETOF trend_directory.view
 AS $$
-    SELECT trend.get_dependent_views(trend.to_base_table_name($1));
-$$ LANGUAGE SQL;
+    SELECT trend_directory.get_dependent_views(trend_directory.to_base_table_name($1));
+$$ LANGUAGE sql;
 
 
-CREATE FUNCTION trend.get_dependent_views(trendstore_id integer)
-    RETURNS SETOF trend.view
+CREATE FUNCTION trend_directory.get_dependent_views(trendstore_id integer)
+    RETURNS SETOF trend_directory.view
 AS $$
-    SELECT trend.get_dependent_views(trendstore)
-    FROM trend.trendstore
+    SELECT trend_directory.get_dependent_views(trendstore)
+    FROM trend_directory.trendstore
     WHERE id = $1;
-$$ LANGUAGE SQL;
+$$ LANGUAGE sql;
 
 
-CREATE FUNCTION trend.get_dependent_view_names(table_name name, column_name name)
+CREATE FUNCTION trend_directory.get_dependent_view_names(table_name name, column_name name)
     RETURNS SETOF name
 AS $$
     SELECT dst
-    FROM trend.view_dependencies
+    FROM trend_directory.view_dependencies
     WHERE src = $1 AND column_name = $2
     GROUP BY dst;
-$$ LANGUAGE SQL STABLE;
+$$ LANGUAGE sql STABLE;
 
 
-CREATE FUNCTION trend.get_dependent_views(table_name name, column_name name)
-    RETURNS SETOF trend.view
+CREATE FUNCTION trend_directory.get_dependent_views(table_name name, column_name name)
+    RETURNS SETOF trend_directory.view
 AS $$
     SELECT view
-    FROM trend.get_dependent_view_names($1, $2) AS view_name
-    JOIN trend.view ON trend.view_name(view) = view_name;
-$$ LANGUAGE SQL STABLE;
+    FROM trend_directory.get_dependent_view_names($1, $2) AS view_name
+    JOIN trend_directory.view ON trend_directory.view_name(view) = view_name;
+$$ LANGUAGE sql STABLE;
 
 
-CREATE FUNCTION trend.get_dependent_view_names(table_name name, column_names name[])
+CREATE FUNCTION trend_directory.get_dependent_view_names(table_name name, column_names name[])
     RETURNS SETOF name
 AS $$
     SELECT dst
-    FROM trend.view_dependencies
+    FROM trend_directory.view_dependencies
     WHERE src = $1 AND ARRAY[column_name] <@ $2
     GROUP BY dst;
-$$ LANGUAGE SQL STABLE;
+$$ LANGUAGE sql STABLE;
 
 
-CREATE FUNCTION trend.get_dependent_views(table_name name, column_names name[])
-    RETURNS SETOF trend.view
+CREATE FUNCTION trend_directory.get_dependent_views(table_name name, column_names name[])
+    RETURNS SETOF trend_directory.view
 AS $$
     SELECT view
-    FROM trend.get_dependent_view_names($1, $2) AS view_name
-    JOIN trend.view ON trend.view_name(view) = view_name;
-$$ LANGUAGE SQL STABLE;
+    FROM trend_directory.get_dependent_view_names($1, $2) AS view_name
+    JOIN trend_directory.view ON trend_directory.view_name(view) = view_name;
+$$ LANGUAGE sql STABLE;
 
 
-CREATE FUNCTION trend.define_view(trendstore_id integer, sql text)
-    RETURNS trend.view
+CREATE FUNCTION trend_directory.define_view(trendstore_id integer, sql text)
+    RETURNS trend_directory.view
 AS $$
-    INSERT INTO trend.view (trendstore_id, description, sql)
-    (SELECT $1, trendstore::text, $2 FROM trend.trendstore WHERE id = $1)
+    INSERT INTO trend_directory.view (trendstore_id, description, sql)
+    (SELECT $1, trendstore::text, $2 FROM trend_directory.trendstore WHERE id = $1)
     RETURNING view;
-$$ LANGUAGE SQL VOLATILE;
+$$ LANGUAGE sql VOLATILE;
 
 
-CREATE FUNCTION trend.define_view(trend.trendstore, sql text)
-    RETURNS trend.view
+CREATE FUNCTION trend_directory.define_view(trend_directory.trendstore, sql text)
+    RETURNS trend_directory.view
 AS $$
-    INSERT INTO trend.view (trendstore_id, description, sql)
+    INSERT INTO trend_directory.view (trendstore_id, description, sql)
     VALUES ($1.id, $1::text, $2)
     RETURNING view;
-$$ LANGUAGE SQL VOLATILE;
+$$ LANGUAGE sql VOLATILE;
 
 
-CREATE TYPE trend.transfer_result AS (
+CREATE TYPE trend_directory.transfer_result AS (
     row_count int,
     max_modified timestamp with time zone
 );
 
 
-CREATE FUNCTION trend.transfer(source trend.trendstore, target trend.trendstore, "timestamp" timestamp with time zone, trend_names text[])
-    RETURNS trend.transfer_result
+CREATE FUNCTION trend_directory.transfer(
+        source trend_directory.trendstore, target trend_directory.trendstore,
+        "timestamp" timestamp with time zone, trend_names text[])
+    RETURNS trend_directory.transfer_result
 AS $$
 DECLARE
     columns_part text;
-    dst_partition trend.partition;
-    result trend.transfer_result;
+    dst_partition trend_directory.partition;
+    result trend_directory.transfer_result;
 BEGIN
     SELECT
         array_to_string(array_agg(quote_ident(trend_name)), ',') INTO columns_part
-    FROM unnest(ARRAY['entity_id', 'timestamp', 'modified'] || trend_names) AS trend_name;
+    FROM unnest(
+        ARRAY['entity_id', 'timestamp', 'modified'] || trend_names
+    ) AS trend_name;
 
-    dst_partition = trend.attributes_to_partition(target, trend.timestamp_to_index(target.partition_size, timestamp));
+    dst_partition = trend_directory.attributes_to_partition(
+        target,
+        trend_directory.timestamp_to_index(target.partition_size, timestamp)
+    );
 
-    EXECUTE format('INSERT INTO trend.%I (%s) SELECT %s FROM trend.%I WHERE timestamp = $1', dst_partition.table_name, columns_part, columns_part, trend.to_base_table_name(source)) USING timestamp;
+    EXECUTE format(
+        'INSERT INTO trend_directory.%I (%s) SELECT %s FROM trend_directory.%I WHERE timestamp = $1',
+        dst_partition.table_name,
+        columns_part,
+        columns_part,
+        trend_directory.to_base_table_name(source)
+    ) USING timestamp;
 
     GET DIAGNOSTICS result.row_count = ROW_COUNT;
 
-    SELECT (trend.mark_modified(target.id, timestamp, trend.get_max_modified(target, timestamp))).end INTO result.max_modified;
+    SELECT (
+        trend_directory.mark_modified(
+            target.id,
+            timestamp,
+            trend_directory.get_max_modified(target, timestamp)
+        )
+    ).end INTO result.max_modified;
 
     RETURN result;
 END;
 $$ LANGUAGE plpgsql VOLATILE;
 
 
-CREATE FUNCTION trend.granularity_seconds(text)
- RETURNS integer
- LANGUAGE sql
- IMMUTABLE
-AS $function$SELECT CASE
+CREATE FUNCTION trend_directory.granularity_seconds(text)
+    RETURNS integer
+AS $$
+SELECT CASE
     WHEN $1 = '300' THEN 300
     WHEN $1 = '900' THEN 900
     WHEN $1 = '3600' THEN 3600
@@ -1314,42 +1484,53 @@ AS $function$SELECT CASE
     WHEN $1 = '86400' THEN 86400
     WHEN $1 = '604800' THEN 604800
     WHEN $1 = 'month' THEN 2419200
-END;$function$;
-
-
-CREATE FUNCTION trend.create_trendstore(datasource_name character varying, entitytype_name character varying, granularity character varying, trends trend.trend_descr[])
-    RETURNS trend.trendstore
-AS $$
-DECLARE
-    result trend.trendstore;
-BEGIN
-    result = trend.create_trendstore($1, $2, $3);
-
-    PERFORM trend.create_trends(result, $4);
-
-    RETURN result;
 END;
-$$ LANGUAGE plpgsql VOLATILE;
+$$ LANGUAGE sql IMMUTABLE;
 
 
-CREATE FUNCTION trend.show_trends(trend.trendstore)
-    RETURNS SETOF trend.trend_descr
+CREATE FUNCTION trend_directory.create_trendstore(
+        datasource_name character varying, entitytype_name character varying,
+        granularity character varying, trends trend_directory.trend_descr[])
+    RETURNS trend_directory.trendstore
 AS $$
-    SELECT trend.name::name, format_type(a.atttypid, a.atttypmod)::character varying, trend.description
-    FROM trend.trend
-    JOIN trend.trendstore_trend_link ON trendstore_trend_link.trend_id = trend.id
+    SELECT trend_directory.initialize_trendstore(
+        trend_directory.define_trendstore($1, $2, $3, $4)
+    );
+$$ LANGUAGE sql VOLATILE;
+
+
+CREATE FUNCTION trend_directory.create_trendstore(
+        datasource_name character varying, entitytype_name character varying,
+        granularity character varying, trends trend_directory.trend_descr[],
+        partition_size integer)
+    RETURNS trend_directory.trendstore
+AS $$
+    SELECT trend_directory.initialize_trendstore(
+        trend_directory.define_trendstore($1, $2, $3, $4, $5, 'table')
+    );
+$$ LANGUAGE sql VOLATILE;
+
+
+CREATE FUNCTION trend_directory.show_trends(trend_directory.trendstore)
+    RETURNS SETOF trend_directory.trend_descr
+AS $$
+    SELECT
+        trend.name::name,
+        format_type(a.atttypid, a.atttypmod)::character varying,
+        trend.description
+    FROM trend_directory.trend
     JOIN pg_catalog.pg_class c ON c.relname = $1::text
     JOIN pg_catalog.pg_namespace n ON c.relnamespace = n.oid
     JOIN pg_catalog.pg_attribute a ON a.attrelid = c.oid AND a.attname = trend.name
     WHERE
         n.nspname = 'trend' AND
         a.attisdropped = false AND
-        a.attnum > 0 AND trendstore_trend_link.trendstore_id = $1.id;
+        a.attnum > 0 AND trend.trendstore_id = $1.id;
 $$ LANGUAGE sql STABLE;
 
 
-CREATE FUNCTION trend.show_trends(trendstore_id integer)
-    RETURNS SETOF trend.trend_descr
+CREATE FUNCTION trend_directory.show_trends(trendstore_id integer)
+    RETURNS SETOF trend_directory.trend_descr
 AS $$
-    SELECT trend.show_trends(trendstore) FROM trend.trendstore WHERE id = $1;
+    SELECT trend_directory.show_trends(trendstore) FROM trend_directory.trendstore WHERE id = $1;
 $$ LANGUAGE sql STABLE;

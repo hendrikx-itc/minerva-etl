@@ -122,9 +122,9 @@ def is_unique(conn, schema, table_name, column):
     Returns True if column contains unique values, False otherwise
     """
     query = (
-        "SELECT MAX(count) FROM (SELECT COUNT(*) AS count "
-        "FROM \"{0}\".\"{1}\" "
-        "GROUP BY \"{2}\") AS foo "
+        'SELECT MAX(count) FROM (SELECT COUNT(*) AS count '
+        'FROM "{0}"."{1}" '
+        'GROUP BY "{2}") AS foo '
     ).format(schema, table_name, column)
 
     with closing(conn.cursor()) as cursor:

@@ -14,7 +14,7 @@ from contextlib import closing
 
 from nose.tools import eq_
 
-from minerva.directory.helpers_v4 import name_to_datasource
+from minerva.directory import DataSource
 from minerva.storage.notification.types import NotificationStore, Attribute, \
     Record
 from minerva.test import with_conn
@@ -25,7 +25,7 @@ from minerva_db import clear_database
 @with_conn(clear_database)
 def test_create(conn):
     with closing(conn.cursor()) as cursor:
-        datasource = name_to_datasource(cursor, "test-source-001")
+        datasource = DataSource.from_name(cursor, "test-source-001")
 
         notificationstore = NotificationStore(datasource, [])
 
@@ -36,7 +36,8 @@ def test_create(conn):
         query = (
             "SELECT datasource_id "
             "FROM notification.notificationstore "
-            "WHERE id = %s")
+            "WHERE id = %s"
+        )
 
         args = (notificationstore.id,)
 
@@ -52,11 +53,12 @@ def test_create(conn):
 @with_conn(clear_database)
 def test_store(conn):
     with closing(conn.cursor()) as cursor:
-        datasource = name_to_datasource(cursor, "test-source-002")
+        datasource = DataSource.from_name(cursor, "test-source-002")
 
         attributes = [
             Attribute("a", "integer", "a attribute"),
-            Attribute("b", "integer", "b attribute")]
+            Attribute("b", "integer", "b attribute")
+        ]
 
         notificationstore = NotificationStore(datasource, attributes)
 
@@ -66,6 +68,7 @@ def test_store(conn):
             entity_id=100,
             timestamp=datetime(2013, 6, 5, 12, 0, 0),
             attribute_names=["a", "b"],
-            values=[1, 42])
+            values=[1, 42]
+        )
 
         notificationstore.store_record(datarecord)(cursor)

@@ -20,10 +20,10 @@ import StringIO
 import itertools
 import psycopg2.errorcodes
 
-from minerva.db.generic import UniqueViolation
+from minerva.db.error import UniqueViolation
 from minerva.directory.distinguishedname import split_parts, type_indexes, \
     explode, implode
-from minerva.directory.basetypes import DataSource, Entity, EntityType
+from minerva.directory import DataSource, Entity, EntityType
 from minerva.directory import helpers_v4
 
 

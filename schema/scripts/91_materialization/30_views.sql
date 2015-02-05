@@ -6,7 +6,7 @@ CREATE VIEW materialization.tagged_runnable_materializations AS
         JOIN materialization.type_tag_link mtl ON mtl.type_id = mstate.type_id
         JOIN directory.tag t ON t.id = mtl.tag_id
         JOIN materialization.type mt ON mt.id = mstate.type_id
-        JOIN trend.trendstore ts ON ts.id = mt.dst_trendstore_id
+        JOIN trend_directory.trendstore ts ON ts.id = mt.dst_trendstore_id
         LEFT JOIN system.job j ON j.id = mstate.job_id
         WHERE
             materialization.requires_update(mstate)
@@ -24,18 +24,18 @@ GRANT SELECT ON materialization.tagged_runnable_materializations TO minerva;
 CREATE VIEW materialization.materializable_source_state AS
         SELECT
             mt.id AS type_id,
-            trend.get_timestamp_for(dst.granularity, mdf.timestamp) AS timestamp,
+            trend_directory.get_timestamp_for(dst.granularity, mdf.timestamp) AS timestamp,
             mdf.trendstore_id,
             mdf.timestamp AS src_timestamp,
             mdf."end" AS modified
-        FROM trend.modified mdf
-        JOIN trend.view_trendstore_link vtl ON
+        FROM trend_directory.modified mdf
+        JOIN trend_directory.view_trendstore_link vtl ON
                 vtl.trendstore_id = mdf.trendstore_id
-        JOIN trend.view v ON
+        JOIN trend_directory.view v ON
         v.id = vtl.view_id
         JOIN materialization.type mt ON
                 mt.src_trendstore_id = v.trendstore_id
-        JOIN trend.trendstore dst ON
+        JOIN trend_directory.trendstore dst ON
                 dst.id = mt.dst_trendstore_id;
 
 ALTER VIEW materialization.materializable_source_state OWNER TO minerva_admin;
@@ -55,7 +55,7 @@ CREATE VIEW materialization.materializables AS
                 (trendstore_id, src_timestamp)::materialization.source_fragment,
                 modified
             )::materialization.source_fragment_state
-            ORDER BY trendstore_id, src_timestamp 
+            ORDER BY trendstore_id, src_timestamp
         ) AS source_states
     FROM materialization.materializable_source_state
     GROUP BY type_id, timestamp;
@@ -136,9 +136,8 @@ SELECT
         WHEN m.src_trendstore_id IS NULL THEN false
         ELSE true
     END AS materialized
-    FROM trend.trend t
-    JOIN trend.trendstore_trend_link ttl ON ttl.trend_id = t.id
-    JOIN trend.trendstore ts ON ts.id = ttl.trendstore_id
+    FROM trend_directory.trend t
+    JOIN trend_directory.trendstore ts ON ts.id = t.trendstore_id
     JOIN directory.datasource ds ON ds.id = ts.datasource_id
     JOIN directory.entitytype et ON et.id = ts.entitytype_id
     LEFT JOIN materialization.type m ON m.src_trendstore_id = ts.id;

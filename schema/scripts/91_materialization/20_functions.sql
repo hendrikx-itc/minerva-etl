@@ -1,8 +1,8 @@
 CREATE FUNCTION materialization.to_char(materialization.type)
     RETURNS text
 AS $$
-    SELECT trend.to_base_table_name(src) || ' -> ' || trend.to_base_table_name(dst)
-    FROM trend.trendstore src, trend.trendstore dst
+    SELECT trend_directory.to_base_table_name(src) || ' -> ' || trend_directory.to_base_table_name(dst)
+    FROM trend_directory.trendstore src, trend_directory.trendstore dst
     WHERE src.id = $1.src_trendstore_id AND dst.id = $1.dst_trendstore_id
 $$ LANGUAGE SQL STABLE STRICT;
 
@@ -72,17 +72,17 @@ AS $$
 $$ LANGUAGE SQL VOLATILE;
 
 
-CREATE FUNCTION materialization.missing_columns(src trend.trendstore, dst trend.trendstore)
+CREATE FUNCTION materialization.missing_columns(src trend_directory.trendstore, dst trend_directory.trendstore)
     RETURNS TABLE (name character varying, datatype character varying)
 AS $$
     SELECT name, datatype
-    FROM trend.table_columns('trend', trend.to_base_table_name($1))
+    FROM trend_directory.table_columns('trend', trend_directory.to_base_table_name($1))
     WHERE name NOT IN (
-        SELECT name FROM trend.table_columns('trend', trend.to_base_table_name($2))
+        SELECT name FROM trend_directory.table_columns('trend', trend_directory.to_base_table_name($2))
     );
 $$ LANGUAGE SQL STABLE;
 
-COMMENT ON FUNCTION materialization.missing_columns(src trend.trendstore, dst trend.trendstore)
+COMMENT ON FUNCTION materialization.missing_columns(src trend_directory.trendstore, dst trend_directory.trendstore)
 IS 'The set of table columns (name, datatype) that exist in the source trendstore but not yet in the destination.';
 
 
@@ -90,19 +90,19 @@ CREATE FUNCTION materialization.missing_columns(materialization.type)
     RETURNS TABLE (name character varying, datatype character varying)
 AS $$
     SELECT materialization.missing_columns(src, dst)
-    FROM trend.trendstore src, trend.trendstore dst
+    FROM trend_directory.trendstore src, trend_directory.trendstore dst
     WHERE src.id = $1.src_trendstore_id AND dst.id = $1.dst_trendstore_id;
 $$ LANGUAGE SQL STABLE;
 
 
-CREATE FUNCTION materialization.add_missing_trends(src trend.trendstore, dst trend.trendstore)
+CREATE FUNCTION materialization.add_missing_trends(src trend_directory.trendstore, dst trend_directory.trendstore)
     RETURNS bigint
 AS $$
-    SELECT count(trend.add_trend_to_trendstore($2, name, datatype))
+    SELECT count(trend_directory.add_trend_to_trendstore($2, name, datatype, 'auto-created by materialization'))
     FROM materialization.missing_columns($1, $2);
 $$ LANGUAGE SQL VOLATILE;
 
-COMMENT ON FUNCTION materialization.add_missing_trends(src trend.trendstore, dst trend.trendstore)
+COMMENT ON FUNCTION materialization.add_missing_trends(src trend_directory.trendstore, dst trend_directory.trendstore)
 IS 'Add trends and actual table columns to destination that exist in the source
 trendstore but not yet in the destination.';
 
@@ -111,19 +111,19 @@ CREATE FUNCTION materialization.add_missing_trends(materialization.type)
     RETURNS materialization.type
 AS $$
     SELECT materialization.add_missing_trends(src, dst)
-    FROM trend.trendstore src, trend.trendstore dst
+    FROM trend_directory.trendstore src, trend_directory.trendstore dst
     WHERE src.id = $1.src_trendstore_id AND dst.id = $1.dst_trendstore_id;
 
     SELECT $1;
 $$ LANGUAGE SQL VOLATILE;
 
 
-CREATE FUNCTION materialization.modify_mismatching_trends(src trend.trendstore, dst trend.trendstore)
+CREATE FUNCTION materialization.modify_mismatching_trends(src trend_directory.trendstore, dst trend_directory.trendstore)
     RETURNS void
 AS $$
-    SELECT trend.modify_trendstore_columns($2.id, array_agg(src_column))
-    FROM trend.table_columns('trend', trend.to_base_table_name($1)) src_column
-    JOIN trend.table_columns('trend', trend.to_base_table_name($2)) dst_column ON
+    SELECT trend_directory.modify_trendstore_columns($2.id, array_agg(src_column))
+    FROM trend_directory.table_columns('trend', trend_directory.to_base_table_name($1)) src_column
+    JOIN trend_directory.table_columns('trend', trend_directory.to_base_table_name($2)) dst_column ON
         src_column.name = dst_column.name
             AND
         src_column.datatype <> dst_column.datatype;
@@ -134,7 +134,7 @@ CREATE FUNCTION materialization.modify_mismatching_trends(materialization.type)
     RETURNS void
 AS $$
     SELECT materialization.modify_mismatching_trends(src, dst)
-    FROM trend.trendstore src, trend.trendstore dst
+    FROM trend_directory.trendstore src, trend_directory.trendstore dst
     WHERE src.id = $1.src_trendstore_id AND dst.id = $1.dst_trendstore_id;
 $$ LANGUAGE SQL VOLATILE;
 
@@ -143,12 +143,12 @@ CREATE FUNCTION materialization.materialize(type materialization.type, "timestam
     RETURNS integer
 AS $$
 DECLARE
-    src_trendstore trend.trendstore;
-    dst_trendstore trend.trendstore;
+    src_trendstore trend_directory.trendstore;
+    dst_trendstore trend_directory.trendstore;
     schema_name character varying;
     table_name character varying;
     dst_table_name character varying;
-    dst_partition trend.partition;
+    dst_partition trend_directory.partition;
     sources_query character varying;
     data_query character varying;
     conn_str character varying;
@@ -161,18 +161,18 @@ DECLARE
 BEGIN
     schema_name = 'trend';
 
-    SELECT * INTO src_trendstore FROM trend.trendstore WHERE id = type.src_trendstore_id;
-    SELECT * INTO dst_trendstore FROM trend.trendstore WHERE id = type.dst_trendstore_id;
+    SELECT * INTO src_trendstore FROM trend_directory.trendstore WHERE id = type.src_trendstore_id;
+    SELECT * INTO dst_trendstore FROM trend_directory.trendstore WHERE id = type.dst_trendstore_id;
 
-    table_name = trend.to_base_table_name(src_trendstore);
-    dst_table_name = trend.to_base_table_name(dst_trendstore);
+    table_name = trend_directory.to_base_table_name(src_trendstore);
+    dst_table_name = trend_directory.to_base_table_name(dst_trendstore);
 
     PERFORM materialization.add_missing_trends(src_trendstore, dst_trendstore);
     PERFORM materialization.modify_mismatching_trends(src_trendstore, dst_trendstore);
 
-    dst_partition = trend.attributes_to_partition(
+    dst_partition = trend_directory.attributes_to_partition(
         dst_trendstore,
-        trend.timestamp_to_index(dst_trendstore.partition_size, "timestamp")
+        trend_directory.timestamp_to_index(dst_trendstore.partition_size, "timestamp")
     );
 
     EXECUTE format('DELETE FROM trend.%I WHERE timestamp = %L', dst_partition.table_name, timestamp);
@@ -180,7 +180,7 @@ BEGIN
     SELECT
         array_to_string(array_agg(quote_ident(name)), ', ') INTO columns_part
     FROM
-        trend.table_columns(schema_name, table_name);
+        trend_directory.table_columns(schema_name, table_name);
 
     sources_query = format(
         'SELECT source_states
@@ -208,7 +208,7 @@ BEGIN
         SELECT
             array_to_string(array_agg(format('%I %s', col.name, col.datatype)), ', ') INTO column_defs_part
         FROM
-            trend.table_columns(schema_name, table_name) col;
+            trend_directory.table_columns(schema_name, table_name) col;
 
         SELECT sources INTO tmp_source_states
         FROM public.dblink(conn_str, sources_query) AS r (sources materialization.source_fragment_state[]);
@@ -228,7 +228,7 @@ BEGIN
         RETURN row_count;
     END IF;
 
-    PERFORM trend.mark_modified($1.dst_trendstore_id, "timestamp");
+    PERFORM trend_directory.mark_modified($1.dst_trendstore_id, "timestamp");
 
     RETURN row_count;
 END;
@@ -286,12 +286,12 @@ CREATE FUNCTION materialization.define(src_trendstore_id integer, dst_trendstore
 AS $$
     INSERT INTO materialization.type (src_trendstore_id, dst_trendstore_id, processing_delay, stability_delay, reprocessing_period)
     SELECT $1, $2, materialization.default_processing_delay(granularity), materialization.default_stability_delay(granularity), interval '3 days'
-    FROM trend.trendstore WHERE id = $2
+    FROM trend_directory.trendstore WHERE id = $2
     RETURNING type;
 $$ LANGUAGE SQL VOLATILE;
 
 
-CREATE FUNCTION materialization.define(src trend.trendstore, dst trend.trendstore)
+CREATE FUNCTION materialization.define(src trend_directory.trendstore, dst trend_directory.trendstore)
     RETURNS materialization.type
 AS $$
     SELECT materialization.define($1.id, $2.id);
@@ -304,29 +304,29 @@ AS $$
     SELECT
         materialization.define(src.id, dst.id)
     FROM
-        trend.trendstore src,
-        trend.trendstore dst
+        trend_directory.trendstore src,
+        trend_directory.trendstore dst
     WHERE src::text = $1 AND dst::text = $2;
 $$ LANGUAGE SQL VOLATILE;
 
 
-CREATE FUNCTION materialization.define(trend.trendstore)
+CREATE FUNCTION materialization.define(trend_directory.trendstore)
     RETURNS materialization.type
 AS $$
     SELECT materialization.add_missing_trends(
         materialization.define(
             $1,
-            trend.attributes_to_trendstore(substring(ds.name, '^v(.*)'), et.name, ts.granularity)
+            trend_directory.attributes_to_trendstore(substring(ds.name, '^v(.*)'), et.name, ts.granularity)
         )
     )
-    FROM trend.view
-    JOIN trend.trendstore ts on ts.id = view.trendstore_id
+    FROM trend_directory.view
+    JOIN trend_directory.trendstore ts on ts.id = view.trendstore_id
     JOIN directory.datasource ds on ds.id = ts.datasource_id
     JOIN directory.entitytype et on et.id = ts.entitytype_id
     WHERE view.trendstore_id = $1.id;
 $$ LANGUAGE SQL VOLATILE;
 
-COMMENT ON FUNCTION materialization.define(trend.trendstore)
+COMMENT ON FUNCTION materialization.define(trend_directory.trendstore)
 IS 'Defines a new materialization with the convention that the datasource of
 the source trendstore should start with a ''v'' for views and that the
 destination trendstore has the same properties except for a datasource with a
@@ -347,26 +347,26 @@ END;
 $$ LANGUAGE plpgsql IMMUTABLE;
 
 
-CREATE FUNCTION materialization.define(trend.view)
+CREATE FUNCTION materialization.define(trend_directory.view)
     RETURNS materialization.type
 AS $$
 SELECT materialization.add_missing_trends(
     materialization.define(
         ts,
-        trend.attributes_to_trendstore(
+        trend_directory.attributes_to_trendstore(
             materialization.materialized_datasource_name(ds.name),
             et.name,
             ts.granularity
         )
     )
 )
-FROM trend.trendstore ts
+FROM trend_directory.trendstore ts
 JOIN directory.datasource ds on ds.id = ts.datasource_id
 JOIN directory.entitytype et on et.id = ts.entitytype_id
 WHERE ts.id = $1.trendstore_id;
 $$ LANGUAGE SQL VOLATILE;
 
-COMMENT ON FUNCTION materialization.define(trend.view)
+COMMENT ON FUNCTION materialization.define(trend_directory.view)
 IS 'Defines a new materialization with the convention that the datasource of
 the source trendstore should start with a ''v'' for views and that the
 destination trendstore has the same properties except for a datasource with a
@@ -553,7 +553,7 @@ $$ LANGUAGE SQL VOLATILE;
 CREATE FUNCTION materialization.reset_hard(materialization.type)
     RETURNS void
 AS $$
-    DELETE FROM trend.partition WHERE trendstore_id = $1.dst_trendstore_id;
+    DELETE FROM trend_directory.partition WHERE trendstore_id = $1.dst_trendstore_id;
     DELETE FROM materialization.state WHERE type_id = $1.id;
 $$ LANGUAGE SQL VOLATILE;
 
@@ -612,36 +612,36 @@ $$ LANGUAGE SQL STABLE;
 
 
 -- Stub to allow recursive definition.
-CREATE FUNCTION materialization.dependencies(trend.trendstore, level integer)
-    RETURNS TABLE(trendstore trend.trendstore, level integer)
+CREATE FUNCTION materialization.dependencies(trend_directory.trendstore, level integer)
+    RETURNS TABLE(trendstore trend_directory.trendstore, level integer)
 AS $$
     SELECT $1, $2;
 $$ LANGUAGE SQL STABLE;
 
 
-CREATE FUNCTION materialization.direct_view_dependencies(trend.trendstore)
-    RETURNS SETOF trend.trendstore
+CREATE FUNCTION materialization.direct_view_dependencies(trend_directory.trendstore)
+    RETURNS SETOF trend_directory.trendstore
 AS $$
     SELECT trendstore
-    FROM trend.trendstore
-    JOIN trend.view_trendstore_link vtl ON vtl.trendstore_id = trendstore.id
-    JOIN trend.view ON view.id = vtl.view_id
+    FROM trend_directory.trendstore
+    JOIN trend_directory.view_trendstore_link vtl ON vtl.trendstore_id = trendstore.id
+    JOIN trend_directory.view ON view.id = vtl.view_id
     WHERE view.trendstore_id = $1.id;
 $$ LANGUAGE SQL STABLE;
 
 
-CREATE FUNCTION materialization.direct_table_dependencies(trend.trendstore)
-    RETURNS SETOF trend.trendstore
+CREATE FUNCTION materialization.direct_table_dependencies(trend_directory.trendstore)
+    RETURNS SETOF trend_directory.trendstore
 AS $$
     SELECT trendstore
-    FROM trend.trendstore
+    FROM trend_directory.trendstore
     JOIN materialization.type ON type.src_trendstore_id = trendstore.id
     WHERE dst_trendstore_id = $1.id;
 $$ LANGUAGE SQL STABLE;
 
 
-CREATE FUNCTION materialization.direct_dependencies(trend.trendstore)
-    RETURNS SETOF trend.trendstore
+CREATE FUNCTION materialization.direct_dependencies(trend_directory.trendstore)
+    RETURNS SETOF trend_directory.trendstore
 AS $$
     SELECT
     CASE WHEN $1.type = 'view' THEN
@@ -652,8 +652,8 @@ AS $$
 $$ LANGUAGE SQL STABLE;
 
 
-CREATE OR REPLACE FUNCTION materialization.dependencies(trend.trendstore, level integer)
-    RETURNS TABLE(trendstore trend.trendstore, level integer)
+CREATE OR REPLACE FUNCTION materialization.dependencies(trend_directory.trendstore, level integer)
+    RETURNS TABLE(trendstore trend_directory.trendstore, level integer)
 AS $$
     SELECT (d.dependencies).* FROM (
         SELECT materialization.dependencies(dependency, $2 + 1)
@@ -665,17 +665,19 @@ AS $$
 $$ LANGUAGE SQL STABLE;
 
 
-CREATE FUNCTION materialization.dependencies(trend.trendstore)
-    RETURNS TABLE(trendstore trend.trendstore, level integer)
+CREATE FUNCTION materialization.dependencies(trend_directory.trendstore)
+    RETURNS TABLE(trendstore trend_directory.trendstore, level integer)
 AS $$
     SELECT materialization.dependencies($1, 1);
 $$ LANGUAGE SQL STABLE;
 
 
 CREATE FUNCTION materialization.dependencies(name text)
-    RETURNS TABLE(trendstore trend.trendstore, level integer)
+    RETURNS TABLE(trendstore trend_directory.trendstore, level integer)
 AS $$
-    SELECT materialization.dependencies(trendstore) FROM trend.trendstore WHERE trend.to_char(trendstore) = $1;
+    SELECT materialization.dependencies(trendstore)
+    FROM trend_directory.trendstore
+    WHERE trend_directory.to_char(trendstore) = $1;
 $$ LANGUAGE SQL STABLE;
 
 
@@ -719,10 +721,10 @@ FROM
         (rm.state).timestamp,
         tag,
         (rm.type).cost,
-        sum((rm.type).cost) over (partition by tag.name order by trend.granularity_seconds(ts.granularity) asc, (rm.state).timestamp desc, rm.type) as cumsum,
+        sum((rm.type).cost) over (partition by tag.name order by trend_directory.granularity_seconds(ts.granularity) asc, (rm.state).timestamp desc, rm.type) as cumsum,
         (rm.state).job_id
     FROM materialization.runnable_materializations rm
-    JOIN trend.trendstore ts ON ts.id = (rm.type).dst_trendstore_id
+    JOIN trend_directory.trendstore ts ON ts.id = (rm.type).dst_trendstore_id
     JOIN materialization.type_tag_link ttl ON ttl.type_id = (rm.type).id
     JOIN directory.tag ON tag.id = ttl.tag_id
 ) summed

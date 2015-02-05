@@ -17,7 +17,7 @@ import pytz
 from nose.tools import eq_
 
 from minerva.test import with_conn
-from minerva.directory.basetypes import DataSource, EntityType
+from minerva.directory import DataSource, EntityType
 from minerva.storage.attribute.attribute import Attribute
 from minerva.storage.attribute.attributestore import AttributeStore
 from minerva.storage.attribute.datapackage import DataPackage
@@ -36,8 +36,9 @@ def test_create(conn):
             Attribute("cntr1", "integer", "description for this attribute"),
             Attribute("cntr2", "integer", "description for this attribute")]
 
-        attributestore = AttributeStore(datasource, entitytype, attributes
-                                        ).create(cursor)
+        attributestore = AttributeStore(
+            datasource, entitytype, attributes
+        ).create(cursor)
 
         expected_table_name = "integration-test_UtranCell"
 
@@ -48,7 +49,8 @@ def test_create(conn):
         query = (
             "SELECT attribute_directory.to_table_name(attributestore) "
             "FROM attribute_directory.attributestore "
-            "WHERE id = %s")
+            "WHERE id = %s"
+        )
 
         args = attributestore.id,
 
@@ -68,10 +70,12 @@ def test_from_attributes(conn):
 
         attributes = [
             Attribute("cntr1", "integer", "description for this attribute"),
-            Attribute("cntr2", "integer", "description for this attribute")]
+            Attribute("cntr2", "integer", "description for this attribute")
+        ]
 
         attributestore = AttributeStore.from_attributes(
-            cursor, datasource, entitytype, attributes)
+            cursor, datasource, entitytype, attributes
+        )
 
         expected_table_name = "integration-test_UtranCell"
 
@@ -82,7 +86,8 @@ def test_from_attributes(conn):
         query = (
             "SELECT attribute_directory.to_table_name(attributestore) "
             "FROM attribute_directory.attributestore "
-            "WHERE id = %s")
+            "WHERE id = %s"
+        )
 
         args = attributestore.id,
 
@@ -116,11 +121,14 @@ def test_store_batch_simple(conn):
         cursor.execute(
             "SELECT attribute_directory.materialize_curr_ptr(attributestore) "
             "FROM attribute_directory.attributestore "
-            "WHERE id = %s", (attributestore.id,))
+            "WHERE id = %s",
+            (attributestore.id,)
+        )
 
         query = (
             "SELECT timestamp, \"Drops\" "
-            "FROM {0}").format(attributestore.table.render())
+            "FROM {0}"
+        ).format(attributestore.table.render())
 
         cursor.execute(query)
         # Row count should be the same as the stored batch size
@@ -139,7 +147,8 @@ def test_store_batch_with_list_a(conn):
     timestamp = pytz.utc.localize(datetime.utcnow())
     data_rows = [
         (10023 + i, timestamp, ('19.5', ['r34', 'r23', 'r33']))
-        for i in range(100)]
+        for i in range(100)
+    ]
     datapackage = DataPackage(attribute_names, data_rows)
     attributes = datapackage.deduce_attributes()
 
@@ -156,11 +165,14 @@ def test_store_batch_with_list_a(conn):
         cursor.execute(
             "SELECT attribute_directory.materialize_curr_ptr(attributestore) "
             "FROM attribute_directory.attributestore "
-            "WHERE id = %s", (attributestore.id,))
+            "WHERE id = %s",
+            (attributestore.id,)
+        )
 
         query = (
             "SELECT timestamp, height "
-            "FROM {0}").format(attributestore.table.render())
+            "FROM {0}"
+        ).format(attributestore.table.render())
 
         cursor.execute(query)
 
@@ -238,7 +250,8 @@ def test_store_txn_with_empty(conn):
         attributes = datapackage.deduce_attributes()
         eq_(attributes[0].datatype, 'smallint')
         attributestore = AttributeStore.from_attributes(
-            cursor, datasource, entitytype, attributes)
+            cursor, datasource, entitytype, attributes
+        )
         conn.commit()
 
         attributestore.store_txn(datapackage).run(conn)
@@ -272,8 +285,8 @@ def test_store_batch_update(conn):
         conn.commit()
         modified_query = (
             'SELECT modified FROM {0} '
-            'WHERE entity_id = 10023').format(
-            attributestore.history_table.render())
+            'WHERE entity_id = 10023'
+        ).format(attributestore.history_table.render())
 
         cursor.execute(modified_query)
         modified_a, = cursor.fetchone()
@@ -289,11 +302,14 @@ def test_store_batch_update(conn):
         cursor.execute(
             "SELECT attribute_directory.materialize_curr_ptr(attributestore) "
             "FROM attribute_directory.attributestore "
-            "WHERE id = %s", (attributestore.id,))
+            "WHERE id = %s",
+            (attributestore.id,)
+        )
 
         query = (
             'SELECT timestamp, "Drops" '
-            'FROM {0}').format(attributestore.table.render())
+            'FROM {0}'
+        ).format(attributestore.table.render())
 
         cursor.execute(query)
         # Row count should be the same as the stored batch size
@@ -385,7 +401,8 @@ def test_compact(conn):
 
         count_query = (
             "SELECT count(*) "
-            "FROM {0}").format(attributestore.history_table.render())
+            "FROM {0}"
+        ).format(attributestore.history_table.render())
 
         cursor.execute(count_query)
 

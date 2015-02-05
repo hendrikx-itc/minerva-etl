@@ -109,12 +109,10 @@ def get_trend_meta(
         criteria_args.append(datasource_name)
 
     sql = (
-        "SELECT d.name, trend.name, trend.to_base_table_name(ts) "
-        "FROM trend.trend "
-        "JOIN trend.trendstore_trend_link ttl "
-        "ON ttl.trend_id = trend.id "
-        "JOIN trend.trendstore ts "
-        "ON ts.id = ttl.trendstore_id "
+        "SELECT d.name, trend.name, trend_directory.to_base_table_name(ts) "
+        "FROM trend_directory.trend "
+        "JOIN trend_directory.trendstore ts "
+        "ON ts.id = trend.trendstore_id "
         "JOIN directory.datasource d "
         "ON d.id = ts.datasource_id "
         "WHERE {}"

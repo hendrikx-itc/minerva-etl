@@ -19,7 +19,7 @@ import StringIO
 import itertools
 
 from minerva.util import identity, k, head
-from minerva.directory.basetypes import DataSource, Entity, EntityType
+from minerva.directory import DataSource, Entity, EntityType
 from minerva.db.query import Table, Column
 from minerva.db.error import translate_postgresql_exceptions
 
@@ -41,30 +41,14 @@ class NoSuchRelationTypeError(Exception):
     pass
 
 
-create_datasource = DataSource.create
-
-get_datasource_by_id = DataSource.get
-
-get_datasource = DataSource.get_by_name
-
-name_to_datasource = DataSource.from_name
-
-create_entitytype = EntityType.create
-
-get_entitytype_by_id = EntityType.get
-
-get_entitytype = EntityType.get_by_name
-
-name_to_entitytype = EntityType.from_name
-
-
 def get_child_ids(cursor, base_entity, entitytype):
     """
     Return child ids for entitytype related to base_entity.
     """
     query = (
         "SELECT id FROM directory.entity "
-        "WHERE entitytype_id = %s AND dn LIKE %s")
+        "WHERE entitytype_id = %s AND dn LIKE %s"
+    )
 
     args = (entitytype.id, base_entity.dn + ",%")
 
@@ -79,15 +63,18 @@ def get_related_entity_ids(conn, base_entity, entitytype):
     """
     related_entity_ids = []
 
-    source_entitytype = get_entitytype_by_id(conn, base_entity.entitytype_id)
+    with closing(conn.cursor()) as cursor:
+        source_entitytype = EntityType.get(cursor, base_entity.entitytype_id)
 
-    relation_tablename = "{}->{}".format(source_entitytype.name,
-                                         entitytype.name)
+    relation_tablename = "{}->{}".format(
+        source_entitytype.name, entitytype.name
+    )
 
     query = (
         "SELECT target_id FROM relation.\"{0}\" "
         "JOIN directory.entity e ON e.id = target_id AND e.entitytype_id = %s "
-        "WHERE source_id = %s").format(relation_tablename)
+        "WHERE source_id = %s"
+    ).format(relation_tablename)
 
     with closing(conn.cursor()) as cursor:
         cursor.execute(query, (entitytype.id, base_entity.id))
@@ -110,7 +97,8 @@ def get_related_entitytypes(conn, entity_type_name):
         "AND s_et.name = %s "
         "JOIN relation.all r ON r.source_id = s.id "
         "JOIN directory.entity t ON r.target_id = t.id "
-        "JOIN directory.entitytype t_et ON t_et.id = t.entitytype_id")
+        "JOIN directory.entitytype t_et ON t_et.id = t.entitytype_id"
+    )
 
     with closing(conn.cursor()) as cursor:
         cursor.execute(query, (entity_type_name,))
@@ -127,8 +115,9 @@ def get_filtered_relations(conn, relation_type, filter=(MATCH_ALL, MATCH_ALL)):
         (source_dn_regex, target_dn_regex)
     """
     source_entitytype_name, target_entitytype_name = relation_type
-    relationtype_name = "{}->{}".format(source_entitytype_name,
-                                        target_entitytype_name)
+    relationtype_name = "{}->{}".format(
+        source_entitytype_name, target_entitytype_name
+    )
 
     try:
         get_relationtype_id(conn, relationtype_name)
@@ -152,8 +141,8 @@ def get_filtered_relations(conn, relation_type, filter=(MATCH_ALL, MATCH_ALL)):
             "SELECT r.source_id, s.dn, r.target_id, t.dn "
             "FROM {} r "
             "JOIN directory.entity s ON s.id = r.source_id "
-            "JOIN directory.entity t on t.id = r.target_id").format(
-            full_table_name)
+            "JOIN directory.entity t on t.id = r.target_id"
+        ).format(full_table_name)
 
         args = tuple()
 
@@ -214,11 +203,6 @@ def none_or(if_none=k(None), if_value=identity):
     return fn
 
 
-get_entity = Entity.get_by_dn
-
-create_entity = Entity.create_from_dn
-
-
 def make_entitytaglinks(conn, entity_ids, tag_names):
     """
     Create new entity tag links
@@ -272,6 +256,3 @@ def dns_to_entity_ids(cursor, dns):
     cursor.callproc("directory.dns_to_entity_ids", (dns,))
 
     return map(head, cursor.fetchall())
-
-
-dn_to_entity = Entity.from_dn

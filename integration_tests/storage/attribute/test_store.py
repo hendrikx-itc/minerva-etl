@@ -17,7 +17,7 @@ from nose.tools import eq_, ok_, assert_not_equal
 
 import pytz
 
-from minerva.directory.helpers_v4 import name_to_datasource, name_to_entitytype
+from minerva.directory import DataSource, EntityType
 from minerva.db.postgresql import get_column_names
 from minerva.test import with_conn
 
@@ -32,8 +32,8 @@ def test_simple(conn):
     with closing(conn.cursor()) as cursor:
         attribute_names = ['CellID', 'CCR', 'Drops']
 
-        datasource = name_to_datasource(cursor, "integration-test")
-        entitytype = name_to_entitytype(cursor, "UtranCell")
+        datasource = DataSource.from_name(cursor, "integration-test")
+        entitytype = EntityType.from_name(cursor, "UtranCell")
 
         timestamp = pytz.utc.localize(datetime.utcnow())
         data_rows = [(10023, timestamp, ('10023', '0.9919', '17'))]
@@ -67,8 +67,8 @@ def test_simple(conn):
 @with_conn(clear_database)
 def test_array(conn):
     with closing(conn.cursor()) as cursor:
-        datasource = name_to_datasource(cursor, "integration-test")
-        entitytype = name_to_entitytype(cursor, "UtranCell")
+        datasource = DataSource.from_name(cursor, "integration-test")
+        entitytype = EntityType.from_name(cursor, "UtranCell")
         timestamp = pytz.utc.localize(datetime.utcnow())
 
         datapackage = DataPackage(
@@ -93,8 +93,8 @@ def test_update_modified_column(conn):
     attribute_names = ['CCR', 'Drops']
 
     with closing(conn.cursor()) as cursor:
-        datasource = name_to_datasource(cursor, "integration-test")
-        entitytype = name_to_entitytype(cursor, "UtranCell")
+        datasource = DataSource.from_name(cursor, "integration-test")
+        entitytype = EntityType.from_name(cursor, "UtranCell")
         timestamp = datasource.tzinfo.localize(datetime.now())
 
         rows = [
@@ -104,21 +104,24 @@ def test_update_modified_column(conn):
 
         datapackage_a = DataPackage(
             attribute_names=attribute_names,
-            rows=rows)
+            rows=rows
+        )
 
         datapackage_b = DataPackage(
             attribute_names=attribute_names,
-            rows=rows[:1])
+            rows=rows[:1]
+        )
 
         attributes = datapackage_a.deduce_attributes()
         attributestore = AttributeStore(datasource, entitytype, attributes)
         attributestore.create(cursor)
         conn.commit()
 
-    query = Query((
+    query = Query(
         "SELECT modified, hash "
         "FROM {0} "
-        "WHERE entity_id = 10023").format(attributestore.history_table.render()))
+        "WHERE entity_id = 10023"
+    ).format(attributestore.history_table.render())
 
     attributestore.store_txn(datapackage_a).run(conn)
 
@@ -142,8 +145,8 @@ def test_update(conn):
     with closing(conn.cursor()) as cursor:
         attribute_names = ['CellID', 'CCR', 'Drops']
 
-        datasource = name_to_datasource(cursor, "integration-test")
-        entitytype = name_to_entitytype(cursor, "UtranCell")
+        datasource = DataSource.from_name(cursor, "integration-test")
+        entitytype = EntityType.from_name(cursor, "UtranCell")
         time1 = datasource.tzinfo.localize(datetime.now())
 
         data_rows = [
@@ -171,7 +174,8 @@ def test_update(conn):
 
         query = (
             'SELECT modified, "CCR" '
-            'FROM {0}').format(attributestore.history_table.render())
+            'FROM {0}'
+        ).format(attributestore.history_table.render())
 
         cursor.execute(query)
         test_list = [(modified, ccr) for modified, ccr in cursor.fetchall()]
@@ -182,8 +186,8 @@ def test_update(conn):
 @with_conn(clear_database)
 def test_extra_column(conn):
     with closing(conn.cursor()) as cursor:
-        datasource = name_to_datasource(cursor, "storagetest")
-        entitytype = name_to_entitytype(cursor, "UtranCell")
+        datasource = DataSource.from_name(cursor, "storagetest")
+        entitytype = EntityType.from_name(cursor, "UtranCell")
         timestamp = pytz.utc.localize(datetime.utcnow())
 
         datapackage_a = DataPackage(
@@ -218,8 +222,8 @@ def test_extra_column(conn):
 @with_conn(clear_database)
 def test_changing_datatype(conn):
     with closing(conn.cursor()) as cursor:
-        datasource = name_to_datasource(cursor, "storagetest")
-        entitytype = name_to_entitytype(cursor, "UtranCell")
+        datasource = DataSource.from_name(cursor, "storagetest")
+        entitytype = EntityType.from_name(cursor, "UtranCell")
         timestamp = pytz.utc.localize(datetime.utcnow())
         attribute_names = ['site_nr', 'height']
 
@@ -248,6 +252,7 @@ def test_changing_datatype(conn):
         attributestore.store_txn(datapackage_b).run(conn)
 
         conn.commit()
-        column_names = get_column_names(conn, "attribute_history",
-                                        attributestore.table_name())
+        column_names = get_column_names(
+            conn, "attribute_history", attributestore.table_name()
+        )
         eq_(len(column_names), 6)

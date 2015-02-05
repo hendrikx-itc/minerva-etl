@@ -4,7 +4,7 @@ from contextlib import closing
 from nose.tools import eq_
 
 from minerva.test import with_conn
-from minerva.directory.helpers_v4 import name_to_datasource
+from minerva.directory import DataSource
 from minerva.storage import get_plugin
 from minerva.storage.trend.trendstore import TrendStore
 from minerva.storage.trend.view import View
@@ -20,15 +20,18 @@ def test_create_view(conn):
     with closing(conn.cursor()) as cursor:
         testset_small.load(cursor)
 
-        datasource = name_to_datasource(cursor, "view-test")
+        datasource = DataSource.from_name(cursor, "view-test")
 
-        trendstore = TrendStore.get(cursor, datasource, testset_small.entitytype,
-                testset_small.granularity)
+        trendstore = TrendStore.get(
+            cursor, datasource, testset_small.entitytype,
+            testset_small.granularity
+        )
 
         if not trendstore:
-            trendstore = TrendStore(datasource, testset_small.entitytype,
-                    testset_small.granularity, partition_size=86400,
-                    type="view").create(cursor)
+            trendstore = TrendStore(
+                datasource, testset_small.entitytype,
+                testset_small.granularity, partition_size=86400, type="view"
+            ).create(cursor)
 
         view_sql = (
             "SELECT "

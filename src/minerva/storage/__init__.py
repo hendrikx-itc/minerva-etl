@@ -12,23 +12,3 @@ the Free Software Foundation; either version 3, or (at your option) any later
 version.  The full license is in the file COPYING, distributed as part of
 this software.
 """
-
-
-def load_plugins():
-    from minerva.storage import trend, attribute, geospatial, notification
-    """
-    Load and return a dictionary with plugins by their names.
-    """
-    return {
-        'attribute': attribute.create,
-        'trend': trend.create,
-        'notification': notification.create,
-        'geospatial': geospatial.create
-    }
-
-
-def get_plugin(name):
-    """
-    Return storage plugin with name `name`.
-    """
-    return load_plugins().get(name)

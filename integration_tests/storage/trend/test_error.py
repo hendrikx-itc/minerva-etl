@@ -50,15 +50,17 @@ def test_translate_postgresql_exception_decorated():
 
 @raises(NoSuchColumnError)
 @translate_postgresql_exceptions
-def test_nosuchcolumnerror():
+def test_no_such_column_error():
     create_table_query = (
         "CREATE TABLE test("
         "id integer, "
-        "name text)")
+        "name text)"
+    )
 
     select_query = (
         'SELECT "non-existing-column" '
-        'FROM test')
+        'FROM test'
+    )
 
     with closing(connect()) as conn:
         with closing(conn.cursor()) as cursor:
@@ -68,15 +70,17 @@ def test_nosuchcolumnerror():
 
 @raises(DataTypeMismatch)
 @translate_postgresql_exceptions
-def test_datatypemismatcherror():
+def test_data_type_mismatch_error():
     create_table_query = (
         "CREATE TABLE test("
         "id integer, "
-        "name text)")
+        "name text)"
+    )
 
     insert_query = (
         'INSERT INTO test(id, name) '
-        'VALUES (%s, %s)')
+        'VALUES (%s, %s)'
+    )
 
     with closing(connect()) as conn:
         with closing(conn.cursor()) as cursor:
@@ -86,11 +90,12 @@ def test_datatypemismatcherror():
 
 @raises(DuplicateTable)
 @translate_postgresql_exceptions
-def test_duplicatetableerror():
+def test_duplicate_table_error():
     create_table_query = (
         "CREATE TABLE test("
         "id integer, "
-        "name text)")
+        "name text)"
+    )
 
     with closing(connect()) as conn:
         with closing(conn.cursor()) as cursor:
