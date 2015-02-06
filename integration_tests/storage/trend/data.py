@@ -59,7 +59,8 @@ class TestSet1Small(TestSetQtr):
 
         if not self.trendstore:
             self.trendstore = TrendStore.create(TrendStoreDescriptor(
-                self.datasource, self.entitytype, self.granularity, [], partition_size=86400
+                self.datasource, self.entitytype, self.granularity, [],
+                partition_size=86400
             ))(cursor)
 
         self.partition = store_datapackage(
@@ -89,15 +90,18 @@ class TestSet1Large(TestSetQtr):
                 [], partition_size=86400)
             )(cursor)
 
-        self.partition = store_datapackage(cursor, self.trendstore,
-                datapackage, self.modified)
+        self.partition = store_datapackage(
+            cursor, self.trendstore, datapackage, self.modified
+        )
 
 
 class TestData(object):
     def __init__(self):
         self.entitytype_name = "dummy_type"
-        self.dns = ["{}=dummy_{}".format(self.entitytype_name, i)
-                for i in range(1020, 1025)]
+        self.dns = [
+            "{}=dummy_{}".format(self.entitytype_name, i)
+            for i in range(1020, 1025)
+        ]
 
         self.timezone = timezone("Europe/Amsterdam")
 
@@ -131,7 +135,8 @@ class TestData(object):
 
         self.datasource_b = DataSource.from_name(cursor, "test-source-b")
         self.trendstore_b = TrendStore.create(TrendStoreDescriptor(
-            self.datasource_b, self.entitytype, granularity, [], partition_size=86400
+            self.datasource_b, self.entitytype, granularity, [],
+            partition_size=86400
         ))(cursor)
         datapackage = generate_datapackage_b(
             granularity, self.timestamp_1, self.entities
@@ -144,7 +149,8 @@ class TestData(object):
 
         self.datasource_c = DataSource.from_name(cursor, "test-source-c")
         self.trendstore_c = TrendStore.create(TrendStoreDescriptor(
-            self.datasource_c, self.entitytype, granularity, [], partition_size=86400
+            self.datasource_c, self.entitytype, granularity, [],
+            partition_size=86400
         ))(cursor)
         datapackage = generate_datapackage_c(
             granularity, self.timestamp_1, self.entities
@@ -157,7 +163,8 @@ class TestData(object):
 
         self.datasource_d = DataSource.from_name(cursor, "test-source-d")
         self.trendstore_d = TrendStore.create(TrendStoreDescriptor(
-            self.datasource_d, self.entitytype, granularity, [], partition_size=86400
+            self.datasource_d, self.entitytype, granularity, [],
+            partition_size=86400
         ))(cursor)
         datapackage_1 = generate_datapackage_d(
             granularity, self.timestamp_1, self.entities
@@ -201,7 +208,8 @@ def generate_datapackage_a(granularity, timestamp, entities):
             (entities[0].id, ('10023', '0.9919', '2105', '17')),
             (entities[1].id, ('10047', '0.9963', '4906', '18')),
             (entities[2].id, ('10048', '0.9935', '2448', '16'))
-        ])
+        ]
+    )
 
 
 def generate_datapackage_a_large(granularity, timestamp, entities):
@@ -213,7 +221,8 @@ def generate_datapackage_a_large(granularity, timestamp, entities):
             (entities[0].id, ('10023', '0.9919', '210500', '17')),
             (entities[1].id, ('10047', '0.9963', '490600', '18')),
             (entities[2].id, ('10048', '0.9935', '244800', '16'))
-        ])
+        ]
+    )
 
 
 def generate_datapackage_b(granularity, timestamp, entities):
@@ -226,7 +235,8 @@ def generate_datapackage_b(granularity, timestamp, entities):
             (entities[1].id, ('124', '34')),
             (entities[2].id, ('783', '15')),
             (entities[3].id, ('309', '11'))
-        ])
+        ]
+    )
 
 
 def generate_datapackage_c(granularity, timestamp, entities):
@@ -238,7 +248,8 @@ def generate_datapackage_c(granularity, timestamp, entities):
             (entities[1].id, ('110', '0')),
             (entities[2].id, ('124', '0')),
             (entities[3].id, ('121', '2'))
-        ])
+        ]
+    )
 
 
 def generate_datapackage_d(granularity, timestamp, entities):
@@ -248,4 +259,5 @@ def generate_datapackage_d(granularity, timestamp, entities):
         trend_names=['counter_x', 'counter_y'],
         rows=[
             (entities[1].id, ('110', '3'))
-        ])
+        ]
+    )

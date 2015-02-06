@@ -3,20 +3,20 @@ BEGIN;
 SELECT plan(2);
 
 
-SELECT trend.create_trendstore(
+SELECT trend_directory.create_trendstore(
     'test-data',
     'Node',
     '900',
     ARRAY[
         ('x', 'integer', 'some column with integer values')
-    ]::trend.trend_descr[]
+    ]::trend_directory.trend_descr[]
 );
 
 
 SELECT materialization.define(
-    trend.create_view(
-        trend.define_view(
-        trend.attributes_to_view_trendstore('vtest', 'Node', '900'),
+    trend_directory.create_view(
+        trend_directory.define_view(
+        trend_directory.attributes_to_view_trendstore('vtest', 'Node', '900'),
         $view_def$SELECT
     id(directory.dn_to_entity('Network=G01,Node=A001')) entity_id,
     '2015-01-21 15:00'::timestamp with time zone AS timestamp,
@@ -37,9 +37,9 @@ SELECT has_table(
 SELECT throws_matching(
     $query$
     SELECT materialization.define(
-        trend.create_view(
-            trend.define_view(
-            trend.attributes_to_view_trendstore('test-wrong-name', 'Node', '900'),
+        trend_directory.create_view(
+            trend_directory.define_view(
+            trend_directory.attributes_to_view_trendstore('test-wrong-name', 'Node', '900'),
             $$SELECT
         id(directory.dn_to_entity('Network=G01,Node=A001')) entity_id,
         '2015-01-21 15:00'::timestamp with time zone AS timestamp,

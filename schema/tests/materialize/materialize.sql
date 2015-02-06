@@ -3,13 +3,13 @@ BEGIN;
 SELECT plan(3);
 
 
-SELECT trend.create_trendstore(
+SELECT trend_directory.create_trendstore(
     'test-data',
     'Node',
     '900',
     ARRAY[
         ('x', 'integer', 'some column with integer values')
-    ]::trend.trend_descr[]
+    ]::trend_directory.trend_descr[]
 );
 
 
@@ -24,13 +24,15 @@ VALUES
     (id(directory.dn_to_entity('Network=G01,Node=A002')), '2015-01-21 15:00+00', now(), 43);
 
 
-SELECT trend.transfer_staged(trendstore) FROM trend.trendstore WHERE trendstore::text = 'test-data_Node_qtr';
+SELECT trend_directory.transfer_staged(trendstore)
+FROM trend_directory.trendstore
+WHERE trendstore::text = 'test-data_Node_qtr';
 
 
 SELECT materialization.define(
-    trend.create_view(
-        trend.define_view(
-        trend.attributes_to_view_trendstore('vtest', 'Node', '900'),
+    trend_directory.create_view(
+        trend_directory.define_view(
+        trend_directory.attributes_to_view_trendstore('vtest', 'Node', '900'),
         $view_def$SELECT
     entity_id,
     timestamp,

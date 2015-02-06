@@ -64,28 +64,9 @@ $$ LANGUAGE plpgsql VOLATILE;
 CREATE FUNCTION trend_directory.create_partition_table_on_insert()
     RETURNS TRIGGER
 AS $$
-DECLARE
-    base_table_name text;
-    vacuum_partition_index int;
-    the_trendstore trend_directory.trendstore;
 BEGIN
-    IF NEW.table_name IS NULL THEN
-        NEW.table_name = trend_directory.to_table_name(NEW);
-    END IF;
-
-    IF NOT trend_directory.partition_exists(NEW.table_name::text) THEN
-        SELECT * INTO the_trendstore FROM trend_directory.trendstore WHERE id = NEW.trendstore_id;
-
-        base_table_name = trend_directory.to_base_table_name(the_trendstore);
-
-        PERFORM trend_directory.create_partition_table(base_table_name, NEW.table_name, NEW.data_start, NEW.data_end);
-
-        -- mark the second to last partition as available for vacuum full
-        vacuum_partition_index = trend_directory.timestamp_to_index(the_trendstore.partition_size, NEW.data_start) - 2;
-        INSERT INTO trend_directory.to_be_vacuumed (table_name)
-        SELECT trend_directory.partition_name(the_trendstore, vacuum_partition_index) WHERE NOT EXISTS(
-            SELECT 1 FROM trend_directory.to_be_vacuumed WHERE table_name = trend_directory.partition_name(the_trendstore, vacuum_partition_index)
-        );
+    IF NOT trend_directory.partition_exists(NEW) THEN
+        PERFORM trend_directory.create_partition_table(NEW);
     END IF;
 
     RETURN NEW;

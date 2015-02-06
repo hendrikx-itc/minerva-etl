@@ -153,6 +153,15 @@ AS $$
 $$ LANGUAGE SQL STABLE STRICT;
 
 
+CREATE FUNCTION public.action(sql text)
+    RETURNS void
+AS $$
+BEGIN
+    EXECUTE sql;
+END;
+$$ LANGUAGE plpgsql VOLATILE;
+
+
 CREATE FUNCTION public.action(anyelement, sql text)
     RETURNS anyelement
 AS $$
@@ -175,5 +184,35 @@ BEGIN
     END LOOP;
 
     RETURN $1;
+END;
+$$ LANGUAGE plpgsql VOLATILE;
+
+
+CREATE FUNCTION public.table_exists(schema_name name, table_name name)
+    RETURNS boolean
+AS $$
+    SELECT exists(
+        SELECT 1
+        FROM pg_class
+        JOIN pg_namespace ON pg_class.relnamespace = pg_namespace.oid
+        WHERE relname = $2 AND relkind = 'r' AND pg_namespace.nspname = $1
+    );
+$$ LANGUAGE sql STABLE;
+
+
+CREATE FUNCTION public.raise_exception(message anyelement)
+    RETURNS void
+AS $$
+BEGIN
+    RAISE EXCEPTION '%', message;
+END;
+$$ LANGUAGE plpgsql VOLATILE;
+
+
+CREATE FUNCTION public.raise_info(message anyelement)
+    RETURNS void
+AS $$
+BEGIN
+    RAISE INFO '%', message;
 END;
 $$ LANGUAGE plpgsql VOLATILE;

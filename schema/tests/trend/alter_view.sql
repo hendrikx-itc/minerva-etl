@@ -11,7 +11,7 @@ SELECT trend_directory.create_view(
 
 SELECT
     is(x, 1)
-FROM trend_directory."test-source_test-type_qtr";
+FROM trend."test-source_test-type_qtr";
 
 SELECT
     trend_directory.alter_view(view, 'SELECT 2 x, 3 y')

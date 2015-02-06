@@ -1,7 +1,7 @@
 CREATE FUNCTION materialization.to_char(materialization.type)
     RETURNS text
 AS $$
-    SELECT trend_directory.to_base_table_name(src) || ' -> ' || trend_directory.to_base_table_name(dst)
+    SELECT trend_directory.base_table_name(src) || ' -> ' || trend_directory.base_table_name(dst)
     FROM trend_directory.trendstore src, trend_directory.trendstore dst
     WHERE src.id = $1.src_trendstore_id AND dst.id = $1.dst_trendstore_id
 $$ LANGUAGE SQL STABLE STRICT;
@@ -76,9 +76,9 @@ CREATE FUNCTION materialization.missing_columns(src trend_directory.trendstore, 
     RETURNS TABLE (name character varying, datatype character varying)
 AS $$
     SELECT name, datatype
-    FROM trend_directory.table_columns('trend', trend_directory.to_base_table_name($1))
+    FROM trend_directory.table_columns('trend', trend_directory.base_table_name($1))
     WHERE name NOT IN (
-        SELECT name FROM trend_directory.table_columns('trend', trend_directory.to_base_table_name($2))
+        SELECT name FROM trend_directory.table_columns('trend', trend_directory.base_table_name($2))
     );
 $$ LANGUAGE SQL STABLE;
 
@@ -122,8 +122,8 @@ CREATE FUNCTION materialization.modify_mismatching_trends(src trend_directory.tr
     RETURNS void
 AS $$
     SELECT trend_directory.modify_trendstore_columns($2.id, array_agg(src_column))
-    FROM trend_directory.table_columns('trend', trend_directory.to_base_table_name($1)) src_column
-    JOIN trend_directory.table_columns('trend', trend_directory.to_base_table_name($2)) dst_column ON
+    FROM trend_directory.table_columns('trend', trend_directory.base_table_name($1)) src_column
+    JOIN trend_directory.table_columns('trend', trend_directory.base_table_name($2)) dst_column ON
         src_column.name = dst_column.name
             AND
         src_column.datatype <> dst_column.datatype;
@@ -145,7 +145,6 @@ AS $$
 DECLARE
     src_trendstore trend_directory.trendstore;
     dst_trendstore trend_directory.trendstore;
-    schema_name character varying;
     table_name character varying;
     dst_table_name character varying;
     dst_partition trend_directory.partition;
@@ -159,13 +158,11 @@ DECLARE
     replicated_server_conn system.setting;
     tmp_source_states materialization.source_fragment_state[];
 BEGIN
-    schema_name = 'trend';
-
     SELECT * INTO src_trendstore FROM trend_directory.trendstore WHERE id = type.src_trendstore_id;
     SELECT * INTO dst_trendstore FROM trend_directory.trendstore WHERE id = type.dst_trendstore_id;
 
-    table_name = trend_directory.to_base_table_name(src_trendstore);
-    dst_table_name = trend_directory.to_base_table_name(dst_trendstore);
+    table_name = trend_directory.base_table_name(src_trendstore);
+    dst_table_name = trend_directory.base_table_name(dst_trendstore);
 
     PERFORM materialization.add_missing_trends(src_trendstore, dst_trendstore);
     PERFORM materialization.modify_mismatching_trends(src_trendstore, dst_trendstore);
@@ -175,12 +172,12 @@ BEGIN
         trend_directory.timestamp_to_index(dst_trendstore.partition_size, "timestamp")
     );
 
-    EXECUTE format('DELETE FROM trend.%I WHERE timestamp = %L', dst_partition.table_name, timestamp);
+    PERFORM trend_directory.remove_timestamp(dst_trendstore, timestamp);
 
     SELECT
         array_to_string(array_agg(quote_ident(name)), ', ') INTO columns_part
     FROM
-        trend_directory.table_columns(schema_name, table_name);
+        trend_directory.table_columns(trend_directory.base_table_schema(), table_name);
 
     sources_query = format(
         'SELECT source_states
@@ -192,15 +189,23 @@ BEGIN
         type.id
     );
 
-    data_query = format('SELECT %s FROM %I.%I WHERE timestamp = %L',
-        columns_part, schema_name, table_name, timestamp);
+    data_query = format(
+        'SELECT %s FROM %I.%I WHERE timestamp = %L',
+        columns_part, trend_directory.base_table_schema(), table_name, timestamp
+    );
 
     replicated_server_conn = system.get_setting('replicated_server_conn');
 
     IF replicated_server_conn IS NULL THEN
         -- Local materialization
         EXECUTE sources_query INTO tmp_source_states;
-        EXECUTE format('INSERT INTO trend.%I (%s) %s', dst_partition.table_name, columns_part, data_query);
+        EXECUTE format(
+            'INSERT INTO %I.%I (%s) %s',
+            trend_directory.partition_table_schema(),
+            trend_directory.table_name(dst_partition),
+            columns_part,
+            data_query
+        );
     ELSE
         -- Remote materialization
         conn_str = replicated_server_conn.value;
@@ -208,13 +213,20 @@ BEGIN
         SELECT
             array_to_string(array_agg(format('%I %s', col.name, col.datatype)), ', ') INTO column_defs_part
         FROM
-            trend_directory.table_columns(schema_name, table_name) col;
+            trend_directory.table_columns(trend_directory.base_table_schema(), table_name) col;
 
         SELECT sources INTO tmp_source_states
         FROM public.dblink(conn_str, sources_query) AS r (sources materialization.source_fragment_state[]);
 
-        EXECUTE format('INSERT INTO trend.%I (%s) SELECT * FROM public.dblink(%L, %L) AS rel (%s)',
-            dst_partition.table_name, columns_part, conn_str, data_query, column_defs_part);
+        EXECUTE format(
+            'INSERT INTO %I.%I (%s) SELECT * FROM public.dblink(%L, %L) AS rel (%s)',
+            trend_directory.partition_table_name(),
+            trend_directory.table_name(dst_partition),
+            columns_part,
+            conn_str,
+            data_query,
+            column_defs_part
+        );
     END IF;
 
     GET DIAGNOSTICS row_count = ROW_COUNT;

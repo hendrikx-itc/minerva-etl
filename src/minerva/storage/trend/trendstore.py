@@ -403,7 +403,8 @@ def assure_trendstore_trend(cursor, trendstore, trend_name, data_type):
 
 def create_trend(cursor, name, data_type, trendstore_id, description=""):
     query = (
-        "INSERT INTO trend_directory.trend (name, data_type, trendstore_id, description) "
+        "INSERT INTO trend_directory.trend "
+        "(name, data_type, trendstore_id, description) "
         "VALUES (%s, %s, %s, %s) "
         "RETURNING id"
     )
@@ -569,7 +570,9 @@ class CopyFrom(DbAction):
 
             return [
                 TrendDescriptor(name, data_type, 'Created by CopyFrom')
-                for name, data_type in zip(data_package.trend_names, data_package.deduce_data_types())
+                for name, data_type in zip(
+                    data_package.trend_names, data_package.deduce_data_types()
+                )
             ]
 
 

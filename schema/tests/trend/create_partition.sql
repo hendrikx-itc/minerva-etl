@@ -19,7 +19,7 @@ FROM trend_directory.trendstore
 WHERE trendstore::text = 'test_Node_qtr';
 
 SELECT has_table(
-    'trend',
+    'trend_partition',
     'test_Node_qtr_379958',
     'trend partition table should exist'
 );

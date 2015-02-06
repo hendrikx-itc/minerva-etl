@@ -148,17 +148,15 @@ ALTER VIEW trend_directory.trendstore_trend_link OWNER TO minerva_admin;
 -- Table 'trend_directory.partition'
 
 CREATE TABLE trend_directory.partition (
-    table_name name not null,
     trendstore_id integer,
-    data_start timestamp with time zone not null,
-    data_end timestamp with time zone not null
+    index integer
 );
 
 ALTER TABLE trend_directory.partition OWNER TO minerva_admin;
 
 ALTER TABLE ONLY trend_directory.partition
     ADD CONSTRAINT trend_partition_pkey
-    PRIMARY KEY (table_name);
+    PRIMARY KEY (trendstore_id, index);
 
 ALTER TABLE ONLY trend_directory.partition
     ADD CONSTRAINT trend_partition_trendstore_id_fkey
@@ -280,13 +278,3 @@ ALTER TABLE ONLY trend_directory.view_trendstore_link
 
 GRANT SELECT ON TABLE trend_directory.view_trendstore_link TO minerva;
 GRANT INSERT,DELETE,UPDATE ON TABLE trend_directory.view_trendstore_link TO minerva_writer;
-
-
-CREATE TABLE trend_directory.to_be_vacuumed (
-    table_name name not null primary key
-);
-
-ALTER TABLE trend_directory.to_be_vacuumed OWNER TO minerva_admin;
-GRANT SELECT ON TABLE trend_directory.to_be_vacuumed TO minerva;
-GRANT INSERT,DELETE,UPDATE ON TABLE trend_directory.to_be_vacuumed TO minerva_writer;
-

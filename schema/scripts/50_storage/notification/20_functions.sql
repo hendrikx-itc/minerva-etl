@@ -31,10 +31,9 @@ $$ LANGUAGE SQL STABLE;
 CREATE FUNCTION notification.table_name(notification.notificationstore)
     RETURNS name
 AS $$
-    SELECT ds.name::name
-        FROM directory.datasource ds
-        WHERE
-            ds.id = $1.datasource_id;
+    SELECT name::name
+    FROM directory.datasource
+    WHERE id = $1.datasource_id;
 $$ LANGUAGE SQL STABLE;
 
 
@@ -45,34 +44,43 @@ AS $$
 $$ LANGUAGE SQL STABLE;
 
 
+CREATE FUNCTION notification.create_table_sql(notification.notificationstore)
+    RETURNS text[]
+AS $$
+    SELECT ARRAY[
+        format(
+            'CREATE TABLE notification.%I ('
+            '  id serial PRIMARY KEY,'
+            '  entity_id integer NOT NULL,'
+            '  "timestamp" timestamp with time zone NOT NULL'
+            ');', notification.table_name($1)
+        ),
+        format(
+            'ALTER TABLE notification.%I OWNER TO minerva_writer;',
+            notification.table_name($1)
+        ),
+        format(
+            'GRANT SELECT ON TABLE notification.%I TO minerva;',
+            notification.table_name($1)
+        ),
+        format(
+            'GRANT INSERT,DELETE,UPDATE '
+            'ON TABLE notification.%I TO minerva_writer;',
+            notification.table_name($1)
+        ),
+        format(
+            'CREATE INDEX %I ON notification.%I USING btree (timestamp);',
+            'idx_notification_' || notification.table_name($1) || '_timestamp', notification.table_name($1)
+        )
+    ];
+$$ LANGUAGE sql STABLE;
+
+
 CREATE FUNCTION notification.create_table(notification.notificationstore)
     RETURNS notification.notificationstore
 AS $$
-BEGIN
-    EXECUTE format(
-        'CREATE TABLE notification.%I ('
-        '  id serial PRIMARY KEY,'
-        '  entity_id integer NOT NULL,'
-        '  "timestamp" timestamp with time zone NOT NULL'
-        ');', notification.table_name($1));
-
-    EXECUTE format('ALTER TABLE notification.%I OWNER TO minerva_writer;',
-        notification.table_name($1));
-
-    EXECUTE format('GRANT SELECT ON TABLE notification.%I TO minerva;',
-        notification.table_name($1));
-
-    EXECUTE format(
-        'GRANT INSERT,DELETE,UPDATE '
-        'ON TABLE notification.%I TO minerva_writer;',
-        notification.table_name($1));
-
-    EXECUTE format('CREATE INDEX %I ON notification.%I USING btree (timestamp);',
-        'idx_notification_' || notification.table_name($1) || '_timestamp', notification.table_name($1));
-
-    RETURN $1;
-END;
-$$ LANGUAGE plpgsql VOLATILE;
+    SELECT public.action($1, notification.create_table_sql($1));
+$$ LANGUAGE sql VOLATILE;
 
 
 CREATE FUNCTION notification.create_staging_table(notification.notificationstore)
@@ -101,22 +109,10 @@ END;
 $$ LANGUAGE plpgsql VOLATILE;
 
 
-CREATE FUNCTION notification.table_exists(schema_name name, table_name name)
-    RETURNS boolean
-AS $$
-    SELECT exists(
-        SELECT 1
-        FROM pg_class
-        JOIN pg_namespace ON pg_class.relnamespace = pg_namespace.oid
-        WHERE relname=$2 AND relkind = 'r' AND pg_namespace.nspname = $1
-    );
-$$ LANGUAGE SQL STABLE;
-
-
 CREATE FUNCTION notification.table_exists(name)
     RETURNS boolean
 AS $$
-    SELECT notification.table_exists('notification', $1);
+    SELECT public.table_exists('notification', $1);
 $$ LANGUAGE SQL STABLE;
 
 
@@ -260,7 +256,7 @@ $$ LANGUAGE SQL STABLE;
 
 
 CREATE FUNCTION notification.add_attribute_column_sql(name, notification.attribute)
-    RETURNS text 
+    RETURNS text
 AS $$
     SELECT format(
         'ALTER TABLE notification.%I ADD COLUMN %I %s',
@@ -270,7 +266,7 @@ $$ LANGUAGE SQL STABLE;
 
 
 CREATE FUNCTION notification.add_staging_attribute_column_sql(notification.attribute)
-    RETURNS text 
+    RETURNS text
 AS $$
     SELECT
         format(
