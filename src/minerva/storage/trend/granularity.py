@@ -28,9 +28,14 @@ def create_granularity(gr):
         timedelta_to_granularity(gr)
     elif isinstance(gr, str):
         str_to_granularity(gr)
-
+    elif isinstance(gr, int):
+        int_to_granularity(gr)
     else:
         raise Exception('unsupported type to convert to granularity: {}'.format(type(gr)))
+
+
+def int_to_granularity(seconds):
+    return GranularitySeconds(seconds)
 
 
 def timedelta_to_granularity(delta):

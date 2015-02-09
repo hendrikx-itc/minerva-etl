@@ -14,7 +14,7 @@ import pytz
 from nose.tools import assert_raises, assert_equal
 
 from minerva.storage.trend.granularity import Granularity, \
-    GranularitySeconds, GranularityMonth
+    GranularitySeconds, GranularityMonth, create_granularity
 
 
 def test_granularity():
@@ -77,3 +77,7 @@ def test_granularity_month_dst():
     before_dst_switch = granularity.decr(granularity.decr(timestamp))
 
     assert_equal(before_dst_switch, tzinfo.localize(datetime(2013, 9, 1)))
+
+
+def test_create_granularity():
+    granularity = create_granularity(900)
