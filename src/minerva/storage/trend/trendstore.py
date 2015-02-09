@@ -78,8 +78,6 @@ class TrendStore(object):
             str(self.granularity), str(self.granularity)
         )
 
-        print(granularity_name)
-
         return "{}_{}_{}".format(
             self.datasource.name, self.entitytype.name, granularity_name
         )
