@@ -51,7 +51,7 @@ CREATE TABLE trend_directory.trendstore (
     id integer not null,
     entitytype_id integer not null,
     datasource_id integer not null,
-    granularity varchar not null,
+    granularity interval not null,
     partition_size integer not null,
     type trend_directory.storetype not null DEFAULT 'table',
     retention_period interval not null DEFAULT interval '1 month'

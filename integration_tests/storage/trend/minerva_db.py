@@ -6,9 +6,13 @@ from minerva.test import connect
 def clear_database(conn):
     with closing(conn.cursor()) as cursor:
         cursor.execute("DELETE FROM trend_directory.trend CASCADE")
+        conn.commit()
         cursor.execute("DELETE FROM trend_directory.trendstore CASCADE")
+        conn.commit()
         cursor.execute("DELETE FROM directory.datasource CASCADE")
+        conn.commit()
         cursor.execute("DELETE FROM directory.entitytype CASCADE")
+        conn.commit()
 
 
 def with_data(test_set):
@@ -27,12 +31,13 @@ def with_data(test_set):
 
         i.conn.commit()
 
-
     def teardown(i):
+        i.conn.rollback()
         i.conn.close()
 
     return type('C', (object,), {
         "__init__": __init__,
         "setup": setup,
-        "teardown": teardown})
+        "teardown": teardown
+    })
 

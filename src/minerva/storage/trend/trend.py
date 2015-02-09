@@ -30,7 +30,7 @@ class Trend(object):
     def create(trendstore_id, descriptor):
         def f(cursor):
             query = (
-                "INSERT INTO trend.trend ("
+                "INSERT INTO trend_directory.trend ("
                 "name, data_type, trendstore_id, description"
                 ") "
                 "VALUES (%s, %s, %s, %s) "

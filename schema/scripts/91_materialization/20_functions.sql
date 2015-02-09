@@ -172,7 +172,7 @@ BEGIN
         trend_directory.timestamp_to_index(dst_trendstore.partition_size, "timestamp")
     );
 
-    PERFORM trend_directory.remove_timestamp(dst_trendstore, timestamp);
+    PERFORM trend_directory.clear_timestamp(dst_trendstore, timestamp);
 
     SELECT
         array_to_string(array_agg(quote_ident(name)), ', ') INTO columns_part
@@ -265,13 +265,13 @@ AS $$
 $$ LANGUAGE SQL VOLATILE;
 
 
-CREATE FUNCTION materialization.default_processing_delay(granularity character varying)
+CREATE FUNCTION materialization.default_processing_delay(granularity interval)
     RETURNS interval
 AS $$
     SELECT CASE
-        WHEN $1 = '1800' OR $1 = '900' OR $1 = '300' THEN
+        WHEN $1 < '1 hour'::interval THEN
             interval '0 seconds'
-        WHEN $1 = '3600' THEN
+        WHEN $1 = '1 hour'::interval THEN
             interval '15 minutes'
         ELSE
             interval '3 hours'
@@ -279,13 +279,13 @@ AS $$
 $$ LANGUAGE SQL STABLE;
 
 
-CREATE FUNCTION materialization.default_stability_delay(granularity character varying)
+CREATE FUNCTION materialization.default_stability_delay(granularity interval)
     RETURNS interval
 AS $$
     SELECT CASE
-        WHEN $1 = '1800' OR $1 = '900' OR $1 = '300' THEN
+        WHEN $1 < '1 hour'::interval THEN
             interval '180 seconds'
-        WHEN $1 = '3600' THEN
+        WHEN $1 = '1 hour'::interval THEN
             interval '5 minutes'
         ELSE
             interval '15 minutes'
@@ -733,7 +733,7 @@ FROM
         (rm.state).timestamp,
         tag,
         (rm.type).cost,
-        sum((rm.type).cost) over (partition by tag.name order by trend_directory.granularity_seconds(ts.granularity) asc, (rm.state).timestamp desc, rm.type) as cumsum,
+        sum((rm.type).cost) over (partition by tag.name order by ts.granularity asc, (rm.state).timestamp desc, rm.type) as cumsum,
         (rm.state).job_id
     FROM materialization.runnable_materializations rm
     JOIN trend_directory.trendstore ts ON ts.id = (rm.type).dst_trendstore_id

@@ -23,7 +23,7 @@ class DataSource(object):
     tzinfo = property(get_tzinfo, set_tzinfo)
 
     @staticmethod
-    def create(cursor, name, description, timezone):
+    def create(name, description, timezone):
         """
         Create new datasource
         :param cursor: cursor instance used to store into the Minerva database.
@@ -31,54 +31,66 @@ class DataSource(object):
         :param description: A short description.
         :param timezone: Timezone of data originating from data source.
         """
-        query = (
-            "INSERT INTO directory.datasource "
-            "(id, name, description, timezone) "
-            "VALUES (DEFAULT, %s, %s, %s) RETURNING *"
-        )
+        def f(cursor):
+            query = (
+                "INSERT INTO directory.datasource "
+                "(id, name, description, timezone) "
+                "VALUES (DEFAULT, %s, %s, %s) RETURNING *"
+            )
 
-        args = name, description, timezone
+            args = name, description, timezone
 
-        cursor.execute(query, args)
+            cursor.execute(query, args)
 
-        return DataSource(*cursor.fetchone())
-
-    @staticmethod
-    def get(cursor, datasource_id):
-        """Return the datasource with the specified Id."""
-        query = (
-            "SELECT id, name, description, timezone "
-            "FROM directory.datasource "
-            "WHERE id=%s"
-        )
-
-        args = (datasource_id,)
-
-        cursor.execute(query, args)
-
-        if cursor.rowcount > 0:
             return DataSource(*cursor.fetchone())
 
-    @staticmethod
-    def get_by_name(cursor, name):
-        """Return the datasource with the specified name."""
-        query = (
-            "SELECT id, name, description, timezone "
-            "FROM directory.datasource "
-            "WHERE lower(name)=lower(%s)"
-        )
-
-        args = (name,)
-
-        cursor.execute(query, args)
-
-        if cursor.rowcount > 0:
-            return DataSource(*cursor.fetchone())
+        return f
 
     @staticmethod
-    def from_name(cursor, name):
-        """Return new or existing datasource with name `name`."""
-        cursor.callproc("directory.name_to_datasource", (name,))
+    def get(datasource_id):
+        def f(cursor):
+            """Return the datasource with the specified Id."""
+            query = (
+                "SELECT id, name, description, timezone "
+                "FROM directory.datasource "
+                "WHERE id=%s"
+            )
 
-        if cursor.rowcount > 0:
-            return DataSource(*cursor.fetchone())
+            args = (datasource_id,)
+
+            cursor.execute(query, args)
+
+            if cursor.rowcount > 0:
+                return DataSource(*cursor.fetchone())
+
+        return f
+
+    @staticmethod
+    def get_by_name(name):
+        def f(cursor):
+            """Return the datasource with the specified name."""
+            query = (
+                "SELECT id, name, description, timezone "
+                "FROM directory.datasource "
+                "WHERE lower(name)=lower(%s)"
+            )
+
+            args = (name,)
+
+            cursor.execute(query, args)
+
+            if cursor.rowcount > 0:
+                return DataSource(*cursor.fetchone())
+
+        return f
+
+    @staticmethod
+    def from_name(name):
+        def f(cursor):
+            """Return new or existing datasource with name `name`."""
+            cursor.callproc("directory.name_to_datasource", (name,))
+
+            if cursor.rowcount > 0:
+                return DataSource(*cursor.fetchone())
+
+        return f

@@ -11,57 +11,70 @@ class EntityType(object):
         return self.name
 
     @staticmethod
-    def create(cursor, name, description):
+    def create(name, description):
         """Create new entity type and add it to the database."""
-        query = (
-            "INSERT INTO directory.entitytype (id, name, description) "
-            "VALUES (DEFAULT, %s, %s) "
-            "RETURNING *")
+        def f(cursor):
+            query = (
+                "INSERT INTO directory.entitytype (id, name, description) "
+                "VALUES (DEFAULT, %s, %s) "
+                "RETURNING *")
 
-        args = name, description
+            args = name, description
 
-        cursor.execute(query, args)
+            cursor.execute(query, args)
 
-        return EntityType(*cursor.fetchone())
+            return EntityType(*cursor.fetchone())
+
+        return f
 
     @staticmethod
-    def get(cursor, entitytype_id):
+    def get(entitytype_id):
         """Return the entity type matching the specified Id."""
-        query = (
-            "SELECT id, name, description "
-            "FROM directory.entitytype "
-            "WHERE id = %s")
+        def f(cursor):
+            query = (
+                "SELECT id, name, description "
+                "FROM directory.entitytype "
+                "WHERE id = %s")
 
-        args = (entitytype_id,)
+            args = (entitytype_id,)
 
-        cursor.execute(query, args)
+            cursor.execute(query, args)
 
-        if cursor.rowcount > 0:
-            return EntityType(*cursor.fetchone())
+            if cursor.rowcount > 0:
+                return EntityType(*cursor.fetchone())
 
-    @staticmethod
-    def get_by_name(cursor, name):
-        """Return the entitytype with name `name`."""
-        sql = (
-            "SELECT id, name, description "
-            "FROM directory.entitytype "
-            "WHERE lower(name) = lower(%s)")
-
-        args = (name,)
-
-        cursor.execute(sql, args)
-
-        if cursor.rowcount > 0:
-            return EntityType(*cursor.fetchone())
+        return f
 
     @staticmethod
-    def from_name(cursor, name):
+    def get_by_name(name):
+        """Return the entity type with name `name`."""
+        def f(cursor):
+            sql = (
+                "SELECT id, name, description "
+                "FROM directory.entitytype "
+                "WHERE lower(name) = lower(%s)"
+            )
+
+            args = (name,)
+
+            cursor.execute(sql, args)
+
+            if cursor.rowcount > 0:
+                return EntityType(*cursor.fetchone())
+
+        return f
+
+    @staticmethod
+    def from_name(name):
         """
         Return new or existing entitytype with name `name`.
         """
-        args = (name, )
+        def f(cursor):
+            args = (name, )
 
-        cursor.callproc("directory.name_to_entitytype", args)
+            cursor.callproc("directory.name_to_entitytype", args)
 
-        if cursor.rowcount > 0:
-            return EntityType(*cursor.fetchone())
+            if cursor.rowcount > 0:
+                return EntityType(*cursor.fetchone())
+
+        return f

@@ -27,18 +27,17 @@ class DbTransaction(object):
     A list of actions on a database that can be executed in sequence and will
     either succeed or fail completely.
     """
-    def __init__(self, *args):
-        self.actions = list(args)
+    def __init__(self, state, actions):
+        self.state = state
+        self.actions = actions
 
     def __str__(self):
         return " -> ".join([a.__class__.__name__ for a in self.actions])
 
     def execute(self, cursor):
-        state = {}
-
         for i, action in enumerate(self.actions):
             logging.debug("{}. {}".format(i, type(action).__name__))
-            modification = action.execute(cursor, state)
+            modification = action.execute(cursor, self.state)
             logging.debug(modification)
 
             if modification:

@@ -26,26 +26,26 @@ AS $$
 $$ LANGUAGE sql IMMUTABLE;
 
 
-CREATE FUNCTION trend_directory.granularity_to_text(granularity varchar)
+CREATE FUNCTION trend_directory.granularity_to_text(interval)
     RETURNS text
 AS $$
     SELECT CASE $1
-        WHEN '300' THEN
+        WHEN '300'::interval THEN
             '5m'
-        WHEN '900' THEN
+        WHEN '900'::interval THEN
             'qtr'
-        WHEN '3600' THEN
+        WHEN '1 hour'::interval THEN
             'hr'
-        WHEN '43200' THEN
+        WHEN '12 hours'::interval THEN
             '12hr'
-        WHEN '86400' THEN
+        WHEN '1 day'::interval THEN
             'day'
-        WHEN '604800' THEN
+        WHEN '1 week'::interval THEN
             'wk'
-        WHEN 'month' THEN
-        'month'
+        WHEN '1 month'::interval THEN
+            'month'
         ELSE
-            $1
+            $1::text
         END;
 $$ LANGUAGE sql IMMUTABLE STRICT;
 
@@ -80,7 +80,7 @@ $$ LANGUAGE sql STABLE STRICT;
 
 CREATE FUNCTION trend_directory.get_trendstore_by_attributes(
         datasource_name character varying, entitytype_name character varying,
-        granularity character varying)
+        granularity interval)
     RETURNS trend_directory.trendstore
 AS $$
     SELECT ts
@@ -211,29 +211,25 @@ COMMENT ON FUNCTION trend_directory.initialize_trendstore(trend_directory.trends
 and capable of storing data.';
 
 
-CREATE FUNCTION trend_directory.get_default_partition_size(granularity varchar)
+CREATE FUNCTION trend_directory.get_default_partition_size(granularity interval)
     RETURNS integer
 AS $$
     SELECT CASE $1
-        WHEN '300' THEN
+        WHEN '300'::interval THEN
             3 * 3600
-        WHEN '900' THEN
+        WHEN '900'::interval THEN
             6 * 3600
-        WHEN '1800' THEN
+        WHEN '1800'::interval THEN
             6 * 3600
-        WHEN '3600' THEN
+        WHEN '1 hour'::interval THEN
             24 * 3600
-        WHEN '43200' THEN
+        WHEN '12 hours'::interval THEN
             24 * 3600 * 7
-        WHEN '86400' THEN
+        WHEN '1 day'::interval THEN
             24 * 3600 * 7
-        WHEN 'day' THEN
-            24 * 3600 * 7
-        WHEN '604800' THEN
+        WHEN '1 week'::interval THEN
             24 * 3600 * 7 * 4
-        WHEN 'week' THEN
-            24 * 3600 * 7 * 4
-        WHEN 'month' THEN
+        WHEN '1 month'::interval THEN
             24 * 3600 * 7 * 24
         END;
 $$ LANGUAGE sql IMMUTABLE STRICT;
@@ -241,7 +237,7 @@ $$ LANGUAGE sql IMMUTABLE STRICT;
 
 CREATE FUNCTION trend_directory.define_trendstore(
         datasource_name character varying, entitytype_name character varying,
-        granularity character varying, partition_size integer,
+        granularity interval, partition_size integer,
         type trend_directory.storetype)
     RETURNS trend_directory.trendstore
 AS $$
@@ -264,7 +260,7 @@ $$ LANGUAGE sql VOLATILE;
 
 CREATE FUNCTION trend_directory.define_trendstore(
         datasource_name character varying, entitytype_name character varying,
-        granularity character varying
+        granularity interval
     )
     RETURNS trend_directory.trendstore
 AS $$
@@ -280,7 +276,7 @@ $$ LANGUAGE sql VOLATILE;
 
 CREATE FUNCTION trend_directory.define_trendstore(
         datasource_name character varying, entitytype_name character varying,
-        granularity character varying, type trend_directory.storetype)
+        granularity interval, type trend_directory.storetype)
     RETURNS trend_directory.trendstore
 AS $$
     SELECT trend_directory.define_trendstore(
@@ -295,7 +291,7 @@ $$ LANGUAGE sql VOLATILE;
 
 CREATE FUNCTION trend_directory.create_trendstore(
         datasource_name character varying, entitytype_name character varying,
-        granularity character varying)
+        granularity interval)
     RETURNS trend_directory.trendstore
 AS $$
     SELECT trend_directory.initialize_trendstore(
@@ -319,7 +315,7 @@ $$ LANGUAGE sql VOLATILE;
 
 CREATE FUNCTION trend_directory.define_trendstore(
         datasource_name character varying, entitytype_name character varying,
-        granularity character varying, trends trend_directory.trend_descr[],
+        granularity interval, trends trend_directory.trend_descr[],
         partition_size integer, type trend_directory.storetype)
     RETURNS trend_directory.trendstore
 AS $$
@@ -332,7 +328,7 @@ $$ LANGUAGE sql VOLATILE;
 
 CREATE FUNCTION trend_directory.define_trendstore(
         datasource_name character varying, entitytype_name character varying,
-        granularity character varying, trends trend_directory.trend_descr[])
+        granularity interval, trends trend_directory.trend_descr[])
     RETURNS trend_directory.trendstore
 AS $$
     SELECT trend_directory.define_trends(
@@ -344,7 +340,7 @@ $$ LANGUAGE sql VOLATILE;
 
 CREATE FUNCTION trend_directory.create_trendstore(
         datasource_name character varying, entitytype_name character varying,
-        granularity character varying, type trend_directory.storetype)
+        granularity interval, type trend_directory.storetype)
     RETURNS trend_directory.trendstore
 AS $$
     SELECT trend_directory.initialize_trendstore(
@@ -355,7 +351,7 @@ $$ LANGUAGE sql VOLATILE;
 
 CREATE FUNCTION trend_directory.attributes_to_trendstore(
         datasource_name character varying, entitytype_name character varying,
-        granularity character varying)
+        granularity interval)
     RETURNS trend_directory.trendstore
 AS $$
     SELECT COALESCE(
@@ -367,7 +363,7 @@ $$ LANGUAGE sql VOLATILE;
 
 CREATE FUNCTION trend_directory.attributes_to_view_trendstore(
         datasource_name character varying, entitytype_name character varying,
-        granularity character varying)
+        granularity interval)
     RETURNS trend_directory.trendstore
 AS $$
     SELECT COALESCE(
@@ -375,20 +371,6 @@ AS $$
         trend_directory.define_trendstore($1, $2, $3, 'view'::trend_directory.storetype)
     );
 $$ LANGUAGE sql VOLATILE;
-
-
-CREATE FUNCTION trend_directory.parse_granularity(character varying)
-    RETURNS interval
-AS $$
-    SELECT CASE
-        WHEN $1 = 'month' THEN
-            interval '1 month'
-        WHEN $1 = 'week' THEN
-            interval '1 week'
-        WHEN $1 ~ '^[0-9]+$' THEN
-            $1::interval
-        END;
-$$ LANGUAGE sql IMMUTABLE STRICT;
 
 
 CREATE FUNCTION trend_directory.partition_name(trendstore trend_directory.trendstore, index integer)
@@ -944,23 +926,23 @@ $$ LANGUAGE sql VOLATILE;
 
 
 CREATE FUNCTION trend_directory.get_most_recent_timestamp(
-        dest_granularity integer, ts timestamp with time zone)
+        dest_granularity interval, ts timestamp with time zone)
     RETURNS timestamp with time zone
 AS $$
 DECLARE
     minute integer;
     rounded_minutes integer;
 BEGIN
-    IF dest_granularity < 3600 THEN
+    IF dest_granularity < '1 hour'::interval THEN
         minute := extract(minute FROM ts);
         rounded_minutes := minute - (minute % (dest_granularity / 60));
 
         return date_trunc('hour', ts) + (rounded_minutes || 'minutes')::INTERVAL;
-    ELSIF dest_granularity = 3600 THEN
+    ELSIF dest_granularity = '1 hour'::interval THEN
         return date_trunc('hour', ts);
-    ELSIF dest_granularity = 86400 THEN
+    ELSIF dest_granularity = '1 day'::interval THEN
         return date_trunc('day', ts);
-    ELSIF dest_granularity = 604800 THEN
+    ELSIF dest_granularity = '1 week'::interval THEN
         return date_trunc('week', ts);
     ELSE
         RAISE EXCEPTION 'Invalid granularity: %', dest_granularity;
@@ -1001,7 +983,7 @@ $$ LANGUAGE plpgsql IMMUTABLE;
 
 
 CREATE FUNCTION trend_directory.get_timestamp_for(
-        granularity integer, ts timestamp with time zone)
+        granularity interval, ts timestamp with time zone)
     RETURNS timestamp with time zone
 AS $$
 DECLARE
@@ -1578,24 +1560,9 @@ END;
 $$ LANGUAGE plpgsql VOLATILE;
 
 
-CREATE FUNCTION trend_directory.granularity_seconds(text)
-    RETURNS integer
-AS $$
-SELECT CASE
-    WHEN $1 = '300' THEN 300
-    WHEN $1 = '900' THEN 900
-    WHEN $1 = '3600' THEN 3600
-    WHEN $1 = '43200' THEN 43200
-    WHEN $1 = '86400' THEN 86400
-    WHEN $1 = '604800' THEN 604800
-    WHEN $1 = 'month' THEN 2419200
-END;
-$$ LANGUAGE sql IMMUTABLE;
-
-
 CREATE FUNCTION trend_directory.create_trendstore(
         datasource_name character varying, entitytype_name character varying,
-        granularity character varying, trends trend_directory.trend_descr[])
+        granularity interval, trends trend_directory.trend_descr[])
     RETURNS trend_directory.trendstore
 AS $$
     SELECT trend_directory.initialize_trendstore(
@@ -1606,7 +1573,7 @@ $$ LANGUAGE sql VOLATILE;
 
 CREATE FUNCTION trend_directory.create_trendstore(
         datasource_name character varying, entitytype_name character varying,
-        granularity character varying, trends trend_directory.trend_descr[],
+        granularity interval, trends trend_directory.trend_descr[],
         partition_size integer)
     RETURNS trend_directory.trendstore
 AS $$
@@ -1641,7 +1608,7 @@ AS $$
 $$ LANGUAGE sql STABLE;
 
 
-CREATE FUNCTION trend_directory.remove_timestamp(trend_directory.trendstore, timestamp with time zone)
+CREATE FUNCTION trend_directory.clear_timestamp(trend_directory.trendstore, timestamp with time zone)
     RETURNS integer
 AS $$
 DECLARE

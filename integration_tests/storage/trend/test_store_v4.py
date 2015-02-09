@@ -30,28 +30,30 @@ from minerva_db import clear_database
 class TestData(DataSet):
     def __init__(self):
         self.granularity = create_granularity("900")
+        self.datasource = None
+        self.entitytype = None
 
     def load(self, cursor):
-        self.datasource = DataSource.from_name(cursor, "test-source")
-        self.entitytype = EntityType.from_name(cursor, "test_type")
+        self.datasource = DataSource.from_name("test-source")(cursor)
+        self.entitytype = EntityType.from_name("test_type")(cursor)
 
 
 @with_conn(clear_database)
 @with_dataset(TestData)
-def test_create_trendstore(conn, dataset):
+def test_create_trend_store(conn, dataset):
     partition_size = 3600
 
-    create_trendstore = TrendStore.create(TrendStoreDescriptor(
+    create_trend_store = TrendStore.create(TrendStoreDescriptor(
         dataset.datasource, dataset.entitytype, dataset.granularity, [],
         partition_size
     ))
 
     with closing(conn.cursor()) as cursor:
-        trendstore = create_trendstore(cursor)
+        trend_store = create_trend_store(cursor)
 
-    assert isinstance(trendstore, TrendStore)
+    assert isinstance(trend_store, TrendStore)
 
-    assert trendstore.id is not None
+    assert trend_store.id is not None
 
 
 @with_conn(clear_database)
@@ -288,9 +290,9 @@ def test_store_add_column(conn, dataset):
         (2345, [4, 5, 6])
     ]
 
-    datapackage = DataPackage(dataset.granularity, timestamp, trends, rows)
+    data_package = DataPackage(dataset.granularity, timestamp, trends, rows)
 
-    transaction = trendstore.store(datapackage)
+    transaction = trendstore.store(data_package)
     transaction.run(conn)
 
     table = trendstore.partition(timestamp).table()
@@ -314,9 +316,9 @@ def test_store_add_column(conn, dataset):
         (2345, [4, 5, 7, "2013-04-25 11:00:00"])
     ]
 
-    datapackage = DataPackage(dataset.granularity, timestamp, trends, rows)
+    data_package = DataPackage(dataset.granularity, timestamp, trends, rows)
 
-    transaction = trendstore.store(datapackage)
+    transaction = trendstore.store(data_package)
     transaction.run(conn)
 
     with closing(conn.cursor()) as cursor:

@@ -35,13 +35,16 @@ class TestStore(object):
 
         clear_database(self.conn)
 
+        self.conn.commit()
+
         with closing(self.conn.cursor()) as cursor:
-            self.data_source = DataSource.from_name(cursor, "test-source")
-            self.entity_type = EntityType.from_name(cursor, "test_type")
+            self.data_source = DataSource.from_name("test-source")(cursor)
+            self.entity_type = EntityType.from_name("test_type")(cursor)
 
         self.conn.commit()
 
     def teardown(self):
+        self.conn.rollback()
         self.conn.close()
 
     def test_create_trend_store(self):
@@ -146,7 +149,6 @@ class TestStore(object):
         partition_size = 3600
 
         column_names = ["counter1", "counter2"]
-        initial_data_types = ["smallint", "smallint"]
         data_types = ["integer", "text"]
 
         trend_descriptors = [

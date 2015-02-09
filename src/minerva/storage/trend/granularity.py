@@ -12,6 +12,8 @@ this software.
 import datetime
 import logging
 
+from dateutil.relativedelta import relativedelta
+
 
 def ensure_granularity(obj):
     if isinstance(obj, Granularity):
@@ -140,43 +142,36 @@ class GranularitySeconds(Granularity):
 
 
 class GranularityMonth(Granularity):
-    def __init__(self):
+    def __init__(self, num):
         super(GranularityMonth, self).__init__('month')
+
+        self.delta = relativedelta(months=num)
 
     def __str__(self):
         return self.name
 
     def inc(self, x):
-        curr_year = x.year
-        curr_month = x.month
+        new_timestamp = x + self.delta
 
-        if curr_month == 12:
-            year = curr_year + 1
-            month = 1
-        else:
-            year = curr_year
-            month = curr_month + 1
-
-        return x.tzinfo.localize(datetime.datetime(year, month, 1))
+        return x.tzinfo.localize(
+            datetime.datetime(
+                new_timestamp.year, new_timestamp.month, new_timestamp.day
+            )
+        )
 
     def decr(self, x):
-        curr_year = x.year
-        curr_month = x.month
+        new_timestamp = x - self.delta
 
-        if curr_month == 1:
-            year = curr_year - 1
-            month = 12
-        else:
-            year = curr_year
-            month = curr_month - 1
-
-        return x.tzinfo.localize(datetime.datetime(year, month, 1))
+        return x.tzinfo.localize(
+            datetime.datetime(
+                new_timestamp.year, new_timestamp.month, new_timestamp.day
+            )
+        )
 
     def truncate(self, timestamp):
-        year = timestamp.year
-        month = timestamp.month
-
-        return timestamp.tzinfo.localize(datetime.datetime(year, month, 1))
+        return timestamp.tzinfo.localize(
+            datetime.datetime(timestamp.year, timestamp.month, 1)
+        )
 
 
 def integer_from(str_val):

@@ -20,7 +20,7 @@ from minerva.test import connect, with_conn, with_dataset
 from minerva.storage.trend.granularity import create_granularity
 from minerva.storage.trend.test import DataSet
 from minerva.storage.trend.rawdatapackage import RawDataPackage
-from minerva.storage.trend.trendstore import store_raw
+from minerva.storage.trend.trendstore import TrendStore, TrendStoreDescriptor
 
 from minerva_db import clear_database
 
@@ -60,18 +60,24 @@ update_timestamp = query(
 
 
 @with_conn()
-def store_raw_batch(conn, datasource, raw_datapackage):
-    txn = store_raw(datasource, raw_datapackage)
-    txn.run(conn)
+def store_raw_batch(conn, trendstore, raw_datapackage):
+    trendstore.store_raw(raw_datapackage).run(conn)
 
 
 class TestData(DataSet):
     def __init__(self):
         self.granularity = create_granularity("900")
+        self.data_source = None
+        self.entity_type = None
+        self.trend_store = None
 
     def load(self, cursor):
-        self.datasource = DataSource.from_name(cursor, "test-source")
-        self.entitytype = EntityType.from_name(cursor, "test_type")
+        self.data_source = DataSource.from_name("test-source")(cursor)
+        self.entity_type = EntityType.from_name("test_type")(cursor)
+        self.trend_store = TrendStore.create(TrendStoreDescriptor(
+            self.data_source, self.entity_type, self.granularity, [],
+            86400
+        ))(cursor)
 
 
 @with_conn(clear_database)
@@ -91,16 +97,24 @@ def test_store_concurrent(conn, dataset):
 
     threads = [
         Thread(
-            target=partial(store_raw_batch, dataset.datasource, raw_datapackage)
+            target=partial(
+                store_raw_batch, dataset.trend_store, raw_datapackage
+            )
         ),
         Thread(
-            target=partial(store_raw_batch, dataset.datasource, raw_datapackage)
+            target=partial(
+                store_raw_batch, dataset.trend_store, raw_datapackage
+            )
         ),
         Thread(
-            target=partial(store_raw_batch, dataset.datasource, raw_datapackage)
+            target=partial(
+                store_raw_batch, dataset.trend_store, raw_datapackage
+            )
         ),
         Thread(
-            target=partial(store_raw_batch, dataset.datasource, raw_datapackage)
+            target=partial(
+                store_raw_batch, dataset.trend_store, raw_datapackage
+            )
         )
     ]
 

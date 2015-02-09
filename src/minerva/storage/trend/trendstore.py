@@ -244,8 +244,8 @@ class TrendStore(object):
                 partition_size, type, retention_period
             ) = cursor.fetchone()
 
-            entitytype = EntityType.get(cursor, entitytype_id)
-            datasource = DataSource.get(cursor, datasource_id)
+            entitytype = EntityType.get(entitytype_id)(cursor)
+            datasource = DataSource.get(datasource_id)(cursor)
 
             trends = TrendStore.get_trends(cursor, trendstore_id)
 
@@ -330,8 +330,8 @@ class TrendStore(object):
                 partition_size, type
             ) = cursor.fetchone()
 
-            datasource = DataSource.get(cursor, datasource_id)
-            entitytype = EntityType.get(cursor, entitytype_id)
+            datasource = DataSource.get(datasource_id)(cursor)
+            entitytype = EntityType.get(entitytype_id)(cursor)
 
             trends = []  # TODO
 
@@ -358,34 +358,48 @@ class TrendStore(object):
         if datapackage.is_empty():
             return DbTransaction()
         else:
-            return store(self, datapackage)
+            if len(datapackage.rows) <= LARGE_BATCH_THRESHOLD:
+                insert_action = BatchInsert
+            else:
+                insert_action = CopyFrom
+
+            return DbTransaction(
+                StoreState(self, datapackage),
+                [
+                    SetModified(),
+                    insert_action(),
+                    MarkModified()
+                ]
+            )
 
     def store_raw(self, raw_datapackage):
         if raw_datapackage.is_empty():
             return DbTransaction()
-
-        if len(raw_datapackage.rows) <= LARGE_BATCH_THRESHOLD:
-            insert_action = BatchInsert
         else:
-            insert_action = CopyFrom
+            if len(raw_datapackage.rows) <= LARGE_BATCH_THRESHOLD:
+                insert_action = BatchInsert
+            else:
+                insert_action = CopyFrom
 
-        return DbTransaction(
-            RefineRawDataPackage(k(raw_datapackage)),
-            SetTimestamp(read("datapackage")),
-            SetPartition(self),
-            GetTimestamp(),
-            insert_action(read("partition"), read("datapackage")),
-            MarkModified(read("trendstore"), read("timestamp"))
-        )
+            return DbTransaction(
+                StoreRawState(self, raw_datapackage),
+                [
+                    RefineRawDataPackage(),
+                    SetModified(),
+                    insert_action(),
+                    MarkModified()
+                ]
+            )
 
     def clear_timestamp(self, timestamp):
         def f(cursor):
             query = (
-                "DELETE FROM {} "
-                "WHERE timestamp = %s"
-            ).format(self.base_table().render())
+                "SELECT trend_directory.cleare_timestamp(trendstore, %s) "
+                "FROM trend_directory.trendstore "
+                "WHERE id = %s"
+            )
 
-            args = timestamp,
+            args = timestamp, self.id
 
             cursor.execute(query, args)
 
@@ -394,326 +408,156 @@ class TrendStore(object):
 
 def assure_trendstore_trend(cursor, trendstore, trend_name, data_type):
     if not trendstore.has_trend(cursor, trend_name):
-        trend = trendstore.get_trend(cursor, trend_name)
+        Trend.create(
+            trendstore.id,
+            TrendDescriptor(trend_name, data_type, "")
+        )(cursor)
 
-        if not trend:
-            create_trend(cursor, trend_name, data_type, trendstore.id)
-            logging.info("created trend {}".format(trend_name))
-
-
-def create_trend(cursor, name, data_type, trendstore_id, description=""):
-    query = (
-        "INSERT INTO trend_directory.trend "
-        "(name, data_type, trendstore_id, description) "
-        "VALUES (%s, %s, %s, %s) "
-        "RETURNING id"
-    )
-
-    args = name, data_type, trendstore_id, description
-
-    cursor.execute(query, args)
-
-    trend_id, = cursor.fetchone()
-
-    return trend_id, name
-
-
-def store_raw(datasource, raw_datapackage):
-    if raw_datapackage.is_empty():
-        return DbTransaction()
-
-    if len(raw_datapackage.rows) <= LARGE_BATCH_THRESHOLD:
-        insert_action = BatchInsert
-    else:
-        insert_action = CopyFrom
-
-    dn = raw_datapackage.rows[0][0]
-
-    return DbTransaction(
-        RefineRawDataPackage(k(raw_datapackage)),
-        SetTimestamp(read("datapackage")),
-        ExtractPartition(datasource, dn),
-        GetTimestamp(),
-        insert_action(read("partition"), read("datapackage")),
-        MarkModified(read("trendstore"), read("timestamp"))
-    )
+        logging.info("created trend {}".format(trend_name))
 
 
 read = partial(methodcaller, 'get')
 
 
-def get_args(*getters):
-    def f(state):
-        return [getter(state) for getter in getters]
+class StoreState(object):
+    def __init__(self, trendstore, datapackage):
+        self.trendstore = trendstore
+        self.datapackage = datapackage
+        self.modified = None
 
-    return f
+
+def trend_descriptors_from_data_package(data_package):
+    return [
+        TrendDescriptor(name, data_type, 'Created by CopyFrom')
+        for name, data_type in zip(
+            data_package.trend_names, data_package.deduce_data_types()
+        )
+    ]
+
+
+class StoreRawState(object):
+    def __init__(self, trendstore, raw_datapackage):
+        self.trendstore = trendstore
+        self.raw_datapackage = raw_datapackage
+        self.datapackage = None
+        self.modified = None
 
 
 class RefineRawDataPackage(DbAction):
-    def __init__(self, raw_datapackage):
-        self.raw_datapackage = raw_datapackage
-
     def execute(self, cursor, state):
-        raw_datapackage = self.raw_datapackage(state)
-
         try:
-            state["datapackage"] = refine_datapackage(cursor, raw_datapackage)
+            state.datapackage = refine_datapackage(
+                cursor, state.raw_datapackage
+            )
         except UniqueViolation:
             return no_op
 
 
-class SetPartition(DbAction):
-    def __init__(self, trendstore):
-        self.trendstore = trendstore
-
+class SetModified(DbAction):
     def execute(self, cursor, state):
-        timestamp = state["timestamp"]
-
-        state["partition"] = self.trendstore.partition(timestamp)
-
-
-class ExtractPartition(DbAction):
-    def __init__(self, datasource, dn):
-        self.datasource = datasource
-        self.dn = dn
-
-    def execute(self, cursor, state):
-        entity = Entity.get_by_dn(cursor, self.dn)
-        entitytype = EntityType.get(cursor, entity.entitytype_id)
-        datapackage = state["datapackage"]
-
-        trend_store = TrendStore.get(
-            cursor, self.datasource, entitytype, datapackage.granularity
-        )
-
-        if not trend_store:
-            partition_size = 86400
-
-            trend_store = TrendStore.create(TrendStoreDescriptor(
-                self.datasource, entitytype, datapackage.granularity,
-                [], partition_size
-            ))(cursor)
-
-        partition = trend_store.partition(datapackage.timestamp)
-
-        logging.debug(partition.name)
-
-        state["partition"] = partition
-
-
-class SetTimestamp(DbAction):
-    def __init__(self, datapackage):
-        self.datapackage = datapackage
-
-    def execute(self, cursor, state):
-        datapackage = self.datapackage(state)
-
-        state["timestamp"] = datapackage.timestamp
-
-
-def store(trendstore, datapackage):
-    if len(datapackage.rows) <= LARGE_BATCH_THRESHOLD:
-        insert_action = BatchInsert
-    else:
-        insert_action = CopyFrom
-
-    transaction = DbTransaction(
-        GetTimestamp(),
-        insert_action(k(trendstore), k(datapackage)),
-        MarkModified(k(trendstore), k(datapackage.timestamp))
-    )
-
-    return transaction
-
-
-class GetTimestamp(DbAction):
-    def execute(self, cursor, state):
-        state["modified"] = get_timestamp(cursor)
+        state.modified = get_timestamp(cursor)
 
 
 class MarkModified(DbAction):
-    def __init__(self, trendstore, timestamp):
-        self.trendstore = trendstore
-        self.timestamp = timestamp
-
     def execute(self, cursor, state):
-        trendstore = self.trendstore(state)
-        timestamp = self.timestamp(state)
-
         try:
             mark_modified(
-                cursor, trendstore.id, timestamp, state["modified"]
+                cursor,
+                state.trendstore.id,
+                state.datapackage.timestamp,
+                state.modified
             )
         except UniqueViolation:
             return no_op
 
 
 class CopyFrom(DbAction):
-    def __init__(self, trendstore, datapackage):
-        self.trendstore = trendstore
-        self.datapackage = datapackage
-
     def execute(self, cursor, state):
-        def get_partition(state):
-            return self.trendstore(state).partition(self.datapackage("datapackage").timestamp)
-
-        timestamp = compose(attrgetter("timestamp"), self.datapackage)
-
-        data_types = compose(
-            DataPackage.deduce_data_types, self.datapackage
-        )
-
-        trend_names = compose(attrgetter("trend_names"), self.datapackage)
-
-        def trend_descriptors(state):
-            data_package = self.datapackage(state)
-
-            return [
-                TrendDescriptor(name, data_type, 'Created by CopyFrom')
-                for name, data_type in zip(
-                    data_package.trend_names, data_package.deduce_data_types()
-                )
-            ]
-
-
-        trendstore = self.trendstore(state)
-        datapackage = self.datapackage(state)
-        partition = get_partition(state)
-
         try:
             store_copy_from(
-                cursor, partition.table(), datapackage, state["modified"]
+                cursor,
+                state.trendstore.partition(
+                    state.datapackage.timestamp
+                ).table(),
+                state.datapackage,
+                state.modified
             )
         except NoCopyInProgress:
             return no_op
         except NoSuchTable:
-            fix = CreatePartition(self.trendstore, timestamp)
-            return insert_before(fix)
+            return insert_before(CreatePartition())
         except NoSuchColumnError:
-            fix = CheckColumnsExist(self.trendstore, trend_names, data_types)
-            return insert_before(fix)
+            return insert_before(CheckColumnsExist())
         except UniqueViolation:
-            fix = Update(self.trendstore, self.datapackage)
-            return replace(fix)
+            return replace(Update())
         except DataTypeMismatch:
-            fix = CheckDataTypes(get_partition, trend_descriptors)
-            return insert_before(fix)
+            return insert_before(CheckDataTypes())
 
 
 class BatchInsert(DbAction):
-    def __init__(self, trendstore, datapackage):
-        self.trendstore = trendstore
-        self.datapackage = datapackage
-
     def execute(self, cursor, state):
-        timestamp = compose(attrgetter("timestamp"), self.datapackage)
-        data_types = compose(
-            DataPackage.deduce_data_types, self.datapackage
-        )
-        trend_names = compose(attrgetter("trend_names"), self.datapackage)
-        def trend_descriptors(state):
-            data_package = self.datapackage(state)
-
-            return [
-                TrendDescriptor(name, data_type, 'Created by CopyFrom')
-                for name, data_type in zip(data_package.trend_names, data_package.deduce_data_types())
-            ]
-
-        trendstore = self.trendstore(state)
-        datapackage = self.datapackage(state)
-        partition = trendstore.partition(datapackage.timestamp)
-
         try:
             try:
                 store_batch_insert(
-                    cursor, partition.table(), datapackage, state["modified"]
+                    cursor,
+                    state.trendstore.partition(
+                        state.datapackage.timestamp
+                    ).table(),
+                    state.datapackage,
+                    state.modified
                 )
             except Exception as exc:
                 logging.debug("exception: {}".format(type(exc).__name__))
                 raise exc
         except NoSuchTable:
-            fix = CreatePartition(self.trendstore, timestamp)
-            return insert_before(fix)
+            return insert_before(CreatePartition())
         except NoSuchColumnError:
-            fix = CheckColumnsExist(self.trendstore, trend_names, data_types)
-            return insert_before(fix)
+            return insert_before(CheckColumnsExist())
         except UniqueViolation:
-            fix = Update(self.trendstore, self.datapackage)
-            return replace(fix)
+            return replace(Update())
         except DataTypeMismatch:
-            fix = CheckDataTypes(self.trendstore, trend_descriptors)
-            return insert_before(fix)
+            return insert_before(CheckDataTypes())
 
 
 class Update(DbAction):
-    def __init__(self, trendstore, datapackage):
-        self.trendstore = trendstore
-        self.datapackage = datapackage
-
     def execute(self, cursor, state):
-        timestamp = compose(attrgetter("timestamp"), self.datapackage)
-        data_types = compose(DataPackage.deduce_data_types, self.datapackage)
-        trend_names = compose(attrgetter("trend_names"), self.datapackage)
-
-        trendstore = self.trendstore(state)
-        datapackage = self.datapackage(state)
-
         try:
             store_update(
-                cursor, trendstore.partition(timestamp(state)).table(), datapackage, state["modified"]
+                cursor,
+                state.trendstore.partition(state.datapackage.timestamp).table(),
+                state.datapackage,
+                state.modified
             )
         except NoSuchTable:
-            fix = CreatePartition(self.trendstore, timestamp)
-            return insert_before(fix)
+            return insert_before(CreatePartition())
         except NoSuchColumnError:
-            fix = CheckColumnsExist(self.trendstore, trend_names, data_types)
-            return insert_before(fix)
+            return insert_before(CheckColumnsExist())
         except DataTypeMismatch:
-            fix = CheckDataTypes(self.trendstore, trend_names, data_types)
-            return insert_before(fix)
+            return insert_before(CheckDataTypes())
 
 
 class CheckColumnsExist(DbAction):
-    def __init__(self, trendstore, column_names, data_types):
-        self.trendstore = trendstore
-        self.column_names = column_names
-        self.data_types = data_types
-
     def execute(self, cursor, state):
-        trendstore = self.trendstore(state)
-        column_names = self.column_names(state)
-        data_types = self.data_types(state)
-
-        trend_descriptors = [TrendDescriptor(name, data_type, 'Created by CheckColumnsExist') for name, data_type in zip(column_names, data_types)]
-
-        trendstore.check_trends_exist(trend_descriptors)(cursor)
+        state.trendstore.check_trends_exist(
+            trend_descriptors_from_data_package(state.datapackage)
+        )(cursor)
 
 
 class CreatePartition(DbAction):
-    def __init__(self, trendstore, timestamp):
-        self.trendstore = trendstore
-        self.timestamp = timestamp
-
     def execute(self, cursor, state):
-        trendstore = self.trendstore(state)
-        timestamp = self.timestamp(state)
-
         try:
-            trendstore.partition(timestamp).create(cursor)
+            state.trendstore.partition(
+                state.datapackage.timestamp
+            ).create(cursor)
         except DuplicateTable:
             return drop_action()
 
 
 class CheckDataTypes(DbAction):
-    def __init__(self, trendstore, trend_descriptors):
-        self.trendstore = trendstore
-        self.trend_descriptors = trend_descriptors
-
     def execute(self, cursor, state):
-        trendstore = self.trendstore(state)
-        trend_descriptors = self.trend_descriptors(state)
-
-        trendstore.check_column_types(trend_descriptors)(cursor)
+        state.trendstore.check_column_types(
+            trend_descriptors_from_data_package(state.datapackage)
+        )(cursor)
 
 
 def get_timestamp(cursor):
