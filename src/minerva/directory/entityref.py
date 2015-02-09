@@ -49,7 +49,7 @@ class EntityIdRef(EntityRef):
         if cursor.rowcount > 0:
             entitytype_id, = cursor.fetchone()
 
-            return EntityType.get(cursor, entitytype_id)
+            return EntityType.get(entitytype_id)(cursor)
         else:
             raise Exception("no entity found with id {}".format(self.entity_id))
 
@@ -62,4 +62,4 @@ class EntityDnRef(EntityRef):
         return "(directory.dn_to_entity(%s)).id", self.dn
 
     def get_entitytype(self, cursor):
-        return EntityType.get_by_name(cursor, entitytype_name_from_dn(self.dn))
+        return EntityType.get_by_name(entitytype_name_from_dn(self.dn))(cursor)
