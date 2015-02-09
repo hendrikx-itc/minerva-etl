@@ -489,10 +489,10 @@ class ExtractPartition(DbAction):
         if not trend_store:
             partition_size = 86400
 
-            trend_store = TrendStore(
+            trend_store = TrendStore.create(TrendStoreDescriptor(
                 self.datasource, entitytype, datapackage.granularity,
-                partition_size, "table"
-            ).create(cursor)
+                [], partition_size
+            ))(cursor)
 
         partition = trend_store.partition(datapackage.timestamp)
 

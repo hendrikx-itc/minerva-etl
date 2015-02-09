@@ -15,6 +15,7 @@ from contextlib import closing
 from nose.tools import eq_
 
 from minerva.directory import DataSource
+from minerva.directory.entityref import EntityIdRef
 from minerva.storage.notification.types import NotificationStore, Attribute, \
     Record
 from minerva.test import with_conn
@@ -65,7 +66,7 @@ def test_store(conn):
         notificationstore.create(cursor)
 
         datarecord = Record(
-            entity_id=100,
+            entity_ref=EntityIdRef(100),
             timestamp=datetime(2013, 6, 5, 12, 0, 0),
             attribute_names=["a", "b"],
             values=[1, 42]

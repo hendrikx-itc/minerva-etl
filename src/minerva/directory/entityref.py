@@ -10,7 +10,7 @@ version.  The full license is in the file COPYING, distributed as part of
 this software.
 """
 from minerva.directory.distinguishedname import entitytype_name_from_dn
-from minerva.directory.basetypes import EntityType
+from minerva.directory import EntityType
 
 
 class EntityRef(object):

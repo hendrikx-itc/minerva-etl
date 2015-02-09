@@ -25,19 +25,6 @@ END;
 $$ LANGUAGE plpgsql VOLATILE;
 
 
-CREATE FUNCTION trend_directory.changes_on_partition_update()
-    RETURNS TRIGGER
-AS $$
-BEGIN
-    IF NEW.table_name <> OLD.table_name THEN
-        EXECUTE format('ALTER TABLE trend_directory.%I RENAME TO %I', OLD.table_name, NEW.table_name);
-    END IF;
-
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql VOLATILE;
-
-
 CREATE FUNCTION trend_directory.changes_on_trend_update()
     RETURNS TRIGGER
 AS $$
@@ -46,11 +33,10 @@ DECLARE
 BEGIN
     IF NEW.name <> OLD.name THEN
         FOR base_table_name IN
-            SELECT trend_directory.to_base_table_name(ts)
-            FROM trend_directory.trend t
-            JOIN trend_directory.trendstore_trend_link ttl ON ttl.trend_id = t.id
-            JOIN trend_directory.trendstore ts ON ttl.trendstore_id = ts.id
-            WHERE t.id = NEW.id
+            SELECT trend_directory.base_table_name(trendstore)
+            FROM trend_directory.trend
+            JOIN trend_directory.trendstore ON trend.trendstore_id = trendstore.id
+            WHERE trend.id = NEW.id
         LOOP
             EXECUTE format('ALTER TABLE trend_directory.%I RENAME COLUMN %I TO %I', base_table_name, OLD.name, NEW.name);
         END LOOP;
@@ -80,12 +66,20 @@ AS $$
 DECLARE
     kind CHAR;
 BEGIN
-    SELECT INTO kind relkind FROM pg_class WHERE relname = OLD.table_name;
+    SELECT INTO kind relkind
+    FROM pg_class
+    WHERE relname = trend_directory.table_name(OLD);
 
     IF kind = 'r' THEN
-        EXECUTE format('DROP TABLE IF EXISTS trend_directory.%I CASCADE', OLD.table_name);
+        EXECUTE format(
+            'DROP TABLE IF EXISTS trend_directory.%I CASCADE',
+            trend_directory.table_name(OLD)
+        );
     ELSIF kind = 'v' THEN
-        EXECUTE format('DROP VIEW trend_directory.%I', OLD.table_name);
+        EXECUTE format(
+            'DROP VIEW trend_directory.%I',
+            trend_directory.table_name(OLD)
+        );
     END IF;
 
     RETURN OLD;
@@ -110,7 +104,7 @@ AS $$
 DECLARE
     table_name text;
 BEGIN
-    table_name = trend_directory.to_base_table_name(OLD);
+    table_name = trend_directory.base_table_name(OLD);
 
     IF OLD.type = 'table' THEN
         EXECUTE format('DROP TABLE IF EXISTS trend.%I CASCADE', table_name);

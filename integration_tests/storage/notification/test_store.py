@@ -14,6 +14,7 @@ from datetime import datetime
 
 from minerva.test import with_conn
 from minerva.directory import DataSource
+from minerva.directory.entityref import EntityIdRef
 from minerva.storage.notification.types import NotificationStore, Attribute, \
     Record
 
@@ -34,7 +35,7 @@ def test_store_record(conn):
         notification_store.create(cursor)
 
         record = Record(
-            entity_id=100,
+            entity_ref=EntityIdRef(100),
             timestamp=datetime(2013, 6, 5, 12, 0, 0),
             attribute_names=["a", "b"],
             values=[1, 42]

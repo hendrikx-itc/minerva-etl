@@ -4,12 +4,6 @@ CREATE TRIGGER propagate_changes_on_update_to_trend
     EXECUTE PROCEDURE trend_directory.changes_on_datasource_update();
 
 
-CREATE TRIGGER propagate_changes_on_update
-    AFTER UPDATE ON trend_directory.partition
-    FOR EACH ROW
-    EXECUTE PROCEDURE trend_directory.changes_on_partition_update();
-
-
 CREATE TRIGGER propagate_changes_on_trend_update
     AFTER UPDATE ON trend_directory.trend
     FOR EACH ROW
