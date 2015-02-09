@@ -14,7 +14,7 @@ import pytz
 from nose.tools import assert_raises, assert_equal
 
 from minerva.storage.trend.granularity import Granularity, \
-    GranularitySeconds, GranularityMonth, create_granularity
+    GranularitySeconds, GranularityMonths, GranularityDays, create_granularity
 
 
 def test_granularity():
@@ -41,7 +41,7 @@ def test_granularity_seconds():
 
 def test_granularity_month():
     tzinfo = pytz.timezone('Europe/Amsterdam')
-    g = GranularityMonth(1)
+    g = GranularityMonths(1)
 
     timestamp = tzinfo.localize(datetime(2013, 1, 1))
 
@@ -71,7 +71,7 @@ def test_granularity_month():
 def test_granularity_month_dst():
     tzinfo = pytz.timezone('Europe/Amsterdam')
 
-    granularity = GranularityMonth(1)
+    granularity = GranularityMonths(1)
     timestamp = tzinfo.localize(datetime(2013, 11, 1))
 
     before_dst_switch = granularity.decr(granularity.decr(timestamp))
@@ -79,5 +79,25 @@ def test_granularity_month_dst():
     assert_equal(before_dst_switch, tzinfo.localize(datetime(2013, 9, 1)))
 
 
-def test_create_granularity():
+def test_create_granularity_int():
     granularity = create_granularity(900)
+
+    assert_equal(type(granularity), GranularitySeconds)
+
+
+def test_create_granularity_days():
+    granularity = create_granularity('7 days')
+
+    assert_equal(type(granularity), GranularityDays)
+
+
+def test_create_granularity_weeks():
+    granularity = create_granularity('2 weeks')
+
+    assert_equal(type(granularity), GranularityDays)
+
+
+def test_create_granularity_months():
+    granularity = create_granularity('3 months')
+
+    assert_equal(type(granularity), GranularityMonths)

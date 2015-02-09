@@ -24,14 +24,12 @@ def ensure_granularity(obj):
 
 
 def create_granularity(gr):
-    if isinstance(gr, datetime.timedelta):
-        timedelta_to_granularity(gr)
-    elif isinstance(gr, str):
-        str_to_granularity(gr)
-    elif isinstance(gr, int):
-        int_to_granularity(gr)
-    else:
-        raise Exception('unsupported type to convert to granularity: {}'.format(type(gr)))
+    try:
+        return granularity_casts[type(gr)](gr)
+    except IndexError:
+        raise Exception(
+            'unsupported type to convert to granularity: {}'.format(type(gr))
+        )
 
 
 def int_to_granularity(seconds):
@@ -50,17 +48,44 @@ def str_to_granularity(granularity_str):
 
         return GranularitySeconds(hours * 60 * 60 + minutes * 60 + seconds)
 
-    m = re.match('([0-9]+)', granularity_str)
+    m = re.match('^([0-9]+)$', granularity_str)
 
     if m:
         seconds, = m.groups()
 
         return GranularitySeconds(int(seconds))
 
-    elif granularity_str == "month":
-        return GranularityMonth()
-    else:
-        raise Exception("Unsupported granularity: {}".format(granularity_str))
+    m = re.match('([0-9]+) day[s]?', granularity_str)
+
+    if m:
+        days, = m.groups()
+
+        return GranularityDays(int(days))
+
+    m = re.match('([0-9]+) week[s]?', granularity_str)
+
+    if m:
+        weeks, = m.groups()
+
+        return GranularityDays(int(weeks) * 7)
+
+
+    m = re.match('([0-9]+) month[s]?', granularity_str)
+
+    if m:
+        months, = m.groups()
+
+        return GranularityMonths(int(months))
+
+
+    raise Exception("Unsupported granularity: {}".format(granularity_str))
+
+
+granularity_casts = {
+    datetime.timedelta: timedelta_to_granularity,
+    str: str_to_granularity,
+    int: int_to_granularity
+}
 
 
 def fn_range(incr, start, end):
@@ -165,7 +190,12 @@ class GranularitySeconds(Granularity):
                 )
 
 
-class GranularityMonth(Granularity):
+class GranularityDays(Granularity):
+    def __init__(self, num):
+        self.delta = relativedelta(days=num)
+
+
+class GranularityMonths(Granularity):
     def __init__(self, num):
         self.delta = relativedelta(months=num)
 
