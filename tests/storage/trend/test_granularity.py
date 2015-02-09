@@ -19,7 +19,7 @@ from minerva.storage.trend.granularity import Granularity, \
 
 def test_granularity():
     """Test Granularity base class."""
-    g = Granularity('900')
+    g = Granularity()
 
     timestamp = datetime.now()
 
@@ -28,13 +28,15 @@ def test_granularity():
 
 def test_granularity_seconds():
     """Test GranularitySeconds for generic sized granularities."""
-    g = GranularitySeconds('900')
+    g = GranularitySeconds(900)
 
     timestamp = datetime(2013, 3, 6, 13, 0)
 
     v = g.inc(timestamp)
 
     assert_equal(v, datetime(2013, 3, 6, 13, 15))
+
+    assert_equal(str(g), '0:15:00')
 
 
 def test_granularity_month():

@@ -223,7 +223,7 @@ class TrendStore(object):
             args = (
                 descriptor.datasource.name,
                 descriptor.entitytype.name,
-                descriptor.granularity.name,
+                str(descriptor.granularity),
                 [
                     (d.name, d.data_type, d.description)
                     for d in descriptor.trend_descriptors

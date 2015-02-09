@@ -9,6 +9,7 @@ the Free Software Foundation; either version 3, or (at your option) any later
 version.  The full license is in the file COPYING, distributed as part of
 this software.
 """
+import re
 import datetime
 import logging
 
@@ -22,15 +23,39 @@ def ensure_granularity(obj):
         return create_granularity(str(obj))
 
 
-def create_granularity(name):
-    name = str(name)
+def create_granularity(gr):
+    if isinstance(gr, datetime.timedelta):
+        timedelta_to_granularity(gr)
+    elif isinstance(gr, str):
+        str_to_granularity(gr)
 
-    if integer_from(name):
-        return GranularitySeconds(name)
-    elif name == "month":
+    else:
+        raise Exception('unsupported type to convert to granularity: {}'.format(type(gr)))
+
+
+def timedelta_to_granularity(delta):
+    return GranularitySeconds(delta.seconds)
+
+
+def str_to_granularity(granularity_str):
+    m = re.match('([0-9]{2}):([0-9]{2}):([0-9]{2})', granularity_str)
+
+    if m:
+        hours, minutes, seconds = m.groups()
+
+        return GranularitySeconds(hours * 60 * 60 + minutes * 60 + seconds)
+
+    m = re.match('([0-9]+)', granularity_str)
+
+    if m:
+        seconds, = m.groups()
+
+        return GranularitySeconds(int(seconds))
+
+    elif granularity_str == "month":
         return GranularityMonth()
     else:
-        raise Exception("Unsupported granularity: {}".format(name))
+        raise Exception("Unsupported granularity: {}".format(granularity_str))
 
 
 def fn_range(incr, start, end):
@@ -48,11 +73,8 @@ def fn_range(incr, start, end):
 
 
 class Granularity(object):
-    def __init__(self, name):
-        self.name = name
-
     def __str__(self):
-        return self.name
+        return NotImplementedError()
 
     def inc(self, x):
         raise NotImplementedError()
@@ -68,14 +90,11 @@ class Granularity(object):
 
 
 class GranularitySeconds(Granularity):
-    def __init__(self, name):
-        super(GranularitySeconds, self).__init__(name)
-
-        self.seconds = int(name)
-        self.delta = datetime.timedelta(seconds=self.seconds)
+    def __init__(self, seconds):
+        self.delta = datetime.timedelta(seconds=seconds)
 
     def __str__(self):
-        return self.name
+        return str(self.delta)
 
     def inc(self, x):
         return x + self.delta
@@ -143,12 +162,10 @@ class GranularitySeconds(Granularity):
 
 class GranularityMonth(Granularity):
     def __init__(self, num):
-        super(GranularityMonth, self).__init__('month')
-
         self.delta = relativedelta(months=num)
 
     def __str__(self):
-        return self.name
+        return self.delta
 
     def inc(self, x):
         new_timestamp = x + self.delta
