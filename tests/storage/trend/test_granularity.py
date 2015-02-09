@@ -38,6 +38,12 @@ def test_granularity_seconds():
 
     assert_equal(str(g), '0:15:00')
 
+    assert_equal(str(GranularitySeconds(3600)), '1:00:00')
+
+    assert_equal(str(GranularitySeconds(43200)), '12:00:00')
+
+    assert_equal(str(GranularitySeconds(86400)), '1 day, 0:00:00')
+
 
 def test_granularity_month():
     tzinfo = pytz.timezone('Europe/Amsterdam')

@@ -35,7 +35,11 @@ PARTITION_SIZES = {
 
 # Table name postfixes by interval size
 DATA_TABLE_POSTFIXES = {
-    "300": "5m", "900": "qtr", "3600": "hr", "43200": "12hr", "86400": "day",
+    "0:05:00": "5m",
+    "0:15:00": "qtr",
+    "1:00:00": "hr",
+    "12:00:00": "12hr",
+    "86400": "day",
     "604800": "wk"
 }
 

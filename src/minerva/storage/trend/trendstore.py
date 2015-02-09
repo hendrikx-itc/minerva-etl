@@ -75,7 +75,10 @@ class TrendStore(object):
 
     def make_table_basename(self):
         granularity_name = DATA_TABLE_POSTFIXES.get(
-            self.granularity.name, self.granularity.name)
+            str(self.granularity), str(self.granularity)
+        )
+
+        print(granularity_name)
 
         return "{}_{}_{}".format(
             self.datasource.name, self.entitytype.name, granularity_name
@@ -297,7 +300,7 @@ class TrendStore(object):
 
     @classmethod
     def get(cls, cursor, datasource, entitytype, granularity):
-        args = datasource.id, entitytype.id, granularity.name
+        args = datasource.id, entitytype.id, str(granularity)
 
         cls.get_query.execute(cursor, args)
 
