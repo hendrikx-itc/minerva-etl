@@ -20,21 +20,18 @@ class Partition(object):
     """
     A partition of a trend store.
     """
-    def __init__(self, index, name, trendstore, start, end):
+    def __init__(self, index, trendstore):
         self.index = index
-        self.name = name
         self.trendstore = trendstore
-        self.start = start
-        self.end = end
 
-        self.last_modified = self._last_modified()
-        self.max_modified = self._max_modified()
+    def name(self):
+        return "{}_{}".format(self.trendstore.make_table_basename(), self.index)
 
     def __str__(self):
-        return self.name
+        return self.name()
 
     def table(self):
-        return Table("trend_partition", self.name)
+        return Table("trend_partition", self.name())
 
     def timestamps(self):
         current = self.start
@@ -43,28 +40,6 @@ class Partition(object):
             current = self.trendstore.granularity.inc(current)
 
             yield current
-
-    def _last_modified(self):
-        end_col = Column("end")
-        table_name_col = Column("table_name")
-        timestamp_col = Column("timestamp")
-
-        return schema.modified.select(
-            [end_col]
-        ).where_(
-            And(
-                Eq(table_name_col, self.name),
-                Eq(timestamp_col)
-            )
-        )
-
-    def _max_modified(self):
-        timestamp_col = Column("timestamp")
-        table = self.table()
-
-        return table.select(
-            Call("max", Column("modified"))
-        ).where_(Eq(timestamp_col))
 
     def create(self, cursor):
         query = (
@@ -80,15 +55,3 @@ class Partition(object):
             raise DuplicateTable()
         except psycopg2.ProgrammingError as exc:
             raise translate_postgresql_exception(exc)
-
-    def clear_timestamp(self, timestamp):
-        def f(cursor):
-            query = (
-                "DELETE FROM {} "
-                "WHERE timestamp = %s"
-            ).format(self.table.render())
-            args = timestamp,
-
-            cursor.execute(query, args)
-
-        return f
