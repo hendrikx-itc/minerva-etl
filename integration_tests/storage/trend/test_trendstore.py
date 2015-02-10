@@ -19,7 +19,7 @@ from minerva.test import connect
 from minerva.storage.trend.trendstore import TrendStore, TrendStoreDescriptor
 from minerva.storage.trend.trend import TrendDescriptor
 from minerva.storage.trend.granularity import create_granularity
-from minerva.db.postgresql import get_column_names
+from minerva.db.postgresql import get_column_names, table_exists
 
 from minerva_db import clear_database
 
@@ -60,6 +60,8 @@ class TestStore(object):
         assert isinstance(trend_store, TrendStore)
 
         assert trend_store.id is not None
+
+        assert table_exists(self.conn, 'trend', 'test-source_test_type_qtr')
 
     def test_create_trend_store_with_trends(self):
         granularity = create_granularity("900")
@@ -104,6 +106,10 @@ class TestStore(object):
             partition = trend_store.partition(timestamp)
 
             partition.create(cursor)
+
+            assert table_exists(
+                self.conn, 'trend_partition', 'test-source_test_type_qtr_379958'
+            )
 
     def test_get(self):
         granularity = create_granularity("900")

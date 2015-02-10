@@ -116,19 +116,14 @@ def drop_all_tables(conn, schema):
 
 def table_exists(conn, schema, table):
     with closing(conn.cursor()) as cursor:
-        query = (
-            "SELECT COUNT(*) FROM information_schema.tables "
-            "WHERE table_schema = %s "
-            "AND table_name = %s"
-        )
-
+        query = "SELECT public.table_exists(%s, %s)"
         args = schema, table
 
         cursor.execute(query, args)
 
-        (num, ) = cursor.fetchone()
+        (exists, ) = cursor.fetchone()
 
-        return num > 0
+        return exists
 
 
 def column_exists(conn, schema, table, column):
