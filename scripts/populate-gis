@@ -106,7 +106,8 @@ def setup_logging(level):
 def get_sites(cursor):
     query = (
         "SELECT entity_id, timestamp, x_lon, y_lat, srid "
-        'FROM attribute."configuration_Site"')
+        'FROM attribute."configuration_Site" '
+        'WHERE x_lon is not null and y_lat is not null and srid is not null')
 
     cursor.execute(query)
 
@@ -118,8 +119,9 @@ def get_sites(cursor):
 
 def get_cells(cursor):
     query = (
-        "SELECT entity_id, timestamp, azimuth, type "
-        'FROM attribute."configuration_Cell"')
+        'SELECT entity_id, timestamp, azimuth, type '
+        'FROM attribute."configuration_Cell" '
+        'WHERE azimuth is not null and type is not null')
 
     cursor.execute(query)
 

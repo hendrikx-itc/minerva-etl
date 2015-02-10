@@ -1163,46 +1163,59 @@ AS $$
 $$ LANGUAGE SQL VOLATILE;
 
 
-CREATE OR REPLACE FUNCTION attribute_directory.modify_column_type(table_name name, column_name name, datatype varchar)
-    RETURNS void
+CREATE OR REPLACE FUNCTION attribute_directory.modify_column_type_sql(attribute_directory.attributestore, column_name name, datatype varchar)
+    RETURNS text[]
 AS $$
-BEGIN
-    EXECUTE format('ALTER TABLE attribute_base.%I ALTER %I TYPE %s USING CAST(%I AS %s)', table_name, column_name, datatype, column_name, datatype);
-END;
-$$ LANGUAGE plpgsql VOLATILE;
+    SELECT ARRAY[
+        format(
+            'SELECT attribute_directory.drop_dependees(attributestore) '
+            'FROM attribute_directory.attributestore '
+            'WHERE id = %s',
+            $1.id
+        ),
+        format(
+            'ALTER TABLE attribute_base.%I ALTER %I TYPE %s USING CAST(%I AS %s)',
+            attribute_directory.to_table_name($1), $2, $3, $2, $3
+        ),
+        format(
+            'SELECT attribute_directory.create_dependees(attributestore) '
+            'FROM attribute_directory.attributestore '
+            'WHERE id = %s',
+            $1.id
+        )
+    ];
+$$ LANGUAGE sql STABLE;
 
 
 CREATE OR REPLACE FUNCTION attribute_directory.modify_column_type(attribute_directory.attributestore, column_name name, datatype varchar)
     RETURNS attribute_directory.attributestore
 AS $$
-BEGIN
-    PERFORM attribute_directory.modify_column_type(
-        attribute_directory.to_table_name($1), $2, $3
+    SELECT dep_recurse.alter(
+        dep_recurse.table_ref('attribute_base', attribute_directory.to_table_name($1)),
+        ARRAY[
+            attribute_directory.modify_column_type_sql($1, $2, $3)
+        ],
+        attribute_directory.dependees($1)
     );
 
-    RETURN $1;
-END;
-$$ LANGUAGE plpgsql VOLATILE;
+    SELECT $1;
+$$ LANGUAGE sql VOLATILE;
 
 
 CREATE OR REPLACE FUNCTION attribute_directory.modify_datatype(attribute_directory.attribute)
     RETURNS attribute_directory.attribute
 AS $$
-BEGIN
-    PERFORM
-        attribute_directory.create_dependees(
-            attribute_directory.modify_column_type(
-                attribute_directory.drop_dependees(attributestore),
-                $1.name,
-                $1.datatype
-            )
+    SELECT
+        attribute_directory.modify_column_type(
+            attributestore,
+            $1.name,
+            $1.datatype
         )
     FROM attribute_directory.attributestore
     WHERE id = $1.attributestore_id;
 
-    RETURN $1;
-END;
-$$ LANGUAGE plpgsql VOLATILE;
+    SELECT $1;
+$$ LANGUAGE sql VOLATILE;
 
 
 CREATE OR REPLACE FUNCTION attribute_directory.transfer_staged(attribute_directory.attributestore)
