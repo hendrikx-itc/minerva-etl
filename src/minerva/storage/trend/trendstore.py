@@ -96,17 +96,7 @@ class TrendStore(object):
         return Table("trend", self.make_table_basename())
 
     def partition(self, timestamp):
-        if self.type == "view":
-            index = None
-            start = None
-            end = None
-        else:
-            index = self.partitioning.index(timestamp)
-            start, end = self.partitioning.index_to_interval(index)
-
-        name = self.make_table_name(timestamp)
-
-        return Partition(index, name, self, start, end)
+        return Partition(self.partitioning.index(timestamp), self)
 
     def index_to_interval(self, partition_index):
         return self.partitioning.index_to_interval(partition_index)
