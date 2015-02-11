@@ -38,9 +38,10 @@ class DbTransaction(object):
         for i, action in enumerate(self.actions):
             logging.debug("{}. {}".format(i, type(action).__name__))
             modification = action.execute(cursor, self.state)
-            logging.debug(modification)
 
-            if modification:
+            if modification is not None:
+                logging.debug("modification: {}".format(modification))
+
                 return modification(action, self)
 
     def append(self, action):
