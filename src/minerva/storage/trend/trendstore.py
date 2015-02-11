@@ -68,9 +68,9 @@ class TrendStore(object):
         self.trends = trends
 
     def __str__(self):
-        return self.make_table_basename()
+        return self.base_table_name()
 
-    def make_table_basename(self):
+    def base_table_name(self):
         granularity_name = DATA_TABLE_POSTFIXES.get(
             str(self.granularity), str(self.granularity)
         )
@@ -79,18 +79,18 @@ class TrendStore(object):
             self.datasource.name, self.entitytype.name, granularity_name
         )
 
-    def make_table_name(self, timestamp):
-        table_basename = self.make_table_basename()
+    def partition_table_name(self, timestamp):
+        base_table_name = self.base_table_name()
 
         if self.type == "view":
-            return table_basename
+            return base_table_name
         else:
             index = self.partitioning.index(timestamp)
 
-            return "{}_{}".format(table_basename, index)
+            return "{}_{}".format(base_table_name, index)
 
     def base_table(self):
-        return Table("trend", self.make_table_basename())
+        return Table("trend", self.base_table_name())
 
     def partition(self, timestamp):
         index = self.partitioning.index(timestamp)
@@ -163,11 +163,11 @@ class TrendStore(object):
     def table_names(self, start, end):
         timestamps = self.granularity.range(start, end)
 
-        table_names = map(self.make_table_name, timestamps)
+        table_names = map(self.partition_table_name, timestamps)
 
         # HACK for dealing with intervals that are small but span two tables
         # (e.g. 2012-1-5 0:00 - 2012-1-5 1:00 for qtr tables)
-        end_table = self.make_table_name(end)
+        end_table = self.partition_table_name(end)
 
         table_names.append(end_table)
 

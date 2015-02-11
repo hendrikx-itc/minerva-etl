@@ -10,12 +10,6 @@ CREATE TRIGGER propagate_changes_on_trend_update
     EXECUTE PROCEDURE trend_directory.changes_on_trend_update();
 
 
-CREATE TRIGGER create_table_on_insert
-    BEFORE INSERT ON trend_directory.partition
-    FOR EACH ROW
-    EXECUTE PROCEDURE trend_directory.create_partition_table_on_insert();
-
-
 CREATE TRIGGER drop_table_on_delete
     AFTER DELETE ON trend_directory.partition
     FOR EACH ROW

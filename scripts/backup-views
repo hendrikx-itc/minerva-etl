@@ -94,7 +94,7 @@ def main():
                          trendstore.entitytype.name, trendstore.granularity,
                          view.description, view.sql.replace("\r\n", "\n"))
 
-                file_path = "{}.sql".format(trendstore.make_table_basename())
+                file_path = "{}.sql".format(trendstore.base_table_name())
 
                 with open(file_path, 'w') as view_backup:
                     view_backup.write(define_view_query)

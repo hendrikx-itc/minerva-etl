@@ -192,7 +192,14 @@ class GranularitySeconds(Granularity):
 
 class GranularityDays(Granularity):
     def __init__(self, num):
+        self.num = num
         self.delta = relativedelta(days=num)
+
+    def __str__(self):
+        if self.num == 1:
+            return "1 day"
+        else:
+            return "{} days".format(self.num)
 
 
 class GranularityMonths(Granularity):

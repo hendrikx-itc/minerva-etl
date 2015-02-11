@@ -1275,7 +1275,7 @@ AS $$
 $$ LANGUAGE sql STABLE;
 
 
-CREATE FUNCTION trend_directory.create_partition(trendstore trend_directory.trendstore, index integer)
+CREATE FUNCTION trend_directory.define_partition(trendstore trend_directory.trendstore, index integer)
     RETURNS trend_directory.partition
 AS $$
     INSERT INTO trend_directory.partition(
@@ -1287,6 +1287,15 @@ AS $$
         $2
     )
     RETURNING partition;
+$$ LANGUAGE sql VOLATILE;
+
+
+CREATE FUNCTION trend_directory.create_partition(trendstore trend_directory.trendstore, index integer)
+    RETURNS trend_directory.partition
+AS $$
+    SELECT trend_directory.create_partition_table(
+        trend_directory.define_partition($1, $2)
+    );
 $$ LANGUAGE sql VOLATILE;
 
 

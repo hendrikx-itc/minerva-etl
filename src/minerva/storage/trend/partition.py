@@ -25,7 +25,7 @@ class Partition(object):
         self.trendstore = trendstore
 
     def name(self):
-        return "{}_{}".format(self.trendstore.make_table_basename(), self.index)
+        return "{}_{}".format(self.trendstore.base_table_name(), self.index)
 
     def __str__(self):
         return self.name()
@@ -50,7 +50,10 @@ class Partition(object):
         args = self.index, self.trendstore.id
 
         try:
-            cursor.execute(query, args)
+            try:
+                cursor.execute(query, args)
+            except Exception as exc:
+                print(exc)
         except psycopg2.IntegrityError:
             raise DuplicateTable()
         except psycopg2.ProgrammingError as exc:

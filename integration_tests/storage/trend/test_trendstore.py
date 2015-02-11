@@ -185,11 +185,39 @@ class TestStore(object):
 
             check_column_types(cursor)
 
-    def test_store_raw(self):
+    def test_store_raw_qtr(self):
         trend_store_descriptor = TrendStoreDescriptor(
             self.data_source,
             self.entity_type,
             create_granularity("900"),
+            [
+                TrendDescriptor('counter1', 'integer', ''),
+                TrendDescriptor('counter2', 'text', '')
+            ],
+            3600
+        )
+
+        with closing(self.conn.cursor()) as cursor:
+            trend_store = TrendStore.create(trend_store_descriptor)(cursor)
+
+        self.conn.commit()
+
+        granularity = create_granularity('900')
+        timestamp = pytz.utc.localize(datetime.datetime.utcnow())
+        trend_names = ['counter1', 'counter2']
+        rows = [
+            ('Network=G1,Node=001', ('42', 'foo'))
+        ]
+
+        raw_package = RawDataPackage(granularity, timestamp, trend_names, rows)
+
+        trend_store.store_raw(raw_package).run(self.conn)
+
+    def test_store_raw_day(self):
+        trend_store_descriptor = TrendStoreDescriptor(
+            self.data_source,
+            self.entity_type,
+            create_granularity("1 day"),
             [
                 TrendDescriptor('counter1', 'integer', ''),
                 TrendDescriptor('counter2', 'text', '')

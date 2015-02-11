@@ -4,8 +4,7 @@ import pytz
 from nose.tools import eq_, ok_
 
 from minerva.storage.trend.granularity import create_granularity
-from minerva.storage.trend.partitioning import to_unix_timestamp, \
-    from_unix_timestamp, Partitioning
+from minerva.storage.trend.partitioning import Partitioning
 
 TIMEZONE = "Europe/Amsterdam"
 

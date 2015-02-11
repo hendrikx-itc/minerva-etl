@@ -47,19 +47,6 @@ END;
 $$ LANGUAGE plpgsql VOLATILE;
 
 
-CREATE FUNCTION trend_directory.create_partition_table_on_insert()
-    RETURNS TRIGGER
-AS $$
-BEGIN
-    IF NOT trend_directory.partition_exists(NEW) THEN
-        PERFORM trend_directory.create_partition_table(NEW);
-    END IF;
-
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql VOLATILE;
-
-
 CREATE FUNCTION trend_directory.drop_partition_table_on_delete()
     RETURNS TRIGGER
 AS $$
