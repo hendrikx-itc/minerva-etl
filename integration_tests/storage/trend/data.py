@@ -43,9 +43,9 @@ class TestSetQtr(DataSet):
 
 class TestSet1Small(TestSetQtr):
     def load(self, cursor):
-        self.datasource = DataSource.from_name(cursor, "testset1")
+        self.datasource = DataSource.from_name("testset1")(cursor)
 
-        self.entitytype = EntityType.from_name(cursor, self.entitytype_name)
+        self.entitytype = EntityType.from_name(self.entitytype_name)(cursor)
 
         self.entities = map(partial(Entity.from_dn, cursor), self.dns)
 

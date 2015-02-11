@@ -2,7 +2,7 @@ from contextlib import closing
 
 import psycopg2
 
-from minerva.db.postgresql import grant
+from minerva.db.util import grant
 from minerva.storage.generic import create_column, RecoverableError, \
     NonRecoverableError, NoOpFix, create_full_table_name
 

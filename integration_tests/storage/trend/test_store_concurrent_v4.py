@@ -86,7 +86,7 @@ def test_store_concurrent(conn, dataset):
     """
     Concurrent storing of the same dataset should cause no problems.
     """
-    timestamp = "2013-08-27T18:00:00"
+    timestamp = pytz.utc.localize(datetime.datetime(2013, 8, 27, 18, 0, 0))
 
     trend_names = ["c1", "c2", "c3"]
     rows = [("Cell={}".format(i), ("1", "2", "3")) for i in range(100)]

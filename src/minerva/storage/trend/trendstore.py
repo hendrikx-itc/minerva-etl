@@ -22,7 +22,7 @@ from minerva.db.error import NoCopyInProgress, NoSuchTable, \
     NoSuchColumnError, UniqueViolation, DataTypeMismatch, DuplicateTable, \
     translate_postgresql_exception, translate_postgresql_exceptions
 from minerva.db.query import Table, Column, Eq, column_exists, ands
-from minerva.db.postgresql import table_exists
+from minerva.db.util import table_exists, create_temp_table_from
 from minerva.directory import DataSource, EntityType
 from minerva.directory.helpers_v4 import dns_to_entity_ids
 from minerva.storage.generic import datatype, format_value, escape_value
@@ -640,15 +640,15 @@ def store_update(cursor, table, datapackage, modified):
     store_copy_from(cursor, tmp_table, datapackage, modified)
 
     # Update existing records
-    store_using_update(
+    update_existing_from_tmp(
         cursor, tmp_table, table, datapackage.trend_names, modified
     )
 
     # Fill in missing records
-    store_using_tmp(cursor, tmp_table, table, datapackage.trend_names)
+    copy_missing_from_tmp(cursor, tmp_table, table, datapackage.trend_names)
 
 
-def store_using_update(cursor, tmp_table, table, column_names, modified):
+def update_existing_from_tmp(cursor, tmp_table, table, column_names, modified):
     set_columns = ", ".join(
         '"{0}"={1}."{0}"'.format(name, tmp_table.render())
         for name in column_names
@@ -668,11 +668,12 @@ def store_using_update(cursor, tmp_table, table, column_names, modified):
         raise translate_postgresql_exception(exc)
 
 
-def store_using_tmp(cursor, tmp_table, table, column_names):
+def copy_missing_from_tmp(cursor, tmp_table, table, column_names):
     """
     Store the data using the PostgreSQL specific COPY FROM command and a
     temporary table. The temporary table is joined against the target table
-    to make sure only new records are inserted.
+    to make sure only missing records (based on entity_id, timestamp
+    combination) are inserted.
     """
     all_column_names = ['entity_id', 'timestamp']
     all_column_names.extend(column_names)
@@ -734,23 +735,6 @@ def store_batch_insert(cursor, table, datapackage, modified):
         logging.debug(cursor.mogrify(query, first(rows)))
 
         raise translate_postgresql_exception(exc)
-
-
-def create_temp_table_from(cursor, table):
-    """
-    Create a temporary table that is like `table` and return the temporary
-    table name.
-    """
-    tmp_table = Table("tmp_{0}".format(table.name))
-
-    query = (
-        "CREATE TEMPORARY TABLE {0} (LIKE {1}) "
-        "ON COMMIT DROP"
-    ).format(tmp_table.render(), table.render())
-
-    cursor.execute(query)
-
-    return tmp_table
 
 
 def get_column_names(cursor, table):

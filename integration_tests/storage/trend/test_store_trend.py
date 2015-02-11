@@ -1,28 +1,27 @@
 import time
 from contextlib import closing
-from pytz import timezone
 from datetime import datetime, timedelta
 
 from nose.tools import eq_, raises, assert_not_equal
+import pytz
 
 from minerva.util import first
 from minerva.db.query import Table, Column, Call, Eq
+from minerva.db.error import DataTypeMismatch
 from minerva.directory import DataSource, EntityType
 from minerva.storage.generic import extract_data_types
 from minerva.test import with_conn
-from minerva.storage.trend.trendstore import TrendStore, TrendStoreDescriptor
+from minerva.storage.trend.trendstore import TrendStore, TrendStoreDescriptor, \
+    store_copy_from, store_update, store_batch_insert
 from minerva.storage.trend.trend import TrendDescriptor
+from minerva.storage.trend.datapackage import DataPackage
 from minerva.storage.trend.granularity import create_granularity
-from minerva.storage.trend.storage import DataTypeMismatch, \
-    create_trend_table, store_copy_from, store_using_tmp, \
-    store_insert_rows, store, create_temp_table_from
 
 from minerva_db import clear_database
 from helpers import row_count
 
-SCHEMA = 'trend'
 
-modified_table = Table(SCHEMA, "modified")
+modified_table = Table("trend_directory", "modified")
 
 
 @with_conn(clear_database)
@@ -43,18 +42,17 @@ def test_store_copy_from_1(conn):
         (10087, ('10087', '0.9931', '1453', '10'))
     ]
 
-    curr_timezone = timezone("Europe/Amsterdam")
     data_types = extract_data_types(data_rows)
-    timestamp = curr_timezone.localize(datetime(2013, 1, 2, 10, 45, 0))
+    timestamp = pytz.utc.localize(datetime(2013, 1, 2, 10, 45, 0))
     granularity = create_granularity("900")
-    modified = curr_timezone.localize(datetime.now())
+    modified = pytz.utc.localize(datetime.now())
 
     with closing(conn.cursor()) as cursor:
-        datasource = DataSource.from_name(cursor, "test-src009")
-        entitytype = EntityType.from_name(cursor, "test-type001")
+        data_source = DataSource.from_name("test-src009")(cursor)
+        entity_type = EntityType.from_name("test-type001")(cursor)
 
-        trendstore = TrendStore.create(TrendStoreDescriptor(
-            datasource, entitytype, granularity,
+        trend_store = TrendStore.create(TrendStoreDescriptor(
+            data_source, entity_type, granularity,
             [
                 TrendDescriptor(trend_name, data_type, '')
                 for trend_name, data_type in zip(trend_names, data_types)
@@ -62,14 +60,16 @@ def test_store_copy_from_1(conn):
             86400
         ))(cursor)
 
-        partition = trendstore.partition(timestamp)
+        partition = trend_store.partition(timestamp)
         partition.create(cursor)
 
         table = partition.table()
 
         store_copy_from(
-            conn, SCHEMA, table.name, trend_names, timestamp, modified,
-            data_rows
+            cursor,
+            table,
+            DataPackage(granularity, timestamp, trend_names, data_rows),
+            modified
         )
 
         eq_(row_count(cursor, table), 11)
@@ -91,30 +91,31 @@ def test_store_copy_from_2(conn):
         (10023, ('0.9919', '2105', '17'))
     ]
 
-    curr_timezone = timezone("Europe/Amsterdam")
-    timestamp = curr_timezone.localize(datetime(2013, 1, 2, 10, 45, 0))
-    modified = curr_timezone.localize(datetime.now())
+    timestamp = pytz.utc.localize(datetime(2013, 1, 2, 10, 45, 0))
+    modified = pytz.utc.localize(datetime.now())
     granularity = create_granularity("900")
 
     with closing(conn.cursor()) as cursor:
-        datasource = DataSource.from_name(cursor, "test-src010")
-        entitytype = EntityType.from_name(cursor, "test-type002")
+        data_source = DataSource.from_name("test-src010")(cursor)
+        entity_type = EntityType.from_name("test-type002")(cursor)
 
         trend_descriptors = [
             TrendDescriptor(trend_name, data_type, '')
             for trend_name, data_type in zip(trend_names, data_types)
         ]
 
-        trendstore = TrendStore.create(TrendStoreDescriptor(
-            datasource, entitytype, granularity, trend_descriptors, 86400
+        trend_store = TrendStore.create(TrendStoreDescriptor(
+            data_source, entity_type, granularity, trend_descriptors, 86400
         ))(cursor)
-        partition = trendstore.partition(timestamp)
+        partition = trend_store.partition(timestamp)
         partition.create(cursor)
         table = partition.table()
 
         store_copy_from(
-            conn, SCHEMA, table.name, trend_names, timestamp, modified,
-            data_rows
+            cursor,
+            table,
+            DataPackage(granularity, timestamp, trend_names, data_rows),
+            modified
         )
 
         eq_(row_count(cursor, table), 1)
@@ -128,9 +129,8 @@ def test_store_copy_from_2(conn):
 
 @with_conn(clear_database)
 def test_store_using_tmp(conn):
-    table = Table(SCHEMA, 'storage_tmp_test_table')
+    granularity = create_granularity(900)
     trend_names = ['CellID', 'CCR', 'RadioFail', 'RFOldHo', 'AbisFailCall']
-
     data_rows = [
         (10023, ('10023', '0.9919', '10', '3', '3')),
         (10047, ('10047', '0.9963', '11', '5', '0')),
@@ -148,15 +148,35 @@ def test_store_using_tmp(conn):
     data_types = extract_data_types(data_rows)
 
     with closing(conn.cursor()) as cursor:
+        data_source = DataSource.from_name("test-src009")(cursor)
+        entity_type = EntityType.from_name("test-type001")(cursor)
+
+        trend_descriptors = [
+            TrendDescriptor(trend_name, data_type, '')
+            for trend_name, data_type in zip(trend_names, data_types)
+        ]
+
+        trend_store = TrendStore.create(TrendStoreDescriptor(
+            data_source, entity_type, granularity, trend_descriptors, 86400
+        ))(cursor)
+
+        timestamp = pytz.utc.localize(datetime(2013, 1, 2, 10, 45, 0))
+
+        partition = trend_store.partition(timestamp)
+
+        table = partition.table()
+
         table.drop().if_exists().execute(cursor)
 
-        create_trend_table(conn, SCHEMA, table.name, trend_names, data_types)
-        curr_timezone = timezone("Europe/Amsterdam")
-        timestamp = curr_timezone.localize(datetime(2013, 1, 2, 10, 45, 0))
-        modified = curr_timezone.localize(datetime.now())
-        store_using_tmp(
-            conn, SCHEMA, table.name, trend_names, timestamp, modified,
-            data_rows
+        partition.create(cursor)
+
+        modified = pytz.utc.localize(datetime.now())
+
+        store_update(
+            cursor,
+            table,
+            DataPackage(granularity, timestamp, trend_names, data_rows),
+            modified
         )
 
         conn.commit()
@@ -172,41 +192,58 @@ def test_store_using_tmp(conn):
 
 @with_conn(clear_database)
 def test_store_insert_rows(conn):
-    table = Table(SCHEMA, 'storage_tmp_test_table')
+    granularity = create_granularity("900")
     trend_names = ['CellID', 'CCR', 'Drops']
     data_rows = [
         (10023, ('10023', '0.9919', '17')),
         (10047, ('10047', '0.9963', '18'))
     ]
-    curr_timezone = timezone("Europe/Amsterdam")
-    modified = curr_timezone.localize(datetime.now())
-    time1 = curr_timezone.localize(datetime.now())
+
+    modified = pytz.utc.localize(datetime.now())
+    time1 = pytz.utc.localize(datetime(2013, 1, 2, 10, 45, 0))
     time2 = time1 - timedelta(days=1)
 
     data_types = extract_data_types(data_rows)
 
     with closing(conn.cursor()) as cursor:
+        data_source = DataSource.from_name("test-src009")(cursor)
+        entity_type = EntityType.from_name("test-type001")(cursor)
+
+        trend_descriptors = [
+            TrendDescriptor(trend_name, data_type, '')
+            for trend_name, data_type in zip(trend_names, data_types)
+        ]
+
+        trend_store = TrendStore.create(TrendStoreDescriptor(
+            data_source, entity_type, granularity, trend_descriptors, 86400 * 7
+        ))(cursor)
+
+        partition = trend_store.partition(time1)
+
+        table = partition.table()
+
         table.drop().if_exists().execute(cursor)
 
-        create_trend_table(conn, SCHEMA, table.name, trend_names, data_types)
+        partition.create(cursor)
 
-        store_insert_rows(
-            conn, SCHEMA, table.name, trend_names, time1, modified, data_rows
+        store_batch_insert(
+            cursor,
+            table,
+            DataPackage(granularity, time1, trend_names, data_rows), modified
         )
         conn.commit()
 
         eq_(row_count(cursor, table), 2)
 
-        store_insert_rows(
-            conn, SCHEMA, table.name, trend_names, time2, modified, data_rows
+        store_batch_insert(
+            cursor,
+            table,
+            DataPackage(granularity, time2, trend_names, data_rows), modified
         )
         conn.commit()
 
         eq_(row_count(cursor, table), 4)
 
-        store_insert_rows(
-            conn, SCHEMA, table.name, trend_names, time1, modified, data_rows
-        )
         conn.commit()
 
         eq_(row_count(cursor, table), 4)
@@ -220,8 +257,6 @@ def test_store_insert_rows(conn):
 
 @with_conn(clear_database)
 def test_update_modified_column(conn):
-    curr_timezone = timezone("Europe/Amsterdam")
-
     trend_names = ['CellID', 'CCR', 'Drops']
     data_rows = [
         (10023, ('10023', '0.9919', '17')),
@@ -230,33 +265,40 @@ def test_update_modified_column(conn):
     data_types = extract_data_types(data_rows)
 
     update_data_rows = [(10023, ('10023', '0.9919', '17'))]
-    timestamp = curr_timezone.localize(datetime.now())
+    timestamp = pytz.utc.localize(datetime.now())
     granularity = create_granularity("900")
 
     with closing(conn.cursor()) as cursor:
-        datasource = DataSource.from_name(cursor, "test-src009")
-        entitytype = EntityType.from_name(cursor, "test-type001")
+        data_source = DataSource.from_name("test-src009")(cursor)
+        entity_type = EntityType.from_name("test-type001")(cursor)
 
         trend_descriptors = [
             TrendDescriptor(trend_name, data_type, '')
             for trend_name, data_type in zip(trend_names, data_types)
         ]
 
-        trendstore = TrendStore.create(TrendStoreDescriptor(
-            datasource, entitytype, granularity, trend_descriptors, 86400
+        trend_store = TrendStore.create(TrendStoreDescriptor(
+            data_source, entity_type, granularity, trend_descriptors, 86400
         ))(cursor)
 
-        partition = trendstore.partition(timestamp)
+        partition = trend_store.partition(timestamp)
 
         table = partition.table()
 
         partition.create(cursor)
 
-        store(conn, SCHEMA, table.name, trend_names, timestamp, data_rows)
+        trend_store.store(
+            DataPackage(
+                granularity, timestamp, trend_names, data_rows
+            )
+        ).run(conn)
+
         time.sleep(1)
-        store(
-            conn, SCHEMA, table.name, trend_names, timestamp, update_data_rows
-        )
+        trend_store.store(
+            DataPackage(
+                granularity, timestamp, trend_names, update_data_rows
+            )
+        ).run(conn)
         conn.commit()
 
         query = table.select([Column("modified")])
@@ -270,7 +312,7 @@ def test_update_modified_column(conn):
         max_modified = first(cursor.fetchone())
 
         modified_table.select(Column("end")).where_(
-            Eq(Column("table_name"), table.name)
+            Eq(Column("trendstore_id"), trend_store.id)
         ).execute(cursor)
 
         end = first(cursor.fetchone())
@@ -291,32 +333,30 @@ def test_update(conn):
     granularity = create_granularity("900")
 
     with closing(conn.cursor()) as cursor:
-        datasource = DataSource.from_name(cursor, "test-src009")
-        entitytype = EntityType.from_name(cursor, "test-type001")
+        data_source = DataSource.from_name("test-src009")(cursor)
+        entity_type = EntityType.from_name("test-type001")(cursor)
 
         trend_descriptors = [
             TrendDescriptor(trend_name, data_type, '')
             for trend_name, data_type in zip(trend_names, data_types)
         ]
 
-        trendstore = TrendStore.create(TrendStoreDescriptor(
-            datasource, entitytype, granularity, trend_descriptors, 86400
+        trend_store = TrendStore.create(TrendStoreDescriptor(
+            data_source, entity_type, granularity, trend_descriptors, 86400
         ))(cursor)
 
-        partition = trendstore.partition(timestamp)
+        partition = trend_store.partition(timestamp)
         partition.create(cursor)
 
         table = partition.table()
 
-    store(
-        conn, SCHEMA, table.name, trendstore.id, trend_names, timestamp,
-        data_rows
-    )
+    trend_store.store(
+        DataPackage(granularity, timestamp, trend_names, data_rows)
+    ).run(conn)
 
-    store(
-        conn, SCHEMA, table.name, trendstore.id, trend_names, timestamp,
-        update_data_rows
-    )
+    trend_store.store(
+        DataPackage(granularity, timestamp, trend_names, update_data_rows)
+    ).run(conn)
 
     conn.commit()
 
@@ -331,24 +371,9 @@ def test_update(conn):
 
 
 @with_conn(clear_database)
-def test_create_temp_table_from(conn):
-    table = Table(SCHEMA, "storage_tmp_test_table")
-    trend_names = ["CellID", "CCR", "Drops"]
-    data_types = ["float", "smallint", "smallint"]
-
-    with closing(conn.cursor()) as cursor:
-        table.drop().if_exists().execute(cursor)
-
-        create_trend_table(conn, SCHEMA, table, trend_names, data_types)
-
-        create_temp_table_from(conn, SCHEMA, table)
-
-
-@with_conn(clear_database)
 def test_update_and_modify_columns_fractured(conn):
-    curr_timezone = timezone("Europe/Amsterdam")
     granularity = create_granularity("900")
-    timestamp = curr_timezone.localize(datetime(2013, 1, 2, 10, 45, 0))
+    timestamp = pytz.utc.localize(datetime(2013, 1, 2, 10, 45, 0))
     entity_ids = range(1023, 1023 + 100)
 
     trend_names_a = ["CellID", "CCR", "Drops"]
@@ -360,26 +385,30 @@ def test_update_and_modify_columns_fractured(conn):
     data_types_b = extract_data_types(data_rows_b)
 
     with closing(conn.cursor()) as cursor:
-        datasource = DataSource.from_name(cursor, "test-src009")
-        entitytype = EntityType.from_name(cursor, "test-type001")
+        data_source = DataSource.from_name("test-src009")(cursor)
+        entity_type = EntityType.from_name("test-type001")(cursor)
 
         trend_descriptors = [
             TrendDescriptor(trend_name, data_type, '')
             for trend_name, data_type in zip(trend_names_a, data_types_a)
         ]
 
-        trendstore = TrendStore.create(TrendStoreDescriptor(
-            datasource, entitytype, granularity, trend_descriptors, 86400
+        trend_store = TrendStore.create(TrendStoreDescriptor(
+            data_source, entity_type, granularity, trend_descriptors, 86400
         ))(cursor)
 
-        partition = trendstore.partition(timestamp)
+        partition = trend_store.partition(timestamp)
         partition.create(cursor)
 
         table = partition.table()
 
         conn.commit()
 
-    store(conn, SCHEMA, table.name, trend_names_a, timestamp, data_rows_a)
+    trend_store.store(
+        DataPackage(
+            granularity, timestamp, trend_names_a, data_rows_a
+        )
+    ).run(conn)
     time.sleep(0.2)
 
     check_columns = map(Column, ["modified", "Drops"])
@@ -389,7 +418,11 @@ def test_update_and_modify_columns_fractured(conn):
         query.execute(cursor)
         row_before = cursor.fetchone()
 
-    store(conn, SCHEMA, table.name, trend_names_b, timestamp, data_rows_b)
+    trend_store.store(
+        DataPackage(
+            granularity, timestamp, trend_names_b, data_rows_b
+        )
+    ).run(conn)
 
     query = table.select(check_columns)
 

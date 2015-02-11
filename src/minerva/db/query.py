@@ -40,7 +40,7 @@ def smart_quote(name):
     """
     Only quote references that require quoting
     """
-    if identifier_regex.match(name) and not name in reserved_keywords:
+    if identifier_regex.match(name) and name not in reserved_keywords:
         return name
     else:
         return quote(name)

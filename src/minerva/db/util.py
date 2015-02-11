@@ -16,6 +16,7 @@ import re
 
 from minerva.util import zipapply
 from minerva.util.tabulate import render_table
+from minerva.db.query import Table
 
 
 def drop_table(conn, name):
@@ -376,3 +377,20 @@ def create_db(conn, name, owner):
             )
 
     conn.commit()
+
+
+def create_temp_table_from(cursor, table):
+    """
+    Create a temporary table that is like `table` and return the temporary
+    table name.
+    """
+    tmp_table = Table("tmp_{0}".format(table.name))
+
+    query = (
+        "CREATE TEMPORARY TABLE {0} (LIKE {1}) "
+        "ON COMMIT DROP"
+    ).format(tmp_table.render(), table.render())
+
+    cursor.execute(query)
+
+    return tmp_table

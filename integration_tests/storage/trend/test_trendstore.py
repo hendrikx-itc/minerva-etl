@@ -21,7 +21,7 @@ from minerva.storage.trend.trendstore import TrendStore, TrendStoreDescriptor
 from minerva.storage.trend.trend import TrendDescriptor
 from minerva.storage.trend.granularity import create_granularity
 from minerva.storage.trend.rawdatapackage import RawDataPackage
-from minerva.db.postgresql import get_column_names, table_exists
+from minerva.db.util import get_column_names, table_exists
 
 from minerva_db import clear_database
 

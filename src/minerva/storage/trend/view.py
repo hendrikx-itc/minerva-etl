@@ -19,8 +19,8 @@ class View(object):
 
     def define(self, cursor):
         query = (
-            "SELECT (trend.define_view(trendstore, %s)).id "
-            "FROM trend.trendstore "
+            "SELECT (trend_directory.define_view(trendstore, %s)).id "
+            "FROM trend_directory.trendstore "
             "WHERE id = %s"
         )
 
@@ -36,8 +36,8 @@ class View(object):
 
     def create(self, cursor):
         query = (
-            "SELECT trend.create_view(view) "
-            "FROM trend.view "
+            "SELECT trend_directory.create_view(view) "
+            "FROM trend_directory.view "
             "WHERE id = %s"
         )
 

@@ -18,7 +18,7 @@ from nose.tools import eq_, ok_, assert_not_equal
 import pytz
 
 from minerva.directory import DataSource, EntityType
-from minerva.db.postgresql import get_column_names
+from minerva.db.util import get_column_names
 from minerva.test import with_conn
 
 from .minerva_db import clear_database

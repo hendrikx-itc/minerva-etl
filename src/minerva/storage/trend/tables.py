@@ -17,7 +17,7 @@ from contextlib import closing
 import psycopg2
 
 from minerva.db.query import Table
-from minerva.db.postgresql import grant, column_exists
+from minerva.db.util import grant, column_exists
 from minerva.db.error import translate_postgresql_exception
 from minerva.storage import datatype
 from minerva.storage.generic import NonRecoverableError, get_data_types
