@@ -114,16 +114,15 @@ def drop_all_tables(conn, schema):
     conn.commit()
 
 
-def table_exists(conn, schema, table):
-    with closing(conn.cursor()) as cursor:
-        query = "SELECT public.table_exists(%s, %s)"
-        args = schema, table
+def table_exists(cursor, schema, table):
+    query = "SELECT public.table_exists(%s, %s)"
+    args = schema, table
 
-        cursor.execute(query, args)
+    cursor.execute(query, args)
 
-        (exists, ) = cursor.fetchone()
+    (exists, ) = cursor.fetchone()
 
-        return exists
+    return exists
 
 
 def column_exists(conn, schema, table, column):

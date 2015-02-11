@@ -9,32 +9,29 @@ the Free Software Foundation; either version 3, or (at your option) any later
 version.  The full license is in the file COPYING, distributed as part of
 this software.
 """
-from datetime import datetime
 import logging
 from functools import partial
-from operator import attrgetter, methodcaller
+from operator import methodcaller
 import StringIO
 from itertools import chain
 
-import pytz
 import psycopg2
 
-from minerva.util import k, first, compose, no_op
+from minerva.util import first, no_op
 from minerva.db.error import NoCopyInProgress, NoSuchTable, \
-    NoSuchColumnError, UniqueViolation, DataTypeMismatch, DuplicateTable
+    NoSuchColumnError, UniqueViolation, DataTypeMismatch, DuplicateTable, \
+    translate_postgresql_exception, translate_postgresql_exceptions
 from minerva.db.query import Table, Column, Eq, column_exists, ands
-from minerva.directory import DataSource, EntityType, Entity
+from minerva.db.postgresql import table_exists
+from minerva.directory import DataSource, EntityType
 from minerva.directory.helpers_v4 import dns_to_entity_ids
 from minerva.storage.generic import datatype, format_value, escape_value
-from minerva.db.error import translate_postgresql_exception, \
-    translate_postgresql_exceptions
 from minerva.db.dbtransaction import DbTransaction, DbAction, \
     insert_before, replace, drop_action
 from minerva.storage.trend.tables import DATA_TABLE_POSTFIXES
 from minerva.storage.trend import schema
 from minerva.storage.trend.datapackage import DataPackage
-from minerva.storage.trend.granularity import create_granularity, \
-    ensure_granularity
+from minerva.storage.trend.granularity import create_granularity
 from minerva.storage.trend.tables import create_column
 from minerva.storage.trend.partition import Partition
 from minerva.storage.trend.partitioning import Partitioning
@@ -96,7 +93,9 @@ class TrendStore(object):
         return Table("trend", self.make_table_basename())
 
     def partition(self, timestamp):
-        return Partition(self.partitioning.index(timestamp), self)
+        index = self.partitioning.index(timestamp)
+
+        return Partition(index, self)
 
     def index_to_interval(self, partition_index):
         return self.partitioning.index_to_interval(partition_index)
@@ -324,7 +323,7 @@ class TrendStore(object):
             datasource = DataSource.get(datasource_id)(cursor)
             entitytype = EntityType.get(entitytype_id)(cursor)
 
-            trends = []  # TODO
+            trends = TrendStore.get_trends(cursor, id)
 
             granularity = create_granularity(granularity_str)
 
@@ -365,7 +364,7 @@ class TrendStore(object):
 
     def store_raw(self, raw_datapackage):
         if raw_datapackage.is_empty():
-            return DbTransaction()
+            return DbTransaction(None, [])
         else:
             if len(raw_datapackage.rows) <= LARGE_BATCH_THRESHOLD:
                 insert_action = BatchInsert
@@ -488,18 +487,14 @@ class CopyFrom(DbAction):
 class BatchInsert(DbAction):
     def execute(self, cursor, state):
         try:
-            try:
-                store_batch_insert(
-                    cursor,
-                    state.trendstore.partition(
-                        state.datapackage.timestamp
-                    ).table(),
-                    state.datapackage,
-                    state.modified
-                )
-            except Exception as exc:
-                logging.debug("exception: {}".format(type(exc).__name__))
-                raise exc
+            store_batch_insert(
+                cursor,
+                state.trendstore.partition(
+                    state.datapackage.timestamp
+                ).table(),
+                state.datapackage,
+                state.modified
+            )
         except NoSuchTable:
             return insert_before(CreatePartition())
         except NoSuchColumnError:
@@ -540,6 +535,8 @@ class CreatePartition(DbAction):
             state.trendstore.partition(
                 state.datapackage.timestamp
             ).create(cursor)
+
+            logging.debug(table_exists(cursor, 'trend_partition', state.trendstore.partition(state.datapackage.timestamp).name()))
         except DuplicateTable:
             return drop_action()
 
@@ -733,15 +730,10 @@ def store_batch_insert(cursor, table, datapackage, modified):
         for entity_id, values in datapackage.rows
     ]
 
-    logging.debug(cursor.mogrify(query, first(rows)))
-
     try:
         cursor.executemany(query, rows)
     except psycopg2.DatabaseError as exc:
-        m = str(exc)
-        if m.find("violates check constraint") > -1:
-            print(cursor.mogrify(query, first(rows)))
-            print(m)
+        logging.debug(cursor.mogrify(query, first(rows)))
 
         raise translate_postgresql_exception(exc)
 
@@ -791,14 +783,9 @@ def refine_datapackage(cursor, raw_datapackage):
 
     refined_rows = zip(entity_ids, refined_value_rows)
 
-    timestamp = pytz.UTC.localize(
-        datetime.strptime(raw_datapackage.timestamp, "%Y-%m-%dT%H:%M:%S")
-    )
-
-    granularity = ensure_granularity(raw_datapackage.granularity)
-
     return DataPackage(
-        granularity, timestamp, raw_datapackage.trend_names, refined_rows
+        raw_datapackage.granularity, raw_datapackage.timestamp,
+        raw_datapackage.trend_names, refined_rows
     )
 
 

@@ -13,12 +13,14 @@ from contextlib import closing
 import datetime
 
 from nose.tools import eq_
+import pytz
 
 from minerva.directory import EntityType, DataSource
 from minerva.test import connect
 from minerva.storage.trend.trendstore import TrendStore, TrendStoreDescriptor
 from minerva.storage.trend.trend import TrendDescriptor
 from minerva.storage.trend.granularity import create_granularity
+from minerva.storage.trend.rawdatapackage import RawDataPackage
 from minerva.db.postgresql import get_column_names, table_exists
 
 from minerva_db import clear_database
@@ -61,7 +63,8 @@ class TestStore(object):
 
         assert trend_store.id is not None
 
-        assert table_exists(self.conn, 'trend', 'test-source_test_type_qtr')
+        with closing(self.conn.cursor()) as cursor:
+            assert table_exists(cursor, 'trend', 'test-source_test_type_qtr')
 
     def test_create_trend_store_with_trends(self):
         granularity = create_granularity("900")
@@ -108,7 +111,7 @@ class TestStore(object):
             partition.create(cursor)
 
             assert table_exists(
-                self.conn, 'trend_partition', 'test-source_test_type_qtr_379958'
+                cursor, 'trend_partition', 'test-source_test_type_qtr_379958'
             )
 
     def test_get(self):
@@ -181,3 +184,31 @@ class TestStore(object):
             )
 
             check_column_types(cursor)
+
+    def test_store_raw(self):
+        trend_store_descriptor = TrendStoreDescriptor(
+            self.data_source,
+            self.entity_type,
+            create_granularity("900"),
+            [
+                TrendDescriptor('counter1', 'integer', ''),
+                TrendDescriptor('counter2', 'text', '')
+            ],
+            3600
+        )
+
+        with closing(self.conn.cursor()) as cursor:
+            trend_store = TrendStore.create(trend_store_descriptor)(cursor)
+
+        self.conn.commit()
+
+        granularity = create_granularity('900')
+        timestamp = pytz.utc.localize(datetime.datetime.utcnow())
+        trend_names = ['counter1', 'counter2']
+        rows = [
+            ('Network=G1,Node=001', ('42', 'foo'))
+        ]
+
+        raw_package = RawDataPackage(granularity, timestamp, trend_names, rows)
+
+        trend_store.store_raw(raw_package).run(self.conn)
