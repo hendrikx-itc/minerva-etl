@@ -84,7 +84,7 @@ class TestStore(object):
         assert trend_store.id is not None
 
         column_names = get_column_names(
-            self.conn, 'trend', trend_store.make_table_basename()
+            self.conn, 'trend', trend_store.base_table_name()
         )
 
         assert 'x' in column_names
@@ -214,10 +214,12 @@ class TestStore(object):
         trend_store.store_raw(raw_package).run(self.conn)
 
     def test_store_raw_day(self):
+        granularity = create_granularity("1 day")
+
         trend_store_descriptor = TrendStoreDescriptor(
             self.data_source,
             self.entity_type,
-            create_granularity("1 day"),
+            granularity,
             [
                 TrendDescriptor('counter1', 'integer', ''),
                 TrendDescriptor('counter2', 'text', '')
@@ -230,7 +232,6 @@ class TestStore(object):
 
         self.conn.commit()
 
-        granularity = create_granularity('900')
         timestamp = pytz.utc.localize(datetime.datetime.utcnow())
         trend_names = ['counter1', 'counter2']
         rows = [

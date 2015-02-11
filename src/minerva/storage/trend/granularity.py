@@ -11,7 +11,6 @@ this software.
 """
 import re
 import datetime
-import logging
 
 from dateutil.relativedelta import relativedelta
 
@@ -33,11 +32,11 @@ def create_granularity(gr):
 
 
 def int_to_granularity(seconds):
-    return GranularitySeconds(seconds)
+    return Granularity(relativedelta(seconds=seconds))
 
 
 def timedelta_to_granularity(delta):
-    return GranularitySeconds(delta.seconds)
+    return Granularity(relativedelta(days=delta.days, seconds=delta.seconds))
 
 
 def str_to_granularity(granularity_str):
@@ -46,28 +45,30 @@ def str_to_granularity(granularity_str):
     if m:
         hours, minutes, seconds = m.groups()
 
-        return GranularitySeconds(hours * 60 * 60 + minutes * 60 + seconds)
+        return Granularity(
+            relativedelta(hours=hours, minutes=minutes, seconds=seconds)
+        )
 
     m = re.match('^([0-9]+)$', granularity_str)
 
     if m:
         seconds, = m.groups()
 
-        return GranularitySeconds(int(seconds))
+        return Granularity(relativedelta(seconds=int(seconds)))
 
     m = re.match('([0-9]+) day[s]?', granularity_str)
 
     if m:
         days, = m.groups()
 
-        return GranularityDays(int(days))
+        return Granularity(relativedelta(days=int(days)))
 
     m = re.match('([0-9]+) week[s]?', granularity_str)
 
     if m:
         weeks, = m.groups()
 
-        return GranularityDays(int(weeks) * 7)
+        return Granularity(relativedelta(days=int(weeks) * 7))
 
 
     m = re.match('([0-9]+) month[s]?', granularity_str)
@@ -75,8 +76,7 @@ def str_to_granularity(granularity_str):
     if m:
         months, = m.groups()
 
-        return GranularityMonths(int(months))
-
+        return Granularity(relativedelta(months=int(months)))
 
     raise Exception("Unsupported granularity: {}".format(granularity_str))
 
@@ -103,14 +103,40 @@ def fn_range(incr, start, end):
 
 
 class Granularity(object):
+    def __init__(self, delta):
+        self.delta = delta
+
     def __str__(self):
-        return NotImplementedError()
+        parts = []
+
+        months = months_str(self.delta.months)
+
+        if months:
+            parts.append(months)
+
+        days = days_str(self.delta.days)
+
+        if days:
+            parts.append(days)
+
+        if not parts or (self.delta.hours or self.delta.minutes or self.delta.seconds):
+            parts.append(time_to_str(self.delta.hours, self.delta.minutes, self.delta.seconds))
+
+        return " ".join(parts)
 
     def inc(self, x):
-        raise NotImplementedError()
+        return x.tzinfo.localize(
+            datetime.datetime(
+                *(x + self.delta).timetuple()[:6]
+            )
+        )
 
     def decr(self, x):
-        raise NotImplementedError()
+        return x.tzinfo.localize(
+            datetime.datetime(
+                *(x - self.delta).timetuple()[:6]
+            )
+        )
 
     def truncate(self, x):
         raise NotImplementedError()
@@ -119,122 +145,19 @@ class Granularity(object):
         return fn_range(self.inc, self.inc(start), self.inc(end))
 
 
-class GranularitySeconds(Granularity):
-    def __init__(self, seconds):
-        self.delta = datetime.timedelta(seconds=seconds)
-
-    def __str__(self):
-        return str(self.delta)
-
-    def inc(self, x):
-        return x + self.delta
-
-    def decr(self, x):
-        return x - self.delta
-
-    def truncate(self, ts, minerva_tz=None):
-        """
-        Return most recent timestamp based on granularity
-
-        :param ts: non-naive timestamp
-        :param minerva_tz: timezone of Minerva, might differ from tz of ts:
-        """
-        tz = ts.tzinfo
-
-        if minerva_tz:
-            _ts = ts.astimezone(minerva_tz)
-        else:
-            _ts = ts
-
-        if self.seconds < (60 * 60):
-            gran_minutes = self.seconds / 60
-            most_recent = datetime.datetime.combine(
-                _ts, datetime.time(_ts.hour, gran_minutes *
-                divmod(_ts.minute, gran_minutes)[0]))
-        elif self.seconds == (60 * 60):
-            most_recent = datetime.datetime.combine(_ts, datetime.time(_ts.hour))
-        elif self.seconds == (24 * 60 * 60):
-            most_recent = datetime.datetime.combine(_ts, datetime.time(0))
-        elif self.seconds == (7 * 24 * 60 * 60):
-            _ts = _ts
-            while _ts.isoweekday() != 1:
-                _ts -= datetime.timedelta(1)
-            most_recent = datetime.datetime.combine(_ts, datetime.time(0))
-        else:
-            logging.warning("Unsupported granularity {0}".format(self.seconds))
-            return None
-
-        try:
-            if minerva_tz:
-                _most_recent = minerva_tz.localize(most_recent)
-                return _most_recent.astimezone(tz)
-            else:
-                return tz.localize(most_recent)
-        except AttributeError:
-            if minerva_tz:
-                _most_recent = datetime.datetime.combine(
-                    most_recent,
-                    datetime.time(
-                        most_recent.hour, most_recent.minute,
-                        most_recent.second, tzinfo=minerva_tz
-                    )
-                )
-                return _most_recent.astimezone(tz)
-            else:
-                return datetime.datetime.combine(
-                    most_recent,
-                    datetime.time(
-                        most_recent.hour, most_recent.minute,
-                        most_recent.second, tzinfo=tz
-                    )
-                )
+def months_str(num):
+    if num == 1:
+        return '1 month'
+    elif num > 1:
+        return '{} months'.format(num)
 
 
-class GranularityDays(Granularity):
-    def __init__(self, num):
-        self.num = num
-        self.delta = relativedelta(days=num)
-
-    def __str__(self):
-        if self.num == 1:
-            return "1 day"
-        else:
-            return "{} days".format(self.num)
+def days_str(num):
+    if num == 1:
+        return '1 day'
+    elif num > 1:
+        return '{} days'.format(num)
 
 
-class GranularityMonths(Granularity):
-    def __init__(self, num):
-        self.delta = relativedelta(months=num)
-
-    def __str__(self):
-        return self.delta
-
-    def inc(self, x):
-        new_timestamp = x + self.delta
-
-        return x.tzinfo.localize(
-            datetime.datetime(
-                new_timestamp.year, new_timestamp.month, new_timestamp.day
-            )
-        )
-
-    def decr(self, x):
-        new_timestamp = x - self.delta
-
-        return x.tzinfo.localize(
-            datetime.datetime(
-                new_timestamp.year, new_timestamp.month, new_timestamp.day
-            )
-        )
-
-    def truncate(self, timestamp):
-        return timestamp.tzinfo.localize(
-            datetime.datetime(timestamp.year, timestamp.month, 1)
-        )
-
-
-def integer_from(str_val):
-    try:
-        return int(str_val)
-    except ValueError:
-        return None
+def time_to_str(hours, minutes, seconds):
+    return "{:02}:{:02}:{:02}".format(hours, minutes, seconds)

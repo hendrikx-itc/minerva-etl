@@ -8,46 +8,60 @@ the Free Software Foundation; either version 3, or (at your option) any later
 version.  The full license is in the file COPYING, distributed as part of
 this software.
 """
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import pytz
 from nose.tools import assert_raises, assert_equal
+from dateutil.relativedelta import relativedelta
 
-from minerva.storage.trend.granularity import Granularity, \
-    GranularitySeconds, GranularityMonths, GranularityDays, create_granularity
+from minerva.storage.trend.granularity import Granularity, create_granularity
 
 
 def test_granularity():
     """Test Granularity base class."""
-    g = Granularity()
+    g = Granularity(relativedelta())
 
-    timestamp = datetime.now()
+    assert_equal(str(g), '00:00:00')
 
-    assert_raises(NotImplementedError, g.inc, timestamp)
+    g = Granularity(relativedelta(seconds=300))
+
+    timestamp = pytz.utc.localize(datetime(2013, 3, 6, 13, 0))
+
+    g.inc(timestamp)
 
 
 def test_granularity_seconds():
     """Test GranularitySeconds for generic sized granularities."""
-    g = GranularitySeconds(900)
+    g = Granularity(relativedelta(seconds=900))
 
-    timestamp = datetime(2013, 3, 6, 13, 0)
+    timestamp = pytz.utc.localize(datetime(2013, 3, 6, 13, 0))
 
     v = g.inc(timestamp)
 
-    assert_equal(v, datetime(2013, 3, 6, 13, 15))
+    assert_equal(v, pytz.utc.localize(datetime(2013, 3, 6, 13, 15)))
 
-    assert_equal(str(g), '0:15:00')
+    assert_equal(str(g), '00:15:00')
 
-    assert_equal(str(GranularitySeconds(3600)), '1:00:00')
+    assert_equal(str(Granularity(relativedelta(seconds=3600))), '01:00:00')
 
-    assert_equal(str(GranularitySeconds(43200)), '12:00:00')
+    assert_equal(str(Granularity(relativedelta(seconds=43200))), '12:00:00')
 
-    assert_equal(str(GranularitySeconds(86400)), '1 day, 0:00:00')
+    assert_equal(str(Granularity(relativedelta(seconds=86400))), '1 day')
+
+
+def test_granularity_days():
+    g = Granularity(relativedelta(days=7))
+
+    assert_equal(str(g), '7 days')
+
+    g = Granularity(relativedelta(days=1))
+
+    assert_equal(str(g), '1 day')
 
 
 def test_granularity_month():
     tzinfo = pytz.timezone('Europe/Amsterdam')
-    g = GranularityMonths(1)
+    g = Granularity(relativedelta(months=1))
 
     timestamp = tzinfo.localize(datetime(2013, 1, 1))
 
@@ -77,7 +91,7 @@ def test_granularity_month():
 def test_granularity_month_dst():
     tzinfo = pytz.timezone('Europe/Amsterdam')
 
-    granularity = GranularityMonths(1)
+    granularity = Granularity(relativedelta(months=1))
     timestamp = tzinfo.localize(datetime(2013, 11, 1))
 
     before_dst_switch = granularity.decr(granularity.decr(timestamp))
@@ -88,22 +102,38 @@ def test_granularity_month_dst():
 def test_create_granularity_int():
     granularity = create_granularity(900)
 
-    assert_equal(type(granularity), GranularitySeconds)
+    assert_equal(type(granularity), Granularity)
 
 
 def test_create_granularity_days():
     granularity = create_granularity('7 days')
 
-    assert_equal(type(granularity), GranularityDays)
+    assert_equal(type(granularity), Granularity)
+
+    granularity = create_granularity('1 day')
+
+    assert_equal(type(granularity), Granularity)
+    assert_equal(str(granularity), '1 day')
+
+    granularity = create_granularity('1 day, 0:00:00')
+
+    assert_equal(type(granularity), Granularity)
+    assert_equal(str(granularity), '1 day')
+
+    granularity = create_granularity(timedelta(days=1))
+
+    assert_equal(type(granularity), Granularity)
+    assert_equal(str(granularity), '1 day')
 
 
 def test_create_granularity_weeks():
     granularity = create_granularity('2 weeks')
 
-    assert_equal(type(granularity), GranularityDays)
+    assert_equal(type(granularity), Granularity)
 
 
 def test_create_granularity_months():
     granularity = create_granularity('3 months')
 
-    assert_equal(type(granularity), GranularityMonths)
+    assert_equal(type(granularity), Granularity)
+    assert_equal(str(granularity), '3 months')

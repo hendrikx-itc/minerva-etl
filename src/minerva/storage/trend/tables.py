@@ -35,36 +35,16 @@ PARTITION_SIZES = {
 
 # Table name postfixes by interval size
 DATA_TABLE_POSTFIXES = {
-    "0:05:00": "5m",
-    "0:15:00": "qtr",
-    "1:00:00": "hr",
+    "00:05:00": "5m",
+    "00:15:00": "qtr",
+    "01:00:00": "hr",
     "12:00:00": "12hr",
     "86400": "day",
     "1 day": "day",
     "604800": "wk"
 }
 
-TABLE_NAME_REGEX = re.compile("^(.+)_(.+)_(.+)_([0-9]+)$")
-
 EPOCH = datetime(1970, 1, 1, 0, 0, 0)
-
-GRANULARITY_PERIODS = {
-    "5m": 300,
-    "qtr": 900,
-    "hr": 3600,
-    "day": 86400,
-    "wk": 604800,
-    "week": 604800}
-
-
-GP_MAPPING = {
-    "5m": 300,
-    "qtr": 900,
-    "hr": 3600,
-    "12hr": 43200,
-    "day": 86400,
-    "wk": 86400 * 7,
-    "month": "month"}
 
 
 class InvalidTrendTableName(Exception):

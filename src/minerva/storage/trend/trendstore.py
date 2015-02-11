@@ -71,23 +71,21 @@ class TrendStore(object):
         return self.base_table_name()
 
     def base_table_name(self):
-        granularity_name = DATA_TABLE_POSTFIXES.get(
-            str(self.granularity), str(self.granularity)
+        granularity_str = str(self.granularity)
+
+        postfix = DATA_TABLE_POSTFIXES.get(
+            granularity_str, granularity_str
         )
 
         return "{}_{}_{}".format(
-            self.datasource.name, self.entitytype.name, granularity_name
+            self.datasource.name, self.entitytype.name, postfix
         )
 
     def partition_table_name(self, timestamp):
-        base_table_name = self.base_table_name()
-
-        if self.type == "view":
-            return base_table_name
-        else:
-            index = self.partitioning.index(timestamp)
-
-            return "{}_{}".format(base_table_name, index)
+        return "{}_{}".format(
+            self.base_table_name(),
+            self.partitioning.index(timestamp)
+        )
 
     def base_table(self):
         return Table("trend", self.base_table_name())
