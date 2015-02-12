@@ -42,8 +42,8 @@ def test_matches_bigint():
     assert datatype.DataTypeBigint.deduce_parser_config("-10")
     assert datatype.DataTypeBigint.deduce_parser_config(str(max_bigint))
     assert datatype.DataTypeBigint.deduce_parser_config(str(min_bigint))
-    assert datatype.DataTypeBigint.deduce_parser_config(None)
 
+    assert not datatype.DataTypeBigint.deduce_parser_config(None)
     assert not datatype.DataTypeBigint.deduce_parser_config("abc")
     assert not datatype.DataTypeBigint.deduce_parser_config(str(max_bigint + 1))
     assert not datatype.DataTypeBigint.deduce_parser_config(str(min_bigint - 1))
@@ -51,8 +51,9 @@ def test_matches_bigint():
     # Checking for a match with any other type than a string shouldn't
     # result in a TypeError exception, but just return False.
     assert not datatype.DataTypeBigint.deduce_parser_config(("41", "42", "43"))
-
-    assert not datatype.DataTypeBigint.deduce_parser_config(decimal.Decimal('528676.842519685039'))
+    assert not datatype.DataTypeBigint.deduce_parser_config(
+        decimal.Decimal('528676.842519685039')
+    )
 
 
 def test_parse_bigint():
@@ -79,8 +80,9 @@ def test_matches_integer():
     assert datatype.DataTypeInteger.deduce_parser_config("-10")
     assert datatype.DataTypeInteger.deduce_parser_config(str(max_integer))
     assert datatype.DataTypeInteger.deduce_parser_config(str(min_integer))
-    assert datatype.DataTypeInteger.deduce_parser_config(None)
 
+    assert not datatype.DataTypeInteger.deduce_parser_config(None), \
+        "Integer shouldn't accept None value"
     assert not datatype.DataTypeInteger.deduce_parser_config("abc"), \
         "Integer shouldn't accept alphabetic characters"
     assert not datatype.DataTypeInteger.deduce_parser_config(str(max_integer + 1)), \
@@ -119,8 +121,9 @@ def test_matches_smallint():
     assert datatype.DataTypeSmallInt.deduce_parser_config("-10")
     assert datatype.DataTypeSmallInt.deduce_parser_config(str(max_int16))
     assert datatype.DataTypeSmallInt.deduce_parser_config(str(min_int16))
-    assert datatype.DataTypeSmallInt.deduce_parser_config(None)
 
+    assert not datatype.DataTypeSmallInt.deduce_parser_config(None), \
+        "smallint shouldn't accept None value"
     assert not datatype.DataTypeSmallInt.deduce_parser_config("abc"), \
         "Integer shouldn't accept alphabetic characters"
     assert not datatype.DataTypeSmallInt.deduce_parser_config(str(max_int16 + 1)), \
@@ -157,11 +160,11 @@ def test_matches_boolean():
     assert datatype.DataTypeBoolean.deduce_parser_config("False")
     assert datatype.DataTypeBoolean.deduce_parser_config("true")
     assert datatype.DataTypeBoolean.deduce_parser_config("false")
-    assert datatype.DataTypeBoolean.deduce_parser_config(None)
 
     # Checking for a match with any other type than a string shouldn't
     # result in an exception, but just return None.
     assert not datatype.DataTypeBoolean.deduce_parser_config(("0", "1", "0"))
+    assert not datatype.DataTypeBoolean.deduce_parser_config(None)
 
 
 def test_parse_boolean():
@@ -193,6 +196,20 @@ def test_parse_boolean():
     assert not parse_boolean("false")
 
 
+def test_serialize_boolean():
+    serialize_boolean = datatype.DataTypeBoolean.string_serializer()
+
+    assert serialize_boolean(True) == 'true'
+
+    serialize_boolean = datatype.DataTypeBoolean.string_serializer({
+        'true_value': '1',
+        'false_value': '0'
+    })
+
+    assert serialize_boolean(True) == '1'
+    assert serialize_boolean(False) == '0'
+
+
 def test_matches_double_precision():
     assert not datatype.DataTypeDoublePrecision.deduce_parser_config("abc")
 
@@ -203,10 +220,10 @@ def test_matches_double_precision():
     assert datatype.DataTypeDoublePrecision.deduce_parser_config("42e10")
     assert datatype.DataTypeDoublePrecision.deduce_parser_config("42.42e10")
     assert datatype.DataTypeDoublePrecision.deduce_parser_config("42.42e-10")
-    assert datatype.DataTypeDoublePrecision.deduce_parser_config(None)
 
     # Checking for a match with any other type than a string
     # shouldn't result in a TypeError exception, but just return False.
+    assert not datatype.DataTypeDoublePrecision.deduce_parser_config(None)
     assert not datatype.DataTypeDoublePrecision.deduce_parser_config(0.0)
     assert not datatype.DataTypeDoublePrecision.deduce_parser_config(42.0)
     assert not datatype.DataTypeDoublePrecision.deduce_parser_config(("42.41", "42.42", "42.43"))
@@ -247,7 +264,7 @@ def test_matches_timestamp():
 
     assert parser_config['format'] == '%Y-%m-%d %H:%M:%S'
 
-    assert datatype.DataTypeTimestamp.deduce_parser_config(None)
+    assert not datatype.DataTypeTimestamp.deduce_parser_config(None)
 
 
 def test_parse_timestamp():

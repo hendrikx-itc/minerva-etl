@@ -68,6 +68,12 @@ class DataTypeBoolean(DataType):
         "false_value": "false"
     }
 
+    default_serializer_config = {
+        "null_value": "\\N",
+        "true_value": "true",
+        "false_value": "false"
+    }
+
     @classmethod
     def string_parser_config(cls, config):
         return merge_dicts(cls.default_parser_config, config)
@@ -103,10 +109,25 @@ class DataTypeBoolean(DataType):
         return parse
 
     @classmethod
+    def string_serializer(cls, config=None):
+        if config is not None:
+            config = merge_dicts(cls.default_serializer_config, config)
+        else:
+            config = cls.default_serializer_config
+
+        def serialize(value):
+            if value is None:
+                return config['null_value']
+            elif value is True:
+                return config['true_value']
+            else:
+                return config['false_value']
+
+        return serialize
+
+    @classmethod
     def deduce_parser_config(cls, value):
-        if value is None:
-            return cls.default_parser_config
-        elif not isinstance(value, basestring):
+        if not isinstance(value, basestring):
             return None
         elif value in cls.bool_set:
             return merge_dicts(
@@ -211,8 +232,11 @@ class DataTypeTimestamp(DataType):
         return parse
 
     @classmethod
-    def string_serializer(cls, config={}):
-        config = merge_dicts(cls.default_serializer_config, config)
+    def string_serializer(cls, config=None):
+        if config is None:
+            config = cls.default_serializer_config
+        else:
+            config = merge_dicts(cls.default_serializer_config, config)
 
         datetime_format = config["format"]
 
@@ -223,8 +247,8 @@ class DataTypeTimestamp(DataType):
 
     @classmethod
     def deduce_parser_config(cls, value):
-        if value is None:
-            return cls.default_parser_config
+        if not isinstance(value, basestring):
+            return None
 
         for regex, datetime_format in cls.known_formats:
             match = regex.match(value)
@@ -266,11 +290,14 @@ class DataTypeSmallInt(DataType):
 
     @classmethod
     def deduce_parser_config(cls, value):
-        if value == "" or value is None:
-            return cls.default_parser_config
-
         if not isinstance(value, basestring):
             return None
+
+        if value == "":
+            return merge_dicts(
+                cls.default_parser_config,
+                {'null_value': ''}
+            )
 
         if not cls.regex.match(value):
             return None
@@ -342,14 +369,8 @@ class DataTypeInteger(DataType):
 
     @classmethod
     def deduce_parser_config(cls, value):
-        if type(value) is float:
+        if not isinstance(value, basestring):
             return None
-
-        if type(value) is decimal.Decimal:
-            return None
-
-        if value is None:
-            return cls.default_parser_config
 
         try:
             int_val = int(value)
@@ -413,14 +434,8 @@ class DataTypeBigint(DataType):
 
     @classmethod
     def deduce_parser_config(cls, value):
-        if type(value) is float:
+        if not isinstance(value, basestring):
             return None
-
-        if type(value) is decimal.Decimal:
-            return None
-
-        if value is None:
-            return cls.default_parser_config
 
         try:
             int_val = int(value)
@@ -481,9 +496,6 @@ class DataTypeReal(DataType):
 
     @classmethod
     def deduce_parser_config(cls, value):
-        if value is None:
-            return cls.default_parser_config
-
         if not isinstance(value, basestring):
             return None
 
@@ -520,9 +532,6 @@ class DataTypeDoublePrecision(DataType):
 
     @classmethod
     def deduce_parser_config(cls, value):
-        if value is None:
-            return cls.default_parser_config
-
         if not isinstance(value, basestring):
             return None
 
@@ -588,18 +597,6 @@ class DataTypeNumeric(DataType):
             return None
         else:
             return cls.default_parser_config
-
-    @classmethod
-    def parse(cls, value):
-        if not value:
-            return None
-
-        try:
-            decimal_val = decimal.Decimal(value)
-        except decimal.InvalidOperation:
-            raise ValueError()
-
-        return decimal_val
 
 
 class DataTypeText(DataType):
