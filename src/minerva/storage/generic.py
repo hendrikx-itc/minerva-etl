@@ -102,7 +102,7 @@ def extract_data_types(data_rows):
         if data_types is None:
             data_types = row_data_types
         else:
-            data_types = datatype.max_datatypes(data_types, row_data_types)
+            data_types = datatype.max_data_types(data_types, row_data_types)
 
     return data_types
 
@@ -152,7 +152,7 @@ def check_column_types(conn, schema, table, column_names, data_types):
     with closing(conn.cursor()) as cursor:
         for column_name, current_data_type, data_type in zip(
                 column_names, current_data_types, data_types):
-            required_data_type = datatype.max_datatype(
+            required_data_type = datatype.max_data_type(
                 current_data_type, data_type
             )
 

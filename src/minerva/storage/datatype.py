@@ -13,386 +13,646 @@ version.  The full license is in the file COPYING, distributed as part of
 this software.
 """
 import re
-from datetime import datetime
-from operator import truth
+from datetime import datetime, tzinfo
 import decimal
+from functools import partial
+import operator
 
-INT64_MIN = -pow(2, 63)
-INT64_MAX = pow(2, 63) - 1
-
-INT32_MIN = -pow(2, 31)
-INT32_MAX = pow(2, 31) - 1
-
-INT16_MIN = -pow(2, 15)
-INT16_MAX = pow(2, 15) - 1
-
-TRUE_SET = set(["1", "True", "true"])
-FALSE_SET = set(["0", "False", "false"])
-BOOL_SET = TRUE_SET | FALSE_SET
+import pytz
 
 
-def matches_string(value):
-    return True
+class ParseError(Exception):
+    pass
 
 
-def parse_string(value):
-    if hasattr(value, "__iter__"):
-        return ";".join(value)
+class DataType(object):
+    @classmethod
+    def string_parser_config(cls, config):
+        raise NotImplementedError()
 
-    return value
+    @classmethod
+    def string_parser(cls, config):
+        raise NotImplementedError()
 
+    @classmethod
+    def string_serializer(cls, config):
+        raise NotImplementedError()
 
-smallint_regex = re.compile("-?[1-9][0-9]*")
-
-
-def matches_smallint(value):
-    if value == "":
-        return True
-
-    if type(value) is float:
-        return False
-
-    if type(value) is decimal.Decimal:
-        return False
-
-    if type(value) is str and not smallint_regex.match(value):
-        return False
-
-    if value is None:
-        return True
-
-    try:
-        int_val = int(value)
-    except ValueError:
-        return False
-    except TypeError:
-        return False
-    else:
-        return INT16_MIN <= int_val <= INT16_MAX
+    @classmethod
+    def deduce_parser_config(cls, value):
+        """
+        :param value: A string containing a value of this type
+        :return: A configuration that can be used to parse the provided value
+        and values like it
+        """
+        raise NotImplementedError()
 
 
-def parse_smallint(value):
-    if not value:
-        return None
+def merge_dicts(x, y):
+    z = x.copy()
+    z.update(y)
 
-    int_val = int(value)
+    return z
 
-    if not (INT16_MIN <= int_val <= INT16_MAX):
-        raise ValueError(
-            "{0:d} is not in range {1:d} - {2:d}".format(
-                int_val, INT16_MIN, INT16_MAX
+
+class DataTypeBoolean(DataType):
+    name = 'boolean'
+
+    true_set = set(["1", "True", "true"])
+    false_set = set(["0", "False", "false"])
+    bool_set = true_set | false_set
+
+    default_parser_config = {
+        "null_value": "\\N",
+        "true_value": "true",
+        "false_value": "false"
+    }
+
+    @classmethod
+    def string_parser_config(cls, config):
+        return merge_dicts(cls.default_parser_config, config)
+
+    @classmethod
+    def string_parser(cls, config):
+        null_value = config["null_value"]
+        true_value = config["true_value"]
+        false_value = config["false_value"]
+
+        if hasattr(true_value, '__iter__'):
+            is_true = partial(operator.contains, true_value)
+        elif isinstance(true_value, basestring):
+            is_true = partial(operator.eq, true_value)
+
+        if hasattr(false_value, '__iter__'):
+            is_false = partial(operator.contains, false_value)
+        elif isinstance(false_value, basestring):
+            is_false = partial(operator.eq, false_value)
+
+        def parse(value):
+            if value == null_value:
+                return None
+            elif is_true(value):
+                return True
+            elif is_false(value):
+                return False
+            else:
+                raise ParseError(
+                    'invalid literal for data type boolean: {}'.format(value)
+                )
+
+        return parse
+
+    @classmethod
+    def deduce_parser_config(cls, value):
+        if value is None:
+            return cls.default_parser_config
+        elif not isinstance(value, basestring):
+            return None
+        elif value in cls.bool_set:
+            return merge_dicts(
+                cls.default_parser_config,
+                {
+                    "true_value": cls.true_set,
+                    "false_value": cls.false_set
+                }
             )
+
+
+def assure_tzinfo(tz):
+    if isinstance(tz, tzinfo):
+        return tz
+    else:
+        return pytz.timezone(tz)
+
+
+class DataTypeTimestampWithTimeZone(DataType):
+    name = 'timestamp with time zone'
+
+    default_parser_config = {
+        "null_value": "\\N",
+        "timezone": "UTC",
+        "format": "%Y-%m-%dT%H:%M:%S"
+    }
+
+    @classmethod
+    def string_parser_config(cls, config):
+        return merge_dicts(cls.default_parser_config, config)
+
+    @classmethod
+    def string_parser(cls, config):
+        """
+        Return function that can parse a string representation of a
+        TimestampWithTimeZone value.
+
+        :param config: a dictionary with the form {"timezone", <tzinfo>,
+        "format", <format_string>}
+        :return: a function (str_value) -> value
+        """
+        null_value = config["null_value"]
+        tz = assure_tzinfo(config["timezone"])
+        format_str = config["format"]
+
+        def parse(value):
+            if value == null_value:
+                return None
+            else:
+                return tz.localize(datetime.strptime(value, format_str))
+
+        return parse
+
+    @classmethod
+    def string_serializer(cls, config):
+        def serialize(value):
+            return str(value)
+
+        return serialize
+
+    @classmethod
+    def deduce_parser_config(cls, value):
+        if value is None:
+            return cls.default_parser_config
+
+
+class DataTypeTimestamp(DataType):
+    name = 'timestamp'
+
+    default_parser_config = {
+        "null_value": "\\N",
+        "format": "%Y-%m-%dT%H:%M:%S"
+    }
+
+    default_serializer_config = {
+        "format": "%Y-%m-%dT%H:%M:%S"
+    }
+
+    known_formats = [
+        (
+            re.compile("^([0-9]{4})-([0-9]{2})-([0-9]{2})T([0-9]{2}):([0-9]{2}):([0-9]{2})$"),
+            "%Y-%m-%dT%H:%M:%S"
+        ),
+        (
+            re.compile("^([0-9]{4})-([0-9]{2})-([0-9]{2}) ([0-9]{2}):([0-9]{2}):([0-9]{2})$"),
+            "%Y-%m-%d %H:%M:%S"
         )
+    ]
 
-    return int_val
+    @classmethod
+    def string_parser_config(cls, config):
+        return merge_dicts(cls.default_parser_config, config)
 
+    @classmethod
+    def string_parser(cls, config):
+        def parse(value):
+            if value == config["null_value"]:
+                return None
+            else:
+                return datetime.strptime(value, config["format"])
 
-def matches_integer(value):
-    if type(value) is float:
-        return False
+        return parse
 
-    if type(value) is decimal.Decimal:
-        return False
+    @classmethod
+    def string_serializer(cls, config={}):
+        config = merge_dicts(cls.default_serializer_config, config)
 
-    if value is None:
-        return True
+        datetime_format = config["format"]
 
-    try:
-        int_val = int(value)
-    except ValueError:
-        return False
-    except TypeError:
-        return False
-    else:
-        return INT32_MIN <= int_val <= INT32_MAX
+        def serialize(value):
+            return value.strftime(datetime_format)
 
+        return serialize
 
-def parse_integer(value):
-    if not value:
-        return None
+    @classmethod
+    def deduce_parser_config(cls, value):
+        if value is None:
+            return cls.default_parser_config
 
-    int_val = int(value)
+        for regex, datetime_format in cls.known_formats:
+            match = regex.match(value)
 
-    if not (INT32_MIN <= int_val <= INT32_MAX):
-        raise ValueError(
-            "{0:d} is not in range {1:d} - {2:d}".format(
-                int_val, INT32_MIN, INT32_MAX
-            )
-        )
-
-    return int_val
-
-
-def matches_bigint(value):
-    if type(value) is float:
-        return False
-
-    if type(value) is decimal.Decimal:
-        return False
-
-    if value is None:
-        return True
-
-    try:
-        int_val = int(value)
-    except (TypeError, ValueError):
-        return False
-    else:
-        return INT64_MIN <= int_val <= INT64_MAX
+            if match is not None:
+                return merge_dicts(
+                    cls.default_parser_config,
+                    {'format': datetime_format}
+                )
 
 
-def parse_bigint(value):
-    if not value:
-        return None
+class DataTypeSmallInt(DataType):
+    name = 'smallint'
 
-    int_val = int(value)
+    min = -pow(2, 15)
+    max = pow(2, 15) - 1
 
-    if not (INT64_MIN <= int_val <= INT64_MAX):
-        raise ValueError("{0:d} is not in range {1:d} - {2:d}".format(
-            int_val, INT64_MIN, INT64_MAX))
+    default_parser_config = {
+        "null_value": "\\N"
+    }
 
-    return int_val
+    @classmethod
+    def string_parser_config(cls, config):
+        return merge_dicts(cls.default_parser_config, config)
 
+    @classmethod
+    def string_parser(cls, config):
+        null_value = config["null_value"]
 
-def matches_boolean(value):
-    if value is None:
-        return True
+        def parse(value):
+            if value == null_value:
+                return None
+            else:
+                return cls._parse(value)
 
-    return value in BOOL_SET
+        return parse
 
+    regex = re.compile("^-?[1-9][0-9]*$")
 
-def parse_boolean(value):
-    if not value:
-        return None
-    elif value in FALSE_SET:
-        return False
-    elif value in TRUE_SET:
-        return True
-    else:
-        raise ValueError()
+    @classmethod
+    def deduce_parser_config(cls, value):
+        if value == "" or value is None:
+            return cls.default_parser_config
 
+        if not isinstance(value, basestring):
+            return None
 
-def matches_float(value):
-    if type(value) is decimal.Decimal:
-        return False
+        if not cls.regex.match(value):
+            return None
 
-    if value is None or type(value) is float or len(value) == 0:
-        return True
-
-    try:
-        float(value)
-    except ValueError:
-        return False
-    except TypeError:
-        return False
-    else:
-        return True
-
-
-def parse_float(value):
-    if not value:
-        return None
-
-    return float(value)
-
-
-TIMESTAMP_REGEX = re.compile(
-    "^([0-9]{4})-([0-9]{2})-([0-9]{2}) ([0-9]{2}):([0-9]{2}):([0-9]{2})$"
-)
-
-
-def matches_timestamp(value):
-    if value is None:
-        return True
-
-    try:
-        match = TIMESTAMP_REGEX.match(value)
-    except TypeError:
-        return False
-    else:
-        if match is not None:
-            return True
+        try:
+            int_val = int(value)
+        except ValueError:
+            return None
+        except TypeError:
+            return None
         else:
-            return False
+            if cls.min <= int_val <= cls.max:
+                return cls.default_parser_config
+
+    @classmethod
+    def string_serializer(cls, config):
+        def serialize(value):
+            return str(value)
+
+        return serialize
+
+    @classmethod
+    def _parse(cls, value):
+        if not value:
+            return None
+
+        int_val = int(value)
+
+        if not (cls.min <= int_val <= cls.max):
+            raise ValueError(
+                "{0:d} is not in range {1:d} - {2:d}".format(
+                    int_val, cls.min, cls.max
+                )
+            )
+
+        return int_val
 
 
-def parse_timestamp(value):
-    if not value:
-        return None
+class DataTypeInteger(DataType):
+    name = 'integer'
 
-    match = TIMESTAMP_REGEX.match(value)
+    min = -pow(2, 31)
+    max = pow(2, 31) - 1
 
-    if match is None:
-        raise ValueError()
+    default_parser_config = {
+        "null_value": "\\N"
+    }
 
-    (year, month, date, hour, minute, second) = match.groups()
+    @classmethod
+    def string_parser_config(cls, config):
+        return merge_dicts(cls.default_parser_config, config)
 
-    datetime_val = datetime(
-        int(year), int(month), int(date), int(hour), int(minute), int(second)
-    )
+    @classmethod
+    def string_parser(cls, config):
+        def parse(value):
+            if value == config["null_value"]:
+                return None
+            else:
+                return cls._parse(value)
 
-    return datetime_val
+        return parse
 
+    @classmethod
+    def string_serializer(cls, config):
+        def serialize(value):
+            return str(value)
 
-def matches_array_of_smallints(value):
-    """
-    Returns True when value is comma separated string of small ints
-    """
-    if not value:
-        return None
+        return serialize
 
-    if type(value) is list or type(value) is tuple:
-        values = value
-    elif type(value) is str:
-        values = value.split(",")
-    else:
-        return False
+    @classmethod
+    def deduce_parser_config(cls, value):
+        if type(value) is float:
+            return None
 
-    ints = filter(truth, values)
+        if type(value) is decimal.Decimal:
+            return None
 
-    return all(map(matches_smallint, ints))
+        if value is None:
+            return cls.default_parser_config
 
+        try:
+            int_val = int(value)
+        except ValueError:
+            return None
+        except TypeError:
+            return None
+        else:
+            if cls.min <= int_val <= cls.max:
+                return cls.default_parser_config
 
-def matches_array_of_integers(value):
-    """
-    Returns True when value is comma separated string of integers
-    """
-    if not value:
-        return None
+    @classmethod
+    def _parse(cls, value):
+        if not value:
+            return None
 
-    if type(value) is list or type(value) is tuple:
-        values = value
-    elif type(value) is str:
-        values = value.split(",")
-    else:
-        return False
+        int_val = int(value)
 
-    ints = filter(truth, values)
+        if not (cls.min <= int_val <= cls.max):
+            raise ValueError(
+                "{0:d} is not in range {1:d} - {2:d}".format(
+                    int_val, cls.min, cls.max
+                )
+            )
 
-    return all(map(matches_integer, ints))
-
-
-def matches_array_of_bigints(value):
-    """
-    Returns True when value is comma separated string of bigints
-    """
-    if not value:
-        return None
-
-    try:
-        ints = map(int, (v for v in value.split(",") if v))
-    except ValueError:
-        return False
-
-    try:
-        return matches_bigint(max(ints))
-    except ValueError:
-        return True
-    else:
-        return False
+        return int_val
 
 
-def matches_array_of_strings(value):
-    if value is None:
-        return None
+class DataTypeBigint(DataType):
+    name = 'bigint'
 
-    if type(value) is list or type(value) is tuple:
-        return True
-    else:
-        return False
+    min = -pow(2, 63)
+    max = pow(2, 63) - 1
+
+    default_parser_config = {
+        "null_value": "\\N"
+    }
+
+    @classmethod
+    def string_parser_config(cls, config):
+        return merge_dicts(cls.default_parser_config, config)
+
+    @classmethod
+    def string_parser(cls, config):
+        null_value = config["null_value"]
+
+        def parse(value):
+            if value == null_value:
+                return None
+            else:
+                return DataTypeBigint.parse(value)
+
+        return parse
+
+    @classmethod
+    def string_serializer(cls, config):
+        def serialize(value):
+            return str(value)
+
+        return serialize
+
+    @classmethod
+    def deduce_parser_config(cls, value):
+        if type(value) is float:
+            return None
+
+        if type(value) is decimal.Decimal:
+            return None
+
+        if value is None:
+            return cls.default_parser_config
+
+        try:
+            int_val = int(value)
+        except (TypeError, ValueError):
+            return None
+        else:
+            if cls.min <= int_val <= cls.max:
+                return cls.default_parser_config
+
+    @classmethod
+    def parse(cls, value):
+        if not value:
+            return None
+
+        int_val = int(value)
+
+        if not (cls.min <= int_val <= cls.max):
+            raise ValueError("{0:d} is not in range {1:d} - {2:d}".format(
+                int_val, cls.min, cls.max))
+
+        return int_val
 
 
-def matches_decimal(value):
-    try:
-        decimal.Decimal(value)
-    except decimal.InvalidOperation:
-        return False
-    except ValueError:
-        return False
-    except TypeError:
-        return False
-    else:
-        return True
+class DataTypeReal(DataType):
+    name = 'real'
+
+    default_parser_config = {
+        "null_value": "\\N"
+    }
+
+    @classmethod
+    def string_parser_config(cls, config):
+        merge_dicts(cls.default_parser_config, config)
+
+    @classmethod
+    def string_parser(cls, config):
+        def parse(value):
+            """
+            Parse value and return float value. If value is empty ('') or None,
+            None is returned.
+            :param value: string representation of a real value, e.g.; '34.00034',
+            '343', ''
+            :return: float value
+            """
+            if value == config["null_value"]:
+                return None
+            else:
+                return float(value)
+
+        return parse
+
+    @classmethod
+    def string_serializer(cls, config):
+        def serialize(value):
+            return str(value)
+
+        return serialize
+
+    @classmethod
+    def deduce_parser_config(cls, value):
+        if value is None:
+            return cls.default_parser_config
+
+        if not isinstance(value, basestring):
+            return None
+
+        try:
+            float(value)
+        except ValueError:
+            return None
+        except TypeError:
+            return None
+        else:
+            return cls.default_parser_config
 
 
-def parse_decimal(value):
-    if not value:
-        return None
+class DataTypeDoublePrecision(DataType):
+    name = 'double precision'
 
-    try:
-        decimal_val = decimal.Decimal(value)
-    except decimal.InvalidOperation:
-        raise ValueError()
+    default_parser_config = {
+        "null_value": "\\N"
+    }
 
-    return decimal_val
+    @classmethod
+    def string_parser_config(cls, config):
+        return merge_dicts(cls.default_parser_config, config)
+
+    @classmethod
+    def string_parser(cls, config):
+        def parse(value):
+            if value == config["null_value"]:
+                return None
+            else:
+                return float(value)
+
+        return parse
+
+    @classmethod
+    def deduce_parser_config(cls, value):
+        if value is None:
+            return cls.default_parser_config
+
+        if not isinstance(value, basestring):
+            return None
+
+        try:
+            float(value)
+        except ValueError:
+            return None
+        except TypeError:
+            return None
+        else:
+            return cls.default_parser_config
+
+    @classmethod
+    def string_serializer(cls, config):
+        def serialize(value):
+            return str(value)
+
+        return serialize
 
 
-def parse_bits(value):
-    try:
-        return int(value, 2)
-    except:
-        raise ValueError()
+class DataTypeNumeric(DataType):
+    name = 'numeric'
+
+    default_parser_config = {
+        "null_value": "\\N"
+    }
+
+    @classmethod
+    def string_parser_config(cls, config):
+        return merge_dicts(cls.default_parser_config, config)
+
+    @classmethod
+    def string_parser(cls, config):
+        is_null = partial(operator.eq, config["null_value"])
+
+        def parse(value):
+            if is_null(value):
+                return None
+            else:
+                try:
+                    return decimal.Decimal(value)
+                except decimal.InvalidOperation as exc:
+                    raise ParseError(str(exc))
+
+        return parse
+
+    @classmethod
+    def string_serializer(cls, config):
+        def serialize(value):
+            return str(value)
+
+        return serialize
+
+    @classmethod
+    def deduce_parser_config(cls, value):
+        try:
+            decimal.Decimal(value)
+        except decimal.InvalidOperation:
+            return None
+        except ValueError:
+            return None
+        except TypeError:
+            return None
+        else:
+            return cls.default_parser_config
+
+    @classmethod
+    def parse(cls, value):
+        if not value:
+            return None
+
+        try:
+            decimal_val = decimal.Decimal(value)
+        except decimal.InvalidOperation:
+            raise ValueError()
+
+        return decimal_val
 
 
-def matches_bits(value):
-    try:
-        int(value, 2)
-    except ValueError:
-        return False
-    else:
-        return True
+class DataTypeText(DataType):
+    name = 'text'
+
+    default_parser_config = {
+        "null_value": "\\N"
+    }
+
+    @classmethod
+    def string_parser_config(cls, config):
+        return merge_dicts(cls.default_parser_config, config)
+
+    @classmethod
+    def string_parser(cls, config):
+        null_value = config["null_value"]
+
+        def parse(value):
+            if value == null_value:
+                return None
+            else:
+                return value
+
+        return parse
+
+    @classmethod
+    def string_serializer(cls, config):
+        def serialize(value):
+            return str(value)
+
+        return serialize
+
+    @classmethod
+    def deduce_parser_config(cls, value):
+        return cls.default_parser_config
 
 
-MATCH_FUNCS_BY_TYPE = {
-    "text": matches_string,
-    "smallint": matches_smallint,
-    "integer": matches_integer,
-    "bigint": matches_bigint,
-    "real": matches_float,
-    "double precision": matches_float,
-    "numeric": matches_decimal,
-    "timestamp without time zone": matches_timestamp,
-    "bit varying": matches_bits,
-    "smallint[]": matches_array_of_smallints,
-    "integer[]": matches_array_of_integers,
-    "bigint[]": matches_array_of_bigints,
-    "text[]": matches_array_of_strings}
-
-
-ALL_TYPES = [
-    "text",
-    "bigint[]",
-    "integer[]",
-    "smallint[]",
-    "bigint",
-    "integer",
-    "smallint",
-    "boolean",
-    "real",
-    "double precision",
-    "timestamp without time zone",
-    "numeric"
-]
-
-# The set of type ids of types that are integer
+# The set of types that are integer
 INTEGER_TYPES = {
-    "bigint",
-    "integer",
-    "smallint"
+    DataTypeBigint,
+    DataTypeInteger,
+    DataTypeSmallInt
 }
 
 TYPE_ORDER = [
-    "smallint",
-    "integer",
-    "bigint",
-    "real",
-    "double precision",
-    "numeric",
-    "timestamp without time zone",
-    "smallint[]",
-    "integer[]",
-    "text[]",
-    "text"
+    DataTypeSmallInt,
+    DataTypeInteger,
+    DataTypeBigint,
+    DataTypeReal,
+    DataTypeDoublePrecision,
+    DataTypeNumeric,
+    DataTypeTimestamp,
+    DataTypeText
 ]
 
 
@@ -402,33 +662,82 @@ TYPE_ORDER_RANKS = dict(
 )
 
 
-def max_datatype(left, right):
+def max_data_type(left, right):
     if TYPE_ORDER_RANKS[right] > TYPE_ORDER_RANKS[left]:
         return right
     else:
         return left
 
 
-def max_datatypes(current_datatypes, new_datatypes):
+def max_data_types(current_data_types, new_data_types):
     return [
-        max_datatype(current_datatype, new_datatype)
-        for current_datatype, new_datatype
-        in zip(current_datatypes, new_datatypes)
+        max_data_type(current_data_type, new_data_type)
+        for current_data_type, new_data_type
+        in zip(current_data_types, new_data_types)
     ]
 
 
 ORDERED_MATCH_FUNCS = [
-    (data_type, MATCH_FUNCS_BY_TYPE[data_type])
+    (data_type, data_type.deduce_parser_config)
     for data_type in TYPE_ORDER
 ]
 
 
-def deduce_from_value(value):
-    for data_type, match_func in ORDERED_MATCH_FUNCS:
-        if match_func(value):
-            return data_type
+def deduce_from_string(value):
+    for data_type, deduce_parse_config in ORDERED_MATCH_FUNCS:
+        parse_config = deduce_parse_config(value)
+
+        if parse_config is not None:
+            return data_type, parse_config
 
     raise ValueError("Unable to determine data type of: {0}".format(value))
 
 
-extract_from_value = deduce_from_value
+all_data_types = [
+    DataTypeBigint,
+    DataTypeBoolean,
+    DataTypeTimestamp,
+    DataTypeTimestampWithTimeZone,
+    DataTypeInteger,
+    DataTypeSmallInt,
+    DataTypeReal,
+    DataTypeDoublePrecision,
+    DataTypeNumeric,
+    DataTypeText
+]
+
+
+type_map = {d.name: d for d in all_data_types}
+
+
+DEFAULT_DATA_TYPE = "smallint"
+
+
+def deduce_data_types(rows):
+    """
+    Return a list of the minimal required data types to store the values, in the
+    same order as the values and thus matching the order of attribute_names.
+    """
+    row_length = len(rows[0])
+
+    return reduce(
+        max_data_types,
+        map(types_from_values, rows),
+        [DEFAULT_DATA_TYPE] * row_length
+    )
+
+
+types_from_values = partial(map, deduce_from_string)
+
+
+def load_data_format(format):
+    data_type_name = format["datatype"]
+
+    try:
+        data_type = type_map[data_type_name]
+    except KeyError:
+        raise Exception("No such data type: {}".format(data_type_name))
+    else:
+        config = data_type.string_parser_config(format["string_format"])
+
+        return data_type, data_type.string_parser(config)

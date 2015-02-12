@@ -132,7 +132,7 @@ class TrendStore(object):
 
             for column_name, current_data_type, data_type in \
                     zip(column_names, current_data_types, data_types):
-                required_data_type = datatype.max_datatype(
+                required_data_type = datatype.max_data_type(
                     current_data_type, data_type
                 )
 

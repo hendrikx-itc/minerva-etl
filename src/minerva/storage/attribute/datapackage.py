@@ -58,7 +58,7 @@ class DataPackage(object):
         this datapackage, in the same order as the values and thus matching the
         order of attribute_names.
         """
-        return reduce(datatype.max_datatypes, map(row_to_types, self.rows),
+        return reduce(datatype.max_data_types, map(row_to_types, self.rows),
                       [DEFAULT_DATATYPE] * len(self.attribute_names))
 
     def deduce_attributes(self):
@@ -134,7 +134,7 @@ class DataPackage(object):
 
 snd = itemgetter(1)
 
-types_from_values = partial(map, datatype.deduce_from_value)
+types_from_values = partial(map, datatype.deduce_from_string)
 
 row_to_types = compose(types_from_values, itemgetter(2))
 
