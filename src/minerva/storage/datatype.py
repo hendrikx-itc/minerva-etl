@@ -41,9 +41,11 @@ class DataType(object):
     @classmethod
     def deduce_parser_config(cls, value):
         """
+        Returns a configuration that can be used to parse the provided value
+        and values like it or None if the value can not be parsed.
+
         :param value: A string containing a value of this type
-        :return: A configuration that can be used to parse the provided value
-        and values like it
+        :return: configuration dictionary
         """
         raise NotImplementedError()
 
