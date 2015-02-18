@@ -22,9 +22,9 @@ def test_create_view(conn):
         data_source = DataSource.from_name("view-test")(cursor)
 
         trend_store = TrendStore.get(
-            cursor, data_source, test_set_small.entity_type,
+            data_source, test_set_small.entity_type,
             test_set_small.granularity
-        )
+        )(cursor)
 
         if not trend_store:
             trend_store = TrendStore.create(TrendStoreDescriptor(
