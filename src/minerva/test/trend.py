@@ -15,10 +15,10 @@ from functools import partial
 import pytz
 
 from minerva.directory import DataSource, EntityType, Entity
-from minerva.directory.entityref import EntityIdRef
+from minerva.storage import datatype
 from minerva.storage.trend.test import DataSet
 from minerva.storage.trend.granularity import create_granularity
-from minerva.storage.trend.datapackage import DefaultPackage
+from minerva.storage.trend.datapackage import refined_package_type_for_entity_type
 from minerva.storage.trend.trend import TrendDescriptor
 from minerva.storage.trend.trendstore import TrendStore, TrendStoreDescriptor
 
@@ -47,7 +47,7 @@ class TestSet1Small(TestSetQtr):
 
         self.entities = list(map(partial(Entity.from_dn, cursor), self.dns))
 
-        data_package = generate_data_package_a(
+        trend_descriptors, data_package = generate_data_package_a(
             self.granularity, self.timestamp, self.entities
         )
 
@@ -57,10 +57,11 @@ class TestSet1Small(TestSetQtr):
 
         if not self.trend_store:
             self.trend_store = TrendStore.create(TrendStoreDescriptor(
-                self.data_source, self.entity_type, self.granularity, [],
-                partition_size=86400
+                self.data_source, self.entity_type, self.granularity,
+                trend_descriptors, partition_size=86400
             ))(cursor)
 
+        self.trend_store.partition(data_package.timestamp).create(cursor)
         self.trend_store.store_copy_from(data_package, self.modified)(cursor)
 
 
@@ -86,6 +87,7 @@ class TestSet1Large(TestSetQtr):
                 [], partition_size=86400)
             )(cursor)
 
+        self.trend_store.partition(data_package.timestamp).create(cursor)
         self.trend_store.store_copy_from(data_package, self.modified)(cursor)
 
 
@@ -113,7 +115,7 @@ class TestData():
         self.trend_store_c = None
 
     def load(self, cursor):
-        self.entity_type = EntityType.from_name(cursor, self.entity_type_name)
+        self.entity_type = EntityType.from_name(self.entity_type_name)(cursor)
 
         self.entities = map(partial(Entity.from_dn, cursor), self.dns)
 
@@ -121,33 +123,36 @@ class TestData():
 
         # Data a
 
-        self.data_source_a = DataSource.from_name(cursor, "test-source-a")
-        self.trend_store_a = TrendStore.create(TrendStoreDescriptor(
-            self.data_source_a, self.entity_type, granularity,
-            [], partition_size=86400
-        ))(cursor)
-        data_package = generate_data_package_a(
+        trend_descriptors, data_package = generate_data_package_a(
             granularity, self.timestamp_1, self.entities
         )
+
+        self.data_source_a = DataSource.from_name("test-source-a")(cursor)
+
+        self.trend_store_a = TrendStore.create(TrendStoreDescriptor(
+            self.data_source_a, self.entity_type, granularity,
+            trend_descriptors, partition_size=86400
+        ))(cursor)
 
         self.trend_store_a.store_copy_from(data_package, self.modified)(cursor)
 
         # Data b
 
-        self.data_source_b = DataSource.from_name(cursor, "test-source-b")
-        self.trend_store_b = TrendStore.create(TrendStoreDescriptor(
-            self.data_source_b, self.entity_type, granularity, [],
-            partition_size=86400
-        ))(cursor)
-        data_package = generate_data_package_b(
+        trend_descriptors, data_package = generate_data_package_b(
             granularity, self.timestamp_1, self.entities
         )
+
+        self.data_source_b = DataSource.from_name("test-source-b")(cursor)
+        self.trend_store_b = TrendStore.create(TrendStoreDescriptor(
+            self.data_source_b, self.entity_type, granularity,
+            trend_descriptors, partition_size=86400
+        ))(cursor)
 
         self.trend_store_b.store_copy_from(data_package, self.modified)(cursor)
 
         # Data c
 
-        self.data_source_c = DataSource.from_name(cursor, "test-source-c")
+        self.data_source_c = DataSource.from_name("test-source-c")(cursor)
         self.trend_store_c = TrendStore.create(TrendStoreDescriptor(
             self.data_source_c, self.entity_type, granularity, [],
             partition_size=86400
@@ -162,7 +167,7 @@ class TestData():
 
         # Data d
 
-        self.datasource_d = DataSource.from_name(cursor, "test-source-d")
+        self.datasource_d = DataSource.from_name("test-source-d")(cursor)
         self.trendstore_d = TrendStore.create(TrendStoreDescriptor(
             self.datasource_d, self.entity_type, granularity, [],
             partition_size=86400
@@ -183,36 +188,65 @@ class TestData():
 
 
 def generate_data_package_a(granularity, timestamp, entities):
-    return DefaultPackage(
+    trend_descriptors = [
+        TrendDescriptor('CellID', datatype.DataTypeSmallInt, ''),
+        TrendDescriptor('CCR', datatype.DataTypeDoublePrecision, ''),
+        TrendDescriptor('CCRatts', datatype.DataTypeSmallInt, ''),
+        TrendDescriptor('Drops', datatype.DataTypeSmallInt, '')
+    ]
+
+    trend_names = [t.name for t in trend_descriptors]
+
+    data_package = refined_package_type_for_entity_type('dummy_type')(
         granularity=granularity,
         timestamp=timestamp,
-        trend_names=['CellID', 'CCR', 'CCRatts', 'Drops'],
+        trend_names=trend_names,
         rows=[
-            (entities[0].id, ('10023', '0.9919', '2105', '17')),
-            (entities[1].id, ('10047', '0.9963', '4906', '18')),
-            (entities[2].id, ('10048', '0.9935', '2448', '16'))
+            (entities[0].id, (10023, 0.9919, 2105, 17)),
+            (entities[1].id, (10047, 0.9963, 4906, 18)),
+            (entities[2].id, (10048, 0.9935, 2448, 16))
         ]
     )
+
+    return trend_descriptors, data_package
 
 
 def generate_data_package_a_large(granularity, timestamp, entities):
-    return DefaultPackage(
+    trend_descriptors = [
+        TrendDescriptor('CellID', datatype.DataTypeSmallInt, ''),
+        TrendDescriptor('CCR', datatype.DataTypeDoublePrecision, ''),
+        TrendDescriptor('CCRatts', datatype.DataTypeSmallInt, ''),
+        TrendDescriptor('Drops', datatype.DataTypeSmallInt, '')
+    ]
+
+    trend_names = [t.name for t in trend_descriptors]
+
+    data_package = refined_package_type_for_entity_type('dummy_type')(
         granularity=granularity,
         timestamp=timestamp,
-        trend_names=['CellID', 'CCR', 'CCRatts', 'Drops'],
+        trend_names=trend_names,
         rows=[
-            (entities[0].id, ('10023', '0.9919', '210500', '17')),
-            (entities[1].id, ('10047', '0.9963', '490600', '18')),
-            (entities[2].id, ('10048', '0.9935', '244800', '16'))
+            (entities[0].id, (10023, 0.9919, 210500, 17)),
+            (entities[1].id, (10047, 0.9963, 490600, 18)),
+            (entities[2].id, (10048, 0.9935, 244800, 16))
         ]
     )
 
+    return trend_descriptors, data_package
+
 
 def generate_data_package_b(granularity, timestamp, entities):
-    return DefaultPackage(
+    trend_descriptors = [
+        TrendDescriptor('counter_a', datatype.DataTypeSmallInt, ''),
+        TrendDescriptor('counter_b', datatype.DataTypeSmallInt, '')
+    ]
+
+    trend_names = [t.name for t in trend_descriptors]
+
+    data_package = refined_package_type_for_entity_type('dummy_type')(
         granularity=granularity,
         timestamp=timestamp,
-        trend_names=['counter_a', 'counter_b'],
+        trend_names=trend_names,
         rows=[
             (entities[0].id, ('443', '21')),
             (entities[1].id, ('124', '34')),
@@ -221,26 +255,46 @@ def generate_data_package_b(granularity, timestamp, entities):
         ]
     )
 
+    return trend_descriptors, data_package
+
 
 def generate_data_package_c(granularity, timestamp, entities):
-    return DefaultPackage(
+    trend_descriptors = [
+        TrendDescriptor('counter_x', datatype.DataTypeSmallInt, ''),
+        TrendDescriptor('counter_y', datatype.DataTypeSmallInt, '')
+    ]
+
+    trend_names = [t.name for t in trend_descriptors]
+
+    data_package = refined_package_type_for_entity_type('dummy_type')(
         granularity=granularity,
         timestamp=timestamp,
-        trend_names=['counter_x', 'counter_y'],
+        trend_names=trend_names,
         rows=[
-            (entities[1].id, ('110', '0')),
-            (entities[2].id, ('124', '0')),
-            (entities[3].id, ('121', '2'))
+            (entities[1].id, (110, 0)),
+            (entities[2].id, (124, 0)),
+            (entities[3].id, (121, 2))
         ]
     )
+
+    return trend_descriptors, data_package
 
 
 def generate_data_package_d(granularity, timestamp, entities):
-    return DefaultPackage(
+    trend_descriptors = [
+        TrendDescriptor('counter_x', datatype.DataTypeSmallInt, ''),
+        TrendDescriptor('counter_y', datatype.DataTypeSmallInt, '')
+    ]
+
+    trend_names = [t.name for t in trend_descriptors]
+
+    data_package = refined_package_type_for_entity_type('dummy_type')(
         granularity=granularity,
         timestamp=timestamp,
-        trend_names=['counter_x', 'counter_y'],
+        trend_names=trend_names,
         rows=[
-            (entities[1].id, ('110', '3'))
+            (entities[1].id, (110, 3))
         ]
     )
+
+    return trend_descriptors, data_package
