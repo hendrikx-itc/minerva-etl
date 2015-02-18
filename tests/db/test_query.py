@@ -302,7 +302,9 @@ def test_extract_references():
         col_id,
         col_name]
 
-    query = Select(columns).from_([dummy_table]).where_(Eq(col_name, Argument())).group_by_([col_name])
+    query = Select(columns).from_(
+        [dummy_table]
+    ).where_(Eq(col_name, Argument())).group_by_([col_name])
 
     references = query.references()
 
