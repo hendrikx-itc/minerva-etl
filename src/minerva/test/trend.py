@@ -61,9 +61,7 @@ class TestSet1Small(TestSetQtr):
                 partition_size=86400
             ))(cursor)
 
-        self.partition = store_data_package(
-            cursor, self.trend_store, data_package, self.modified
-        )
+        self.trend_store.store_copy_from(data_package, self.modified)(cursor)
 
 
 class TestSet1Large(TestSetQtr):
@@ -88,9 +86,7 @@ class TestSet1Large(TestSetQtr):
                 [], partition_size=86400)
             )(cursor)
 
-        self.partition = store_data_package(
-            cursor, self.trend_store, data_package, self.modified
-        )
+        self.trend_store.store_copy_from(data_package, self.modified)(cursor)
 
 
 class TestData():
@@ -133,9 +129,8 @@ class TestData():
         data_package = generate_data_package_a(
             granularity, self.timestamp_1, self.entities
         )
-        self.partition_a = store_data_package(
-            cursor, self.trend_store_a, data_package, self.modified
-        )
+
+        self.trend_store_a.store_copy_from(data_package, self.modified)(cursor)
 
         # Data b
 
@@ -147,9 +142,8 @@ class TestData():
         data_package = generate_data_package_b(
             granularity, self.timestamp_1, self.entities
         )
-        self.partition_b = store_data_package(
-            cursor, self.trend_store_b, data_package, self.modified
-        )
+
+        self.trend_store_b.store_copy_from(data_package, self.modified)(cursor)
 
         # Data c
 
@@ -161,9 +155,10 @@ class TestData():
         data_package = generate_data_package_c(
             granularity, self.timestamp_1, self.entities
         )
-        self.partition_c = store_data_package(
-            cursor, self.trend_store_c, data_package, self.modified
-        )
+
+        self.trend_store_c.store_copy_from(
+            data_package, self.modified
+        )(cursor)
 
         # Data d
 
@@ -185,23 +180,6 @@ class TestData():
         self.partition_d_2 = store_data_package(
             cursor, self.trendstore_d, datapackage_2, self.modified
         )
-
-
-def store_data_package(cursor, trend_store, data_package, modified):
-    data_types = data_package.deduce_data_types()
-
-    partition = trend_store.partition(data_package.timestamp)
-    partition.create(cursor)
-
-    trend_descriptors = [
-        TrendDescriptor(name, data_type, '')
-        for name, data_type in zip(data_package.trend_names, data_types)
-    ]
-
-    trend_store.check_trends_exist(trend_descriptors)(cursor)
-    trend_store.store_copy_from(data_package, modified)(cursor)
-
-    return partition
 
 
 def generate_data_package_a(granularity, timestamp, entities):
