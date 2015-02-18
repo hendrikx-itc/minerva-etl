@@ -451,16 +451,19 @@ class TrendStore():
             self._store_copy_from(tmp_table, data_package, modified)(cursor)
 
             # Update existing records
-            self.update_existing_from_tmp(
+            self._update_existing_from_tmp(
                 tmp_table, table, data_package.trend_names, modified
             )(cursor)
 
             # Fill in missing records
-            copy_missing_from_tmp(cursor, tmp_table, table, data_package.trend_names)
+            self._copy_missing_from_tmp(
+                tmp_table, table, data_package.trend_names
+            )(cursor)
 
         return f
 
-    def _update_existing_from_tmp(self, tmp_table, table, column_names, modified):
+    @staticmethod
+    def _update_existing_from_tmp(tmp_table, table, column_names, modified):
         def f(cursor):
             set_columns = ", ".join(
                 '"{0}"={1}."{0}"'.format(name, tmp_table.render())
@@ -470,7 +473,8 @@ class TrendStore():
             update_query = (
                 'UPDATE {0} SET modified=greatest(%s, {0}.modified), {1} '
                 'FROM {2} '
-                'WHERE {0}.entity_id={2}.entity_id AND {0}."timestamp"={2}."timestamp"'
+                'WHERE {0}.entity_id={2}.entity_id '
+                'AND {0}."timestamp"={2}."timestamp"'
             ).format(table.render(), set_columns, tmp_table.render())
 
             args = (modified, )
@@ -478,6 +482,49 @@ class TrendStore():
             try:
                 cursor.execute(update_query, args)
             except psycopg2.DatabaseError as exc:
+                raise translate_postgresql_exception(exc)
+
+        return f
+
+    @staticmethod
+    def _copy_missing_from_tmp(tmp_table, table, column_names):
+        """
+        Store the data using the PostgreSQL specific COPY FROM command and a
+        temporary table. The temporary table is joined against the target table
+        to make sure only missing records (based on entity_id, timestamp
+        combination) are inserted.
+        """
+        def f(cursor):
+            all_column_names = ['entity_id', 'timestamp']
+            all_column_names.extend(column_names)
+
+            tmp_column_names = ", ".join(
+                'tmp."{0}"'.format(name)
+                for name in all_column_names
+            )
+
+            dest_column_names = ", ".join(
+                '"{0}"'.format(name)
+                for name in all_column_names
+            )
+
+            insert_query = (
+                'INSERT INTO {table} ({dest_columns}) '
+                'SELECT {tmp_columns} FROM {tmp_table} AS tmp '
+                'LEFT JOIN {table} ON '
+                'tmp."timestamp" = {table}."timestamp" '
+                'AND tmp.entity_id = {table}.entity_id '
+                'WHERE {table}.entity_id IS NULL'
+            ).format(
+                table=table.render(),
+                dest_columns=dest_column_names,
+                tmp_columns=tmp_column_names,
+                tmp_table=tmp_table.render()
+            )
+
+            try:
+                cursor.execute(insert_query)
+            except psycopg2.Error as exc:
                 raise translate_postgresql_exception(exc)
 
         return f
@@ -662,46 +709,3 @@ def create_file(lines):
     copy_from_file.seek(0)
 
     return copy_from_file
-
-
-def copy_missing_from_tmp(tmp_table, table, column_names):
-    """
-    Store the data using the PostgreSQL specific COPY FROM command and a
-    temporary table. The temporary table is joined against the target table
-    to make sure only missing records (based on entity_id, timestamp
-    combination) are inserted.
-    """
-    def f(cursor):
-        all_column_names = ['entity_id', 'timestamp']
-        all_column_names.extend(column_names)
-
-        tmp_column_names = ", ".join(
-            'tmp."{0}"'.format(name)
-            for name in all_column_names
-        )
-
-        dest_column_names = ", ".join(
-            '"{0}"'.format(name)
-            for name in all_column_names
-        )
-
-        insert_query = (
-            'INSERT INTO {table} ({dest_columns}) '
-            'SELECT {tmp_columns} FROM {tmp_table} AS tmp '
-            'LEFT JOIN {table} ON '
-            'tmp."timestamp" = {table}."timestamp" '
-            'AND tmp.entity_id = {table}.entity_id '
-            'WHERE {table}.entity_id IS NULL'
-        ).format(
-            table=table.render(),
-            dest_columns=dest_column_names,
-            tmp_columns=tmp_column_names,
-            tmp_table=tmp_table.render()
-        )
-
-        try:
-            cursor.execute(insert_query)
-        except psycopg2.Error as exc:
-            raise translate_postgresql_exception(exc)
-
-    return f
