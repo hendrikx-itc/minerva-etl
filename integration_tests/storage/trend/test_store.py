@@ -12,7 +12,8 @@ from minerva.test import with_conn, clear_database, assert_not_equal, raises, \
 from minerva.directory import DataSource, EntityType
 from minerva.storage import datatype
 from minerva.storage.trend.test import DataSet
-from minerva.storage.trend.datapackage import refined_package_type_for_entity_type
+from minerva.storage.trend.datapackage import \
+    refined_package_type_for_entity_type
 from minerva.storage.trend.trendstore import TrendStore, TrendStoreDescriptor
 from minerva.storage.trend.trend import TrendDescriptor
 from minerva.storage.trend.partitioning import Partitioning
@@ -479,8 +480,8 @@ def test_create_trendstore_with_children(conn, data_set):
 
     with closing(conn.cursor()) as cursor:
         trend_store = TrendStore.create(TrendStoreDescriptor(
-            data_set.data_source, data_set.entity_type, data_set.granularity, [],
-            partition_size
+            data_set.data_source, data_set.entity_type, data_set.granularity,
+            [], partition_size
         ))(cursor)
 
         assert trend_store.id is not None
