@@ -20,7 +20,6 @@ from minerva.storage.trend.partitioning import Partitioning
 from minerva.storage.trend.granularity import create_granularity
 
 
-
 modified_table = Table("trend_directory", "modified")
 
 
@@ -392,7 +391,6 @@ def test_update_and_modify_columns_fractured(conn):
         (i, (10023, 19))
         for i in entity_ids
     ]
-    data_types_b = datatype.deduce_data_types(data_rows_b)
 
     with closing(conn.cursor()) as cursor:
         data_source = DataSource.from_name("test-src009")(cursor)
