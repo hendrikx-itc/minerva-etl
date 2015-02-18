@@ -68,7 +68,7 @@ def store_batch(conn, trend_store, data_package):
 
 
 @with_conn(clear_database)
-def test_store_concurrent(conn, dataset):
+def test_store_concurrent(conn):
     """
     Concurrent storing of the same dataset should cause no problems.
     """
@@ -80,13 +80,13 @@ def test_store_concurrent(conn, dataset):
         for i in range(100)
     ]
 
+    granularity = create_granularity("900")
+
     data_package = DefaultPackage(
-        dataset.granularity, timestamp, trend_names, rows
+        granularity, timestamp, trend_names, rows
     )
 
     with closing(conn.cursor()) as cursor:
-        granularity = create_granularity("900")
-
         data_source = DataSource.from_name("test-source")(cursor)
         entity_type = EntityType.from_name("test_type")(cursor)
         trend_store = TrendStore.create(TrendStoreDescriptor(
