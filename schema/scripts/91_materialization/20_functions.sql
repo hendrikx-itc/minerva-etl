@@ -73,9 +73,9 @@ $$ LANGUAGE SQL VOLATILE;
 
 
 CREATE FUNCTION materialization.missing_columns(src trend_directory.trendstore, dst trend_directory.trendstore)
-    RETURNS TABLE (name character varying, datatype character varying)
+    RETURNS TABLE (name name, data_type text)
 AS $$
-    SELECT name, datatype
+    SELECT name, data_type
     FROM trend_directory.table_columns('trend', trend_directory.base_table_name($1))
     WHERE name NOT IN (
         SELECT name FROM trend_directory.table_columns('trend', trend_directory.base_table_name($2))
@@ -83,11 +83,11 @@ AS $$
 $$ LANGUAGE SQL STABLE;
 
 COMMENT ON FUNCTION materialization.missing_columns(src trend_directory.trendstore, dst trend_directory.trendstore)
-IS 'The set of table columns (name, datatype) that exist in the source trendstore but not yet in the destination.';
+IS 'The set of table columns (name, data_type) that exist in the source trendstore but not yet in the destination.';
 
 
 CREATE FUNCTION materialization.missing_columns(materialization.type)
-    RETURNS TABLE (name character varying, datatype character varying)
+    RETURNS TABLE (name name, data_type text)
 AS $$
     SELECT materialization.missing_columns(src, dst)
     FROM trend_directory.trendstore src, trend_directory.trendstore dst
@@ -98,7 +98,7 @@ $$ LANGUAGE SQL STABLE;
 CREATE FUNCTION materialization.add_missing_trends(src trend_directory.trendstore, dst trend_directory.trendstore)
     RETURNS bigint
 AS $$
-    SELECT count(trend_directory.add_trend_to_trendstore($2, name, datatype, 'auto-created by materialization'))
+    SELECT count(trend_directory.add_trend_to_trendstore($2, name, data_type, 'auto-created by materialization'))
     FROM materialization.missing_columns($1, $2);
 $$ LANGUAGE SQL VOLATILE;
 
@@ -115,28 +115,31 @@ AS $$
     WHERE src.id = $1.src_trendstore_id AND dst.id = $1.dst_trendstore_id;
 
     SELECT $1;
-$$ LANGUAGE SQL VOLATILE;
+$$ LANGUAGE sql VOLATILE;
 
 
-CREATE FUNCTION materialization.modify_mismatching_trends(src trend_directory.trendstore, dst trend_directory.trendstore)
-    RETURNS void
+CREATE FUNCTION materialization.modify_mismatching_trends(
+        src trend_directory.trendstore, dst trend_directory.trendstore)
+    RETURNS trend_directory.trendstore
 AS $$
-    SELECT trend_directory.modify_trendstore_columns($2.id, array_agg(src_column))
+    SELECT trend_directory.modify_trendstore_columns($2, array_agg(src_column))
     FROM trend_directory.table_columns('trend', trend_directory.base_table_name($1)) src_column
     JOIN trend_directory.table_columns('trend', trend_directory.base_table_name($2)) dst_column ON
         src_column.name = dst_column.name
             AND
-        src_column.datatype <> dst_column.datatype;
-$$ LANGUAGE SQL VOLATILE;
+        src_column.data_type <> dst_column.data_type;
+$$ LANGUAGE sql VOLATILE;
 
 
 CREATE FUNCTION materialization.modify_mismatching_trends(materialization.type)
-    RETURNS void
+    RETURNS materialization.type
 AS $$
     SELECT materialization.modify_mismatching_trends(src, dst)
     FROM trend_directory.trendstore src, trend_directory.trendstore dst
     WHERE src.id = $1.src_trendstore_id AND dst.id = $1.dst_trendstore_id;
-$$ LANGUAGE SQL VOLATILE;
+
+    SELECT $1;
+$$ LANGUAGE sql VOLATILE;
 
 
 CREATE FUNCTION materialization.materialize(type materialization.type, "timestamp" timestamp with time zone)
@@ -211,7 +214,7 @@ BEGIN
         conn_str = replicated_server_conn.value;
 
         SELECT
-            array_to_string(array_agg(format('%I %s', col.name, col.datatype)), ', ') INTO column_defs_part
+            array_to_string(array_agg(format('%I %s', col.name, col.data_type)), ', ') INTO column_defs_part
         FROM
             trend_directory.table_columns(trend_directory.base_table_schema(), table_name) col;
 

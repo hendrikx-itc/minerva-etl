@@ -51,19 +51,31 @@ SELECT system.set_version(4, 7, 0);
 CREATE TYPE system.job_type AS (id int, type character varying, description character varying, size bigint, config text);
 
 
+CREATE FUNCTION system.enqueue_job(system.job)
+    RETURNS system.job
+AS $$
+    INSERT INTO system.job_queue(job_id) VALUES ($1.id);
+
+    SELECT $1;
+$$ LANGUAGE sql VOLATILE;
+
+
+CREATE FUNCTION system.define_job(type character varying, description character varying, size bigint, job_source_id int)
+    RETURNS system.job
+AS $$
+    INSERT INTO system.job(
+        size, job_source_id, type, description
+    ) VALUES (
+        size, job_source_id, type, description
+    ) RETURNING *;
+$$ LANGUAGE sql VOLATILE;
+
+
 CREATE FUNCTION system.create_job(type character varying, description character varying, size bigint, job_source_id int)
     RETURNS integer
 AS $$
-DECLARE
-    new_job_id integer;
-BEGIN
-    INSERT INTO system.job(size, job_source_id, type, description) VALUES (size, job_source_id, type, description) RETURNING id INTO new_job_id;
-
-    INSERT INTO system.job_queue(job_id) VALUES (new_job_id);
-
-    return new_job_id;
-END;
-$$ LANGUAGE plpgsql VOLATILE STRICT;
+    SELECT (system.enqueue_job(system.define_job($1, $2, $3, $4))).id;
+$$ LANGUAGE sql VOLATILE;
 
 
 CREATE FUNCTION system.get_job()

@@ -21,7 +21,7 @@ script_name = os.path.basename(__file__)
 config_file = "{}.conf".format(script_name)
 
 
-class JobInfo(object):
+class JobInfo():
     def __init__(self, job_id, type, state, description):
         self.id = job_id
         self.type = type

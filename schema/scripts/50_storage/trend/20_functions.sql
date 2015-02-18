@@ -524,7 +524,7 @@ $$ LANGUAGE sql VOLATILE;
 
 
 CREATE FUNCTION trend_directory.create_partition_column(
-        partition_name varchar, trend_id integer, datatype varchar)
+        partition_name name, trend_id integer, data_type text)
     RETURNS void
 AS $$
 DECLARE
@@ -536,72 +536,50 @@ BEGIN
         'ALTER TABLE %I ADD COLUMN %I %I;',
         partition_name,
         trend_name,
-        datatype
-    );
-END;
-$$ LANGUAGE plpgsql;
-
-
-CREATE FUNCTION trend_directory.render_view_query(view_id integer)
-    RETURNS text
-AS $$
-    SELECT sql FROM trend_directory.view WHERE id = view_id;
-$$ LANGUAGE sql;
-
-
-CREATE FUNCTION trend_directory.modify_partition_column(
-        partition_name varchar, column_name varchar, datatype varchar)
-    RETURNS void
-AS $$
-BEGIN
-    PERFORM dep_recurse.alter(
-        dep_recurse.table_ref('trend', base_table_name),
-        ARRAY[
-            format(
-                'ALTER TABLE trend_directory.%I ALTER %I TYPE %s USING CAST(%I AS %s);',
-                partition_name,
-                column_name,
-                datatype,
-                column_name,
-                datatype
-            )
-        ]
+        data_type
     );
 END;
 $$ LANGUAGE plpgsql;
 
 
 CREATE FUNCTION trend_directory.modify_trendstore_column(
-        trendstore_id integer, column_name varchar, datatype varchar)
-    RETURNS void
+        trend_directory.trendstore, column_name name, data_type text)
+    RETURNS trend_directory.trendstore
 AS $$
-DECLARE
-    base_table_name varchar;
-BEGIN
-    SELECT trend_directory.base_table_name(trendstore) INTO base_table_name
-        FROM trend_directory.trendstore
-        WHERE trendstore.id = trendstore_id;
-
-    PERFORM dep_recurse.alter(
-        dep_recurse.table_ref('trend', base_table_name),
+    SELECT dep_recurse.alter(
+        dep_recurse.table_ref(
+            trend_directory.base_table_schema(),
+            trend_directory.base_table_name($1)
+        ),
         ARRAY[
             format(
-                'ALTER TABLE trend_directory.%I ALTER %I TYPE %s USING CAST(%I AS %s);',
-                base_table_name,
-                column_name,
-                datatype,
-                column_name,
-                datatype
+                'ALTER TABLE %I.%I ALTER %I TYPE %s USING CAST(%I AS %s);',
+                trend_directory.base_table_schema(),
+                trend_directory.base_table_name($1),
+                $2, $3, $2, $3
             )
         ]
     );
-END;
-$$ LANGUAGE plpgsql;
+
+    SELECT $1;
+$$ LANGUAGE sql VOLATILE;
+
+
+CREATE FUNCTION trend_directory.modify_trendstore_column(
+        trendstore_id integer, column_name name, data_type text)
+    RETURNS trend_directory.trendstore
+AS $$
+    SELECT trend_directory.modify_trendstore_column(
+        trendstore, $2, $3
+    )
+    FROM trend_directory.trendstore
+    WHERE trendstore.id = $1;
+$$ LANGUAGE sql VOLATILE;
 
 
 CREATE TYPE trend_directory.column_info AS (
-    name varchar,
-    datatype varchar
+    name name,
+    data_type text
 );
 
 
@@ -609,8 +587,8 @@ CREATE FUNCTION trend_directory.table_columns(namespace name, "table" name)
     RETURNS SETOF trend_directory.column_info
 AS $$
     SELECT
-        a.attname::character varying,
-        format_type(a.atttypid, a.atttypmod)::character varying
+        a.attname,
+        format_type(a.atttypid, a.atttypmod)
     FROM
         pg_catalog.pg_class c
     JOIN
@@ -623,35 +601,6 @@ AS $$
         a.attisdropped = false AND
         a.attnum > 0;
 $$ LANGUAGE sql STABLE;
-
-
-CREATE FUNCTION trend_directory.modify_trendstore_columns(
-        trendstore_id integer, columns trend_directory.column_info[])
-    RETURNS void
-AS $$
-DECLARE
-    dependent_views trend_directory.view[];
-BEGIN
-    IF array_length(columns, 1) IS NULL THEN
-        RETURN;
-    END IF;
-
-    SELECT array_agg(trend_directory.drop_view(dependent_view)) INTO dependent_views
-        FROM trend_directory.get_dependent_views(trendstore_id) dependent_view;
-
-    PERFORM
-        trend_directory.alter_column_types(
-            'trend',
-            trend_directory.base_table_name(trendstore),
-            columns
-        )
-    FROM trend_directory.trendstore
-    WHERE trendstore.id = trendstore_id;
-
-    PERFORM trend_directory.create_view(dependent_view)
-        FROM unnest(dependent_views) AS dependent_view;
-END;
-$$ LANGUAGE plpgsql;
 
 
 CREATE FUNCTION trend_directory.alter_column_types(
@@ -670,9 +619,9 @@ AS $$
                         format(
                             'ALTER %I TYPE %s USING CAST (%I AS %s)',
                             c.name,
-                            c.datatype,
+                            c.data_type,
                             c.name,
-                            c.datatype
+                            c.data_type
                         )
                     ),
                     ', '
@@ -684,6 +633,33 @@ AS $$
 $$ LANGUAGE sql VOLATILE;
 
 
+CREATE FUNCTION trend_directory.modify_trendstore_columns(
+        trend_directory.trendstore, columns trend_directory.column_info[])
+    RETURNS trend_directory.trendstore
+AS $$
+   SELECT trend_directory.alter_column_types(
+        'trend',
+        trend_directory.base_table_name($1),
+        $2
+   );
+
+    SELECT $1;
+$$ LANGUAGE sql;
+
+
+CREATE FUNCTION trend_directory.modify_trendstore_columns(
+        trendstore_id integer, columns trend_directory.column_info[])
+    RETURNS trend_directory.trendstore
+AS $$
+   SELECT trend_directory.modify_trendstore_columns(
+        trendstore,
+        columns
+    )
+    FROM trend_directory.trendstore
+    WHERE trendstore.id = trendstore_id;
+$$ LANGUAGE sql;
+
+
 CREATE FUNCTION trend_directory.view_name(trend_directory.view)
     RETURNS name
 AS $$
@@ -693,57 +669,71 @@ AS $$
 $$ LANGUAGE sql;
 
 
-CREATE FUNCTION trend_directory.drop_view(view trend_directory.view)
-    RETURNS trend_directory.view
+CREATE FUNCTION trend_directory.drop_view_sql(view trend_directory.view)
+    RETURNS text
 AS $$
-BEGIN
-    EXECUTE format(
+    SELECT format(
         'DROP VIEW IF EXISTS %I.%I',
         trend_directory.view_schema(),
         trend_directory.view_name(view)
     );
-
-    PERFORM trend_directory.unlink_view_dependencies(view);
-
-    PERFORM trend_directory.delete_view_trends(view);
-
-    RETURN view;
-END;
-$$ LANGUAGE plpgsql VOLATILE;
+$$ LANGUAGE sql STABLE;
 
 
-CREATE FUNCTION trend_directory.update_view_sql(trend_directory.view, text)
+CREATE FUNCTION trend_directory.unlink_view_dependencies(trend_directory.view)
     RETURNS trend_directory.view
 AS $$
-    UPDATE trend_directory.view SET sql = $2 WHERE id = $1.id RETURNING *;
+    DELETE FROM trend_directory.view_trendstore_link
+    WHERE view_id = $1.id
+    RETURNING $1;
+$$ LANGUAGE sql VOLATILE;
+
+
+CREATE FUNCTION trend_directory.delete_view_trends(view trend_directory.view)
+    RETURNS void
+AS $$
+    DELETE FROM trend_directory.trend
+    WHERE trendstore_id = $1.trendstore_id;
+$$ LANGUAGE sql VOLATILE;
+
+
+CREATE FUNCTION trend_directory.drop_view(view trend_directory.view)
+    RETURNS trend_directory.view
+AS $$
+    SELECT public.action($1, trend_directory.drop_view_sql($1));
+
+    SELECT trend_directory.unlink_view_dependencies(view);
+
+    SELECT trend_directory.delete_view_trends(view);
+
+    SELECT $1;
 $$ LANGUAGE sql VOLATILE;
 
 
 CREATE FUNCTION trend_directory.alter_view(trend_directory.view, text)
     RETURNS trend_directory.view
 AS $$
-DECLARE
-    result trend_directory.view;
-BEGIN
-    result = trend_directory.update_view_sql($1, $2);
-
-    PERFORM dep_recurse.alter(
+    SELECT dep_recurse.alter(
         dep_recurse.view_ref('trend', $1::text),
         ARRAY[
-            format('SELECT trend_directory.recreate_view(view) FROM trend_directory.view WHERE id = %L', $1.id)
+            format(
+                'SELECT trend_directory.recreate_view(view) '
+                'FROM trend_directory.view '
+                'WHERE id = %L',
+                $1.id
+            )
         ]
     );
 
-    RETURN result;
-END;
-$$ LANGUAGE plpgsql VOLATILE;
+    SELECT $1;
+$$ LANGUAGE sql VOLATILE;
 
 
-CREATE FUNCTION trend_directory.create_view_sql(trend_directory.view)
+CREATE FUNCTION trend_directory.create_view_sql(trend_directory.view, sql text)
     RETURNS text[]
 AS $$
 SELECT ARRAY[
-    format('CREATE VIEW %I.%I AS %s;', trend_directory.view_schema(), trend_directory.view_name($1), $1.sql),
+    format('CREATE VIEW %I.%I AS %s;', trend_directory.view_schema(), trend_directory.view_name($1), $2),
     format('ALTER TABLE %I.%I OWNER TO minerva_writer;', trend_directory.view_schema(), trend_directory.view_name($1)),
     format('GRANT SELECT ON TABLE %I.%I TO minerva;', trend_directory.view_schema(), trend_directory.view_name($1))
 ];
@@ -837,16 +827,63 @@ AS $$
 $$ LANGUAGE sql VOLATILE;
 
 
+CREATE FUNCTION trend_directory.create_trend(trend_directory.trendstore, trend_directory.trend_descr)
+    RETURNS trend_directory.trend
+AS $$
+    SELECT trend_directory.add_trend_to_trendstore($1, $2.name, $2.data_type, $2.description);
+$$ LANGUAGE sql VOLATILE;
+
+
 CREATE FUNCTION trend_directory.create_trends(trend_directory.trendstore, trend_directory.trend_descr[])
     RETURNS SETOF trend_directory.trend
 AS $$
-    SELECT trend_directory.add_trend_to_trendstore(
-        $1,
-        name,
-        data_type,
-        ''
-    )
-    FROM unnest($2);
+    SELECT trend_directory.create_trend($1, descr)
+    FROM unnest($2) descr;
+$$ LANGUAGE sql VOLATILE;
+
+
+CREATE FUNCTION trend_directory.missing_trends(trend_directory.trendstore, required trend_directory.trend_descr[])
+    RETURNS SETOF trend_directory.trend_descr
+AS $$
+    SELECT (required.name, required.data_type, required.description)::trend_directory.trend_descr
+    FROM unnest($2) required
+    LEFT JOIN trend_directory.trend ON trend.name = required.name AND trend.trendstore_id = $1.id
+    WHERE trend.id IS NULL;
+$$ LANGUAGE sql STABLE;
+
+
+CREATE FUNCTION trend_directory.assure_trends_exist(trend_directory.trendstore, trend_directory.trend_descr[])
+    RETURNS trend_directory.trendstore
+AS $$
+    SELECT trend_directory.create_trend($1, t)
+    FROM trend_directory.missing_trends($1, $2) t;
+
+    SELECT $1;
+$$ LANGUAGE sql VOLATILE;
+
+
+CREATE FUNCTION trend_directory.modify_data_type(trend_directory.trendstore, trend_directory.trend, required_data_type text)
+    RETURNS trend_directory.trendstore
+AS $$
+    UPDATE trend_directory.trend SET data_type = $3;
+
+    SELECT trend_directory.modify_trendstore_column($1, $2.name, $3);
+
+    SELECT $1;
+$$ LANGUAGE sql VOLATILE;
+
+
+CREATE FUNCTION trend_directory.assure_data_types(trend_directory.trendstore, trend_directory.trend_descr[])
+    RETURNS trend_directory.trendstore
+AS $$
+    SELECT trend_directory.modify_data_type($1, trend, required.data_type)
+    FROM unnest($2) required
+    LEFT JOIN trend_directory.trend ON
+        trend.name = required.name
+            AND
+        trend.trendstore_id = $1.id
+            AND
+        trend.data_type <> required.data_type;
 $$ LANGUAGE sql VOLATILE;
 
 
@@ -872,56 +909,16 @@ AS $$
 $$ LANGUAGE sql VOLATILE;
 
 
-CREATE FUNCTION trend_directory.create_view(trend_directory.view)
+CREATE FUNCTION trend_directory.create_view(trend_directory.view, text)
     RETURNS trend_directory.view
 AS $$
-    SELECT public.action($1, trend_directory.create_view_sql($1));
+    SELECT public.action($1, trend_directory.create_view_sql($1, $2));
 
     SELECT trend_directory.link_view_dependencies($1);
 
     SELECT trend_directory.create_view_trends($1);
 
     SELECT $1;
-$$ LANGUAGE sql VOLATILE;
-
-
-CREATE FUNCTION trend_directory.create_view(text)
-    RETURNS trend_directory.view
-AS $$
-    SELECT trend_directory.create_view(view) FROM trend_directory.view WHERE view::text = $1;
-$$ LANGUAGE sql VOLATILE;
-
-
-CREATE FUNCTION trend_directory.recreate_view(view trend_directory.view)
-    RETURNS trend_directory.view
-AS $$
-    SELECT trend_directory.create_view(trend_directory.drop_view($1));
-$$ LANGUAGE sql VOLATILE;
-
-
-CREATE FUNCTION trend_directory.recreate_view(text)
-    RETURNS trend_directory.view
-AS $$
-    SELECT trend_directory.create_view(trend_directory.drop_view(view))
-    FROM trend_directory.view
-    WHERE view::text = $1;
-$$ LANGUAGE sql VOLATILE;
-
-
-CREATE FUNCTION trend_directory.delete_view_trends(view trend_directory.view)
-    RETURNS void
-AS $$
-    DELETE FROM trend_directory.trend
-    WHERE trendstore_id = $1.trendstore_id;
-$$ LANGUAGE sql VOLATILE;
-
-
-CREATE FUNCTION trend_directory.unlink_view_dependencies(trend_directory.view)
-    RETURNS trend_directory.view
-AS $$
-    DELETE FROM trend_directory.view_trendstore_link
-    WHERE view_id = $1.id
-    RETURNING $1;
 $$ LANGUAGE sql VOLATILE;
 
 
@@ -1203,7 +1200,7 @@ AS $$
 $$ LANGUAGE sql VOLATILE;
 
 
-CREATE FUNCTION trend_directory.datatype_order(data_type character varying)
+CREATE FUNCTION trend_directory.data_type_order(data_type text)
     RETURNS integer
 AS $$
 BEGIN
@@ -1233,30 +1230,29 @@ BEGIN
         WHEN NULL THEN
             RETURN NULL;
         ELSE
-            RAISE EXCEPTION 'Unsupported data type: %', datatype;
+            RAISE EXCEPTION 'Unsupported data type: %', data_type;
     END CASE;
 END;
 $$ LANGUAGE plpgsql IMMUTABLE STRICT;
 
 
-CREATE FUNCTION trend_directory.greatest_datatype(
-        datatype_a character varying, datatype_b character varying)
-    RETURNS character varying
+CREATE FUNCTION trend_directory.greatest_data_type(
+        data_type_a text, data_type_b text)
+    RETURNS text
 AS $$
-BEGIN
-    IF trend_directory.datatype_order(datatype_b) > trend_directory.datatype_order(datatype_a) THEN
-        RETURN datatype_b;
-    ELSE
-        RETURN datatype_a;
-    END IF;
-END;
-$$ LANGUAGE plpgsql IMMUTABLE;
+    SELECT
+        CASE WHEN trend_directory.data_type_order($2) > trend_directory.data_type_order($1) THEN
+            $2
+        ELSE
+            $1
+        END;
+$$ LANGUAGE sql IMMUTABLE;
 
 
-CREATE AGGREGATE trend_directory.max_datatype (character varying)
+CREATE AGGREGATE trend_directory.max_data_type (text)
 (
-    sfunc = trend_directory.greatest_datatype,
-    stype = character varying,
+    sfunc = trend_directory.greatest_data_type,
+    stype = text,
     initcond = 'smallint'
 );
 
@@ -1501,21 +1497,21 @@ AS $$
 $$ LANGUAGE sql STABLE;
 
 
-CREATE FUNCTION trend_directory.define_view(trendstore_id integer, sql text)
+CREATE FUNCTION trend_directory.define_view(trend_directory.trendstore)
     RETURNS trend_directory.view
 AS $$
-    INSERT INTO trend_directory.view (trendstore_id, description, sql)
-    (SELECT $1, trendstore::text, $2 FROM trend_directory.trendstore WHERE id = $1)
+    INSERT INTO trend_directory.view (trendstore_id, description)
+    VALUES ($1.id, $1::text)
     RETURNING view;
 $$ LANGUAGE sql VOLATILE;
 
 
-CREATE FUNCTION trend_directory.define_view(trend_directory.trendstore, sql text)
+CREATE FUNCTION trend_directory.define_view(trendstore_id integer)
     RETURNS trend_directory.view
 AS $$
-    INSERT INTO trend_directory.view (trendstore_id, description, sql)
-    VALUES ($1.id, $1::text, $2)
-    RETURNING view;
+    SELECT trend_directory.define_view(trendstore)
+    FROM trend_directory.trendstore
+    WHERE id = $1;
 $$ LANGUAGE sql VOLATILE;
 
 

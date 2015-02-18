@@ -27,7 +27,9 @@ def explode(distinguished_name):
 
 def implode(parts):
     return ",".join(
-        "{0}={1}".format(type_name, name) for type_name, name in parts)
+        "{0}={1}".format(type_name, name)
+        for type_name, name in parts
+    )
 
 
 def split_parts(distinguished_name):
@@ -56,14 +58,14 @@ def type_indexes(parts, type_name):
     return [index for index, part in enumerate(parts) if part[0] == type_name]
 
 
-def entitytype_name_from_dn(dn):
+def entity_type_name_from_dn(dn):
     """
     Return type of last component of distinguished name
     """
     return explode(dn)[-1][0]
 
 
-class DistinguishedName(object):
+class DistinguishedName():
     def __init__(self, parts):
         self.parts = parts
 
@@ -75,5 +77,5 @@ class DistinguishedName(object):
     def to_str(self):
         return implode(self.parts)
 
-    def entitytype_name(self):
+    def entity_type_name(self):
         return self.parts[-1][0]

@@ -16,17 +16,16 @@ from nose.tools import eq_
 import pytz
 
 from minerva.directory import EntityType, DataSource
-from minerva.test import connect
+from minerva.test import connect, clear_database
+from minerva.storage import datatype
 from minerva.storage.trend.trendstore import TrendStore, TrendStoreDescriptor
 from minerva.storage.trend.trend import TrendDescriptor
 from minerva.storage.trend.granularity import create_granularity
-from minerva.storage.trend.rawdatapackage import RawDataPackage
+from minerva.storage.trend.datapackage import DefaultPackage
 from minerva.db.util import get_column_names, table_exists
 
-from minerva_db import clear_database
 
-
-class TestStore(object):
+class TestStore():
     def __init__(self):
         self.conn = None
         self.data_source = None
@@ -74,8 +73,8 @@ class TestStore(object):
             trend_store = TrendStore.create(TrendStoreDescriptor(
                 self.data_source, self.entity_type, granularity,
                 [
-                    TrendDescriptor('x', 'integer', ''),
-                    TrendDescriptor('y', 'double precision', '')
+                    TrendDescriptor('x', datatype.DataTypeInteger, ''),
+                    TrendDescriptor('y', datatype.DataTypeDoublePrecision, '')
                 ], partition_size
             ))(cursor)
 
@@ -102,7 +101,7 @@ class TestStore(object):
 
             assert trend_store.id is not None
 
-            timestamp = self.data_source.tzinfo.localize(
+            timestamp = pytz.utc.localize(
                 datetime.datetime(2013, 5, 6, 14, 45)
             )
 
@@ -122,16 +121,16 @@ class TestStore(object):
             TrendStore.create(TrendStoreDescriptor(
                 self.data_source, self.entity_type, granularity,
                 [
-                    TrendDescriptor('x', 'integer', ''),
-                    TrendDescriptor('y', 'double precision', '')
+                    TrendDescriptor('x', datatype.DataTypeInteger, ''),
+                    TrendDescriptor('y', datatype.DataTypeDoublePrecision, '')
                 ], partition_size
             ))(cursor)
 
             trend_store = TrendStore.get(
-                cursor, self.data_source, self.entity_type, granularity
-            )
+                self.data_source, self.entity_type, granularity
+            )(cursor)
 
-            eq_(trend_store.datasource.id, self.data_source.id)
+            eq_(trend_store.data_source.id, self.data_source.id)
             eq_(trend_store.partition_size, partition_size)
             assert trend_store.id is not None, "trend_store.id is None"
 
@@ -147,7 +146,7 @@ class TestStore(object):
                 partition_size
             ))(cursor)
 
-            trend_store = TrendStore.get_by_id(cursor, t.id)
+            trend_store = TrendStore.get_by_id(t.id)(cursor)
 
             eq_(trend_store.datasource.id, self.data_source.id)
             eq_(trend_store.partition_size, partition_size)
@@ -157,12 +156,9 @@ class TestStore(object):
         granularity = create_granularity("900")
         partition_size = 3600
 
-        column_names = ["counter1", "counter2"]
-        data_types = ["integer", "text"]
-
         trend_descriptors = [
-            TrendDescriptor(name, data_type, '')
-            for name, data_type in zip(column_names, data_types)
+            TrendDescriptor("counter1", datatype.DataTypeInteger, ''),
+            TrendDescriptor("counter2", datatype.DataTypeInteger, '')
         ]
 
         trend_store_descriptor = TrendStoreDescriptor(
@@ -173,17 +169,8 @@ class TestStore(object):
         with closing(self.conn.cursor()) as cursor:
             trend_store = TrendStore.create(trend_store_descriptor)(cursor)
 
-            check_columns_exist = trend_store.check_trends_exist(
-                trend_descriptors
-            )
-
-            check_columns_exist(cursor)
-
-            check_column_types = trend_store.check_column_types(
-                trend_descriptors
-            )
-
-            check_column_types(cursor)
+            trend_store.check_trends_exist(trend_descriptors)(cursor)
+            trend_store.check_data_types(trend_descriptors)(cursor)
 
     def test_store_raw_qtr(self):
         trend_store_descriptor = TrendStoreDescriptor(
@@ -191,8 +178,8 @@ class TestStore(object):
             self.entity_type,
             create_granularity("900"),
             [
-                TrendDescriptor('counter1', 'integer', ''),
-                TrendDescriptor('counter2', 'text', '')
+                TrendDescriptor('counter1', datatype.DataTypeInteger, ''),
+                TrendDescriptor('counter2', datatype.DataTypeText, '')
             ],
             3600
         )
@@ -209,9 +196,9 @@ class TestStore(object):
             ('Network=G1,Node=001', ('42', 'foo'))
         ]
 
-        raw_package = RawDataPackage(granularity, timestamp, trend_names, rows)
+        package = DefaultPackage(granularity, timestamp, trend_names, rows)
 
-        trend_store.store_raw(raw_package).run(self.conn)
+        trend_store.store(package).run(self.conn)
 
     def test_store_raw_day(self):
         granularity = create_granularity("1 day")
@@ -221,8 +208,8 @@ class TestStore(object):
             self.entity_type,
             granularity,
             [
-                TrendDescriptor('counter1', 'integer', ''),
-                TrendDescriptor('counter2', 'text', '')
+                TrendDescriptor('counter1', datatype.DataTypeInteger, ''),
+                TrendDescriptor('counter2', datatype.DataTypeText, '')
             ],
             3600
         )
@@ -238,6 +225,6 @@ class TestStore(object):
             ('Network=G1,Node=001', ('42', 'foo'))
         ]
 
-        raw_package = RawDataPackage(granularity, timestamp, trend_names, rows)
+        package = DefaultPackage(granularity, timestamp, trend_names, rows)
 
-        trend_store.store_raw(raw_package).run(self.conn)
+        trend_store.store(package).run(self.conn)

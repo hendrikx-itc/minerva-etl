@@ -1,44 +1,31 @@
-import pytz
-
-
-class DataSource(object):
+class DataSource():
     """
     A DataSource describes where a certain set of data comes from.
     """
-    def __init__(self, id, name, description="", timezone="UTC"):
+    def __init__(self, id, name, description):
         self.id = id
         self.name = name
         self.description = description
-        self.timezone = timezone
 
     def __str__(self):
         return self.name
 
-    def get_tzinfo(self):
-        return pytz.timezone(self.timezone)
-
-    def set_tzinfo(self, tzinfo):
-        self.timezone = tzinfo.zone
-
-    tzinfo = property(get_tzinfo, set_tzinfo)
-
     @staticmethod
-    def create(name, description, timezone):
+    def create(name, description):
         """
         Create new datasource
         :param cursor: cursor instance used to store into the Minerva database.
         :param name: identifying name of data source.
         :param description: A short description.
-        :param timezone: Timezone of data originating from data source.
         """
         def f(cursor):
             query = (
                 "INSERT INTO directory.datasource "
-                "(id, name, description, timezone) "
-                "VALUES (DEFAULT, %s, %s, %s) RETURNING *"
+                "(id, name, description) "
+                "VALUES (DEFAULT, %s, %s) RETURNING *"
             )
 
-            args = name, description, timezone
+            args = name, description
 
             cursor.execute(query, args)
 
@@ -51,7 +38,7 @@ class DataSource(object):
         def f(cursor):
             """Return the datasource with the specified Id."""
             query = (
-                "SELECT id, name, description, timezone "
+                "SELECT id, name, description "
                 "FROM directory.datasource "
                 "WHERE id=%s"
             )
@@ -70,7 +57,7 @@ class DataSource(object):
         def f(cursor):
             """Return the datasource with the specified name."""
             query = (
-                "SELECT id, name, description, timezone "
+                "SELECT id, name, description "
                 "FROM directory.datasource "
                 "WHERE lower(name)=lower(%s)"
             )

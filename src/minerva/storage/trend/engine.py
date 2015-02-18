@@ -25,7 +25,7 @@ from minerva.storage.trend.tables import PARTITION_SIZES
 from minerva.storage.trend.trendstore import TrendStore
 
 
-class TrendEngine(object):
+class TrendEngine():
     def __init__(self, conn):
         self.conn = conn
 

@@ -18,9 +18,11 @@ from nose.tools import eq_
 
 from minerva.test import with_conn
 from minerva.directory import DataSource, EntityType
-from minerva.storage.attribute.attribute import Attribute
-from minerva.storage.attribute.attributestore import AttributeStore
+from minerva.storage.attribute.attribute import Attribute, AttributeDescriptor
+from minerva.storage.attribute.attributestore import AttributeStore, \
+    AttributeStoreDescriptor
 from minerva.storage.attribute.datapackage import DataPackage
+from minerva.storage import datatype
 
 from .minerva_db import clear_database
 
@@ -29,20 +31,25 @@ from .minerva_db import clear_database
 def test_create(conn):
     """Test creation of a new attribute store."""
     with closing(conn.cursor()) as cursor:
-        datasource = DataSource.from_name(cursor, "integration-test")
-        entitytype = EntityType.from_name(cursor, "UtranCell")
+        data_source = DataSource.from_name("integration-test")(cursor)
+        entity_type = EntityType.from_name("UtranCell")(cursor)
 
-        attributes = [
-            Attribute("cntr1", "integer", "description for this attribute"),
-            Attribute("cntr2", "integer", "description for this attribute")]
+        attribute_descriptors = [
+            AttributeDescriptor(
+                "cntr1", datatype.DataTypeInteger, "dummy description"
+            ),
+            AttributeDescriptor(
+                "cntr2", datatype.DataTypeInteger, "dummy description"
+            )
+        ]
 
-        attributestore = AttributeStore(
-            datasource, entitytype, attributes
-        ).create(cursor)
+        attribute_store = AttributeStore.create(AttributeStoreDescriptor(
+            data_source, entity_type, attribute_descriptors
+        ))(cursor)
 
         expected_table_name = "integration-test_UtranCell"
 
-        eq_(attributestore.table_name(), expected_table_name)
+        eq_(attribute_store.table_name(), expected_table_name)
 
         conn.commit()
 
@@ -52,7 +59,7 @@ def test_create(conn):
             "WHERE id = %s"
         )
 
-        args = attributestore.id,
+        args = attribute_store.id,
 
         cursor.execute(query, args)
 
@@ -65,21 +72,27 @@ def test_create(conn):
 def test_from_attributes(conn):
     """Test creation of a new attribute store from attributes."""
     with closing(conn.cursor()) as cursor:
-        datasource = DataSource.from_name(cursor, "integration-test")
-        entitytype = EntityType.from_name(cursor, "UtranCell")
+        data_source = DataSource.from_name("integration-test")(cursor)
+        entity_type = EntityType.from_name("UtranCell")(cursor)
 
-        attributes = [
-            Attribute("cntr1", "integer", "description for this attribute"),
-            Attribute("cntr2", "integer", "description for this attribute")
+        attribute_descriptors = [
+            AttributeDescriptor(
+                "cntr1", datatype.DataTypeInteger,
+                "description for this attribute"
+            ),
+            AttributeDescriptor(
+                "cntr2", datatype.DataTypeInteger,
+                "description for this attribute"
+            )
         ]
 
-        attributestore = AttributeStore.from_attributes(
-            cursor, datasource, entitytype, attributes
-        )
+        attribute_store = AttributeStore.from_attributes(
+            data_source, entity_type, attribute_descriptors
+        )(cursor)
 
         expected_table_name = "integration-test_UtranCell"
 
-        eq_(attributestore.table_name(), expected_table_name)
+        eq_(attribute_store.table_name(), expected_table_name)
 
         conn.commit()
 
@@ -89,7 +102,7 @@ def test_from_attributes(conn):
             "WHERE id = %s"
         )
 
-        args = attributestore.id,
+        args = attribute_store.id,
 
         cursor.execute(query, args)
 
@@ -104,35 +117,39 @@ def test_store_batch_simple(conn):
     with closing(conn.cursor()) as cursor:
         attribute_names = ['CCR', 'Drops']
         timestamp = pytz.utc.localize(datetime.utcnow())
-        data_rows = [(10023 + i, timestamp, ('0.9919', '17')) for i in range(100)]
+        data_rows = [
+            (10023 + i, timestamp, ('0.9919', '17'))
+            for i in range(100)
+        ]
 
-        datasource = DataSource.from_name(cursor, "integration-test")
-        entitytype = EntityType.from_name(cursor, "UtranCell")
+        data_source = DataSource.from_name("integration-test")(cursor)
+        entity_type = EntityType.from_name("UtranCell")(cursor)
 
-        datapackage = DataPackage(attribute_names, data_rows)
+        data_package = DataPackage(attribute_names, data_rows)
 
-        attributes = datapackage.deduce_attributes()
-        attributestore = AttributeStore(datasource, entitytype, attributes)
-        attributestore.create(cursor)
+        attribute_descriptors = data_package.deduce_attributes()
+        attribute_store = AttributeStore.create(AttributeStoreDescriptor(
+            data_source, entity_type, attribute_descriptors
+        ))(cursor)
 
-        attributestore.store_batch(cursor, datapackage)
+        attribute_store.store_batch(cursor, data_package)
         conn.commit()
 
         cursor.execute(
             "SELECT attribute_directory.materialize_curr_ptr(attributestore) "
             "FROM attribute_directory.attributestore "
             "WHERE id = %s",
-            (attributestore.id,)
+            (attribute_store.id,)
         )
 
         query = (
-            "SELECT timestamp, \"Drops\" "
-            "FROM {0}"
-        ).format(attributestore.table.render())
+            'SELECT timestamp, "Drops" '
+            'FROM {0}'
+        ).format(attribute_store.table.render())
 
         cursor.execute(query)
         # Row count should be the same as the stored batch size
-        eq_(cursor.rowcount, len(datapackage.rows))
+        eq_(cursor.rowcount, len(data_package.rows))
 
         stored_timestamp, drops = cursor.fetchone()
         # Timestamp should be the same as the stored batch timestamp
@@ -149,35 +166,36 @@ def test_store_batch_with_list_a(conn):
         (10023 + i, timestamp, ('19.5', ['r34', 'r23', 'r33']))
         for i in range(100)
     ]
-    datapackage = DataPackage(attribute_names, data_rows)
-    attributes = datapackage.deduce_attributes()
+    data_package = DataPackage(attribute_names, data_rows)
+    attribute_descriptors = data_package.deduce_attributes()
 
     with closing(conn.cursor()) as cursor:
-        datasource = DataSource.from_name(cursor, "integration-test")
-        entitytype = EntityType.from_name(cursor, "UtranCell")
+        data_source = DataSource.from_name("integration-test")(cursor)
+        entity_type = EntityType.from_name("UtranCell")(cursor)
 
-        attributestore = AttributeStore(datasource, entitytype, attributes)
-        attributestore.create(cursor)
+        attribute_store = AttributeStore.create(AttributeStoreDescriptor(
+            data_source, entity_type, attribute_descriptors
+        ))(cursor)
 
-        attributestore.store_batch(cursor, datapackage)
+        attribute_store.store_batch(cursor, data_package)
         conn.commit()
 
         cursor.execute(
             "SELECT attribute_directory.materialize_curr_ptr(attributestore) "
             "FROM attribute_directory.attributestore "
             "WHERE id = %s",
-            (attributestore.id,)
+            (attribute_store.id,)
         )
 
         query = (
             "SELECT timestamp, height "
             "FROM {0}"
-        ).format(attributestore.table.render())
+        ).format(attribute_store.table.render())
 
         cursor.execute(query)
 
         # Row count should be the same as the stored batch size
-        eq_(cursor.rowcount, len(datapackage.rows))
+        eq_(cursor.rowcount, len(data_package.rows))
 
         stored_timestamp, height = cursor.fetchone()
         # Timestamp should be the same as the stored batch timestamp
@@ -196,16 +214,18 @@ def test_store_batch_with_list_b(conn):
     ]
 
     with closing(conn.cursor()) as cursor:
-        datasource = DataSource.from_name(cursor, "integration-test")
-        entitytype = EntityType.from_name(cursor, "UtranCell")
+        data_source = DataSource.from_name("integration-test")(cursor)
+        entity_type = EntityType.from_name("UtranCell")(cursor)
 
-        datapackage = DataPackage(attribute_names, data_rows)
+        data_package = DataPackage(attribute_names, data_rows)
 
-        attributes = datapackage.deduce_attributes()
-        attributestore = AttributeStore(datasource, entitytype, attributes)
-        attributestore.create(cursor)
+        attribute_descriptors = data_package.deduce_attributes()
 
-        attributestore.store_batch(cursor, datapackage)
+        attribute_store = AttributeStore.create(AttributeStoreDescriptor(
+            data_source, entity_type, attribute_descriptors
+        ))(cursor)
+
+        attribute_store.store_batch(cursor, data_package)
         conn.commit()
 
 
@@ -219,17 +239,20 @@ def test_store_batch_with_list_c(conn):
         (10024, timestamp, ('19.3', ['', '', '', '']))
     ]
 
-    datapackage = DataPackage(attribute_names, data_rows)
-    attributes = datapackage.deduce_attributes()
+    data_package = DataPackage(attribute_names, data_rows)
+    attributes = data_package.deduce_attributes()
 
     with closing(conn.cursor()) as cursor:
-        datasource = DataSource.from_name(cursor, "integration-test")
-        entitytype = EntityType.from_name(cursor, "UtranCell")
+        data_source = DataSource.from_name("integration-test")(cursor)
+        entity_type = EntityType.from_name("UtranCell")(cursor)
 
-        attributestore = AttributeStore(datasource, entitytype, attributes)
-        attributestore.create(cursor)
+        attribute_store = AttributeStore.create(AttributeStoreDescriptor(
+            data_source, entity_type, attributes
+        ))(cursor)
 
-        attributestore.store_batch(cursor, datapackage)
+        conn.commit()
+
+        attribute_store.store_batch(cursor, data_package)
         conn.commit()
 
 
@@ -237,24 +260,26 @@ def test_store_batch_with_list_c(conn):
 def test_store_txn_with_empty(conn):
     """Test transactional storing with empty value."""
     with closing(conn.cursor()) as cursor:
-        datasource = DataSource.from_name(cursor, "integration-test")
-        entitytype = EntityType.from_name(cursor, "UtranCell")
+        data_source = DataSource.from_name("integration-test")(cursor)
+        entity_type = EntityType.from_name("UtranCell")(cursor)
         timestamp = pytz.utc.localize(datetime.utcnow())
-        datapackage = DataPackage(
+        data_package = DataPackage(
             attribute_names=['freeText'],
             rows=[
                 (10023, timestamp, ('',))
             ]
         )
 
-        attributes = datapackage.deduce_attributes()
-        eq_(attributes[0].datatype, 'smallint')
-        attributestore = AttributeStore.from_attributes(
-            cursor, datasource, entitytype, attributes
-        )
+        attribute_descriptors = data_package.deduce_attributes()
+
+        assert attribute_descriptors[0].data_type is datatype.DataTypeSmallInt, '{} != {}'.format(attribute_descriptors[0].data_type, datatype.DataTypeSmallInt)
+
+        attribute_store = AttributeStore.from_attributes(
+            data_source, entity_type, attribute_descriptors
+        )(cursor)
         conn.commit()
 
-        attributestore.store_txn(datapackage).run(conn)
+        attribute_store.store_txn(data_package).run(conn)
 
 
 @with_conn(clear_database)
@@ -264,34 +289,36 @@ def test_store_batch_update(conn):
         attribute_names = ['CCR', 'Drops']
         timestamp = pytz.utc.localize(datetime.utcnow())
 
-        datasource = DataSource.from_name(cursor, "integration-test")
-        entitytype = EntityType.from_name(cursor, "UtranCell")
+        data_source = DataSource.from_name("integration-test")(cursor)
+        entity_type = EntityType.from_name("UtranCell")(cursor)
 
-        datapackage = DataPackage(
+        data_package = DataPackage(
             attribute_names,
             [(10023 + i, timestamp, ('0.9919', '17')) for i in range(100)]
         )
 
-        update_datapackage = DataPackage(
+        update_data_package = DataPackage(
             attribute_names,
             [(10023 + i, timestamp, ('0.9918', '18')) for i in range(100)]
         )
 
-        attributes = datapackage.deduce_attributes()
-        attributestore = AttributeStore(datasource, entitytype, attributes)
-        attributestore.create(cursor)
+        attributes = data_package.deduce_attributes()
 
-        attributestore.store_batch(cursor, datapackage)
+        attribute_store = AttributeStore.create(AttributeStoreDescriptor(
+            data_source, entity_type, attributes
+        ))(cursor)
+
+        attribute_store.store_batch(cursor, data_package)
         conn.commit()
         modified_query = (
             'SELECT modified FROM {0} '
             'WHERE entity_id = 10023'
-        ).format(attributestore.history_table.render())
+        ).format(attribute_store.history_table.render())
 
         cursor.execute(modified_query)
         modified_a, = cursor.fetchone()
 
-        attributestore.store_batch(cursor, update_datapackage)
+        attribute_store.store_batch(cursor, update_data_package)
         conn.commit()
 
         cursor.execute(modified_query)
@@ -303,17 +330,17 @@ def test_store_batch_update(conn):
             "SELECT attribute_directory.materialize_curr_ptr(attributestore) "
             "FROM attribute_directory.attributestore "
             "WHERE id = %s",
-            (attributestore.id,)
+            (attribute_store.id,)
         )
 
         query = (
             'SELECT timestamp, "Drops" '
             'FROM {0}'
-        ).format(attributestore.table.render())
+        ).format(attribute_store.table.render())
 
         cursor.execute(query)
         # Row count should be the same as the stored batch size
-        eq_(cursor.rowcount, len(datapackage.rows))
+        eq_(cursor.rowcount, len(data_package.rows))
 
         stored_timestamp, drops = cursor.fetchone()
 
@@ -329,16 +356,20 @@ def test_store_empty_rows(conn):
         attribute_names = ['CCR', 'Drops']
         data_rows = []
 
-        datasource = DataSource.from_name(cursor, "integration-test")
-        entitytype = EntityType.from_name(cursor, "UtranCell")
+        data_source = DataSource.from_name("integration-test")(cursor)
+        entity_type = EntityType.from_name("UtranCell")(cursor)
 
-        datapackage = DataPackage(attribute_names, data_rows)
+        data_package = DataPackage(attribute_names, data_rows)
 
-        attributes = datapackage.deduce_attributes()
-        attributestore = AttributeStore(datasource, entitytype, attributes)
-        attributestore.create(cursor)
+        attribute_descriptors = data_package.deduce_attributes()
 
-        attributestore.store_txn(datapackage).run(conn)
+        attribute_store = AttributeStore.create(AttributeStoreDescriptor(
+            data_source, entity_type, attribute_descriptors
+        ))(cursor)
+
+        conn.commit()
+
+        attribute_store.store_txn(data_package).run(conn)
         conn.commit()
 
 
@@ -350,17 +381,20 @@ def test_store_empty_attributes(conn):
         timestamp = pytz.utc.localize(datetime.utcnow())
         rows = [(10023 + i, timestamp, tuple()) for i in range(100)]
 
-        datasource = DataSource.from_name(cursor, "integration-test")
-        entitytype = EntityType.from_name(cursor, "UtranCell")
+        data_source = DataSource.from_name("integration-test")(cursor)
+        entity_type = EntityType.from_name("UtranCell")(cursor)
 
-        datapackage = DataPackage(attribute_names, rows)
+        data_package = DataPackage(attribute_names, rows)
 
-        attributes = datapackage.deduce_attributes()
-        attributestore = AttributeStore(datasource, entitytype, attributes)
-        attributestore.create(cursor)
+        attribute_descriptors = data_package.deduce_attributes()
 
-        attributestore.store_txn(datapackage).run(conn)
+        attribute_store = AttributeStore.create(AttributeStoreDescriptor(
+            data_source, entity_type, attribute_descriptors
+        ))(cursor)
+
         conn.commit()
+
+        attribute_store.store_txn(data_package).run(conn)
 
 
 @with_conn(clear_database)
@@ -375,46 +409,47 @@ def test_compact(conn):
     with closing(conn.cursor()) as cursor:
         attribute_names = ['CCR', 'Drops']
 
-        datasource = DataSource.from_name(cursor, "integration-test")
-        entitytype = EntityType.from_name(cursor, "UtranCell")
+        data_source = DataSource.from_name("integration-test")(cursor)
+        entity_type = EntityType.from_name("UtranCell")(cursor)
         timestamp = pytz.utc.localize(datetime.utcnow())
 
-        datapackage_a = DataPackage(
+        data_package_a = DataPackage(
             attribute_names=attribute_names,
             rows=make_rows(timestamp)
         )
 
-        datapackage_b = DataPackage(
+        data_package_b = DataPackage(
             attribute_names=attribute_names,
             rows=make_rows(timestamp + timedelta(10))
         )
 
-        attributes = datapackage_a.deduce_attributes()
-        attributestore = AttributeStore(datasource, entitytype, attributes)
-        attributestore.create(cursor)
+        attributes = data_package_a.deduce_attributes()
+        attribute_store = AttributeStore.create(AttributeStoreDescriptor(
+            data_source, entity_type, attributes
+        ))(cursor)
 
-        attributestore.store_batch(cursor, datapackage_a)
+        attribute_store.store_batch(cursor, data_package_a)
         conn.commit()
 
-        attributestore.store_batch(cursor, datapackage_b)
+        attribute_store.store_batch(cursor, data_package_b)
         conn.commit()
 
         count_query = (
             "SELECT count(*) "
             "FROM {0}"
-        ).format(attributestore.history_table.render())
+        ).format(attribute_store.history_table.render())
 
         cursor.execute(count_query)
 
         count, = cursor.fetchone()
         # Row count should be the same as the stored batch sizes summed
-        eq_(count, len(datapackage_b.rows) + len(datapackage_a.rows))
+        eq_(count, len(data_package_b.rows) + len(data_package_a.rows))
 
-        attributestore.compact(cursor)
+        attribute_store.compact(cursor)
         conn.commit()
 
         cursor.execute(count_query)
 
         count, = cursor.fetchone()
         # Row count should be the same as the first stored batch size
-        eq_(count, len(datapackage_a.rows))
+        eq_(count, len(data_package_a.rows))

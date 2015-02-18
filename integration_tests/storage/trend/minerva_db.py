@@ -6,13 +6,9 @@ from minerva.test import connect
 def clear_database(conn):
     with closing(conn.cursor()) as cursor:
         cursor.execute("DELETE FROM trend_directory.trend CASCADE")
-        conn.commit()
         cursor.execute("DELETE FROM trend_directory.trendstore CASCADE")
-        conn.commit()
         cursor.execute("DELETE FROM directory.datasource CASCADE")
-        conn.commit()
         cursor.execute("DELETE FROM directory.entitytype CASCADE")
-        conn.commit()
 
 
 def with_data(test_set):

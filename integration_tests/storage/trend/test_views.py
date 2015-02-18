@@ -2,15 +2,14 @@ import datetime
 from contextlib import closing
 
 from nose.tools import eq_
+import pytz
 
-from minerva.test import with_conn
+from minerva.test import with_conn, clear_database
+from minerva.test.trend import TestSet1Small
 from minerva.directory import DataSource
 from minerva.storage.trend.engine import TrendEngine
 from minerva.storage.trend.trendstore import TrendStore, TrendStoreDescriptor
 from minerva.storage.trend.view import View
-
-from minerva_db import clear_database
-from data import TestSet1Small
 
 
 @with_conn(clear_database)
@@ -23,13 +22,13 @@ def test_create_view(conn):
         data_source = DataSource.from_name("view-test")(cursor)
 
         trend_store = TrendStore.get(
-            cursor, data_source, test_set_small.entitytype,
+            cursor, data_source, test_set_small.entity_type,
             test_set_small.granularity
         )
 
         if not trend_store:
             trend_store = TrendStore.create(TrendStoreDescriptor(
-                data_source, test_set_small.entitytype,
+                data_source, test_set_small.entity_type,
                 test_set_small.granularity, [], partition_size=86400
             ))(cursor)
 
@@ -46,7 +45,7 @@ def test_create_view(conn):
 
     engine = TrendEngine(conn)
 
-    start = test_set_small.datasource.tzinfo.localize(
+    start = pytz.utc.localize(
         datetime.datetime(2013, 8, 26, 13, 0, 0)
     )
     end = start
@@ -54,4 +53,3 @@ def test_create_view(conn):
     result = engine.retrieve(trend_store, ["CntrA"], None, start, end)
 
     eq_(len(result), 1)
-

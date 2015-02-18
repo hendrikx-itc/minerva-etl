@@ -1,4 +1,3 @@
-# pylint: disable=W0212
 # -*- coding: utf-8 -*-
 """Tests for methods of the DataPackage class."""
 __docformat__ = "restructuredtext en"
@@ -14,121 +13,119 @@ import json
 from datetime import datetime
 
 import pytz
-from nose.tools import eq_
 
+from minerva.test import eq_
+from minerva.storage import datatype
+from minerva.storage.valuedescriptor import ValueDescriptor
 from minerva.storage.attribute.datapackage import DataPackage
 
 TIMESTAMP = pytz.utc.localize(datetime(2013, 8, 30, 15, 30))
 
 
-def create_simple_package():
-    """Return new DataPackage instance with a simple set of data."""
-    attribute_names = ["power", "height", "state", "freetext"]
-    rows = [
-        (123001, TIMESTAMP, (405, 0.0, "enabled", "")),
-        (123003, TIMESTAMP, (41033, 22.3, "enabled", "")),
-        (123004, TIMESTAMP, (880, 30.0, "enabled", ""))]
+simple_package = DataPackage(
+    ["power", "height", "state", "freetext"],
+    [
+        (123001, TIMESTAMP, ("405", "0.0", "enabled", "")),
+        (123003, TIMESTAMP, ("41033", "22.3", "enabled", "")),
+        (123004, TIMESTAMP, ("880", "30.0", "enabled", ""))
+    ]
+)
 
-    return DataPackage(attribute_names, rows)
 
-
-def create_package_array():
-    """Return new DataPackage instance with a simple set of data."""
-    attribute_names = ["curve"]
-    rows = [
+array_package = DataPackage(
+    ["curve"],
+    [
         (123001, TIMESTAMP, ('0,1,2,4,7,4,2,1,0',)),
         (123002, TIMESTAMP, ('0,1,2,5,8,4,2,1,0',)),
         (123003, TIMESTAMP, ('0,1,3,5,7,4,3,1,0',)),
-        (123004, TIMESTAMP, ('0,1,2,4,9,4,2,1,0',))]
+        (123004, TIMESTAMP, ('0,1,2,4,9,4,2,1,0',))
+    ]
+)
 
-    return DataPackage(attribute_names, rows)
 
-
-def create_package_array_list_a():
-    """Return new DataPackage instance with array data as lists."""
-    attribute_names = ["curve"]
-    rows = [
+package_array_list_a = DataPackage(
+    ["curve"],
+    [
         (123001, TIMESTAMP, (['0', '1', '2'],)),
         (123002, TIMESTAMP, (['0', '1', '2'],)),
         (123003, TIMESTAMP, (['', '', ''],))
     ]
+)
 
-    return DataPackage(attribute_names, rows)
 
-
-def create_package_array_list_b():
-    """Return new DataPackage instance with array data as lists."""
-    attribute_names = ["curve"]
-    rows = [
+package_array_list_b = DataPackage(
+    ["curve"],
+    [
         (123001, TIMESTAMP, (['', ''],)),
         (123002, TIMESTAMP, (['', ''],))
     ]
+)
 
-    return DataPackage(attribute_names, rows)
 
-
-def create_package_array_list_c():
-    """Return new DataPackage instance with array data as lists."""
-    attribute_names = ["curve"]
-    rows = [
+package_array_list_c = DataPackage(
+    ["curve"],
+    [
         (123001, (['e=34,c=1', 'e=45,c=3', 'e=33,c=2'],)),
         (123002, (['', '', ''],))
     ]
-
-    return DataPackage(TIMESTAMP, attribute_names, rows)
+)
 
 
 def test_constructor():
     """Test creation of a new DataPackage instance."""
-    datapackage = create_simple_package()
+    data_package = simple_package
 
-    eq_(len(datapackage.attribute_names), 4)
-    eq_(len(datapackage.rows), 3)
+    eq_(len(data_package.attribute_names), 4)
+    eq_(len(data_package.rows), 3)
 
 
-def test_deduce_data_types():
+def test_deduce_value_descriptors():
     """The max data types should be deduced from the package."""
-    datapackage = create_simple_package()
+    data_package = simple_package
 
-    data_types = datapackage.deduce_data_types()
+    data_types = data_package.deduce_value_descriptors()
 
-    eq_(data_types[0], "integer")
-    eq_(data_types[1], "real")
-    eq_(data_types[2], "text")
-    eq_(data_types[3], "smallint")
+    eq_(data_types[0], ValueDescriptor())
+    eq_(data_types[1], ValueDescriptor())
+    eq_(data_types[2], ValueDescriptor())
+    eq_(data_types[3], ValueDescriptor())
 
 
 def test_deduce_data_types_array():
     """The max data types should be deduced from the package."""
-    datapackage = create_package_array()
+    data_package = array_package
 
-    data_types = datapackage.deduce_data_types()
+    data_types = data_package.deduce_value_descriptors()
 
-    attr_type_dict = dict(zip(datapackage.attribute_names, data_types))
+    attr_type_dict = dict(zip(data_package.attribute_names, data_types))
 
-    eq_(attr_type_dict["curve"], "integer[]")
+    eq_(attr_type_dict["curve"], ValueDescriptor())
 
 
 def test_deduce_datatypes_empty():
-    datapackage = DataPackage(
+    data_package = DataPackage(
         attribute_names=('height', 'power', 'refs'),
         rows=[]
     )
 
-    data_types = datapackage.deduce_data_types()
+    data_types = data_package.deduce_value_descriptors()
 
-    assert data_types == ['smallint', 'smallint', 'smallint']
+    eq_(data_types, [
+        ValueDescriptor(datatype.DataTypeSmallInt),
+        ValueDescriptor(datatype.DataTypeSmallInt),
+        ValueDescriptor(datatype.DataTypeSmallInt)
+    ])
 
 
 def test_to_dict():
-    datapackage = DataPackage(
+    data_package = DataPackage(
         attribute_names=('height', 'power'),
         rows=[
             (10034, TIMESTAMP, ['15.6', '68'])
         ]
     )
 
-    json_data = datapackage.to_dict()
+    json_data = data_package.to_dict()
 
     expected_json = (
         '{"attribute_names": ["height", "power"], '
@@ -149,59 +146,71 @@ def test_from_dict():
         ]
     }
 
-    datapackage = DataPackage.from_dict(json_data)
+    data_package = DataPackage.from_dict(json_data)
 
-    eq_(datapackage.attribute_names[1], "azimuth")
-    eq_(datapackage.rows[0][0], 13403)
-    eq_(datapackage.rows[0][1][1], "180")
+    eq_(data_package.attribute_names[1], "azimuth")
+    eq_(data_package.rows[0][0], 13403)
+    eq_(data_package.rows[0][1][1], "180")
 
 
 def test_deduce_attributes():
-    datapackage = create_simple_package()
+    data_package = simple_package
 
-    attributes = datapackage.deduce_attributes()
+    attributes = data_package.deduce_attributes()
 
-    attr_dict = dict((attribute.name, attribute)
-                     for attribute in attributes)
+    attr_dict = {
+        attribute.name: attribute
+        for attribute in attributes
+    }
 
-    eq_(attr_dict["power"].datatype, "integer")
-    eq_(attr_dict["height"].datatype, "real")
-    eq_(attr_dict["state"].datatype, "text")
+    eq_(attr_dict["power"].data_type, datatype.DataTypeInteger)
+    eq_(attr_dict["height"].data_type, datatype.DataTypeReal)
+    eq_(attr_dict["state"].data_type, datatype.DataTypeText)
 
 
 def test_create_copy_from_lines():
     """
     The format of the copy-from-file should be acceptable by PostgreSQL.
     """
-    datapackage = create_simple_package()
-    data_types = datapackage.deduce_data_types()
+    data_package = simple_package
+    value_descriptors = [
+        ValueDescriptor(
+            value_descriptor.name,
+            value_descriptor.data_type,
+            {},
+            datatype.copy_from_serializer_config[value_descriptor.data_type]
+        )
+        for value_descriptor in data_package.deduce_value_descriptors()
+    ]
 
-    lines = datapackage._create_copy_from_lines(data_types)
+    lines = data_package._create_copy_from_lines(value_descriptors)
 
-    eq_(lines[0],
-        "123001\t2013-08-30 15:30:00+00:00\t405\t0.0\tenabled\t\\N\n")
+    eq_(
+        lines[0],
+        "123001\t2013-08-30 15:30:00+00:00\t405\t0.0\tenabled\t\\N\n"
+    )
 
-    datapackage = create_package_array()
-    data_types = datapackage.deduce_data_types()
+    data_package = array_package
+    value_descriptors = data_package.deduce_value_descriptors()
 
-    lines = datapackage._create_copy_from_lines(data_types)
+    lines = data_package._create_copy_from_lines(value_descriptors)
 
     eq_(lines[0], "123001\t2013-08-30 15:30:00+00:00\t{0,1,2,4,7,4,2,1,0}\n")
 
-    datapackage = create_package_array_list_a()
-    data_types = datapackage.deduce_data_types()
+    data_package = package_array_list_a
+    value_descriptors = data_package.deduce_value_descriptors()
 
-    lines = datapackage._create_copy_from_lines(data_types)
+    lines = data_package._create_copy_from_lines(value_descriptors)
 
     eq_(lines[1], "123002\t2013-08-30 15:30:00+00:00\t{0,1,2}\n")
     eq_(lines[2], "123003\t2013-08-30 15:30:00+00:00\t{NULL,NULL,NULL}\n")
 
-    datapackage = create_package_array_list_b()
-    data_types = datapackage.deduce_data_types()
+    data_package = package_array_list_b
+    data_types = data_package.deduce_data_types()
 
-    lines = datapackage._create_copy_from_lines(data_types)
+    lines = data_package._create_copy_from_lines(data_types)
 
     eq_(lines[0], "123001\t2013-08-30 15:30:00+00:00\t{NULL,NULL}\n")
     eq_(lines[1], "123002\t2013-08-30 15:30:00+00:00\t{NULL,NULL}\n")
 
-    f = datapackage._create_copy_from_file(data_types)
+    f = data_package._create_copy_from_file(data_types)

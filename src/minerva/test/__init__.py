@@ -1,4 +1,3 @@
-import os
 import logging
 from contextlib import closing
 from functools import wraps
@@ -6,7 +5,27 @@ from functools import wraps
 import psycopg2.extras
 
 from minerva.util.debug import log_call_basic
-from minerva.db import parse_db_url, extract_safe_url
+
+
+def eq_(a, b):
+    assert a == b, '{} != {}'.format(a, b)
+
+
+def assert_not_equal(a, b):
+    assert a != b, '{} == {}'.format(a, b)
+
+
+def raises(exception_type):
+    def fn(f):
+        def wrapped(*args, **kwargs):
+            try:
+                return f(*args, **kwargs)
+            except Exception as exc:
+                eq_(type(exc), exception_type)
+
+        return wrapped()
+
+    return fn
 
 
 def connect():
@@ -57,3 +76,11 @@ def with_dataset(dataset):
         return wrapper
 
     return dec_fn
+
+
+def clear_database(conn):
+    with closing(conn.cursor()) as cursor:
+        cursor.execute("DELETE FROM trend_directory.trend CASCADE")
+        cursor.execute("DELETE FROM trend_directory.trendstore CASCADE")
+        cursor.execute("DELETE FROM directory.datasource CASCADE")
+        cursor.execute("DELETE FROM directory.entitytype CASCADE")

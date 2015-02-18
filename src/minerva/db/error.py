@@ -9,6 +9,7 @@ the Free Software Foundation; either version 3, or (at your option) any later
 version.  The full license is in the file COPYING, distributed as part of
 this software.
 """
+import logging
 from functools import wraps
 
 import psycopg2.errorcodes
@@ -75,6 +76,7 @@ def translate_postgresql_exceptions(f):
         try:
             return f(*args, **kwargs)
         except psycopg2.DatabaseError as exc:
+            logging.debug(str(exc))
             raise translate_postgresql_exception(exc)
 
     return wrapped

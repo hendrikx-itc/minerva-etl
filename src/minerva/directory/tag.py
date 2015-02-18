@@ -227,8 +227,8 @@ def get_tags_for_entity_id(conn, entity_id):
             return []
 
 
-class Tag(object):
-    def __init__(self, id, name, group_id, description=""):
+class Tag():
+    def __init__(self, id, name, group_id, description):
         self.id = id
         self.name = name
         self.description = description

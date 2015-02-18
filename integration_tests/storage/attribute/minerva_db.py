@@ -21,33 +21,3 @@ def clear_database(conn):
         cursor.execute("DELETE FROM directory.datasource")
         cursor.execute("DELETE FROM directory.entitytype")
         cursor.execute("DELETE FROM directory.tag")
-
-        system_tables = ["attribute", "attribute_tag_link"]
-
-        all_tables = get_tables(cursor)
-
-        attribute_tables = [t for t in all_tables if not t in system_tables]
-
-        for table_name in attribute_tables:
-            drop_table(cursor, schema.name, table_name)
-
-
-def get_tables(cursor):
-    query = (
-        "SELECT relname FROM pg_class "
-        "JOIN pg_namespace ON pg_class.relnamespace = pg_namespace.oid "
-        "WHERE nspname = %s "
-        "AND (relkind = 'r' OR relkind = 'v') "
-        "AND relhassubclass = true")
-
-    args = (schema.name, )
-
-    cursor.execute(query, args)
-
-    return map(first, cursor.fetchall())
-
-
-def drop_table(cursor, schema, table):
-    query = 'DROP TABLE "{0}"."{1}" CASCADE'.format(schema, table)
-
-    cursor.execute(query)

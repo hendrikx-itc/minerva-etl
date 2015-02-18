@@ -16,7 +16,7 @@ def log_call_basic(fn):
     """Return decorated function that logs each call."""
     def wrapper(*args, **kwargs):
         """Return result of wrapped function and log call."""
-        all_args = list(args) + kwargs.values()
+        all_args = list(args) + list(kwargs.values())
 
         type_names = [t.__name__ for t in map(type, all_args)]
 

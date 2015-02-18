@@ -14,7 +14,7 @@ import time
 import logging
 
 
-class VitalFunction(object):
+class VitalFunction():
     """
     Base class for vital function checks. Override the check method in the
     child class data_provider

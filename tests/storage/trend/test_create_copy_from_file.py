@@ -10,56 +10,60 @@ this software.
 """
 import datetime
 
-from nose.tools import eq_
+import pytz
 
 from minerva.directory import DataSource
+from minerva.storage import datatype
+from minerva.storage.valuedescriptor import ValueDescriptor
 from minerva.storage.trend.trendstore import create_copy_from_file
 
 
-def create_datasource(timezone):
-    return DataSource(
-        1, name="DummySource", description="Dummy data source",
-        timezone="Europe/Amsterdam"
-    )
-
-DATA_SOURCE = create_datasource("Europe/Amsterdam")
+DATA_SOURCE = DataSource(
+    1, name="DummySource", description="Dummy data source"
+)
 
 
 def test_create_copy_from_file_empty():
-    f = create_copy_from_file(None, None, [])
+    f = create_copy_from_file(None, None, [], [])
 
     assert f.read() == ""
 
 
 def test_create_copy_from_file_simple():
-    timestamp = DATA_SOURCE.tzinfo.localize(
+    timestamp = pytz.utc.localize(
         datetime.datetime(2008, 12, 3, 0, 15, 0)
     )
 
-    modified = DATA_SOURCE.tzinfo.localize(
+    modified = pytz.utc.localize(
         datetime.datetime(2008, 12, 3, 0, 15, 0)
     )
 
     rows = [
-        (1, ('a', '23'))]
+        (1, ('a', '23'))
+    ]
 
-    f = create_copy_from_file(timestamp, modified, rows)
+    value_descriptors = [
+        ValueDescriptor('x', datatype.DataTypeText),
+        ValueDescriptor('y', datatype.DataTypeText)
+    ]
+
+    f = create_copy_from_file(timestamp, modified, rows, value_descriptors)
 
     text = f.read()
     expected = (
-        "1\t'2008-12-03T00:15:00+01:00'\t'2008-12-03T00:15:00+01:00'\t"
+        "1\t'2008-12-03T00:15:00+00:00'\t'2008-12-03T00:15:00+00:00'\t"
         "a\t23\n"
     )
 
-    eq_(text, expected)
+    assert text == expected
 
 
 def test_create_copy_from_file_int_array():
-    timestamp = DATA_SOURCE.tzinfo.localize(
+    timestamp = pytz.utc.localize(
         datetime.datetime(2008, 12, 3, 0, 15, 0)
     )
 
-    modified = DATA_SOURCE.tzinfo.localize(
+    modified = pytz.utc.localize(
         datetime.datetime(2008, 12, 3, 0, 15, 0)
     )
 
@@ -67,22 +71,28 @@ def test_create_copy_from_file_int_array():
         (1, ('a', '23', [1, 2, 3]))
     ]
 
-    f = create_copy_from_file(timestamp, modified, rows)
+    value_descriptors = [
+        ValueDescriptor('x', datatype.DataTypeText),
+        ValueDescriptor('y', datatype.DataTypeText),
+        ValueDescriptor('z', datatype.DataTypeSmallInt)  # should be array
+    ]
+
+    f = create_copy_from_file(timestamp, modified, rows, value_descriptors)
 
     text = f.read()
     expected = (
-        "1\t'2008-12-03T00:15:00+01:00'\t'2008-12-03T00:15:00+01:00'\t"
+        "1\t'2008-12-03T00:15:00+00:00'\t'2008-12-03T00:15:00+00:00'\t"
         "a\t23\t{\"1\",\"2\",\"3\"}\n"
     )
 
-    eq_(text, expected)
+    assert text == expected, '\n{}\n!=\n{}'.format(text, expected)
 
 
 def test_create_copy_from_file_text_array():
-    timestamp = DATA_SOURCE.tzinfo.localize(
+    timestamp = pytz.utc.localize(
         datetime.datetime(2008, 12, 3, 0, 15, 0)
     )
-    modified = DATA_SOURCE.tzinfo.localize(
+    modified = pytz.utc.localize(
         datetime.datetime(2008, 12, 3, 0, 15, 0)
     )
 
@@ -90,13 +100,19 @@ def test_create_copy_from_file_text_array():
         (1, ('a', '23', ["a=b,c=d", "e=f,g=h", "i=j,k=l"]))
     ]
 
-    f = create_copy_from_file(timestamp, modified, rows)
+    value_descriptors = [
+        ValueDescriptor('x', datatype.DataTypeText),
+        ValueDescriptor('y', datatype.DataTypeSmallInt),
+        ValueDescriptor('z', datatype.DataTypeText)  # should be array
+    ]
+
+    f = create_copy_from_file(timestamp, modified, rows, value_descriptors)
 
     text = f.read()
 
     expected = (
-        "1\t'2008-12-03T00:15:00+01:00'\t'2008-12-03T00:15:00+01:00'\t"
+        "1\t'2008-12-03T00:15:00+00:00'\t'2008-12-03T00:15:00+00:00'\t"
         "a\t23\t{\"a=b,c=d\",\"e=f,g=h\",\"i=j,k=l\"}\n"
     )
 
-    eq_(text, expected)
+    assert text == expected, '\n{}\n!=\n{}'.format(text, expected)

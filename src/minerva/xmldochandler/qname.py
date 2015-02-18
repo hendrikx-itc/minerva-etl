@@ -12,7 +12,7 @@ this software.
 """
 
 
-class QName(object):
+class QName():
     """
     A qualified name that contains a namespace name or prefix and a local name.
     """

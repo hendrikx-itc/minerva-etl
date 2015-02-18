@@ -2,9 +2,7 @@ from contextlib import closing
 
 from nose.tools import eq_
 
-from minerva.test import with_conn
-
-from minerva_db import clear_database
+from minerva.test import with_conn, clear_database
 
 
 @with_conn(clear_database)

@@ -213,8 +213,7 @@ GRANT INSERT,DELETE,UPDATE ON TABLE trend_directory.modified TO minerva_writer;
 CREATE TABLE trend_directory.view (
     id integer not null,
     description varchar not null,
-    trendstore_id integer not null,
-    sql text not null
+    trendstore_id integer not null
 );
 
 ALTER TABLE trend_directory.view OWNER TO minerva_admin;

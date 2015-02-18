@@ -13,7 +13,6 @@ import os
 
 import psycopg2.extras
 from configobj import ConfigObj
-from DBUtils import SteadyDB
 
 from minerva.instance.error import ConfigurationError
 
@@ -25,20 +24,12 @@ EXPECTED_EXCEPTIONS = (
 )
 
 
-class MinervaInstance(object):
+class MinervaInstance():
     def __init__(self, config):
         self.config = config
 
     def minerva_class(self):
         return MinervaClass(self.config.get("class", "default"))
-
-    def get_db_uri(self, user):
-        return "postgresql://{user}@{host}:{port}/{name}".format(
-            user=user,
-            host=self.config["database"]["host"],
-            port=self.config["database"]["port"],
-            name=self.config["database"]["name"]
-        )
 
     def connect_logging(self, logger, **kwargs):
         db_conf = self.config["database"]
@@ -70,11 +61,12 @@ class MinervaInstance(object):
             "failures": EXPECTED_EXCEPTIONS,
             "database": db_conf.get("name"),
             "host": db_conf.get("host"),
-            "port": db_conf.get("port")}
+            "port": db_conf.get("port")
+        }
 
         merged_kwargs.update(kwargs)
 
-        return SteadyDB.connect(psycopg2, **merged_kwargs)
+        return psycopg2.connect(**merged_kwargs)
 
     def connect_ro(self, **kwargs):
         """
@@ -94,7 +86,7 @@ class MinervaInstance(object):
 
         merged_kwargs.update(kwargs)
 
-        return SteadyDB.connect(psycopg2, **merged_kwargs)
+        return psycopg2.connect(**merged_kwargs)
 
     @staticmethod
     def load(name):
@@ -113,7 +105,7 @@ class MinervaInstance(object):
         return ConfigObj(instance_config_path)
 
 
-class MinervaClass(object):
+class MinervaClass():
     def __init__(self, name):
         self.name = name
 

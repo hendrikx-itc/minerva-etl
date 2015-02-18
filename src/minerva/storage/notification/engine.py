@@ -13,7 +13,7 @@ from minerva.storage.notification.types import NotificationStore, \
     Record, Attribute
 
 
-class NotificationEngine(object):
+class NotificationEngine():
     Record = staticmethod(Record)
     Attribute = staticmethod(Attribute)
     NotificationStore = staticmethod(NotificationStore)

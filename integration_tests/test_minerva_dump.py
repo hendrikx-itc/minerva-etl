@@ -16,17 +16,17 @@ class MinervaDump(unittest.TestCase):
         self.maxDiff = None
         with closing(connect()) as conn:
             with closing(conn.cursor()) as cursor:
-                cursor.execute("DELETE FROM trend.trendstore")
+                cursor.execute("DELETE FROM trend_directory.trendstore")
                 cursor.execute("DELETE FROM attribute_directory.attributestore")
                 cursor.execute(
-                    "SELECT trend.create_trendstore("
+                    "SELECT trend_directory.create_trendstore("
                     "    'test-datasource',"
                     "    'test-entitytype',"
                     "    '900',"
                     "    ARRAY["
                     "        ('x', 'integer', 'test trend'),"
                     "        ('y', 'double precision', 'another test trend')"
-                    "    ]::trend.trend_descr[]"
+                    "    ]::trend_directory.trend_descr[]"
                     ")")
 
                 cursor.execute(
@@ -46,14 +46,14 @@ class MinervaDump(unittest.TestCase):
         out, err = process.communicate()
 
         self.assertMultiLineEqual(out, """\
-SELECT trend.create_trendstore(
+SELECT trend_directory.create_trendstore(
     'test-datasource',
     'test-entitytype',
     '900',
     ARRAY[
         ('x', 'integer', ''),
         ('y', 'double precision', '')
-    ]::trend.trend_descr[]
+    ]::trend_directory.trend_descr[]
 );
 
 SELECT attribute_directory.create_attributestore(

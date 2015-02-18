@@ -15,7 +15,7 @@ this software.
 import re
 from datetime import datetime, tzinfo
 import decimal
-from functools import partial
+from functools import partial, reduce
 import operator
 
 import pytz
@@ -25,7 +25,7 @@ class ParseError(Exception):
     pass
 
 
-class DataType(object):
+class DataType():
     @classmethod
     def string_parser_config(cls, config):
         raise NotImplementedError()
@@ -77,8 +77,11 @@ class DataTypeBoolean(DataType):
     }
 
     @classmethod
-    def string_parser_config(cls, config):
-        return merge_dicts(cls.default_parser_config, config)
+    def string_parser_config(cls, config=None):
+        if config is None:
+            return cls.default_parser_config
+        else:
+            return merge_dicts(cls.default_parser_config, config)
 
     @classmethod
     def string_parser(cls, config):
@@ -88,12 +91,12 @@ class DataTypeBoolean(DataType):
 
         if hasattr(true_value, '__iter__'):
             is_true = partial(operator.contains, true_value)
-        elif isinstance(true_value, basestring):
+        elif isinstance(true_value, str):
             is_true = partial(operator.eq, true_value)
 
         if hasattr(false_value, '__iter__'):
             is_false = partial(operator.contains, false_value)
-        elif isinstance(false_value, basestring):
+        elif isinstance(false_value, str):
             is_false = partial(operator.eq, false_value)
 
         def parse(value):
@@ -129,7 +132,7 @@ class DataTypeBoolean(DataType):
 
     @classmethod
     def deduce_parser_config(cls, value):
-        if not isinstance(value, basestring):
+        if not isinstance(value, str):
             return None
         elif value in cls.bool_set:
             return merge_dicts(
@@ -158,8 +161,11 @@ class DataTypeTimestampWithTimeZone(DataType):
     }
 
     @classmethod
-    def string_parser_config(cls, config):
-        return merge_dicts(cls.default_parser_config, config)
+    def string_parser_config(cls, config=None):
+        if config is None:
+            return cls.default_parser_config
+        else:
+            return merge_dicts(cls.default_parser_config, config)
 
     @classmethod
     def string_parser(cls, config):
@@ -220,8 +226,11 @@ class DataTypeTimestamp(DataType):
     ]
 
     @classmethod
-    def string_parser_config(cls, config):
-        return merge_dicts(cls.default_parser_config, config)
+    def string_parser_config(cls, config=None):
+        if config is None:
+            return cls.default_parser_config
+        else:
+            return merge_dicts(cls.default_parser_config, config)
 
     @classmethod
     def string_parser(cls, config):
@@ -249,7 +258,7 @@ class DataTypeTimestamp(DataType):
 
     @classmethod
     def deduce_parser_config(cls, value):
-        if not isinstance(value, basestring):
+        if not isinstance(value, str):
             return None
 
         for regex, datetime_format in cls.known_formats:
@@ -273,8 +282,11 @@ class DataTypeSmallInt(DataType):
     }
 
     @classmethod
-    def string_parser_config(cls, config):
-        return merge_dicts(cls.default_parser_config, config)
+    def string_parser_config(cls, config=None):
+        if config is None:
+            return cls.default_parser_config
+        else:
+            return merge_dicts(cls.default_parser_config, config)
 
     @classmethod
     def string_parser(cls, config):
@@ -292,7 +304,7 @@ class DataTypeSmallInt(DataType):
 
     @classmethod
     def deduce_parser_config(cls, value):
-        if not isinstance(value, basestring):
+        if not isinstance(value, str):
             return None
 
         if value == "":
@@ -349,8 +361,11 @@ class DataTypeInteger(DataType):
     }
 
     @classmethod
-    def string_parser_config(cls, config):
-        return merge_dicts(cls.default_parser_config, config)
+    def string_parser_config(cls, config=None):
+        if config is None:
+            return cls.default_parser_config
+        else:
+            return merge_dicts(cls.default_parser_config, config)
 
     @classmethod
     def string_parser(cls, config):
@@ -371,7 +386,7 @@ class DataTypeInteger(DataType):
 
     @classmethod
     def deduce_parser_config(cls, value):
-        if not isinstance(value, basestring):
+        if not isinstance(value, str):
             return None
 
         try:
@@ -412,8 +427,11 @@ class DataTypeBigint(DataType):
     }
 
     @classmethod
-    def string_parser_config(cls, config):
-        return merge_dicts(cls.default_parser_config, config)
+    def string_parser_config(cls, config=None):
+        if config is None:
+            return cls.default_parser_config
+        else:
+            return merge_dicts(cls.default_parser_config, config)
 
     @classmethod
     def string_parser(cls, config):
@@ -436,7 +454,7 @@ class DataTypeBigint(DataType):
 
     @classmethod
     def deduce_parser_config(cls, value):
-        if not isinstance(value, basestring):
+        if not isinstance(value, str):
             return None
 
         try:
@@ -469,8 +487,11 @@ class DataTypeReal(DataType):
     }
 
     @classmethod
-    def string_parser_config(cls, config):
-        merge_dicts(cls.default_parser_config, config)
+    def string_parser_config(cls, config=None):
+        if config is None:
+            return cls.default_parser_config
+        else:
+            return merge_dicts(cls.default_parser_config, config)
 
     @classmethod
     def string_parser(cls, config):
@@ -498,7 +519,7 @@ class DataTypeReal(DataType):
 
     @classmethod
     def deduce_parser_config(cls, value):
-        if not isinstance(value, basestring):
+        if not isinstance(value, str):
             return None
 
         try:
@@ -519,8 +540,11 @@ class DataTypeDoublePrecision(DataType):
     }
 
     @classmethod
-    def string_parser_config(cls, config):
-        return merge_dicts(cls.default_parser_config, config)
+    def string_parser_config(cls, config=None):
+        if config is None:
+            return cls.default_parser_config
+        else:
+            return merge_dicts(cls.default_parser_config, config)
 
     @classmethod
     def string_parser(cls, config):
@@ -534,7 +558,7 @@ class DataTypeDoublePrecision(DataType):
 
     @classmethod
     def deduce_parser_config(cls, value):
-        if not isinstance(value, basestring):
+        if not isinstance(value, str):
             return None
 
         try:
@@ -562,8 +586,11 @@ class DataTypeNumeric(DataType):
     }
 
     @classmethod
-    def string_parser_config(cls, config):
-        return merge_dicts(cls.default_parser_config, config)
+    def string_parser_config(cls, config=None):
+        if config is None:
+            return cls.default_parser_config
+        else:
+            return merge_dicts(cls.default_parser_config, config)
 
     @classmethod
     def string_parser(cls, config):
@@ -609,8 +636,11 @@ class DataTypeText(DataType):
     }
 
     @classmethod
-    def string_parser_config(cls, config):
-        return merge_dicts(cls.default_parser_config, config)
+    def string_parser_config(cls, config=None):
+        if config is None:
+            return cls.default_parser_config
+        else:
+            return merge_dicts(cls.default_parser_config, config)
 
     @classmethod
     def string_parser(cls, config):
@@ -682,12 +712,21 @@ ORDERED_MATCH_FUNCS = [
 ]
 
 
-def deduce_from_string(value):
+class ParserDescriptor():
+    def __init__(self, data_type, parser_config):
+        self.data_type = data_type
+        self.parser_config = parser_config
+
+    def parser(self):
+        return self.data_type.string_parser(self.parser_config)
+
+
+def parser_descriptor_from_string(value):
     for data_type, deduce_parse_config in ORDERED_MATCH_FUNCS:
         parse_config = deduce_parse_config(value)
 
         if parse_config is not None:
-            return data_type, parse_config
+            return ParserDescriptor(data_type, parse_config)
 
     raise ValueError("Unable to determine data type of: {0}".format(value))
 
@@ -709,24 +748,23 @@ all_data_types = [
 type_map = {d.name: d for d in all_data_types}
 
 
-DEFAULT_DATA_TYPE = "smallint"
-
-
 def deduce_data_types(rows):
     """
     Return a list of the minimal required data types to store the values, in the
     same order as the values and thus matching the order of attribute_names.
-    """
-    row_length = len(rows[0])
 
+    :rtype: collections.iterable[DataType]
+    """
     return reduce(
         max_data_types,
-        map(types_from_values, rows),
-        [DEFAULT_DATA_TYPE] * row_length
+        [
+            [
+                parser_descriptor_from_string(value).data_type
+                for value in row
+            ]
+            for row in rows
+        ]
     )
-
-
-types_from_values = partial(map, deduce_from_string)
 
 
 def load_data_format(format):
@@ -740,3 +778,37 @@ def load_data_format(format):
         config = data_type.string_parser_config(format["string_format"])
 
         return data_type, data_type.string_parser(config)
+
+
+copy_from_serializer_config = {
+    DataTypeBigint: {
+        'null_value': '\\N'
+    },
+    DataTypeBoolean: {
+        'null_value': '\\N'
+    },
+    DataTypeTimestamp: {
+        'null_value': '\\N'
+    },
+    DataTypeTimestampWithTimeZone: {
+        'null_value': '\\N'
+    },
+    DataTypeInteger: {
+        'null_value': '\\N'
+    },
+    DataTypeSmallInt: {
+        'null_value': '\\N'
+    },
+    DataTypeReal: {
+        'null_value': '\\N'
+    },
+    DataTypeDoublePrecision: {
+        'null_value': '\\N'
+    },
+    DataTypeNumeric: {
+        'null_value': '\\N'
+    },
+    DataTypeText: {
+        'null_value': '\\N'
+    }
+}

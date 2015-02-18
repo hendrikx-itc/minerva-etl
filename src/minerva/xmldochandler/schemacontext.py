@@ -13,14 +13,14 @@ this software.
 from minerva.xmldochandler.xmlnamespace import XmlNamespace
 
 
-class Substitution(object):
+class Substitution():
 
     def __init__(self, elementhandler, substitutiongroup):
         self.elementhandler = elementhandler
         self.substitutiongroup = substitutiongroup
 
 
-class SchemaContext(object):
+class SchemaContext():
 
     def __init__(self):
         self.default_namespace = None

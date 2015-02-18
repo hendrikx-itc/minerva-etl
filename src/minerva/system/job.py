@@ -15,7 +15,7 @@ import json
 from minerva.system.jobqueue import enqueue_job
 
 
-class Job(object):
+class Job():
     """
     Represents a Minerva job for processing by a node.
     """

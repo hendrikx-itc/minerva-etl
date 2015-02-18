@@ -9,3 +9,4 @@ the Free Software Foundation; either version 3, or (at your option) any later
 version.  The full license is in the file COPYING, distributed as part of
 this software.
 """
+from minerva.storage.trend.trend import TrendDescriptor, Trend

@@ -70,7 +70,6 @@ def str_to_granularity(granularity_str):
 
         return Granularity(relativedelta(days=int(weeks) * 7))
 
-
     m = re.match('([0-9]+) month[s]?', granularity_str)
 
     if m:
@@ -102,7 +101,7 @@ def fn_range(incr, start, end):
         current = incr(current)
 
 
-class Granularity(object):
+class Granularity():
     def __init__(self, delta):
         self.delta = delta
 

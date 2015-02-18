@@ -11,7 +11,7 @@ this software.
 """
 from nose.tools import with_setup
 
-from minerva.directory.basetypes import Entity, EntityType
+from minerva.directory import Entity, EntityType
 
 
 DB_URL = "postgresql://unit_tester:password@localhost/unit_test"
@@ -21,8 +21,10 @@ DIRECTORY_SCHEMA = "directory"
 def setup_func():
     pass
 
+
 def teardown_func():
     pass
+
 
 @with_setup(setup_func, teardown_func)
 def test_entity_a():

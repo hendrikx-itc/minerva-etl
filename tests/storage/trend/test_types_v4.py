@@ -21,61 +21,58 @@ TIMEZONE = "Europe/Amsterdam"
 
 
 def test_trendstore():
-    datasource = DataSource(
+    data_source = DataSource(
         id=10, name="test-src",
-        description="this is just a test datasource", timezone=TIMEZONE
+        description="this is just a test data source"
     )
-    entitytype = EntityType(
+    entity_type = EntityType(
         id=20, name="test_type",
-        description="this is just a test entitytype"
+        description="this is just a test entity type"
     )
     granularity = create_granularity("900")
     partition_size = 3600
 
-    trendstore = TrendStore(
-        42, datasource, entitytype, granularity, partition_size,
+    trend_store = TrendStore(
+        42, data_source, entity_type, granularity, partition_size,
         "table", []
     )
 
-    timestamp = datasource.tzinfo.localize(datetime(2013, 5, 6, 13, 30))
+    timestamp = pytz.utc.localize(datetime(2013, 5, 6, 13, 30))
 
-    partition = trendstore.partition(timestamp)
+    partition = trend_store.partition(timestamp)
 
-    eq_(partition.name, "test-src_test_type_qtr_379955")
+    eq_(partition.name(), "test-src_test_type_qtr_379955")
 
-    expected_start_local = datasource.tzinfo.localize(
+    expected_start_local = data_source.tzinfo.localize(
         datetime(2013, 5, 6, 13, 0)
     )
     expected_start_utc = expected_start_local.astimezone(pytz.utc)
 
-    eq_(partition.start, expected_start_utc)
+    eq_(partition.start(), expected_start_utc)
 
-    expected_end_local = datasource.tzinfo.localize(
+    expected_end_local = data_source.tzinfo.localize(
         datetime(2013, 5, 6, 14, 0)
     )
     expected_end_utc = expected_end_local.astimezone(pytz.utc)
 
-    eq_(partition.end, expected_end_utc)
+    eq_(partition.end(), expected_end_utc)
 
-    table_basename = trendstore.make_table_basename()
+    eq_(trend_store.base_table_name(), "test-src_test_type_qtr")
 
-    eq_(table_basename, "test-src_test_type_qtr")
-
-    trendstore = TrendStore(
-        42, datasource, entitytype, granularity, partition_size,
+    trend_store = TrendStore(
+        42, data_source, entity_type, granularity, partition_size,
         "view", []
     )
 
-    p = trendstore.partition(timestamp)
+    p = trend_store.partition(timestamp)
 
     eq_(p.table().name, "test-src_test_type_qtr")
 
-    trendstore = TrendStore(
-        42, datasource, entitytype, granularity, partition_size,
+    trend_store = TrendStore(
+        42, data_source, entity_type, granularity, partition_size,
         None, []
     )
 
-    p = trendstore.partition(timestamp)
+    p = trend_store.partition(timestamp)
 
     eq_(p.table().name, "test-src_test_type_qtr_379955")
-

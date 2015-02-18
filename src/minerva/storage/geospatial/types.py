@@ -11,7 +11,7 @@ this software.
 """
 
 
-class Point(object):
+class Point():
     def __init__(self, x, y, srid=None):
         self.x = x
         self.y = y
@@ -26,13 +26,13 @@ class Point(object):
             return sql
 
 
-class Site(object):
+class Site():
     def __init__(self, entity_id, position):
         self.entity_id = entity_id
         self.position = position
 
 
-class Cell(object):
+class Cell():
     def __init__(self, entity_id, azimuth, type):
         self.entity_id = entity_id
         self.azimuth = azimuth

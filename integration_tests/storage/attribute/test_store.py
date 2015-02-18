@@ -23,7 +23,8 @@ from minerva.test import with_conn
 
 from .minerva_db import clear_database
 
-from minerva.storage.attribute.attributestore import AttributeStore, Query
+from minerva.storage.attribute.attributestore import AttributeStore, Query, \
+    AttributeStoreDescriptor
 from minerva.storage.attribute.datapackage import DataPackage
 
 
@@ -32,31 +33,35 @@ def test_simple(conn):
     with closing(conn.cursor()) as cursor:
         attribute_names = ['CellID', 'CCR', 'Drops']
 
-        datasource = DataSource.from_name(cursor, "integration-test")
-        entitytype = EntityType.from_name(cursor, "UtranCell")
+        data_source = DataSource.from_name("integration-test")(cursor)
+        entity_type = EntityType.from_name("UtranCell")(cursor)
 
         timestamp = pytz.utc.localize(datetime.utcnow())
         data_rows = [(10023, timestamp, ('10023', '0.9919', '17'))]
 
-        datapackage = DataPackage(attribute_names, data_rows)
+        data_package = DataPackage(attribute_names, data_rows)
 
-        attributes = datapackage.deduce_attributes()
-        attributestore = AttributeStore(datasource, entitytype, attributes)
-        attributestore.create(cursor)
+        attribute_descriptors = data_package.deduce_attributes()
 
-        attributestore.store_txn(datapackage).run(conn)
+        attribute_store = AttributeStore.create(AttributeStoreDescriptor(
+            data_source, entity_type, attribute_descriptors
+        ))(cursor)
+
+        attribute_store.store_txn(data_package).run(conn)
 
         query = (
             "SELECT attribute_directory.materialize_curr_ptr(attributestore) "
             "FROM attribute_directory.attributestore "
-            "WHERE id = %s")
+            "WHERE id = %s"
+        )
 
-        cursor.execute(query, (attributestore.id,))
+        cursor.execute(query, (attribute_store.id,))
 
         query = (
             "SELECT timestamp "
             "FROM {0} "
-            "LIMIT 1").format(attributestore.table.render())
+            "LIMIT 1"
+        ).format(attribute_store.table.render())
 
         cursor.execute(query)
         timestamp, = cursor.fetchone()
@@ -67,11 +72,11 @@ def test_simple(conn):
 @with_conn(clear_database)
 def test_array(conn):
     with closing(conn.cursor()) as cursor:
-        datasource = DataSource.from_name(cursor, "integration-test")
-        entitytype = EntityType.from_name(cursor, "UtranCell")
+        data_source = DataSource.from_name("integration-test")(cursor)
+        entity_type = EntityType.from_name("UtranCell")(cursor)
         timestamp = pytz.utc.localize(datetime.utcnow())
 
-        datapackage = DataPackage(
+        data_package = DataPackage(
             attribute_names=['channel', 'pwr'],
             rows=[
                 (10023, timestamp, ('7', '0,0,0,2,5,12,87,34,5,0,0')),
@@ -79,13 +84,13 @@ def test_array(conn):
             ]
         )
 
-        attributes = datapackage.deduce_attributes()
-        attributestore = AttributeStore(datasource, entitytype, attributes)
-        attributestore.create(cursor)
+        attribute_store = AttributeStore.create(AttributeStoreDescriptor(
+            data_source, entity_type, data_package.deduce_attributes()
+        ))(cursor)
 
         conn.commit()
 
-        attributestore.store_txn(datapackage).run(conn)
+        attribute_store.store_txn(data_package).run(conn)
 
 
 @with_conn(clear_database)
@@ -93,42 +98,44 @@ def test_update_modified_column(conn):
     attribute_names = ['CCR', 'Drops']
 
     with closing(conn.cursor()) as cursor:
-        datasource = DataSource.from_name(cursor, "integration-test")
-        entitytype = EntityType.from_name(cursor, "UtranCell")
-        timestamp = datasource.tzinfo.localize(datetime.now())
+        data_source = DataSource.from_name("integration-test")(cursor)
+        entity_type = EntityType.from_name("UtranCell")(cursor)
+        timestamp = pytz.utc.localize(datetime.utcnow())
 
         rows = [
             (10023, timestamp, ('0.9919', '17')),
             (10047, timestamp, ('0.9963', '18'))
         ]
 
-        datapackage_a = DataPackage(
+        data_package_a = DataPackage(
             attribute_names=attribute_names,
             rows=rows
         )
 
-        datapackage_b = DataPackage(
+        data_package_b = DataPackage(
             attribute_names=attribute_names,
             rows=rows[:1]
         )
 
-        attributes = datapackage_a.deduce_attributes()
-        attributestore = AttributeStore(datasource, entitytype, attributes)
-        attributestore.create(cursor)
+        attributes = data_package_a.deduce_attributes()
+        attribute_store = AttributeStore.create(AttributeStoreDescriptor(
+            data_source, entity_type, attributes
+        ))(cursor)
+        attribute_store.create(cursor)
         conn.commit()
 
-    query = Query(
+    query = Query((
         "SELECT modified, hash "
         "FROM {0} "
         "WHERE entity_id = 10023"
-    ).format(attributestore.history_table.render())
+    ).format(attribute_store.history_table.render()))
 
-    attributestore.store_txn(datapackage_a).run(conn)
+    attribute_store.store_txn(data_package_a).run(conn)
 
     with closing(conn.cursor()) as cursor:
         modified_a, hash_a = query.execute(cursor).fetchone()
 
-    attributestore.store_txn(datapackage_b).run(conn)
+    attribute_store.store_txn(data_package_b).run(conn)
 
     with closing(conn.cursor()) as cursor:
         modified_b, hash_b = query.execute(cursor).fetchone()
@@ -145,9 +152,9 @@ def test_update(conn):
     with closing(conn.cursor()) as cursor:
         attribute_names = ['CellID', 'CCR', 'Drops']
 
-        datasource = DataSource.from_name(cursor, "integration-test")
-        entitytype = EntityType.from_name(cursor, "UtranCell")
-        time1 = datasource.tzinfo.localize(datetime.now())
+        data_source = DataSource.from_name("integration-test")(cursor)
+        entity_type = EntityType.from_name("UtranCell")(cursor)
+        time1 = pytz.utc.localize(datetime.utcnow())
 
         data_rows = [
             (10023, time1, ('10023', '0.9919', '17')),
@@ -157,25 +164,26 @@ def test_update(conn):
             (10023, time1, ('10023', '0.5555', '17'))
         ]
 
-        datapackage = DataPackage(attribute_names, data_rows)
-        attributes = datapackage.deduce_attributes()
+        data_package = DataPackage(attribute_names, data_rows)
+        attributes = data_package.deduce_attributes()
 
-        attributestore = AttributeStore(datasource, entitytype, attributes)
-        attributestore.create(cursor)
+        attribute_store = AttributeStore.create(
+            AttributeStoreDescriptor(data_source, entity_type, attributes)
+        )(cursor)
 
-        attributestore.store_txn(datapackage).run(conn)
+        attribute_store.store_txn(data_package).run(conn)
 
         time.sleep(1)
 
-        datapackage = DataPackage(attribute_names, update_data_rows)
-        attributestore.store_txn(datapackage).run(conn)
+        data_package = DataPackage(attribute_names, update_data_rows)
+        attribute_store.store_txn(data_package).run(conn)
 
         conn.commit()
 
         query = (
             'SELECT modified, "CCR" '
             'FROM {0}'
-        ).format(attributestore.history_table.render())
+        ).format(attribute_store.history_table.render())
 
         cursor.execute(query)
         test_list = [(modified, ccr) for modified, ccr in cursor.fetchall()]
@@ -186,73 +194,76 @@ def test_update(conn):
 @with_conn(clear_database)
 def test_extra_column(conn):
     with closing(conn.cursor()) as cursor:
-        datasource = DataSource.from_name(cursor, "storagetest")
-        entitytype = EntityType.from_name(cursor, "UtranCell")
+        data_source = DataSource.from_name("storagetest")(cursor)
+        entity_type = EntityType.from_name("UtranCell")(cursor)
         timestamp = pytz.utc.localize(datetime.utcnow())
 
-        datapackage_a = DataPackage(
+        data_package_a = DataPackage(
             attribute_names=['test0', 'test1'],
             rows=[
                 (10023, timestamp, ('10023', '0.9919'))
             ]
         )
 
-        datapackage_b = DataPackage(
+        data_package_b = DataPackage(
             attribute_names=['test0', 'test1', "test2"],
             rows=[
                 (10023, timestamp, ('10023', '0.9919', '17'))
             ]
         )
 
-        attributes = datapackage_a.deduce_attributes()
-        attributestore = AttributeStore(datasource, entitytype, attributes)
-        attributestore.create(cursor)
+        attributes = data_package_a.deduce_attributes()
+        attribute_store = AttributeStore.create(
+            AttributeStoreDescriptor(data_source, entity_type, attributes)
+        )(cursor)
 
         conn.commit()
 
-        attributestore.store_txn(datapackage_a).run(conn)
-        attributestore.store_txn(datapackage_b).run(conn)
+        attribute_store.store_txn(data_package_a).run(conn)
+        attribute_store.store_txn(data_package_b).run(conn)
 
         conn.commit()
-        column_names = get_column_names(conn, 'attribute_history',
-                                        attributestore.table_name())
-        eq_(len(column_names), 7)
+        column_names = get_column_names(
+            conn, 'attribute_history', attribute_store.table_name()
+        )
+        eq_(len(column_names), 8)
 
 
 @with_conn(clear_database)
 def test_changing_datatype(conn):
     with closing(conn.cursor()) as cursor:
-        datasource = DataSource.from_name(cursor, "storagetest")
-        entitytype = EntityType.from_name(cursor, "UtranCell")
+        data_source = DataSource.from_name("storagetest")(cursor)
+        entity_type = EntityType.from_name("UtranCell")(cursor)
         timestamp = pytz.utc.localize(datetime.utcnow())
         attribute_names = ['site_nr', 'height']
 
-        datapackage_a = DataPackage(
+        data_package_a = DataPackage(
             attribute_names=attribute_names,
             rows=[
                 (10023, timestamp, ('10023', '15'))
             ]
         )
 
-        datapackage_b = DataPackage(
+        data_package_b = DataPackage(
             attribute_names=attribute_names,
             rows=[
                 (10023, timestamp, ('10023', '25.6'))
             ]
         )
 
-        attributes = datapackage_a.deduce_attributes()
+        attribute_descriptors = data_package_a.deduce_attributes()
 
-        attributestore = AttributeStore(datasource, entitytype, attributes)
-        attributestore.create(cursor)
+        attribute_store = AttributeStore.create(AttributeStoreDescriptor(
+            data_source, entity_type, attribute_descriptors
+        ))(cursor)
 
         conn.commit()
 
-        attributestore.store_txn(datapackage_a).run(conn)
-        attributestore.store_txn(datapackage_b).run(conn)
+        attribute_store.store_txn(data_package_a).run(conn)
+        attribute_store.store_txn(data_package_b).run(conn)
 
         conn.commit()
         column_names = get_column_names(
-            conn, "attribute_history", attributestore.table_name()
+            conn, "attribute_history", attribute_store.table_name()
         )
-        eq_(len(column_names), 6)
+        eq_(len(column_names), 7)

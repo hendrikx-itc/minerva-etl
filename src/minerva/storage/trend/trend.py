@@ -9,16 +9,24 @@ the Free Software Foundation; either version 3, or (at your option) any later
 version.  The full license is in the file COPYING, distributed as part of
 this software.
 """
+from psycopg2.extensions import adapt, register_adapter
 
 
-class TrendDescriptor(object):
+class TrendDescriptor():
     def __init__(self, name, data_type, description):
+        """
+
+        :param name: str
+        :param data_type: DataType
+        :param description: str
+        :return: TrendDescriptor
+        """
         self.name = name
         self.data_type = data_type
         self.description = description
 
 
-class Trend(object):
+class Trend():
     def __init__(self, id, name, data_type, trendstore_id, description):
         self.id = id
         self.name = name
@@ -47,3 +55,15 @@ class Trend(object):
             return Trend(*cursor.fetchone())
 
         return f
+
+
+def adapt_trend_descriptor(trend_descriptor):
+    """Return psycopg2 compatible representation of `attribute`."""
+    return adapt((
+        trend_descriptor.name,
+        trend_descriptor.data_type.name,
+        trend_descriptor.description
+    ))
+
+
+register_adapter(TrendDescriptor, adapt_trend_descriptor)

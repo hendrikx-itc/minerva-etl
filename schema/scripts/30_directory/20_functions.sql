@@ -75,9 +75,8 @@ $$ LANGUAGE SQL STABLE STRICT;
 CREATE FUNCTION directory.create_datasource(character varying)
     RETURNS directory.datasource
 AS $$
-    INSERT INTO directory.datasource
-        (name, description, timezone)
-    VALUES ($1, 'default', COALESCE(system.get_setting_value('default_timezone'), 'UTC'))
+    INSERT INTO directory.datasource (name, description)
+    VALUES ($1, 'default')
     RETURNING datasource;
 $$ LANGUAGE SQL VOLATILE STRICT;
 

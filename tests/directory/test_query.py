@@ -12,8 +12,7 @@ the Free Software Foundation; either version 3, or (at your option) any later
 version.  The full license is in the file COPYING, distributed as part of
 this software.
 """
-from nose.tools import eq_, raises
-
+from minerva.test import eq_, raises
 from minerva.directory.query import compile_sql, QueryError
 
 

@@ -22,7 +22,7 @@ class SchemaBuilderError(Exception):
     pass
 
 
-class Namespace(object):
+class Namespace():
 
     def __init__(self, uri):
         self.uri = uri
@@ -79,7 +79,7 @@ def walk(element, depth=0):
             yield (e, d)
 
 
-class SchemaContextBuilder(object):
+class SchemaContextBuilder():
     """
     Takes a set of namespaces built by a SchemaBuilder and turns them into an
     XML SchemaContext that can be used for parsing XML documents

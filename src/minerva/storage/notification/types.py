@@ -14,7 +14,7 @@ from minerva.db.query import Table, smart_quote
 from minerva.db.error import translate_postgresql_exceptions
 
 
-class Record(object):
+class Record():
     """Wraps all data for one notification."""
 
     def __init__(self, entity_ref, timestamp, attribute_names, values):
@@ -24,13 +24,13 @@ class Record(object):
         self.values = values
 
 
-class Package(object):
+class Package():
     def __init__(self, attribute_names, rows):
         self.attribute_names = attribute_names
         self.rows = rows
 
 
-class Attribute(object):
+class Attribute():
     """Describes the attribute of a specific NotificationStore."""
 
     def __init__(self, name, data_type, description):
@@ -44,7 +44,7 @@ class Attribute(object):
         return self.name
 
 
-class NotificationStore(object):
+class NotificationStore():
     def __init__(self, datasource, attributes):
         self.id = None
         self.version = 1

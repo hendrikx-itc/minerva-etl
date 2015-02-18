@@ -12,20 +12,25 @@ this software.
 import psycopg2
 
 from minerva.db.error import translate_postgresql_exception, DuplicateTable
-from minerva.db.query import Table, Column, Eq, And, Call
-from minerva.storage.trend import schema
+from minerva.db.query import Table
 
 
-class Partition(object):
+class Partition():
     """
     A partition of a trend store.
     """
-    def __init__(self, index, trendstore):
+    def __init__(self, index, trend_store):
         self.index = index
-        self.trendstore = trendstore
+        self.trend_store = trend_store
 
     def name(self):
-        return "{}_{}".format(self.trendstore.base_table_name(), self.index)
+        return "{}_{}".format(self.trend_store.base_table_name(), self.index)
+
+    def start(self):
+        return self.trend_store.partitioning.timestamp(self.index)
+
+    def end(self):
+        return self.trend_store.partitioning.timestamp(self.index + 1)
 
     def __str__(self):
         return self.name()
@@ -37,7 +42,7 @@ class Partition(object):
         current = self.start
 
         while current < self.end:
-            current = self.trendstore.granularity.inc(current)
+            current = self.trend_store.granularity.inc(current)
 
             yield current
 
@@ -47,7 +52,7 @@ class Partition(object):
             "FROM trend_directory.trendstore "
             "WHERE id = %s"
         )
-        args = self.index, self.trendstore.id
+        args = self.index, self.trend_store.id
 
         try:
             try:

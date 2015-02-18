@@ -12,8 +12,6 @@ this software.
 import logging
 from contextlib import closing
 
-from minerva.util import no_op
-
 
 DEFAULT_MAX_RETRIES = 10
 
@@ -22,7 +20,7 @@ class MaxRetriesError(Exception):
     pass
 
 
-class DbTransaction(object):
+class DbTransaction():
     """
     A list of actions on a database that can be executed in sequence and will
     either succeed or fail completely.
@@ -102,7 +100,7 @@ class DbTransaction(object):
         conn.commit()
 
 
-class DbAction(object):
+class DbAction():
     def execute(self, cursor, state):
         """
         Override in subclass. Should return a Fix if it fails, or None
@@ -110,32 +108,6 @@ class DbAction(object):
         action, and the transaction object.
         """
         raise NotImplementedError()
-
-
-class UpdateState(DbAction):
-    def __init__(self, update_fn=no_op):
-        self.update_fn = update_fn
-
-    def execute(self, cursor, state):
-        """
-        Update the state using the update_fn
-        """
-        self.update_fn(state)
-
-
-class WithState(DbAction):
-    def __init__(self, f, arg_funcs):
-        self.arg_funcs = arg_funcs
-        self.f = f
-
-    def execute(self, cursor, state):
-        """
-        Create action action_type with state variables as arguments to create
-        the actual action.
-        """
-        args = [arg_func(state) for arg_func in self.arg_funcs]
-
-        return self.f(*args)(cursor)
 
 
 def insert_before(new_action):

@@ -1,13 +1,11 @@
 from contextlib import closing
 from nose.tools import eq_, ok_
 from datetime import datetime
-from pytz import timezone
+import pytz
 
-from minerva.test import with_conn
+from minerva.test import with_conn, clear_database
 
-from minerva_db import clear_database
-
-from minerva import directory
+from minerva.directory import Entity
 from minerva.directory import existence
 
 
@@ -19,16 +17,14 @@ def prepare_datebase(conn):
     clear_database(conn)
 
 
-TIMEZONE = timezone("Europe/Amsterdam")
-
-
 @with_conn(prepare_datebase)
 def test_existence_simple(conn):
     dn = "network=1,cell=1"
 
-    dt = TIMEZONE.localize(datetime(2014, 01, 01, 14, 0, 0))
+    dt = pytz.utc.localize(datetime(2014, 1, 1, 14, 0, 0))
 
-    directory.create_entity(conn, dn)
+    with closing(conn.cursor()) as cursor:
+        Entity.create_from_dn(cursor, dn)
 
     ex = existence.Existence(conn)
     ex.mark_existing([dn])
@@ -42,11 +38,12 @@ def test_existence_onoff(conn):
     dn1 = "network=1,cell=1"
     dn2 = "network=1,cell=2"
 
-    dt1 = TIMEZONE.localize(datetime(2014, 01, 01, 14, 0, 0))
-    dt2 = TIMEZONE.localize(datetime(2014, 02, 01, 14, 0, 0))
+    dt1 = pytz.utc.localize(datetime(2014, 1, 1, 14, 0, 0))
+    dt2 = pytz.utc.localize(datetime(2014, 2, 1, 14, 0, 0))
 
-    directory.create_entity(conn, dn1)
-    directory.create_entity(conn, dn2)
+    with closing(conn.cursor()) as cursor:
+        Entity.create_from_dn(cursor, dn1)
+        Entity.create_from_dn(cursor, dn2)
 
     ex = existence.Existence(conn)
 
@@ -69,13 +66,14 @@ def test_existence_history_on(conn):
     dn1 = "network=1,cell=1"
     dn2 = "network=1,cell=2"
 
-    dt1 = TIMEZONE.localize(datetime(2014, 01, 01, 14, 0, 0))
-    dt2 = TIMEZONE.localize(datetime(2014, 02, 01, 14, 0, 0))
+    dt1 = pytz.utc.localize(datetime(2014, 1, 1, 14, 0, 0))
+    dt2 = pytz.utc.localize(datetime(2014, 2, 1, 14, 0, 0))
 
     ex = existence.Existence(conn)
 
-    directory.create_entity(conn, dn1)
-    directory.create_entity(conn, dn2)
+    with closing(conn.cursor()) as cursor:
+        Entity.create_from_dn(cursor, dn1)
+        Entity.create_from_dn(cursor, dn2)
 
     ex.mark_existing([dn1])
     ex.flush(dt2)
@@ -95,14 +93,15 @@ def test_existence_history_off(conn):
     dn1 = "network=1,cell=1"
     dn2 = "network=1,cell=2"
 
-    dt1 = TIMEZONE.localize(datetime(2014, 01, 01, 14, 0, 0))
-    dt2 = TIMEZONE.localize(datetime(2014, 02, 01, 14, 0, 0))
-    dt3 = TIMEZONE.localize(datetime(2014, 03, 01, 14, 0, 0))
+    dt1 = pytz.utc.localize(datetime(2014, 1, 1, 14, 0, 0))
+    dt2 = pytz.utc.localize(datetime(2014, 2, 1, 14, 0, 0))
+    dt3 = pytz.utc.localize(datetime(2014, 3, 1, 14, 0, 0))
 
     ex = existence.Existence(conn)
 
-    directory.create_entity(conn, dn1)
-    directory.create_entity(conn, dn2)
+    with closing(conn.cursor()) as cursor:
+        Entity.create_from_dn(cursor, dn1)
+        Entity.create_from_dn(cursor, dn2)
 
     ex.mark_existing([dn1])
     ex.flush(dt1)
@@ -125,9 +124,11 @@ def test_existence_history_off(conn):
 @with_conn(prepare_datebase)
 def test_existence_duplicate(conn):
     dn = "network=1,cell=1"
-    dt = TIMEZONE.localize(datetime(2014, 01, 01, 14, 0, 0))
+    dt = pytz.utc.localize(datetime(2014, 1, 1, 14, 0, 0))
 
-    directory.create_entity(conn, dn)
+    with closing(conn.cursor()) as cursor:
+        Entity.create_from_dn(cursor, dn)
+
     ex = existence.Existence(conn)
 
     ex.mark_existing([dn])
@@ -142,10 +143,12 @@ def test_existence_duplicate(conn):
 @with_conn(prepare_datebase)
 def test_existence_still_on(conn):
     dn = "network=1,cell=1"
-    dt1 = TIMEZONE.localize(datetime(2014, 01, 01, 14, 0, 0))
-    dt2 = TIMEZONE.localize(datetime(2014, 02, 01, 14, 0, 0))
+    dt1 = pytz.utc.localize(datetime(2014, 1, 1, 14, 0, 0))
+    dt2 = pytz.utc.localize(datetime(2014, 2, 1, 14, 0, 0))
 
-    directory.create_entity(conn, dn)
+    with closing(conn.cursor()) as cursor:
+        Entity.create_from_dn(cursor, dn)
+
     ex = existence.Existence(conn)
 
     ex.mark_existing([dn])
@@ -163,17 +166,18 @@ def test_duplicate(conn):
     dn2 = "network=1,cell=2"
     dn3 = "network=1,cell=3"
 
-    dt1 = TIMEZONE.localize(datetime(2014, 01, 01, 14, 0, 0))
-    dt2 = TIMEZONE.localize(datetime(2014, 02, 01, 14, 0, 0))
-    dt3 = TIMEZONE.localize(datetime(2014, 03, 01, 14, 0, 0))
-    dt4 = TIMEZONE.localize(datetime(2014, 04, 01, 14, 0, 0))
-    dt5 = TIMEZONE.localize(datetime(2014, 05, 01, 14, 0, 0))
+    dt1 = pytz.utc.localize(datetime(2014, 1, 1, 14, 0, 0))
+    dt2 = pytz.utc.localize(datetime(2014, 2, 1, 14, 0, 0))
+    dt3 = pytz.utc.localize(datetime(2014, 3, 1, 14, 0, 0))
+    dt4 = pytz.utc.localize(datetime(2014, 4, 1, 14, 0, 0))
+    dt5 = pytz.utc.localize(datetime(2014, 5, 1, 14, 0, 0))
 
     ex = existence.Existence(conn)
 
-    directory.create_entity(conn, dn1)
-    directory.create_entity(conn, dn2)
-    directory.create_entity(conn, dn3)
+    with closing(conn.cursor()) as cursor:
+        Entity.create_from_dn(cursor, dn1)
+        Entity.create_from_dn(cursor, dn2)
+        Entity.create_from_dn(cursor, dn3)
 
     ex.mark_existing([dn1])
     ex.flush(dt1)

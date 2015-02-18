@@ -14,7 +14,7 @@ import json
 from minerva.system.struct import Struct
 
 
-class JobSource(object):
+class JobSource():
 
     """
     Encapsulates job source and provides loading and creating functionality.

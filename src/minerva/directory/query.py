@@ -13,8 +13,7 @@ this software.
 from operator import itemgetter
 from contextlib import closing
 
-from minerva.directory.helpers import get_entitytype_by_id, \
-    get_relationtype_id, NoSuchRelationTypeError
+from minerva.directory import EntityType
 
 
 class QueryError(Exception):
@@ -63,7 +62,7 @@ def compile_sql(minerva_query, relation_group_name, entity_id_column=None):
             query_part, entity_id_column, eld_alias = make_any_c_from()
 
     query_parts.append(query_part)
-    args.append(map(unicode.lower, map(unicode, first_component['value'])))
+    args.append(map(str.lower, first_component['value']))
 
     last_type = first_component['type']
 
@@ -73,7 +72,7 @@ def compile_sql(minerva_query, relation_group_name, entity_id_column=None):
                 query_part = make_c_and(eld_alias)
 
                 query_parts.append(query_part)
-                args.append(map(unicode.lower, component['value']))
+                args.append(map(str.lower, component['value']))
             else:
                 query_part, entity_id_column = make_relation_join(
                     index, entity_id_column, relation_group_name)
@@ -83,7 +82,7 @@ def compile_sql(minerva_query, relation_group_name, entity_id_column=None):
                 query_part, eld_alias = make_c_join(index, entity_id_column)
 
                 query_parts.append(query_part)
-                args.append(map(unicode.lower, component['value']))
+                args.append(map(str.lower, component['value']))
 
         elif component['type'] == 'any C':
             query_part, entity_id_column = make_relation_join(
@@ -94,7 +93,7 @@ def compile_sql(minerva_query, relation_group_name, entity_id_column=None):
             query_part, eld_alias = make_any_c_join(index, entity_id_column)
 
             query_parts.append(query_part)
-            args.append(map(unicode.lower, component['value']))
+            args.append(map(str.lower, component['value']))
 
         elif component['type'] == 'S':
             query_part = make_s_join(index, eld_alias)
@@ -152,46 +151,46 @@ def get_entitytags_by_query(cursor, minerva_query, relation_group_name):
     return [entitytag for entitytag, in rows]
 
 
-def get_related_entities_by_query(conn, minerva_query, relation_group_name,
-                                  target_entitytype_id):
+def get_related_entities_by_query(
+        conn, minerva_query, relation_group_name, target_entitytype_id):
     # Quick Hack: get_entities_by_query -> get_related_entities on result
     entities = get_entities_by_query(conn, minerva_query, relation_group_name)
     attr_names = ("id", "dn", "entitytype_id")
 
     related_entities = []
 
-    target_entitytype = get_entitytype_by_id(conn, target_entitytype_id)
+    with closing(conn.cursor()) as cursor:
+        target_entitytype = EntityType.get(target_entitytype_id)(cursor)
 
     for entity in entities:
         if entity["entitytype_id"] == target_entitytype_id:
             related_entities.append(entity)
         else:
-            source_entitytype = get_entitytype_by_id(conn,
-                                                     entity["entitytype_id"])
+            with closing(conn.cursor()) as cursor:
+                source_entitytype = EntityType.get(
+                    entity["entitytype_id"]
+                )(cursor)
 
-            relationtype_name = "{}->{}".format(source_entitytype.name,
-                                                target_entitytype.name)
+            relationtype_name = "{}->{}".format(
+                source_entitytype.name, target_entitytype.name
+            )
 
-            try:
-                get_relationtype_id(conn, relationtype_name)
-            except NoSuchRelationTypeError:
-                continue
-            else:
-                query = (
-                    " SELECT target_id, e.dn, e.entitytype_id"
-                    " FROM relation.\"{0}\""
-                    " JOIN directory.entity e ON e.id = target_id"
-                    " AND e.entitytype_id = %s"
-                    " WHERE source_id = %s").format(relationtype_name)
+            query = (
+                " SELECT target_id, e.dn, e.entitytype_id"
+                " FROM relation.\"{0}\""
+                " JOIN directory.entity e ON e.id = target_id"
+                " AND e.entitytype_id = %s"
+                " WHERE source_id = %s").format(relationtype_name)
 
-                with closing(conn.cursor()) as cursor:
-                    cursor.execute(query, (target_entitytype_id, entity["id"]))
+            with closing(conn.cursor()) as cursor:
+                cursor.execute(query, (target_entitytype_id, entity["id"]))
 
-                    rows = cursor.fetchall()
+                rows = cursor.fetchall()
 
-                if rows is not None:
-                    related_entities.extend([dict(zip(attr_names, row))
-                                             for row in rows])
+            if rows is not None:
+                related_entities.extend(
+                    [dict(zip(attr_names, row)) for row in rows]
+                )
 
     return related_entities
 

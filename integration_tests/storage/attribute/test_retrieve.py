@@ -22,9 +22,10 @@ from minerva.directory import DataSource, EntityType
 from .minerva_db import clear_database
 
 from minerva.storage.attribute.datapackage import DataPackage
-from minerva.storage.attribute.attributestore import AttributeStore
-from minerva.storage.attribute.attribute import Attribute
+from minerva.storage.attribute.attributestore import AttributeStore, AttributeStoreDescriptor
+from minerva.storage.attribute.attribute import AttributeDescriptor
 from minerva.storage.attribute.retrieve import retrieve
+from minerva.storage import datatype
 
 
 @with_conn(clear_database)
@@ -36,29 +37,34 @@ def test_retrieve(conn):
             (10023, time1, ('10023', '0.9919', '17')),
             (10047, time1, ('10047', '0.9963', '18'))
         ]
-        datapackage = DataPackage(trend_names, data_rows)
+        data_package = DataPackage(trend_names, data_rows)
 
-        entitytype = EntityType.from_name(cursor, "UtranCell")
-        datasource = DataSource.from_name(cursor, "integration-test")
+        entity_type = EntityType.from_name("UtranCell")(cursor)
+        data_source = DataSource.from_name("integration-test")(cursor)
 
-        data_types = ["text", "real", "smallint"]
-
-        attributes = [
-            Attribute(name, datatype) for name, datatype in
-            zip(trend_names, data_types)
+        data_types = [
+            datatype.DataTypeText,
+            datatype.DataTypeReal,
+            datatype.DataTypeSmallInt
         ]
 
-        attributestore = AttributeStore(datasource, entitytype, attributes)
-        attributestore.create(cursor)
+        attribute_descriptors = [
+            AttributeDescriptor(name, data_type, '')
+            for name, data_type in zip(trend_names, data_types)
+        ]
 
-        attributestore.store_txn(datapackage).run(conn)
+        attribute_store = AttributeStore.create(AttributeStoreDescriptor(
+            data_source, entity_type, attribute_descriptors
+        ))(cursor)
+
+        attribute_store.store_txn(data_package).run(conn)
         time.sleep(5)
 
         time2 = pytz.utc.localize(datetime.utcnow())
         update_data_rows = [(10023, time2, ('10023', '0.9919', '18'))]
-        update_datapackage = DataPackage(trend_names, update_data_rows)
-        attributestore.store_txn(update_datapackage).run(conn)
+        update_data_package = DataPackage(trend_names, update_data_rows)
+        attribute_store.store_txn(update_data_package).run(conn)
         conn.commit()
 
-        data = retrieve(conn, attributestore.table, trend_names, [10023])
+        data = retrieve(conn, attribute_store.table, trend_names, [10023])
         assert_not_equal(data, None)

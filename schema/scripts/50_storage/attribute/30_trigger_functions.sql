@@ -9,6 +9,17 @@ END;
 $$ LANGUAGE plpgsql VOLATILE;
 
 
+CREATE FUNCTION attribute_directory.cleanup_on_entitytype_delete()
+    RETURNS TRIGGER
+AS $$
+BEGIN
+    DELETE FROM attribute_directory.attributestore WHERE entitytype_id = OLD.id;
+
+    RETURN OLD;
+END;
+$$ LANGUAGE plpgsql VOLATILE;
+
+
 CREATE FUNCTION attribute_directory.cleanup_attributestore_on_delete()
     RETURNS TRIGGER
 AS $$
@@ -18,6 +29,9 @@ BEGIN
     EXECUTE format('DROP TABLE IF EXISTS attribute_base.%I CASCADE', attribute_directory.to_table_name(OLD));
 
     EXECUTE format('DROP FUNCTION attribute_history.mark_modified_%s()', OLD.id);
+
+    EXECUTE format('DROP FUNCTION attribute_history.%I(integer, timestamp with time zone)', attribute_directory.at_ptr_function_name(OLD));
+    EXECUTE format('DROP FUNCTION attribute_history.%I(timestamp with time zone)', attribute_directory.at_ptr_function_name(OLD));
 
     EXECUTE format('DROP TABLE IF EXISTS attribute_history.%I', attribute_directory.to_table_name(OLD) || '_curr_ptr');
 
@@ -51,12 +65,12 @@ END;
 $$ LANGUAGE plpgsql;
 
 
-CREATE FUNCTION attribute_directory.update_datatype_on_change()
+CREATE FUNCTION attribute_directory.update_data_type_on_change()
     RETURNS TRIGGER
 AS $$
 BEGIN
-    IF OLD.datatype <> NEW.datatype THEN
-        PERFORM attribute_directory.modify_datatype(NEW);
+    IF OLD.data_type <> NEW.data_type THEN
+        PERFORM attribute_directory.modify_data_type(NEW);
     END IF;
 
     RETURN NEW;

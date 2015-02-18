@@ -18,7 +18,7 @@ from minerva.xmlschemaparser.schematypes import Include, Import, Element, Comple
     FractionDigits, MaxLength, All, List, Schema
 
 
-class SchemaContext(object):
+class SchemaContext():
 
     def __init__(self):
         self.schema = None

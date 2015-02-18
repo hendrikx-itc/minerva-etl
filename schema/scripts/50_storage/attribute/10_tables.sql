@@ -47,7 +47,7 @@ GRANT UPDATE ON SEQUENCE attribute_directory.attributestore_id_seq TO minerva_wr
 
 CREATE TYPE attribute_directory.attribute_descr AS (
     name name,
-    datatype varchar,
+    data_type text,
     description text
 );
 
@@ -61,7 +61,7 @@ CREATE TABLE attribute_directory.attribute (
     attributestore_id integer not null,
     description text,
     name name not null,
-    datatype varchar not null
+    data_type text not null
 );
 
 ALTER TABLE attribute_directory.attribute OWNER TO minerva_admin;

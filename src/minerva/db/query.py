@@ -14,7 +14,7 @@ import copy
 from datetime import datetime
 from operator import attrgetter
 from itertools import chain, groupby
-from functools import partial
+from functools import partial, reduce
 
 from minerva.util import k, if_set
 
@@ -46,13 +46,16 @@ def smart_quote(name):
         return quote(name)
 
 
-class Sql(object):
+class Sql():
     def curry(self, *args, **kwargs):
         get_name = attrgetter("name")
         sorted_arguments = sorted(self.arguments(), key=get_name)
 
-        arguments = dict((key, list(it)) for key, it in
-                         groupby(sorted_arguments, get_name))
+        arguments = dict(
+            (key, list(it))
+            for key, it in groupby(sorted_arguments, get_name)
+        )
+
         pos_arguments = arguments.get(None, [])
 
         for argument, a in zip(pos_arguments, args):
@@ -96,7 +99,7 @@ class Call(Sql):
         elif isinstance(function, str):
             self.function = Function(function)
 
-        self.args = map(ensure_sql, args)
+        self.args = list(map(ensure_sql, args))
 
     def render(self):
         args_part = ", ".join(a.render() for a in self.args)
@@ -106,7 +109,7 @@ class Call(Sql):
 
 class SchemaObject(Sql):
     def references(self):
-        return (self,)
+        return self,
 
 
 class Schema(SchemaObject):
@@ -117,7 +120,7 @@ class Schema(SchemaObject):
         return smart_quote(self.name)
 
 
-class Script(object):
+class Script():
     def __init__(self, statements):
         self.statements = statements
 
@@ -321,7 +324,7 @@ class Argument(Sql):
 
     def arguments(self):
         if self.value is None:
-            return (self,)
+            return self,
         else:
             return tuple()
 
@@ -447,7 +450,7 @@ class As(Sql):
 
     def references(self):
         if isinstance(self.source, (Table, Column)):
-            return (self.source, )
+            return self.source,
         else:
             return tuple()
 
@@ -495,7 +498,7 @@ def ensure_sql_type(obj):
         return SqlType(obj)
 
 
-class Copy(object):
+class Copy():
     def __init__(self, table, columns=None):
         self.table = table
         self._columns = columns
@@ -572,8 +575,9 @@ class Join(FromItem):
         else:
             join = "JOIN"
 
-        return "{} {} {} ON {}".format(self.left.render(), join,
-                                       self.right.render(), self.on.render())
+        return "{} {} {} ON {}".format(
+            self.left.render(), join, self.right.render(), self.on.render()
+        )
 
     def as_(self, alias):
         return As(self, alias)
@@ -608,9 +612,9 @@ class WithQuery(SqlQuery):
 class Select(SqlQuery):
     def __init__(self, expressions, with_query=None, from_=None, where_=None,
                  group_by_=None, limit=None):
-        self.expressions = map(ensure_sql, ensure_iterable(expressions))
+        self.expressions = list(map(ensure_sql, ensure_iterable(expressions)))
         self.with_query = with_query
-        self.sources = map(ensure_from, ensure_iterable(from_))
+        self.sources = list(map(ensure_from, ensure_iterable(from_)))
         self.requirements = where_
         self._limit = limit
 
@@ -624,7 +628,7 @@ class Select(SqlQuery):
 
     def from_(self, sources):
         select = self.clone()
-        select.sources = map(ensure_from, ensure_iterable(sources))
+        select.sources = list(map(ensure_from, ensure_iterable(sources)))
 
         return select
 
@@ -788,7 +792,7 @@ def is_table(ident):
 
 
 def filter_tables(references):
-    return filter(is_table, references)
+    return list(filter(is_table, references))
 
 
 def table_exists(cursor, table):

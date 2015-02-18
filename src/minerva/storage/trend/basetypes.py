@@ -12,7 +12,7 @@ this software.
 from granularity import ensure_granularity
 
 
-class Trend(object):
+class Trend():
     def __init__(
             self, id, name, description, datasource_id, entitytype_id,
             granularity):
@@ -32,7 +32,7 @@ class Trend(object):
         return self.name
 
 
-class TrendTag(object):
+class TrendTag():
     def __init__(self, id, name):
         self.id = id
         self.name = name

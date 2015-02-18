@@ -12,22 +12,22 @@ this software.
 """
 from nose.tools import assert_raises, assert_true, assert_false, assert_equal
 
-from minerva.directory.distinguishedname import explode, splitparts, escape, DistinguishedName
+from minerva.directory.distinguishedname import explode, split_parts, escape, DistinguishedName
 
 
 def test_splitparts():
     """
     Check that distinguished names are split correctly
     """
-    dnparts = splitparts("SubNetwork=NL1_R,SubNetwork=AHPTUR1,MeContext=AHPTUR1,ManagedElement=1,RncFunction=1,UeRc=9")
-    assert_equal(dnparts[0], "SubNetwork=NL1_R")
-    assert_equal(len(dnparts), 6)
-    assert_equal(dnparts[5], "UeRc=9")
+    dn_parts = split_parts("SubNetwork=NL1_R,SubNetwork=AHPTUR1,MeContext=AHPTUR1,ManagedElement=1,RncFunction=1,UeRc=9")
+    assert_equal(dn_parts[0], "SubNetwork=NL1_R")
+    assert_equal(len(dn_parts), 6)
+    assert_equal(dn_parts[5], "UeRc=9")
 
-    dnparts = splitparts("Word=asdf,Writer=qwerty\\,dvorak,Reader=Unicode")
-    assert_equal(dnparts[0], "Word=asdf")
-    assert_equal(len(dnparts), 3)
-    assert_equal(dnparts[2], "Reader=Unicode")
+    dn_parts = split_parts("Word=asdf,Writer=qwerty\\,dvorak,Reader=Unicode")
+    assert_equal(dn_parts[0], "Word=asdf")
+    assert_equal(len(dn_parts), 3)
+    assert_equal(dn_parts[2], "Reader=Unicode")
 
 
 def test_escape():
@@ -52,4 +52,4 @@ def test_from_str():
 def test_entitytype_name():
     dn = DistinguishedName.from_str('Network=Global,Node=001')
 
-    assert_equal(dn.entitytype_name(), 'Node')
+    assert_equal(dn.entity_type_name(), 'Node')

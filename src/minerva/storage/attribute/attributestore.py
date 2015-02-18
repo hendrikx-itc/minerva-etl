@@ -11,7 +11,6 @@ version.  The full license is in the file COPYING, distributed as part of
 this software.
 """
 from functools import partial
-from operator import methodcaller
 
 import psycopg2
 
@@ -23,6 +22,8 @@ from minerva.db.error import NoSuchColumnError, DataTypeMismatch, \
     UniqueViolation
 from minerva.db.dbtransaction import DbTransaction, DbAction, insert_before
 from minerva.storage.attribute.attribute import Attribute
+from minerva.storage.valuedescriptor import ValueDescriptor
+from minerva.storage import datatype
 
 MAX_RETRIES = 10
 
@@ -38,7 +39,14 @@ class NoSuchAttributeError(Exception):
     pass
 
 
-class AttributeStore(object):
+class AttributeStoreDescriptor():
+    def __init__(self, data_source, entity_type, attribute_descriptors):
+        self.data_source = data_source
+        self.entity_type = entity_type
+        self.attribute_descriptors = attribute_descriptors
+
+
+class AttributeStore():
 
     """
     Provides the main interface to the attribute storage facilities.
@@ -48,15 +56,15 @@ class AttributeStore(object):
 
     """
 
-    def __init__(self, datasource, entitytype, attributes=tuple()):
-        self.id = None
-        self.datasource = datasource
-        self.entitytype = entitytype
+    def __init__(self, id, data_source, entity_type, attributes=tuple()):
+        self.id = id
+        self.data_source = data_source
+        self.entity_type = entity_type
 
         self.attributes = attributes
 
         for attr in attributes:
-            attr.attributestore = self
+            attr.attribute_store = self
 
         self.table = Table("attribute", self.table_name())
         self.history_table = Table("attribute_history", self.table_name())
@@ -65,48 +73,44 @@ class AttributeStore(object):
 
     def table_name(self):
         """Return the table name for this attribute store."""
-        return "{0}_{1}".format(self.datasource.name, self.entitytype.name)
+        return "{0}_{1}".format(self.data_source.name, self.entity_type.name)
 
-    def update_attributes(self, attributes):
+    def update_attributes(self, attribute_descriptors):
         """Add to, or update current attributes."""
-        curr_attributes = list(self.attributes)
+        def f(cursor):
+            self.check_attributes_exist(attribute_descriptors)(cursor)
+            self.check_attribute_types(attribute_descriptors)(cursor)
 
-        by_name = {a.name: a for a in curr_attributes}
+        return f
 
-        for attribute in attributes:
-            curr_attribute = by_name.get(attribute.name)
-
-            if curr_attribute:
-                curr_attribute.datatype = attribute.datatype
-            else:
-                attribute.attributestore = self
-                curr_attributes.append(attribute)
-
-        self.attributes = curr_attributes
-
-    def load_attributes(self, cursor):
+    @staticmethod
+    def get_attributes(attribute_store_id):
         """Load associated attributes from database and return them."""
-        query = (
-            "SELECT id, name, datatype, description "
-            "FROM attribute_directory.attribute "
-            "WHERE attributestore_id = %s"
-        )
-        args = self.id,
+        def f(cursor):
+            query = (
+                "SELECT id, name, data_type, attributestore_id, description "
+                "FROM attribute_directory.attribute "
+                "WHERE attributestore_id = %s"
+            )
+            args = attribute_store_id,
 
-        cursor.execute(query, args)
+            cursor.execute(query, args)
 
-        def row_to_attribute(row):
-            """Create Attribute, link to this attribute store and return it."""
-            attribute_id, name, datatype, description = row
-            attribute = Attribute(name, datatype, description)
-            attribute.attributestore = self
-            attribute.id = attribute_id
-            return attribute
+            def row_to_attribute(row):
+                """Create Attribute, link to this attribute store and return it."""
+                attribute_id, name, data_type, attribute_store_id, description = row
 
-        return map(row_to_attribute, cursor.fetchall())
+                return Attribute(
+                    attribute_id, name, datatype.type_map[data_type],
+                    attribute_store_id, description
+                )
+
+            return map(row_to_attribute, cursor.fetchall())
+
+        return f
 
     @classmethod
-    def from_attributes(cls, cursor, datasource, entitytype, attributes):
+    def from_attributes(cls, datasource, entitytype, attribute_descriptors):
         """
         Return AttributeStore with specified attributes.
 
@@ -114,18 +118,28 @@ class AttributeStore(object):
         it is loaded, or a new one is created if it doesn't.
 
         """
-        query = "SELECT (attribute_directory.to_attributestore(%s, %s)).*"
+        def f(cursor):
+            query = (
+                "SELECT * "
+                "FROM attribute_directory.to_attributestore("
+                "%s, %s, %s::attribute_directory.attribute_descr[]"
+                ")"
+            )
 
-        args = datasource.id, entitytype.id
+            args = datasource.id, entitytype.id, attribute_descriptors
 
-        cursor.execute(query, args)
+            cursor.execute(query, args)
 
-        attributestore_id, _, _ = cursor.fetchone()
+            attribute_store_id, _, _ = cursor.fetchone()
 
-        attributestore = AttributeStore(datasource, entitytype, attributes)
-        attributestore.id = attributestore_id
+            return AttributeStore(
+                attribute_store_id,
+                datasource,
+                entitytype,
+                AttributeStore.get_attributes(attribute_store_id)(cursor)
+            )
 
-        return attributestore
+        return f
 
     @classmethod
     def get_by_attributes(cls, cursor, datasource, entitytype):
@@ -139,39 +153,42 @@ class AttributeStore(object):
         args = datasource.id, entitytype.id
         cursor.execute(query, args)
 
-        attributestore_id, = cursor.fetchone()
+        attribute_store_id, = cursor.fetchone()
 
-        attributestore = AttributeStore(datasource, entitytype)
-        attributestore.id = attributestore_id
-        attributestore.attributes = attributestore.load_attributes(cursor)
-
-        return attributestore
-
-    @classmethod
-    def get(cls, cursor, id):
-        """Load and return attribute store by its Id."""
-        query = (
-            "SELECT datasource_id, entitytype_id "
-            "FROM attribute_directory.attributestore "
-            "WHERE id = %s"
+        return AttributeStore(
+            attribute_store_id,
+            datasource,
+            entitytype,
+            AttributeStore.get_attributes(attribute_store_id)(cursor)
         )
 
-        args = id,
-        cursor.execute(query, args)
+    @staticmethod
+    def get(id):
+        """Load and return attribute store by its Id."""
+        def f(cursor):
+            query = (
+                "SELECT datasource_id, entitytype_id "
+                "FROM attribute_directory.attributestore "
+                "WHERE id = %s"
+            )
 
-        datasource_id, entitytype_id = cursor.fetchone()
+            args = id,
+            cursor.execute(query, args)
 
-        entitytype = EntityType.get(cursor, entitytype_id)
-        datasource = DataSource.get(cursor, datasource_id)
+            datasource_id, entitytype_id = cursor.fetchone()
 
-        attributestore = AttributeStore(datasource, entitytype)
-        attributestore.id = id
-        attributestore.attributes = attributestore.load_attributes(cursor)
+            entitytype = EntityType.get(cursor, entitytype_id)
+            datasource = DataSource.get(cursor, datasource_id)
 
-        return attributestore
+            return AttributeStore(
+                id, datasource, entitytype,
+                AttributeStore.get_attributes(id)(cursor)
+            )
 
-    @classmethod
-    def get_all(cls, cursor):
+        return f
+
+    @staticmethod
+    def get_all(cursor):
         """Load and return all attribute stores."""
         query = (
             "SELECT id, datasource_id, entitytype_id "
@@ -180,51 +197,53 @@ class AttributeStore(object):
 
         cursor.execute(query)
 
-        load = expand_args(partial(cls.load_attributestore, cursor))
+        load = expand_args(partial(AttributeStore.load_attributestore, cursor))
 
         return map(load, cursor.fetchall())
 
-    @classmethod
-    def load_attributestore(cls, cursor, id, datasource_id, entitytype_id):
-        datasource = DataSource.get(cursor, datasource_id)
-        entitytype = EntityType.get(cursor, entitytype_id)
+    @staticmethod
+    def load_attributestore(id, datasource_id, entitytype_id):
+        def f(cursor):
+            data_source = DataSource.get(datasource_id)(cursor)
+            entity_type = EntityType.get(entitytype_id)(cursor)
 
-        attributestore = AttributeStore(datasource, entitytype)
-        attributestore.id = id
-        attributestore.attributes = attributestore.load_attributes(cursor)
+            return AttributeStore(
+                id, data_source, entity_type,
+                AttributeStore.get_attributes(id)(cursor)
+            )
 
-        return attributestore
+        return f
 
-    def create(self, cursor):
+    @staticmethod
+    def create(attribute_store_descriptor):
         """Create, initialize and return the attribute store."""
-        query = (
-            "INSERT INTO attribute_directory.attributestore"
-            "(datasource_id, entitytype_id) "
-            "VALUES (%s, %s) "
-            "RETURNING id"
-        )
-        args = self.datasource.id, self.entitytype.id
-        cursor.execute(query, args)
-        self.id = head(cursor.fetchone())
+        def f(cursor):
+            query = (
+                "SELECT * FROM attribute_directory.create_attributestore("
+                "%s, %s, %s::attribute_directory.attribute_descr[]"
+                ")"
+            )
+            args = (
+                attribute_store_descriptor.data_source.name,
+                attribute_store_descriptor.entity_type.name,
+                attribute_store_descriptor.attribute_descriptors
+            )
+            cursor.execute(query, args)
 
-        for attribute in self.attributes:
-            attribute.create(cursor)
+            attribute_store_id, data_source_id, entity_type_id = cursor.fetchone()
 
-        return self.init(cursor)
+            entity_type = EntityType.get(entity_type_id)(cursor)
+            data_source = DataSource.get(data_source_id)(cursor)
 
-    def init(self, cursor):
-        """Create corresponding database table and return self."""
-        query = (
-            "SELECT attribute_directory.init(attributestore) "
-            "FROM attribute_directory.attributestore "
-            "WHERE id = %s"
-        )
+            attributes = AttributeStore.get_attributes(
+                attribute_store_id
+            )(cursor)
 
-        args = self.id,
+            return AttributeStore(
+                attribute_store_id, data_source, entity_type, attributes
+            )
 
-        cursor.execute(query, args)
-
-        return self
+        return f
 
     def compact(self, cursor):
         """Combine subsequent records with the same data."""
@@ -236,29 +255,41 @@ class AttributeStore(object):
         args = self.id,
         cursor.execute(query, args)
 
-    def store_txn(self, datapackage):
+    def store_txn(self, data_package):
         """Return transaction to store the data in the attribute store."""
-        return DbTransaction(StoreBatch(self, k(datapackage)))
+        return DbTransaction(
+            StoreState(self, data_package),
+            [
+                StoreBatch()
+            ]
+        )
 
     @translate_postgresql_exceptions
-    def store_batch(self, cursor, datapackage):
+    def store_batch(self, cursor, data_package):
         """Write data in one batch using staging table."""
-        if datapackage.is_empty():
+        if data_package.is_empty():
             return
 
-        data_types = self.get_data_types(datapackage.attribute_names)
+        value_descriptors = self.get_value_descriptors(
+            data_package.attribute_names
+        )
 
-        datapackage.copy_expert(self.staging_table, data_types)(cursor)
+        data_package.copy_expert(self.staging_table, value_descriptors)(cursor)
 
         self._transfer_staged(cursor)
 
-    def get_data_types(self, attribute_names):
+    def get_value_descriptors(self, attribute_names):
         """Return list of data types corresponding to the `attribute_names`."""
         attributes_by_name = {a.name: a for a in self.attributes}
 
         try:
             return [
-                attributes_by_name[name].datatype
+                ValueDescriptor(
+                    name,
+                    attributes_by_name[name].data_type,
+                    None,
+                    {'null_value': '\\N'}
+                )
                 for name in attribute_names
             ]
         except KeyError:
@@ -273,50 +304,79 @@ class AttributeStore(object):
             (self.id,)
         )
 
-    def check_attributes_exist(self, cursor):
+    def check_attributes_exist(self, attribute_descriptors):
         """Check if attributes exist and create missing."""
-        query = (
-            "SELECT attribute_directory.check_attributes_exist("
-            "%s::attribute_directory.attribute[])")
+        def f(cursor):
+            query = (
+                "SELECT attribute_directory.check_attributes_exist("
+                "attributestore, %s::attribute_directory.attribute_descr[]"
+                ") "
+                "FROM attribute_directory.attributestore "
+                "WHERE id = %s"
+            )
 
-        args = self.attributes,
+            args = attribute_descriptors, self.id
 
-        cursor.execute(query, args)
+            cursor.execute(query, args)
 
-    def check_attribute_types(self, cursor):
+            self.attributes = AttributeStore.get_attributes(self.id)(cursor)
+
+        return f
+
+    def check_attribute_types(self, attribute_descriptors):
         """Check and correct attribute data types."""
-        query = (
-            "SELECT attribute_directory.check_attribute_types("
-            "%s::attribute_directory.attribute[])")
+        def f(cursor):
+            query = (
+                "SELECT attribute_directory.check_attribute_types("
+                "attributestore, "
+                "%s::attribute_directory.attribute_descr[]"
+                ") "
+                "FROM attribute_directory.attributestore WHERE id = %s"
+            )
 
-        args = self.attributes,
+            args = attribute_descriptors, self.id
 
-        cursor.execute(query, args)
+            cursor.execute(query, args)
 
-    def store_raw(self, raw_datapackage):
-        if raw_datapackage.is_empty():
-            return DbTransaction()
+            self.attributes = AttributeStore.get_attributes(self.id)(cursor)
+
+        return f
+
+    def store_raw(self, raw_data_package):
+        if raw_data_package.is_empty():
+            return DbTransaction(None, [])
 
         return DbTransaction(
-            RefineRawDataPackage(k(raw_datapackage)),
-            StoreBatch(self, read("datapackage"))
+            StoreRawState(self, raw_data_package),
+            [
+                RefineRawDataPackage(),
+                StoreBatch()
+            ]
         )
 
 
+class StoreState():
+    def __init__(self, attribute_store, data_package):
+        self.attribute_store = attribute_store
+        self.data_package = data_package
+
+
+class StoreRawState():
+    def __init__(self, attribute_store, raw_data_package):
+        self.attribute_store = attribute_store
+        self.raw_data_package = raw_data_package
+        self.data_package = None
+
+
 class RefineRawDataPackage(DbAction):
-    def __init__(self, raw_datapackage):
-        self.raw_datapackage = raw_datapackage
-
     def execute(self, cursor, state):
-        raw_datapackage = self.raw_datapackage(state)
-
         try:
-            state["datapackage"] = raw_datapackage.refine(cursor)
+            state.data_package = state.raw_data_package.refine(cursor)
         except UniqueViolation:
             return no_op
 
 
-class Query(object):
+class Query():
 
     """Generic query wrapper."""
 
@@ -350,61 +410,35 @@ class StoreBatch(DbAction):
     A DbAction subclass that calls the 'store_batch' method on the
     attribute store and creates corrective actions if a known error occurs.
     """
-    def __init__(self, attributestore, datapackage):
-        self.attributestore = attributestore
-        self.datapackage = datapackage
-
     def execute(self, cursor, state):
-        datapackage = self.datapackage(state)
-
         try:
-            self.attributestore.store_batch(cursor, datapackage)
+            state.attribute_store.store_batch(cursor, state.data_package)
         except psycopg2.DataError as exc:
             if exc.pgcode == psycopg2.errorcodes.BAD_COPY_FILE_FORMAT:
-                attributes = datapackage.deduce_attributes()
-
-                self.attributestore.update_attributes(attributes)
-
-                fix = CheckAttributesExist(self.attributestore)
-                return insert_before(fix)
+                return insert_before(CheckAttributesExist())
             else:
                 raise
         except DataTypeMismatch:
-            attributes = datapackage.deduce_attributes()
-
-            self.attributestore.update_attributes(attributes)
-
-            fix = CheckAttributeTypes(self.attributestore)
-            return insert_before(fix)
-        except (NoSuchColumnError, NoSuchAttributeError) as exc:
-            attributes = datapackage.deduce_attributes()
-
-            self.attributestore.update_attributes(attributes)
-
-            fix = CheckAttributesExist(self.attributestore)
-            return insert_before(fix)
+            return insert_before(CheckAttributeTypes())
+        except (NoSuchColumnError, NoSuchAttributeError):
+            return insert_before(CheckAttributesExist())
 
 
 class CheckAttributesExist(DbAction):
 
     """Calls the 'check_attributes_exist' method on the attribute store."""
 
-    def __init__(self, attributestore):
-        self.attributestore = attributestore
-
     def execute(self, cursor, state):
-        self.attributestore.check_attributes_exist(cursor)
+        state.attribute_store.check_attributes_exist(
+            state.data_package.deduce_attributes()
+        )(cursor)
 
 
 class CheckAttributeTypes(DbAction):
 
     """Calls the 'check_attributes_exist' method on the attribute store."""
 
-    def __init__(self, attributestore):
-        self.attributestore = attributestore
-
     def execute(self, cursor, state):
-        self.attributestore.check_attribute_types(cursor)
-
-
-read = partial(methodcaller, 'get')
+        state.attribute_store.check_attribute_types(
+            state.data_package.deduce_attributes()
+        )(cursor)

@@ -314,30 +314,42 @@ def test_parse_numeric():
 
 
 def test_deduce_from_string():
-    data_type, parser_config = datatype.deduce_from_string("")
-    eq_(data_type.name, "smallint")
+    parser_descriptor = datatype.parser_descriptor_from_string("")
+    eq_(parser_descriptor.data_type.name, "smallint")
 
-    data_type, parser_config = datatype.deduce_from_string("100")
-    eq_(data_type.name, "smallint")
+    parser_descriptor = datatype.parser_descriptor_from_string("100")
+    eq_(parser_descriptor.data_type.name, "smallint")
 
-    data_type, parser_config = datatype.deduce_from_string("100000")
-    eq_(data_type.name, "integer")
+    parser_descriptor = datatype.parser_descriptor_from_string("100000")
+    eq_(parser_descriptor.data_type.name, "integer")
 
-    data_type, parser_config = datatype.deduce_from_string("10,89au")
-    eq_(data_type.name, "text")
+    parser_descriptor = datatype.parser_descriptor_from_string("10,89au")
+    eq_(parser_descriptor.data_type.name, "text")
 
-    data_type, parser_config = datatype.deduce_from_string("30.0")
-    eq_(data_type.name, "real")
+    parser_descriptor = datatype.parser_descriptor_from_string("30.0")
+    eq_(parser_descriptor.data_type.name, "real")
 
-    data_type, parser_config = datatype.deduce_from_string("0.0")
-    eq_(data_type.name, "real")
+    parser_descriptor = datatype.parser_descriptor_from_string("0.0")
+    eq_(parser_descriptor.data_type.name, "real")
 
 
 def test_max_datatypes():
-    current_data_types = [datatype.DataTypeSmallInt, datatype.DataTypeSmallInt]
-    new_data_types = [datatype.DataTypeInteger, datatype.DataTypeInteger]
+    current_data_types = [
+        (datatype.DataTypeSmallInt, {}),
+        (datatype.DataTypeSmallInt, {})
+    ]
+
+    new_data_types = [
+        (datatype.DataTypeInteger, {}),
+        (datatype.DataTypeInteger, {})
+    ]
 
     max_data_types = datatype.max_data_types(current_data_types, new_data_types)
 
-    eq_(max_data_types, [datatype.DataTypeInteger, datatype.DataTypeInteger])
+    eq_(
+        max_data_types, [
+            (datatype.DataTypeInteger, {}),
+            (datatype.DataTypeInteger, {})
+        ]
+    )
 

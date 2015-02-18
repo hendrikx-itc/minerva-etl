@@ -14,11 +14,9 @@ from contextlib import closing
 from functools import partial
 
 from nose.tools import raises
-from minerva.test import with_conn
+from minerva.test import with_conn, clear_database
 from minerva.db.error import UniqueViolation
 from minerva.directory import helpers_v4, DataSource, Entity
-
-from minerva_db import clear_database
 
 
 @with_conn(clear_database)
@@ -93,18 +91,19 @@ def test_create_entity(conn):
 def test_create_data_source(conn):
     with closing(conn.cursor()) as cursor:
         data_source = DataSource.create(
-            cursor, "test-create-datasource", "short description",
-            "Europe/Amsterdam"
-        )
+            "test-create-datasource", "short description",
+        )(cursor)
 
     assert data_source.id is not None
+    assert data_source.name == "test-create-datasource"
+    assert data_source.description == "short description"
 
 
 @with_conn()
 def test_name_to_data_source(conn):
     with closing(conn.cursor()) as cursor:
-        data_source = DataSource.from_name(
-            cursor, "test_name_to_datasource"
-        )
+        data_source = DataSource.from_name("test_name_to_datasource")(cursor)
 
     assert data_source.id is not None
+
+    assert data_source.name == "test_name_to_datasource"

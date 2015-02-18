@@ -24,7 +24,7 @@ from minerva.storage.geospatial.retrieve import retrieve_attribute, \
     get_cells_in_region, get_sites_in_region, get_entities_in_region
 
 
-class GeospatialEngine(object):
+class GeospatialEngine():
     def __init__(self, conn):
         self.conn = conn
 

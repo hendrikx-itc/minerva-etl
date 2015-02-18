@@ -15,12 +15,12 @@ from functools import partial
 import pytz
 
 from minerva.directory import DataSource, EntityType, Entity
+from minerva.directory.entityref import EntityIdRef
 from minerva.storage.trend.test import DataSet
 from minerva.storage.trend.granularity import create_granularity
-from minerva.storage.trend.datapackage import DataPackage
+from minerva.storage.trend.datapackage import DefaultPackage
 from minerva.storage.trend.trend import TrendDescriptor
-from minerva.storage.trend.trendstore import TrendStore, store_copy_from, \
-    TrendStoreDescriptor
+from minerva.storage.trend.trendstore import TrendStore, TrendStoreDescriptor
 
 
 class TestSetQtr(DataSet):
@@ -45,15 +45,15 @@ class TestSet1Small(TestSetQtr):
 
         self.entity_type = EntityType.from_name(self.entity_type_name)(cursor)
 
-        self.entities = map(partial(Entity.from_dn, cursor), self.dns)
+        self.entities = list(map(partial(Entity.from_dn, cursor), self.dns))
 
         data_package = generate_data_package_a(
             self.granularity, self.timestamp, self.entities
         )
 
         self.trend_store = TrendStore.get(
-            cursor, self.data_source, self.entity_type, self.granularity
-        )
+            self.data_source, self.entity_type, self.granularity
+        )(cursor)
 
         if not self.trend_store:
             self.trend_store = TrendStore.create(TrendStoreDescriptor(
@@ -199,14 +199,13 @@ def store_data_package(cursor, trend_store, data_package, modified):
     ]
 
     trend_store.check_trends_exist(trend_descriptors)(cursor)
-
-    store_copy_from(cursor, partition.table(), data_package, modified)
+    trend_store.store_copy_from(data_package, modified)(cursor)
 
     return partition
 
 
 def generate_data_package_a(granularity, timestamp, entities):
-    return DataPackage(
+    return DefaultPackage(
         granularity=granularity,
         timestamp=timestamp,
         trend_names=['CellID', 'CCR', 'CCRatts', 'Drops'],
@@ -219,7 +218,7 @@ def generate_data_package_a(granularity, timestamp, entities):
 
 
 def generate_data_package_a_large(granularity, timestamp, entities):
-    return DataPackage(
+    return DefaultPackage(
         granularity=granularity,
         timestamp=timestamp,
         trend_names=['CellID', 'CCR', 'CCRatts', 'Drops'],
@@ -232,7 +231,7 @@ def generate_data_package_a_large(granularity, timestamp, entities):
 
 
 def generate_data_package_b(granularity, timestamp, entities):
-    return DataPackage(
+    return DefaultPackage(
         granularity=granularity,
         timestamp=timestamp,
         trend_names=['counter_a', 'counter_b'],
@@ -246,7 +245,7 @@ def generate_data_package_b(granularity, timestamp, entities):
 
 
 def generate_data_package_c(granularity, timestamp, entities):
-    return DataPackage(
+    return DefaultPackage(
         granularity=granularity,
         timestamp=timestamp,
         trend_names=['counter_x', 'counter_y'],
@@ -259,7 +258,7 @@ def generate_data_package_c(granularity, timestamp, entities):
 
 
 def generate_data_package_d(granularity, timestamp, entities):
-    return DataPackage(
+    return DefaultPackage(
         granularity=granularity,
         timestamp=timestamp,
         trend_names=['counter_x', 'counter_y'],

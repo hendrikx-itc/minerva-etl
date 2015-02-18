@@ -9,7 +9,6 @@ version.  The full license is in the file COPYING, distributed as part of
 this software.
 """
 import logging
-from nose.tools import eq_
 
 from minerva.storage.trend.aggregate import arith_expr
 
@@ -22,7 +21,7 @@ def setup_module():
     root_logger.addHandler(stream_handler)
 
 
-class Context(object):
+class Context():
     def __init__(self):
         self.trends_meta_by_timestamp = {}
         self.tables_by_timestamp_trend = {}
@@ -56,7 +55,7 @@ def test_parser_addition():
 
     r = formula(context)
 
-    eq_(r, "3 + 19 + 2 + 0")
+    assert r == "3 + 19 + 2 + 0"
 
 
 def test_parser_subtraction():
@@ -68,7 +67,7 @@ def test_parser_subtraction():
 
     r = formula(context)
 
-    eq_(r, "42 - 6 - 2 - 5")
+    assert r == "42 - 6 - 2 - 5"
 
 
 def test_parser_brackets():
@@ -80,7 +79,7 @@ def test_parser_brackets():
 
     r = formula(context)
 
-    eq_(r, "4 / 7 + (2 / -3)")
+    assert r == "4 / 7 + (2 / -3)"
 
 
 def test_parser_advanced_a():
@@ -92,7 +91,7 @@ def test_parser_advanced_a():
 
     r = formula(context)
 
-    eq_(r, "SUM(t1.\"CCR\") / SUM(t1.\"Traffic_full\") + (2 / -3)")
+    assert r == "SUM(t1.\"CCR\") / SUM(t1.\"Traffic_full\") + (2 / -3)"
 
 
 def test_parser_advanced_b():
@@ -104,4 +103,4 @@ def test_parser_advanced_b():
 
     r = formula(context)
 
-    eq_(r, "SUM(t1.\"CCR\" * t2.\"Traffic-Full\") / SUM(t3.\"Traffic-full\")")
+    assert r == "SUM(t1.\"CCR\" * t2.\"Traffic-Full\") / SUM(t3.\"Traffic-full\")"

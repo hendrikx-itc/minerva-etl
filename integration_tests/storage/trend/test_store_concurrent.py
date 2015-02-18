@@ -13,16 +13,18 @@ from contextlib import closing
 from time import sleep
 from threading import Thread
 from functools import partial
+from datetime import datetime
+
+import pytz
 
 from minerva.util import head
 from minerva.directory import EntityType, DataSource
-from minerva.test import connect, with_conn, with_dataset
+from minerva.test import connect, with_conn, clear_database
+from minerva.storage import datatype
 from minerva.storage.trend.granularity import create_granularity
-from minerva.storage.trend.test import DataSet
-from minerva.storage.trend.rawdatapackage import RawDataPackage
+from minerva.storage.trend.datapackage import DefaultPackage
 from minerva.storage.trend.trendstore import TrendStore, TrendStoreDescriptor
-
-from minerva_db import clear_database
+from minerva.storage.trend.trend import TrendDescriptor
 
 
 def query(sql):
@@ -60,60 +62,63 @@ update_timestamp = query(
 
 
 @with_conn()
-def store_raw_batch(conn, trendstore, raw_datapackage):
-    trendstore.store_raw(raw_datapackage).run(conn)
+def store_batch(conn, trend_store, data_package):
+    trend_store.store(data_package).run(conn)
 
-
-class TestData(DataSet):
-    def __init__(self):
-        self.granularity = create_granularity("900")
-        self.data_source = None
-        self.entity_type = None
-        self.trend_store = None
-
-    def load(self, cursor):
-        self.data_source = DataSource.from_name("test-source")(cursor)
-        self.entity_type = EntityType.from_name("test_type")(cursor)
-        self.trend_store = TrendStore.create(TrendStoreDescriptor(
-            self.data_source, self.entity_type, self.granularity, [],
-            86400
-        ))(cursor)
 
 
 @with_conn(clear_database)
-@with_dataset(TestData)
 def test_store_concurrent(conn, dataset):
     """
     Concurrent storing of the same dataset should cause no problems.
     """
-    timestamp = pytz.utc.localize(datetime.datetime(2013, 8, 27, 18, 0, 0))
+    timestamp = pytz.utc.localize(datetime(2013, 8, 27, 18, 0, 0))
 
     trend_names = ["c1", "c2", "c3"]
-    rows = [("Cell={}".format(i), ("1", "2", "3")) for i in range(100)]
+    rows = [
+        ("Cell={}".format(i), ("1", "2", "3"))
+        for i in range(100)
+    ]
 
-    raw_datapackage = RawDataPackage(
+    data_package = DefaultPackage(
         dataset.granularity, timestamp, trend_names, rows
     )
+
+    with closing(conn.cursor()) as cursor:
+        granularity = create_granularity("900")
+
+        data_source = DataSource.from_name("test-source")(cursor)
+        entity_type = EntityType.from_name("test_type")(cursor)
+        trend_store = TrendStore.create(TrendStoreDescriptor(
+            data_source, entity_type, granularity, [
+                TrendDescriptor('c1', datatype.DataTypeSmallInt, ''),
+                TrendDescriptor('c2', datatype.DataTypeSmallInt, ''),
+                TrendDescriptor('c3', datatype.DataTypeSmallInt, '')
+            ],
+            86400
+        ))(cursor)
+
+    conn.commit()
 
     threads = [
         Thread(
             target=partial(
-                store_raw_batch, dataset.trend_store, raw_datapackage
+                store_batch, trend_store, data_package
             )
         ),
         Thread(
             target=partial(
-                store_raw_batch, dataset.trend_store, raw_datapackage
+                store_batch, trend_store, data_package
             )
         ),
         Thread(
             target=partial(
-                store_raw_batch, dataset.trend_store, raw_datapackage
+                store_batch, trend_store, data_package
             )
         ),
         Thread(
             target=partial(
-                store_raw_batch, dataset.trend_store, raw_datapackage
+                store_batch, trend_store, data_package
             )
         )
     ]

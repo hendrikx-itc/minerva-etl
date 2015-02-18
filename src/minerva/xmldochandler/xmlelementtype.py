@@ -12,9 +12,9 @@ this software.
 from minerva.util.proxy import Proxy
 
 
-class XmlElementType(object):
+class XmlElementType():
 
-    class XmlElementHandler(object):
+    class XmlElementHandler():
 
         def __init__(self, name, elementtype):
             """

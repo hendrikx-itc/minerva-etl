@@ -24,11 +24,11 @@ setup(
     version=__version__,
     license="GPL",
     install_requires=[
-        "pytz", "psycopg2>=2.2.1", "DBUtils", "PyYAML", "configobj",
+        "pytz", "psycopg2>=2.2.1", "PyYAML", "configobj",
         "python-dateutil", "pyparsing"
     ],
-    tests_require=["nose"],
-    test_suite="nose.collector",
+    tests_require=["nose2"],
+    test_suite="nose2.collector",
     packages=[
         "minerva",
         "minerva.util",

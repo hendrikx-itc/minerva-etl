@@ -1,7 +1,7 @@
 from minerva.util.timestamp import to_unix_timestamp, from_unix_timestamp
 
 
-class Partitioning(object):
+class Partitioning():
     def __init__(self, size):
         self.size = size
 
@@ -14,13 +14,14 @@ class Partitioning(object):
         else:
             return index - 1
 
-    def index_to_interval(self, partition_index):
-        unix_timestamp_start = partition_index * self.size
-        unix_timestamp_end = unix_timestamp_start + self.size
-        start = from_unix_timestamp(unix_timestamp_start)
-        end = from_unix_timestamp(unix_timestamp_end)
+    def timestamp(self, index):
+        return from_unix_timestamp(index * self.size)
 
-        return start, end
+    def index_to_interval(self, partition_index):
+        return (
+            self.timestamp(partition_index),
+            self.timestamp(partition_index + 1)
+        )
 
 #
 # unix timestamp epoch = 1970-01-01 00:00:00+00

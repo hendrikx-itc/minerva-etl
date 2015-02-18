@@ -9,8 +9,10 @@ the Free Software Foundation; either version 3, or (at your option) any later
 version.  The full license is in the file COPYING, distributed as part of
 this software.
 """
-class DataSet(object):
-    description = "Set this property in child classes to describe the dataset"
+
+
+class DataSet():
+    description = "Set this property in child classes to describe the data set"
 
     def load(self, cursor):
         """

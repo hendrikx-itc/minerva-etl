@@ -20,7 +20,7 @@ libpq-dev:
   pkg:
     - installed
 
-python-virtualenv:
+python3-virtualenv:
   pkg:
     - installed
 
@@ -30,7 +30,7 @@ language-pack-nl:
 
 # Psycopg2 requires compilation, so it is easier to use the standard Ubuntu
 # package
-python-psycopg2:
+python3-psycopg2:
   pkg:
     - installed
 
@@ -38,11 +38,11 @@ python-package:
   pip.installed:
     - editable: /vagrant/
     - require:
-      - pkg: python-psycopg2
+      - pkg: python3-psycopg2
 
 # python_dateutil from pypi currently has permission issues with some files
 # after installation, so use the standard Ubuntu package
-python-dateutil:
+python3-dateutil:
   pkg:
     - installed
 

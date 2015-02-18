@@ -15,7 +15,6 @@ this software.
 import time
 import datetime
 import logging
-from itertools import izip
 from functools import partial
 from contextlib import closing
 from operator import itemgetter
@@ -171,7 +170,7 @@ def operator_operands(tokenlist):
     """generator to extract operators and operands in pairs"""
     it = iter(tokenlist)
 
-    return izip(it, it)
+    return zip(it, it)
 
 
 def eval_multop(tokens):
@@ -265,7 +264,7 @@ arith_expr << operatorPrecedence(operand, [
     (plusop, 2, opAssoc.LEFT, eval_addop)])
 
 
-class Context(object):
+class Context():
     def __init__(self, get_trend_meta):
         self.trends = set()
         self.tables = set()

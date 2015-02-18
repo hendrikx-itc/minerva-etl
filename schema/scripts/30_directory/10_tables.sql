@@ -13,8 +13,7 @@ GRANT USAGE ON SCHEMA directory TO minerva;
 CREATE TABLE directory.datasource (
     id integer NOT NULL,
     name character varying(100) NOT NULL,
-    description character varying NOT NULL,
-    timezone character varying(40) NOT NULL
+    description character varying NOT NULL
 );
 
 COMMENT ON TABLE directory.datasource IS
@@ -371,7 +370,8 @@ ALTER TABLE ONLY directory.existence
 
 ALTER TABLE ONLY directory.existence
     ADD CONSTRAINT existence_entitytype_id_fkey
-    FOREIGN KEY (entitytype_id) REFERENCES directory.entitytype(id);
+    FOREIGN KEY (entitytype_id) REFERENCES directory.entitytype(id)
+    ON DELETE CASCADE;
 
 CREATE INDEX ix_directory_existence_timestamp
     ON directory.existence USING btree (timestamp);

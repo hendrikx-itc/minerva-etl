@@ -10,22 +10,23 @@ the Free Software Foundation; either version 3, or (at your option) any later
 version.  The full license is in the file COPYING, distributed as part of
 this software.
 """
-import StringIO
-from functools import partial
-from operator import itemgetter
+from io import StringIO
 from itertools import chain
-from collections import Iterable
 
-from minerva.util import compose, expand_args, zipapply
+from minerva.db.util import quote_ident
+from minerva.util import zip_apply
 from minerva.storage import datatype
-from minerva.storage.attribute.attribute import Attribute
+from minerva.storage.valuedescriptor import ValueDescriptor
+from minerva.storage.attribute.attribute import AttributeDescriptor
+
+from minerva.directory.distinguishedname import entity_type_name_from_dn
+from minerva.directory.helpers import dns_to_entity_ids
 
 
-DEFAULT_DATATYPE = 'smallint'
 SYSTEM_COLUMNS = "entity_id", "timestamp"
 
 
-class DataPackage(object):
+class DataPackage():
     """
     A DataPackage represents a batch of attribute records for the same
     EntityType. The EntityType is implicitly determined by the
@@ -52,23 +53,38 @@ class DataPackage(object):
         """Return True if the package has no data."""
         return len(self.rows) == 0 or len(self.attribute_names) == 0
 
-    def deduce_data_types(self):
+    def deduce_value_descriptors(self):
         """
-        Return a list of the minimal required datatypes to store the values in
-        this datapackage, in the same order as the values and thus matching the
+        Return a list of the minimal required data types to store the values in
+        this data package, in the same order as the values and thus matching the
         order of attribute_names.
         """
-        return reduce(datatype.max_data_types, map(row_to_types, self.rows),
-                      [DEFAULT_DATATYPE] * len(self.attribute_names))
+        if self.is_empty():
+            if len(self.attribute_names):
+                return [
+                    ValueDescriptor(name, datatype.DataTypeSmallInt, None, None)
+                    for name in self.attribute_names
+                ]
+            else:
+                return []
+        else:
+            return [
+                ValueDescriptor(name, data_type, None, None)
+                for name, data_type in zip(self.attribute_names, datatype.deduce_data_types(
+                    (values for dn, timestamp, values in self.rows)
+                ))
+            ]
 
     def deduce_attributes(self):
         """Return list of attributes matching the data in this package."""
-        data_types = self.deduce_data_types()
+        return [
+            AttributeDescriptor(
+                value_descriptor.name, value_descriptor.data_type, ''
+            )
+            for value_descriptor in self.deduce_value_descriptors()
+        ]
 
-        return map(expand_args(Attribute),
-                   zip(self.attribute_names, data_types))
-
-    def copy_expert(self, table, data_types):
+    def copy_expert(self, table, value_descriptors):
         """
         Return a function that can execute a COPY FROM query on a cursor.
 
@@ -78,7 +94,7 @@ class DataPackage(object):
         def fn(cursor):
             cursor.copy_expert(
                 self._create_copy_from_query(table),
-                self._create_copy_from_file(data_types)
+                self._create_copy_from_file(value_descriptors)
             )
 
         return fn
@@ -87,21 +103,20 @@ class DataPackage(object):
         """Return SQL query that can be used in the COPY FROM command."""
         column_names = chain(SYSTEM_COLUMNS, self.attribute_names)
 
-        quote = partial(str.format, '"{}"')
-
         return "COPY {0}({1}) FROM STDIN".format(
-            table.render(), ",".join(map(quote, column_names)))
+            table.render(), ",".join(map(quote_ident, column_names))
+        )
 
-    def _create_copy_from_file(self, data_types):
+    def _create_copy_from_file(self, value_descriptors):
         """
         Return StringIO instance to use with COPY FROM command.
 
         :param data_types: A list of datatypes that determine how the values
         should be rendered.
         """
-        copy_from_file = StringIO.StringIO()
+        copy_from_file = StringIO()
 
-        lines = self._create_copy_from_lines(data_types)
+        lines = self._create_copy_from_lines(value_descriptors)
 
         copy_from_file.writelines(lines)
 
@@ -109,9 +124,16 @@ class DataPackage(object):
 
         return copy_from_file
 
-    def _create_copy_from_lines(self, data_types):
-        return [create_copy_from_line(data_types, row)
-                for row in self.rows]
+    def _create_copy_from_lines(self, value_descriptors):
+        value_mappers = [
+            value_descriptor.serialize_to_string
+            for value_descriptor in value_descriptors
+        ]
+
+        return [
+            create_copy_from_line(value_mappers, row)
+            for row in self.rows
+        ]
 
     def to_dict(self):
         """Return dictionary representing this package."""
@@ -131,90 +153,39 @@ class DataPackage(object):
             rows=d["rows"]
         )
 
+    def get_entity_type_name(self):
+        """Return the entity type name from the first Distinguished Name."""
+        if self.rows:
+            first_dn = self.rows[0][0]
 
-snd = itemgetter(1)
+            return entity_type_name_from_dn(first_dn)
 
-types_from_values = partial(map, datatype.deduce_from_string)
+    def get_key(self):
+        """Return key by which to merge this package with other packages."""
+        return self.get_entity_type_name()
 
-row_to_types = compose(types_from_values, itemgetter(2))
+    def refine(self, cursor):
+        """
+        Return a DataPackage with 'refined' data of this package.
+
+        This means that all distinguished names are translated to entity Ids.
+
+        """
+        dns, timestamps, value_rows = zip(*self.rows)
+
+        entity_ids = dns_to_entity_ids(cursor, list(dns))
+
+        rows = zip(entity_ids, timestamps, value_rows)
+        return DataPackage(self.attribute_names, rows)
 
 
-def create_copy_from_line(data_types, row):
+def create_copy_from_line(value_mappers, row):
     """Return line compatible with COPY FROM command."""
     entity_id, timestamp, attributes = row
 
-    value_mappers = map(value_mapper_by_type.get, data_types)
-
     values = chain(
         (str(entity_id), str(timestamp)),
-        zipapply(value_mappers, attributes)
+        zip_apply(value_mappers)(attributes)
     )
 
     return "\t".join(values) + "\n"
-
-
-def value_to_string(null_value="\\N"):
-    def fn(value):
-        if is_null_value(value):
-            return null_value
-        else:
-            return str(value)
-
-    return fn
-
-
-def format_text_value(null_value='\\N'):
-    def fn(value):
-        if is_null_value(value):
-            return null_value
-        else:
-            return value.replace('\t', '\\\t')
-
-    return fn
-
-
-def is_null_value(value):
-    return (
-        value is None or
-        (isinstance(value, (str, unicode)) and len(value) == 0)
-    )
-
-
-def array_value_to_string(value):
-    """Return PostgreSQL compatible string for ARRAY-like variable."""
-    if isinstance(value, str):
-        return "{" + value + "}"
-    elif isinstance(value, Iterable):
-        return "{" + ",".join(map(value_to_string('NULL'), value)) + "}"
-    else:
-        raise Exception("Unexpected type '{}'".format(type(value)))
-
-
-def text_array_value_to_string(value):
-    """Return PostgreSQL compatible string for ARRAY-like variable."""
-    if isinstance(value, str):
-        return "{" + value + "}"
-    elif isinstance(value, Iterable):
-        return "{" + ",".join(map(format_text_value('NULL'), value)) + "}"
-    else:
-        raise Exception("Unexpected type '{}'".format(type(value)))
-
-
-value_mapper_by_type = {
-    "text": format_text_value(),
-    "bigint[]": array_value_to_string,
-    "integer[]": array_value_to_string,
-    "smallint[]": array_value_to_string,
-    "text[]": text_array_value_to_string,
-    "bigint": value_to_string(),
-    "integer": value_to_string(),
-    "smallint": value_to_string(),
-    "boolean": value_to_string(),
-    "real": value_to_string(),
-    "double precision": value_to_string(),
-    "timestamp without time zone": value_to_string(),
-    "numeric": value_to_string()
-}
-
-
-quote_ident = partial(str.format, '"{}"')

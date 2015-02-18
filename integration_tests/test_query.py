@@ -9,7 +9,7 @@ the Free Software Foundation; either version 3, or (at your option) any later
 version.  The full license is in the file COPYING, distributed as part of
 this software.
 """
-from StringIO import StringIO
+from io import StringIO
 from contextlib import closing
 
 from nose.tools import eq_

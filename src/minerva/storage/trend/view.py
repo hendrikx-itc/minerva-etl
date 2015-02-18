@@ -11,10 +11,10 @@ this software.
 """
 
 
-class View(object):
-    def __init__(self, trendstore, sql):
+class View():
+    def __init__(self, trend_store, sql):
         self.id = None
-        self.trendstore = trendstore
+        self.trend_store = trend_store
         self.sql = sql
 
     def define(self, cursor):
@@ -24,7 +24,7 @@ class View(object):
             "WHERE id = %s"
         )
 
-        args = self.sql, self.trendstore.id
+        args = self.sql, self.trend_store.id
 
         cursor.execute(query, args)
 

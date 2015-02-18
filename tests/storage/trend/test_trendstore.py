@@ -8,8 +8,8 @@ from minerva.storage.trend.trendstore import TrendStore
 def test_constructor():
     trend_store = TrendStore(
         id=42,
-        datasource=DataSource(1, 'test-source', 'description'),
-        entitytype=EntityType(11, 'TestType', 'description'),
+        data_source=DataSource(1, 'test-source', 'description'),
+        entity_type=EntityType(11, 'TestType', 'description'),
         granularity=create_granularity('1 day'),
         partition_size=86400 * 7,
         type='table',
@@ -22,8 +22,8 @@ def test_constructor():
 def test_base_table_name():
     trend_store = TrendStore(
         id=42,
-        datasource=DataSource(1, 'test-source', 'description'),
-        entitytype=EntityType(11, 'TestType', 'description'),
+        data_source=DataSource(1, 'test-source', 'description'),
+        entity_type=EntityType(11, 'TestType', 'description'),
         granularity=create_granularity('1 day'),
         partition_size=86400 * 7,
         type='table',

@@ -13,7 +13,7 @@ this software.
 from urlparse import urlsplit
 
 
-class SchemaElement(object):
+class SchemaElement():
 
     def __init__(self):
         # Reference to the parent element in the schema.
@@ -178,7 +178,7 @@ class ComplexContent(SchemaElement):
         return "complexcontent"
 
 
-class TypeReference(object):
+class TypeReference():
     """ A container to hold a reference to a type. This can first be just
     the qname and later also a reference to the real type."""
 
@@ -271,7 +271,7 @@ class Attribute(SchemaElement):
     name = property(fget=get_name, fset=set_name)
 
 
-class SubstitutionGroup(object):
+class SubstitutionGroup():
 
     def __init__(self, name):
         self.name = name

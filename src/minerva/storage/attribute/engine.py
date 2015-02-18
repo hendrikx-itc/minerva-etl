@@ -17,28 +17,27 @@ from minerva.directory.helpers import get_entity, get_entitytype_by_id
 from minerva.storage.attribute.attribute import Attribute
 from minerva.storage.attribute.attributestore import AttributeStore
 from minerva.storage.attribute.datapackage import DataPackage
-from minerva.storage.attribute.rawdatapackage import RawDataPackage
 from minerva.storage.attribute.retrieve import retrieve, retrieve_current, \
     retrieve_attributes_for_entity
 
 
-class AttributeEngine(object):
-    RawDataPackage = RawDataPackage
-
+class AttributeEngine():
     def __init__(self, conn):
         self.conn = conn
 
-    def store(self, datasource, entitytype, datapackage):
-        attributes = datapackage.deduce_attributes()
+    def store(self, data_source, data_package):
+        attribute_descriptors = data_package.deduce_attributes()
 
         with closing(self.conn.cursor()) as cursor:
-            attributestore = AttributeStore.from_attributes(
-                cursor, datasource, entitytype, attributes
-            )
+            entity_type = data_package.get_entity_type(cursor)
+
+            attribute_store = AttributeStore.from_attributes(
+                data_source, entity_type, attribute_descriptors
+            )(cursor)
 
         self.conn.commit()
 
-        attributestore.store_txn(datapackage).run(self.conn)
+        attribute_store.store_txn(data_package).run(self.conn)
 
     def retrieve_attributes_for_entity(self, entity_id, attributes):
         return retrieve_attributes_for_entity(self.conn, entity_id, attributes)
@@ -61,26 +60,9 @@ class AttributeEngine(object):
         return retrieve_current(
             self.conn, attributestore.curr_table, attribute_names, entities)
 
-    def store_raw(self, datasource, raw_datapackage):
-        if not raw_datapackage.is_empty():
-            with closing(self.conn.cursor()) as cursor:
-                datapackage = raw_datapackage.refine(cursor)
-
-            self.conn.commit()
-
-            dn = raw_datapackage.rows[0][0]
-            entity = get_entity(self.conn, dn)
-            entitytype = get_entitytype_by_id(self.conn, entity.entitytype_id)
-
-            self.store(datasource, entitytype, datapackage)
-
     def get_attribute_by_id(self, attribute_id):
         with closing(self.conn.cursor()) as cursor:
             return Attribute.get(cursor, attribute_id)
-
-    @staticmethod
-    def load_rawdatapackage(stream):
-        return RawDataPackage.from_dict(json.load(stream))
 
     @staticmethod
     def load_datapackage(stream):

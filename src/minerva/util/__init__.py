@@ -13,7 +13,7 @@ import datetime
 from time import sleep
 from operator import itemgetter, attrgetter, eq
 from itertools import repeat, groupby
-from functools import partial
+from functools import partial, reduce
 
 
 def compose_pair(fn_a, fn_b):
@@ -40,11 +40,14 @@ def apply_fn(f, x):
     return f(x)
 
 
-def zipapply(functions, values):
+def zip_apply(functions):
     """
     Zip the functions with the values and then apply the function to the value.
     """
-    return map(apply_fn, functions, values)
+    def f(values):
+        return [fn(v) for fn, v in zip(functions, values)]
+
+    return f
 
 
 def reorderer(required_order, actual_order):
@@ -57,7 +60,7 @@ def reorderer(required_order, actual_order):
     count = len(ordered_getters)
 
     def reorder(values):
-        return zipapply(ordered_getters, repeat(values, count))
+        return zip_apply(ordered_getters)(repeat(values, count))
 
     return reorder
 
