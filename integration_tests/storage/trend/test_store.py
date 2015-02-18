@@ -486,7 +486,7 @@ def test_create_trendstore_with_children(conn, data_set):
         assert trend_store.id is not None
 
         timestamp = pytz.utc.localize(
-            datetime.datetime(2013, 5, 6, 14, 45)
+            datetime(2013, 5, 6, 14, 45)
         )
 
         partition = trend_store.partition(timestamp)
@@ -528,7 +528,7 @@ def test_store_copy_from(conn, data_set):
     conn.commit()
 
     timestamp = pytz.utc.localize(
-        datetime.datetime(2013, 4, 25, 9, 45)
+        datetime(2013, 4, 25, 9, 45)
     )
 
     trends = ["a", "b", "c"]
