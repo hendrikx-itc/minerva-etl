@@ -19,12 +19,12 @@ class View():
 
     def define(self, cursor):
         query = (
-            "SELECT (trend_directory.define_view(trendstore, %s)).id "
+            "SELECT (trend_directory.define_view(trendstore)).id "
             "FROM trend_directory.trendstore "
             "WHERE id = %s"
         )
 
-        args = self.sql, self.trend_store.id
+        args = self.trend_store.id,
 
         cursor.execute(query, args)
 
@@ -36,12 +36,12 @@ class View():
 
     def create(self, cursor):
         query = (
-            "SELECT trend_directory.create_view(view) "
+            "SELECT trend_directory.create_view(view, %s) "
             "FROM trend_directory.view "
             "WHERE id = %s"
         )
 
-        args = self.id,
+        args = self.sql, self.id
 
         cursor.execute(query, args)
 
