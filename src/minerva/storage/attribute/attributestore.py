@@ -88,9 +88,9 @@ class AttributeStore():
         """Load associated attributes from database and return them."""
         def f(cursor):
             query = (
-                "SELECT id, name, data_type, attributestore_id, description "
+                "SELECT id, name, data_type, attribute_store_id, description "
                 "FROM attribute_directory.attribute "
-                "WHERE attributestore_id = %s"
+                "WHERE attribute_store_id = %s"
             )
             args = attribute_store_id,
 
@@ -110,23 +110,23 @@ class AttributeStore():
         return f
 
     @classmethod
-    def from_attributes(cls, datasource, entitytype, attribute_descriptors):
+    def from_attributes(cls, data_source, entity_type, attribute_descriptors):
         """
         Return AttributeStore with specified attributes.
 
-        If an attribute store with specified datasource and entitytype exists,
+        If an attribute store with specified data source and entity type exists,
         it is loaded, or a new one is created if it doesn't.
 
         """
         def f(cursor):
             query = (
                 "SELECT * "
-                "FROM attribute_directory.to_attributestore("
+                "FROM attribute_directory.to_attribute_store("
                 "%s, %s, %s::attribute_directory.attribute_descr[]"
                 ")"
             )
 
-            args = datasource.id, entitytype.id, attribute_descriptors
+            args = data_source.id, entity_type.id, attribute_descriptors
 
             cursor.execute(query, args)
 
@@ -134,31 +134,31 @@ class AttributeStore():
 
             return AttributeStore(
                 attribute_store_id,
-                datasource,
-                entitytype,
+                data_source,
+                entity_type,
                 AttributeStore.get_attributes(attribute_store_id)(cursor)
             )
 
         return f
 
     @classmethod
-    def get_by_attributes(cls, cursor, datasource, entitytype):
+    def get_by_attributes(cls, cursor, data_source, entity_type):
         """Load and return AttributeStore with specified attributes."""
         query = (
             "SELECT id "
-            "FROM attribute_directory.attributestore "
-            "WHERE datasource_id = %s "
-            "AND entitytype_id = %s"
+            "FROM attribute_directory.attribute_store "
+            "WHERE data_source_id = %s "
+            "AND entity_type_id = %s"
         )
-        args = datasource.id, entitytype.id
+        args = data_source.id, entity_type.id
         cursor.execute(query, args)
 
         attribute_store_id, = cursor.fetchone()
 
         return AttributeStore(
             attribute_store_id,
-            datasource,
-            entitytype,
+            data_source,
+            entity_type,
             AttributeStore.get_attributes(attribute_store_id)(cursor)
         )
 
@@ -167,21 +167,21 @@ class AttributeStore():
         """Load and return attribute store by its Id."""
         def f(cursor):
             query = (
-                "SELECT datasource_id, entitytype_id "
-                "FROM attribute_directory.attributestore "
+                "SELECT data_source_id, entity_type_id "
+                "FROM attribute_directory.attribute_store "
                 "WHERE id = %s"
             )
 
             args = id,
             cursor.execute(query, args)
 
-            datasource_id, entitytype_id = cursor.fetchone()
+            data_source_id, entity_type_id = cursor.fetchone()
 
-            entitytype = EntityType.get(cursor, entitytype_id)
-            datasource = DataSource.get(cursor, datasource_id)
+            entity_type = EntityType.get(cursor, entity_type_id)
+            data_source = DataSource.get(cursor, data_source_id)
 
             return AttributeStore(
-                id, datasource, entitytype,
+                id, data_source, entity_type,
                 AttributeStore.get_attributes(id)(cursor)
             )
 
@@ -191,21 +191,21 @@ class AttributeStore():
     def get_all(cursor):
         """Load and return all attribute stores."""
         query = (
-            "SELECT id, datasource_id, entitytype_id "
-            "FROM attribute_directory.attributestore"
+            "SELECT id, data_source_id, entity_type_id "
+            "FROM attribute_directory.attribute_store"
         )
 
         cursor.execute(query)
 
-        load = expand_args(partial(AttributeStore.load_attributestore, cursor))
+        load = expand_args(partial(AttributeStore.load_attribute_store, cursor))
 
         return map(load, cursor.fetchall())
 
     @staticmethod
-    def load_attributestore(id, datasource_id, entitytype_id):
+    def load_attribute_store(id, data_source_id, entity_type_id):
         def f(cursor):
-            data_source = DataSource.get(datasource_id)(cursor)
-            entity_type = EntityType.get(entitytype_id)(cursor)
+            data_source = DataSource.get(data_source_id)(cursor)
+            entity_type = EntityType.get(entity_type_id)(cursor)
 
             return AttributeStore(
                 id, data_source, entity_type,
@@ -219,7 +219,7 @@ class AttributeStore():
         """Create, initialize and return the attribute store."""
         def f(cursor):
             query = (
-                "SELECT * FROM attribute_directory.create_attributestore("
+                "SELECT * FROM attribute_directory.create_attribute_store("
                 "%s, %s, %s::attribute_directory.attribute_descr[]"
                 ")"
             )
@@ -248,8 +248,8 @@ class AttributeStore():
     def compact(self, cursor):
         """Combine subsequent records with the same data."""
         query = (
-            "SELECT attribute_directory.compact(attributestore) "
-            "FROM attribute_directory.attributestore "
+            "SELECT attribute_directory.compact(attribute_store) "
+            "FROM attribute_directory.attribute_store "
             "WHERE id = %s"
         )
         args = self.id,
@@ -298,8 +298,8 @@ class AttributeStore():
     def _transfer_staged(self, cursor):
         """Transfer all records from staging to history table."""
         cursor.execute(
-            "SELECT attribute_directory.transfer_staged(attributestore) "
-            "FROM attribute_directory.attributestore "
+            "SELECT attribute_directory.transfer_staged(attribute_store) "
+            "FROM attribute_directory.attribute_store "
             "WHERE id = %s",
             (self.id,)
         )
@@ -309,9 +309,9 @@ class AttributeStore():
         def f(cursor):
             query = (
                 "SELECT attribute_directory.check_attributes_exist("
-                "attributestore, %s::attribute_directory.attribute_descr[]"
+                "attribute_store, %s::attribute_directory.attribute_descr[]"
                 ") "
-                "FROM attribute_directory.attributestore "
+                "FROM attribute_directory.attribute_store "
                 "WHERE id = %s"
             )
 
@@ -328,10 +328,10 @@ class AttributeStore():
         def f(cursor):
             query = (
                 "SELECT attribute_directory.check_attribute_types("
-                "attributestore, "
+                "attribute_store, "
                 "%s::attribute_directory.attribute_descr[]"
                 ") "
-                "FROM attribute_directory.attributestore WHERE id = %s"
+                "FROM attribute_directory.attribute_store WHERE id = %s"
             )
 
             args = attribute_descriptors, self.id

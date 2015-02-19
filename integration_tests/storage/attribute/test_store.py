@@ -13,15 +13,11 @@ import time
 from contextlib import closing
 from datetime import datetime
 
-from nose.tools import eq_, ok_, assert_not_equal
-
 import pytz
 
 from minerva.directory import DataSource, EntityType
 from minerva.db.util import get_column_names
-from minerva.test import with_conn
-
-from .minerva_db import clear_database
+from minerva.test import with_conn, clear_database, assert_not_equal, eq_, ok_
 
 from minerva.storage.attribute.attributestore import AttributeStore, Query, \
     AttributeStoreDescriptor
@@ -50,8 +46,8 @@ def test_simple(conn):
         attribute_store.store_txn(data_package).run(conn)
 
         query = (
-            "SELECT attribute_directory.materialize_curr_ptr(attributestore) "
-            "FROM attribute_directory.attributestore "
+            "SELECT attribute_directory.materialize_curr_ptr(attribute_store) "
+            "FROM attribute_directory.attribute_store "
             "WHERE id = %s"
         )
 

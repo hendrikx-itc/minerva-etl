@@ -14,17 +14,14 @@ from datetime import datetime, timedelta
 from contextlib import closing
 
 import pytz
-from nose.tools import eq_
 
-from minerva.test import with_conn
+from minerva.test import with_conn, eq_, clear_database
 from minerva.directory import DataSource, EntityType
-from minerva.storage.attribute.attribute import Attribute, AttributeDescriptor
+from minerva.storage.attribute.attribute import AttributeDescriptor
 from minerva.storage.attribute.attributestore import AttributeStore, \
     AttributeStoreDescriptor
 from minerva.storage.attribute.datapackage import DataPackage
 from minerva.storage import datatype
-
-from .minerva_db import clear_database
 
 
 @with_conn(clear_database)
@@ -54,8 +51,8 @@ def test_create(conn):
         conn.commit()
 
         query = (
-            "SELECT attribute_directory.to_table_name(attributestore) "
-            "FROM attribute_directory.attributestore "
+            "SELECT attribute_directory.to_table_name(attribute_store) "
+            "FROM attribute_directory.attribute_store "
             "WHERE id = %s"
         )
 
@@ -97,8 +94,8 @@ def test_from_attributes(conn):
         conn.commit()
 
         query = (
-            "SELECT attribute_directory.to_table_name(attributestore) "
-            "FROM attribute_directory.attributestore "
+            "SELECT attribute_directory.to_table_name(attribute_store) "
+            "FROM attribute_directory.attribute_store "
             "WHERE id = %s"
         )
 
@@ -136,8 +133,8 @@ def test_store_batch_simple(conn):
         conn.commit()
 
         cursor.execute(
-            "SELECT attribute_directory.materialize_curr_ptr(attributestore) "
-            "FROM attribute_directory.attributestore "
+            "SELECT attribute_directory.materialize_curr_ptr(attribute_store) "
+            "FROM attribute_directory.attribute_store "
             "WHERE id = %s",
             (attribute_store.id,)
         )
@@ -181,8 +178,8 @@ def test_store_batch_with_list_a(conn):
         conn.commit()
 
         cursor.execute(
-            "SELECT attribute_directory.materialize_curr_ptr(attributestore) "
-            "FROM attribute_directory.attributestore "
+            "SELECT attribute_directory.materialize_curr_ptr(attribute_store) "
+            "FROM attribute_directory.attribute_store "
             "WHERE id = %s",
             (attribute_store.id,)
         )
@@ -327,8 +324,8 @@ def test_store_batch_update(conn):
         assert modified_b > modified_a
 
         cursor.execute(
-            "SELECT attribute_directory.materialize_curr_ptr(attributestore) "
-            "FROM attribute_directory.attributestore "
+            "SELECT attribute_directory.materialize_curr_ptr(attribute_store) "
+            "FROM attribute_directory.attribute_store "
             "WHERE id = %s",
             (attribute_store.id,)
         )

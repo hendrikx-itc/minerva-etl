@@ -11,6 +11,10 @@ def eq_(a, b):
     assert a == b, '{} != {}'.format(a, b)
 
 
+def ok_(e):
+    assert e is True, '{} is not True'.format(e)
+
+
 def assert_not_equal(a, b):
     assert a != b, '{} == {}'.format(a, b)
 
