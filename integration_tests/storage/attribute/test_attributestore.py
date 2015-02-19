@@ -33,16 +33,20 @@ def test_create(conn):
 
         attribute_descriptors = [
             AttributeDescriptor(
-                "cntr1", datatype.DataTypeInteger, "dummy description"
+                "cntr1", datatype.DataTypeInteger, "description of cntr2"
             ),
             AttributeDescriptor(
-                "cntr2", datatype.DataTypeInteger, "dummy description"
+                "cntr2", datatype.DataTypeInteger, "description of cntr1"
             )
         ]
+
+        attribute_names = [a.name for a in attribute_descriptors]
 
         attribute_store = AttributeStore.create(AttributeStoreDescriptor(
             data_source, entity_type, attribute_descriptors
         ))(cursor)
+
+        eq_(len(attribute_descriptors), len(attribute_store.attributes))
 
         expected_table_name = "integration-test_UtranCell"
 
@@ -61,6 +65,24 @@ def test_create(conn):
         cursor.execute(query, args)
 
         table_name, = cursor.fetchone()
+
+        cursor.execute(
+            "SELECT public.table_exists('attribute_base', %s)",
+            (expected_table_name,)
+        )
+
+        table_exists, = cursor.fetchone()
+
+        assert table_exists, 'table {} should exist'.format(expected_table_name)
+
+        cursor.execute(
+            "SELECT public.column_names('attribute_base', %s)",
+            (expected_table_name,)
+        )
+
+        column_names = [column_name for column_name, in cursor.fetchall()]
+
+        eq_(column_names, ["entity_id", "timestamp"] + attribute_names)
 
     eq_(table_name, expected_table_name)
 
@@ -229,7 +251,11 @@ def test_store_batch_with_list_b(conn):
 @with_conn(clear_database)
 def test_store_batch_with_list_c(conn):
     """Test batch wise storing using staging table."""
-    attribute_names = ['height', 'refs']
+    attribute_descriptors = [
+        AttributeDescriptor('height', datatype.DataTypeDoublePrecision, ''),
+        AttributeDescriptor('refs', datatype.DataTypeText, '')
+    ]
+    attribute_names = [a.name for a in attribute_descriptors]
     timestamp = pytz.utc.localize(datetime.utcnow())
     data_rows = [
         (10023, timestamp, ('19.5', ['', '', '', ''])),
@@ -237,14 +263,13 @@ def test_store_batch_with_list_c(conn):
     ]
 
     data_package = DataPackage(attribute_names, data_rows)
-    attributes = data_package.deduce_attributes()
 
     with closing(conn.cursor()) as cursor:
         data_source = DataSource.from_name("integration-test")(cursor)
         entity_type = EntityType.from_name("UtranCell")(cursor)
 
         attribute_store = AttributeStore.create(AttributeStoreDescriptor(
-            data_source, entity_type, attributes
+            data_source, entity_type, attribute_descriptors
         ))(cursor)
 
         conn.commit()
@@ -256,20 +281,22 @@ def test_store_batch_with_list_c(conn):
 @with_conn(clear_database)
 def test_store_txn_with_empty(conn):
     """Test transactional storing with empty value."""
+    attribute_descriptors = [
+        AttributeDescriptor('freeText', datatype.DataTypeText, '')
+    ]
+
+    attribute_names = [a.name for a in attribute_descriptors]
+
     with closing(conn.cursor()) as cursor:
         data_source = DataSource.from_name("integration-test")(cursor)
         entity_type = EntityType.from_name("UtranCell")(cursor)
         timestamp = pytz.utc.localize(datetime.utcnow())
         data_package = DataPackage(
-            attribute_names=['freeText'],
+            attribute_names=attribute_names,
             rows=[
                 (10023, timestamp, ('',))
             ]
         )
-
-        attribute_descriptors = data_package.deduce_attributes()
-
-        assert attribute_descriptors[0].data_type is datatype.DataTypeSmallInt, '{} != {}'.format(attribute_descriptors[0].data_type, datatype.DataTypeSmallInt)
 
         attribute_store = AttributeStore.from_attributes(
             data_source, entity_type, attribute_descriptors

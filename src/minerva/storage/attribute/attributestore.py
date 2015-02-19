@@ -105,7 +105,7 @@ class AttributeStore():
                     attribute_store_id, description
                 )
 
-            return map(row_to_attribute, cursor.fetchall())
+            return [row_to_attribute(row) for row in cursor.fetchall()]
 
         return f
 
@@ -177,8 +177,8 @@ class AttributeStore():
 
             data_source_id, entity_type_id = cursor.fetchone()
 
-            entity_type = EntityType.get(cursor, entity_type_id)
-            data_source = DataSource.get(cursor, data_source_id)
+            entity_type = EntityType.get(entity_type_id)(cursor)
+            data_source = DataSource.get(data_source_id)(cursor)
 
             return AttributeStore(
                 id, data_source, entity_type,
@@ -282,18 +282,18 @@ class AttributeStore():
         """Return list of data types corresponding to the `attribute_names`."""
         attributes_by_name = {a.name: a for a in self.attributes}
 
-        try:
-            return [
-                ValueDescriptor(
+        def name_to_value_descriptor(name):
+            try:
+                return ValueDescriptor(
                     name,
                     attributes_by_name[name].data_type,
                     None,
                     {'null_value': '\\N'}
                 )
-                for name in attribute_names
-            ]
-        except KeyError:
-            raise NoSuchAttributeError()
+            except KeyError:
+                raise NoSuchAttributeError(name)
+
+        return [name_to_value_descriptor(name) for name in attribute_names]
 
     def _transfer_staged(self, cursor):
         """Transfer all records from staging to history table."""

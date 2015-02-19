@@ -18,7 +18,8 @@ import pytz
 from minerva.directory import DataSource, EntityType
 from minerva.db.util import get_column_names
 from minerva.test import with_conn, clear_database, assert_not_equal, eq_, ok_
-
+from minerva.storage import datatype
+from minerva.storage.attribute.attribute import AttributeDescriptor
 from minerva.storage.attribute.attributestore import AttributeStore, Query, \
     AttributeStoreDescriptor
 from minerva.storage.attribute.datapackage import DataPackage
@@ -146,26 +147,31 @@ def test_update_modified_column(conn):
 @with_conn(clear_database)
 def test_update(conn):
     with closing(conn.cursor()) as cursor:
-        attribute_names = ['CellID', 'CCR', 'Drops']
+        attribute_descriptors = [
+            AttributeDescriptor('CellID', datatype.DataTypeText, ''),
+            AttributeDescriptor('CCR', datatype.DataTypeDoublePrecision, ''),
+            AttributeDescriptor('Drops', datatype.DataTypeSmallInt, '')
+        ]
+
+        attribute_names = [a.name for a in attribute_descriptors]
 
         data_source = DataSource.from_name("integration-test")(cursor)
         entity_type = EntityType.from_name("UtranCell")(cursor)
         time1 = pytz.utc.localize(datetime.utcnow())
 
         data_rows = [
-            (10023, time1, ('10023', '0.9919', '17')),
-            (10047, time1, ('10047', '0.9963', '18'))
+            (10023, time1, ('10023', 0.9919, 17)),
+            (10047, time1, ('10047', 0.9963, 18))
         ]
         update_data_rows = [
-            (10023, time1, ('10023', '0.5555', '17'))
+            (10023, time1, ('10023', 0.5555, 17))
         ]
 
         data_package = DataPackage(attribute_names, data_rows)
-        attributes = data_package.deduce_attributes()
 
-        attribute_store = AttributeStore.create(
-            AttributeStoreDescriptor(data_source, entity_type, attributes)
-        )(cursor)
+        attribute_store = AttributeStore.create(AttributeStoreDescriptor(
+            data_source, entity_type, attribute_descriptors
+        ))(cursor)
 
         attribute_store.store_txn(data_package).run(conn)
 
