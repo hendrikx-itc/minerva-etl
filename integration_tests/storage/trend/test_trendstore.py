@@ -12,11 +12,10 @@ this software.
 from contextlib import closing
 import datetime
 
-from nose.tools import eq_
 import pytz
 
 from minerva.directory import EntityType, DataSource
-from minerva.test import connect, clear_database
+from minerva.test import connect, clear_database, eq_
 from minerva.storage import datatype
 from minerva.storage.trend.trendstore import TrendStore, TrendStoreDescriptor
 from minerva.storage.trend.trend import TrendDescriptor
