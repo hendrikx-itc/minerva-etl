@@ -15,7 +15,7 @@ from itertools import chain
 
 import psycopg2
 
-from minerva.util import first, no_op, zip_apply
+from minerva.util import first, no_op, zip_apply, compose
 from minerva.db.error import NoCopyInProgress, NoSuchTable, \
     NoSuchColumnError, UniqueViolation, DataTypeMismatch, DuplicateTable, \
     translate_postgresql_exception, translate_postgresql_exceptions
@@ -678,10 +678,6 @@ def create_copy_from_query(table, trend_names):
     )
 
 
-def create_copy_from_file(timestamp, modified, rows, value_descriptors):
-    return create_file(create_copy_from_lines(timestamp, modified, rows, value_descriptors))
-
-
 def create_copy_from_lines(timestamp, modified, rows, value_descriptors):
     value_mappers = [
         value_descriptor.serialize_to_string
@@ -709,3 +705,6 @@ def create_file(lines):
     copy_from_file.seek(0)
 
     return copy_from_file
+
+
+create_copy_from_file = compose(create_file, create_copy_from_lines)
