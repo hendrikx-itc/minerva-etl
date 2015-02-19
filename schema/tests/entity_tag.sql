@@ -3,7 +3,7 @@ BEGIN;
 SELECT plan(3);
 
 -- Defining the trendgroup beforehand is required
-INSERT INTO directory.taggroup(name, complementary)
+INSERT INTO directory.tag_group(name, complementary)
 VALUES ('technology', true);
 
 -- Define the tag definition as a view

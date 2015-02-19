@@ -19,8 +19,8 @@ class View():
 
     def define(self, cursor):
         query = (
-            "SELECT (trend_directory.define_view(trendstore)).id "
-            "FROM trend_directory.trendstore "
+            "SELECT (trend_directory.define_view(trend_store)).id "
+            "FROM trend_directory.trend_store "
             "WHERE id = %s"
         )
 

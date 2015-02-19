@@ -2,7 +2,7 @@ BEGIN;
 
 SELECT plan(1);
 
-SELECT attribute_directory.create_attributestore(
+SELECT attribute_directory.create_attribute_store(
     'test',
     'Node',
     ARRAY[
@@ -14,8 +14,8 @@ SELECT results_eq(
     $$SELECT dependee FROM (
     SELECT d::text dependee
     FROM (
-        SELECT unnest(attribute_directory.dependees(attributestore)) d
-        FROM attribute_directory.attributestore
+        SELECT unnest(attribute_directory.dependees(attribute_store)) d
+        FROM attribute_directory.attribute_store
     ) foo
 ) bar$$,
     ARRAY[

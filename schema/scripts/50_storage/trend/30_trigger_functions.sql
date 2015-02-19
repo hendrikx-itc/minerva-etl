@@ -1,12 +1,12 @@
-CREATE FUNCTION trend_directory.changes_on_datasource_update()
+CREATE FUNCTION trend_directory.changes_on_data_source_update()
     RETURNS TRIGGER
 AS $$
 BEGIN
     IF NEW.name <> OLD.name THEN
         UPDATE trend_directory.partition SET
             table_name = trend_directory.to_table_name(partition)
-        FROM trend_directory.trendstore ts
-        WHERE ts.datasource_id = NEW.id AND ts.id = partition.trendstore_id;
+        FROM trend_directory.trend_store ts
+        WHERE ts.data_source_id = NEW.id AND ts.id = partition.trend_store_id;
     END IF;
 
     RETURN NEW;
@@ -14,11 +14,11 @@ END;
 $$ LANGUAGE plpgsql VOLATILE;
 
 
-CREATE FUNCTION trend_directory.cleanup_on_datasource_delete()
+CREATE FUNCTION trend_directory.cleanup_on_data_source_delete()
     RETURNS TRIGGER
 AS $$
 BEGIN
-    DELETE FROM trend_directory.trendstore WHERE datasource_id = OLD.id;
+    DELETE FROM trend_directory.trend_store WHERE data_source_id = OLD.id;
 
     RETURN OLD;
 END;
@@ -33,9 +33,9 @@ DECLARE
 BEGIN
     IF NEW.name <> OLD.name THEN
         FOR base_table_name IN
-            SELECT trend_directory.base_table_name(trendstore)
+            SELECT trend_directory.base_table_name(trend_store)
             FROM trend_directory.trend
-            JOIN trend_directory.trendstore ON trend.trendstore_id = trendstore.id
+            JOIN trend_directory.trend_store ON trend.trend_store_id = trend_store.id
             WHERE trend.id = NEW.id
         LOOP
             EXECUTE format('ALTER TABLE trend_directory.%I RENAME COLUMN %I TO %I', base_table_name, OLD.name, NEW.name);
@@ -85,7 +85,7 @@ END;
 $$ LANGUAGE plpgsql VOLATILE;
 
 
-CREATE FUNCTION trend_directory.cleanup_trendstore_on_delete()
+CREATE FUNCTION trend_directory.cleanup_trend_store_on_delete()
     RETURNS TRIGGER
 AS $$
 DECLARE
@@ -96,7 +96,7 @@ BEGIN
     IF OLD.type = 'table' THEN
         EXECUTE format('DROP TABLE IF EXISTS trend.%I CASCADE', table_name);
     ELSIF OLD.type = 'view' THEN
-        DELETE FROM trend_directory.view WHERE trendstore_id = OLD.id;
+        DELETE FROM trend_directory.view WHERE trend_store_id = OLD.id;
     END IF;
 
     RETURN OLD;

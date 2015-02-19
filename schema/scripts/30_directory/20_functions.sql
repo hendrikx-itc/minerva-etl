@@ -1,84 +1,38 @@
-CREATE FUNCTION directory.getentitybydn(character varying)
-    RETURNS TABLE(
-        id integer,
-        entitytype_id integer,
-        name character varying,
-        parent_id integer)
-AS $$
-    SELECT id, entitytype_id, name, parent_id FROM directory.entity WHERE dn=$1;
-$$ LANGUAGE sql STABLE COST 100 ROWS 1;
-
-CREATE FUNCTION directory.getentitybyid(integer)
-    RETURNS TABLE(
-        dn character varying,
-        entitytype_id integer,
-        name character varying,
-        parent_id integer)
-AS $$
-    SELECT dn, entitytype_id, name, parent_id FROM directory.entity WHERE id=$1;
-$$ LANGUAGE sql STABLE COST 100 ROWS 1;
-
-CREATE FUNCTION directory.addentity(timestamp with time zone, character varying(100), integer, character varying, integer)
-    RETURNS integer
-AS $$
-    INSERT INTO directory.entity (id, first_appearance, name, entitytype_id, dn, parent_id)
-    VALUES (DEFAULT, $1, $2, $3, $4, $5) RETURNING id;
-$$ LANGUAGE SQL;
-
-CREATE FUNCTION directory.get_entitytype_id(character varying)
-  RETURNS integer
-AS $$
-    SELECT id FROM directory.entitytype WHERE lower(name)=lower($1);
-$$ LANGUAGE sql STABLE COST 100;
-
-
-CREATE FUNCTION directory.get_entity(character varying)
+CREATE FUNCTION directory.get_entity_by_dn(character varying)
     RETURNS directory.entity
 AS $$
-    SELECT entity FROM directory.entity WHERE dn = $1;
-$$ LANGUAGE SQL STABLE;
+    SELECT * FROM directory.entity WHERE dn = $1;
+$$ LANGUAGE sql STABLE;
 
 
-CREATE FUNCTION directory.entities_by_type(character varying)
-    RETURNS SETOF directory.entity
+CREATE FUNCTION directory.get_entity_by_id(integer)
+    RETURNS directory.entity
 AS $$
-    SELECT e.*
-    FROM directory.entity e
-    JOIN directory.entitytype et ON et.id = e.entitytype_id
-    WHERE et.name = $1;
-$$ LANGUAGE SQL STABLE;
+    SELECT * FROM directory.entity WHERE id = $1;
+$$ LANGUAGE sql STABLE;
 
 
-CREATE FUNCTION directory.entities_by_type(integer)
-    RETURNS SETOF directory.entity
+CREATE FUNCTION directory.get_entity_type(character varying)
+    RETURNS directory.entity_type
 AS $$
-    SELECT *
-    FROM directory.entity
-    WHERE entitytype_id = $1;
-$$ LANGUAGE SQL STABLE;
+    SELECT entity_type FROM directory.entity_type WHERE lower(name) = lower($1);
+$$ LANGUAGE sql STABLE STRICT;
 
 
-CREATE FUNCTION directory.get_entitytype(character varying)
-    RETURNS directory.entitytype
+CREATE FUNCTION directory.get_data_source(character varying)
+    RETURNS directory.data_source
 AS $$
-    SELECT entitytype FROM directory.entitytype WHERE lower(name) = lower($1);
-$$ LANGUAGE SQL STABLE STRICT;
+    SELECT * FROM directory.data_source WHERE name = $1;
+$$ LANGUAGE sql STABLE STRICT;
 
 
-CREATE FUNCTION directory.get_datasource(character varying)
-    RETURNS directory.datasource
+CREATE FUNCTION directory.create_data_source(character varying)
+    RETURNS directory.data_source
 AS $$
-    SELECT datasource FROM directory.datasource WHERE name = $1;
-$$ LANGUAGE SQL STABLE STRICT;
-
-
-CREATE FUNCTION directory.create_datasource(character varying)
-    RETURNS directory.datasource
-AS $$
-    INSERT INTO directory.datasource (name, description)
+    INSERT INTO directory.data_source (name, description)
     VALUES ($1, 'default')
-    RETURNING datasource;
-$$ LANGUAGE SQL VOLATILE STRICT;
+    RETURNING data_source;
+$$ LANGUAGE sql VOLATILE STRICT;
 
 
 CREATE TYPE directory.dn_part AS (type_name character varying, name character varying);
@@ -88,7 +42,7 @@ CREATE FUNCTION directory.dn_part_to_string(directory.dn_part)
     RETURNS character varying
 AS $$
     SELECT $1.type_name || '=' || $1.name;
-$$ LANGUAGE SQL IMMUTABLE STRICT;
+$$ LANGUAGE sql IMMUTABLE STRICT;
 
 
 CREATE CAST (directory.dn_part AS character varying)
@@ -99,7 +53,7 @@ CREATE FUNCTION directory.array_to_dn_part(character varying[])
     RETURNS directory.dn_part
 AS $$
     SELECT CAST(ROW($1[1], $1[2]) AS directory.dn_part);
-$$ LANGUAGE SQL IMMUTABLE;
+$$ LANGUAGE sql IMMUTABLE;
 
 
 CREATE CAST (character varying[] AS directory.dn_part)
@@ -110,14 +64,14 @@ CREATE FUNCTION directory.split_raw_part(character varying)
     RETURNS directory.dn_part
 AS $$
     SELECT directory.array_to_dn_part(string_to_array($1, '='));
-$$ LANGUAGE SQL IMMUTABLE;
+$$ LANGUAGE sql IMMUTABLE;
 
 
 CREATE FUNCTION directory.explode_dn(character varying)
     RETURNS directory.dn_part[]
 AS $$
     SELECT array_agg(directory.split_raw_part(raw_part)) FROM unnest(string_to_array($1, ',')) AS raw_part;
-$$ LANGUAGE SQL IMMUTABLE;
+$$ LANGUAGE sql IMMUTABLE;
 
 
 CREATE FUNCTION directory.glue_dn(directory.dn_part[])
@@ -131,14 +85,14 @@ AS $$
             SELECT directory.dn_part_to_string(part) p FROM unnest($1) part
         ) parts
     ) b;
-$$ LANGUAGE SQL IMMUTABLE STRICT;
+$$ LANGUAGE sql IMMUTABLE STRICT;
 
 
-CREATE FUNCTION directory.create_entitytype(character varying)
-    RETURNS directory.entitytype
+CREATE FUNCTION directory.create_entity_type(character varying)
+    RETURNS directory.entity_type
 AS $$
-    INSERT INTO directory.entitytype(name, description) VALUES ($1, '') RETURNING entitytype;
-$$ LANGUAGE SQL VOLATILE STRICT;
+    INSERT INTO directory.entity_type(name, description) VALUES ($1, '') RETURNING entity_type;
+$$ LANGUAGE sql VOLATILE STRICT;
 
 
 CREATE FUNCTION directory.parent_dn_parts(directory.dn_part[])
@@ -151,35 +105,35 @@ AS $$
             ELSE
                 NULL
         END;
-$$ LANGUAGE SQL IMMUTABLE STRICT;
+$$ LANGUAGE sql IMMUTABLE STRICT;
 
 
 CREATE FUNCTION directory.parent_dn(character varying)
     RETURNS character varying
 AS $$
     SELECT directory.glue_dn(directory.parent_dn_parts(directory.explode_dn($1)));
-$$ LANGUAGE SQL IMMUTABLE STRICT;
+$$ LANGUAGE sql IMMUTABLE STRICT;
 
 
-CREATE FUNCTION directory.name_to_entitytype(character varying)
-    RETURNS directory.entitytype
+CREATE FUNCTION directory.name_to_entity_type(character varying)
+    RETURNS directory.entity_type
 AS $$
-    SELECT COALESCE(directory.get_entitytype($1), directory.create_entitytype($1));
-$$ LANGUAGE SQL VOLATILE STRICT;
+    SELECT COALESCE(directory.get_entity_type($1), directory.create_entity_type($1));
+$$ LANGUAGE sql VOLATILE STRICT;
 
 
-CREATE FUNCTION directory.entitytype_id(directory.entitytype)
+CREATE FUNCTION directory.entity_type_id(directory.entity_type)
     RETURNS integer
 AS $$
     SELECT $1.id;
-$$ LANGUAGE SQL VOLATILE STRICT;
+$$ LANGUAGE sql VOLATILE STRICT;
 
 
 CREATE FUNCTION directory.entity_id(directory.entity)
     RETURNS integer
 AS $$
     SELECT $1.id;
-$$ LANGUAGE SQL VOLATILE STRICT;
+$$ LANGUAGE sql VOLATILE STRICT;
 
 
 -- Stub
@@ -187,66 +141,66 @@ CREATE FUNCTION directory.dn_to_entity(character varying)
     RETURNS directory.entity
 AS $$
     SELECT null::directory.entity;
-$$ LANGUAGE SQL VOLATILE STRICT;
+$$ LANGUAGE sql VOLATILE STRICT;
 
 
 CREATE FUNCTION directory.last_dn_part(directory.dn_part[])
     RETURNS directory.dn_part
 AS $$
     SELECT $1[array_length($1, 1)];
-$$ LANGUAGE SQL IMMUTABLE STRICT;
+$$ LANGUAGE sql IMMUTABLE STRICT;
 
 
 CREATE FUNCTION directory.create_entity(character varying)
     RETURNS directory.entity
 AS $$
-    INSERT INTO directory.entity(first_appearance, name, entitytype_id, dn, parent_id)
+    INSERT INTO directory.entity(created, name, entity_type_id, dn, parent_id)
         VALUES (
             now(),
             (directory.last_dn_part(directory.explode_dn($1))).name,
-            directory.entitytype_id(directory.name_to_entitytype((directory.last_dn_part(directory.explode_dn($1))).type_name)),
+            directory.entity_type_id(directory.name_to_entity_type((directory.last_dn_part(directory.explode_dn($1))).type_name)),
             $1,
             directory.entity_id(directory.dn_to_entity(directory.glue_dn(directory.parent_dn_parts(directory.explode_dn($1)))))
         )
         RETURNING entity;
-$$ LANGUAGE SQL VOLATILE STRICT;
+$$ LANGUAGE sql VOLATILE STRICT;
 
 
 -- Use 'CREATE OR REPLACE' to replace the dn_to_entity stub
 CREATE OR REPLACE FUNCTION directory.dn_to_entity(character varying)
     RETURNS directory.entity
 AS $$
-    SELECT COALESCE(directory.get_entity($1), directory.create_entity($1));
-$$ LANGUAGE SQL VOLATILE STRICT;
+    SELECT COALESCE(directory.get_entity_by_dn($1), directory.create_entity($1));
+$$ LANGUAGE sql VOLATILE STRICT;
 
 
-CREATE FUNCTION directory.get_alias(entity_id integer, aliastype_name character varying)
+CREATE FUNCTION directory.get_alias(entity_id integer, alias_type_name character varying)
     RETURNS character varying
 AS $$
     SELECT a.name
       FROM directory.alias a
-      JOIN directory.aliastype at on at.id = a.type_id
+      JOIN directory.alias_type at on at.id = a.type_id
      WHERE a.entity_id = $1 and at.name = $2;
 $$ LANGUAGE sql STABLE;
 
 
-CREATE FUNCTION directory.name_to_datasource(character varying)
-    RETURNS directory.datasource
+CREATE FUNCTION directory.name_to_data_source(character varying)
+    RETURNS directory.data_source
 AS $$
-    SELECT COALESCE(directory.get_datasource($1), directory.create_datasource($1));
-$$ LANGUAGE SQL VOLATILE STRICT;
+    SELECT COALESCE(directory.get_data_source($1), directory.create_data_source($1));
+$$ LANGUAGE sql VOLATILE STRICT;
 
 
 CREATE FUNCTION directory.dns_to_entity_ids(character varying[])
     RETURNS SETOF integer
 AS $$
     SELECT (directory.dn_to_entity(dn)).id FROM unnest($1) dn;
-$$ LANGUAGE SQL VOLATILE STRICT;
+$$ LANGUAGE sql VOLATILE STRICT;
 
 
 CREATE TYPE directory.query_part AS (c text[], s text);
 
-CREATE TYPE directory.query_row AS (id integer, dn text, entitytype_id integer);
+CREATE TYPE directory.query_row AS (id integer, dn text, entity_type_id integer);
 
 ------------------------------------------
 -- Example usage of run_minerva_query:
@@ -257,48 +211,10 @@ CREATE TYPE directory.query_row AS (id integer, dn text, entitytype_id integer);
 ------------------------------------------
 
 CREATE FUNCTION directory.run_minerva_query(query directory.query_part[])
-    RETURNS TABLE(id integer, dn varchar, entitytype_id integer)
+    RETURNS TABLE(id integer, dn varchar, entity_type_id integer)
 AS $$
 BEGIN
     RETURN QUERY EXECUTE compile_minerva_query(query);
-END;
-$$ LANGUAGE plpgsql VOLATILE;
-
-
-CREATE FUNCTION directory.sumproduct(query directory.query_part[], value_trend text, weight_trend text)
-    RETURNS TABLE("timestamp" timestamp with time zone, wavg float)
-AS $$
-DECLARE
-    sql text;
-BEGIN
-    sql = compile_minerva_query(query);
-
-    sql = format('SELECT t1.timestamp, CAST(SUM(t1."CCR" * t2."Traffic_Full") AS double precision) FROM (' || sql || ') e
-JOIN trend."tnpmw-ccr_cell_day_20120521" t1 ON t1.entity_id = e.id
-JOIN trend."tnpmw-traffic_cell_day_20120521" t2 ON t2.entity_id = e.id AND t2.timestamp = t1.timestamp
-WHERE t1.timestamp = %L
-GROUP BY t1.timestamp;', '2012-06-02');
-
-    RETURN QUERY EXECUTE sql;
-END;
-$$ LANGUAGE plpgsql VOLATILE;
-
-
-CREATE FUNCTION directory.wavg(query directory.query_part[], value_trend_id integer, weight_trend_id integer)
-    RETURNS TABLE("timestamp" timestamp with time zone, wavg float)
-AS $$
-DECLARE
-    sql text;
-BEGIN
-    sql = directory.compile_minerva_query(query);
-
-    sql = format('SELECT t1.timestamp, CAST(SUM(t1."CCR" * t2."Traffic_Full") / SUM(t2."Traffic_Full") AS double precision) FROM (' || sql || ') e
-JOIN trend."tnpmw-ccr_cell_day_20120521" t1 ON t1.entity_id = e.id
-JOIN trend."tnpmw-traffic_cell_day_20120521" t2 ON t2.entity_id = e.id AND t2.timestamp = t1.timestamp
-WHERE t1.timestamp = %L
-GROUP BY t1.timestamp;', '2012-06-02');
-
-    RETURN QUERY EXECUTE sql;
 END;
 $$ LANGUAGE plpgsql VOLATILE;
 
@@ -343,7 +259,7 @@ DECLARE
     q_part directory.query_part;
     tag text;
 BEGIN
-    sql = 'SELECT entity.id, entity.dn, entity.entitytype_id FROM directory.entitytaglink tl_1_1';
+    sql = 'SELECT entity.id, entity.dn, entity.entity_type_id FROM directory.entity_tag_link tl_1_1';
 
     entity_id_table = 'tl_1_1';
     entity_id_column = 'entity_id';
@@ -379,17 +295,17 @@ CREATE FUNCTION directory.make_c_join(index integer, entity_id_table text, entit
     RETURNS text
 AS $$
 DECLARE
-    entitytaglink_alias text;
+    entity_tag_link_alias text;
     entitytag_alias text;
 BEGIN
-    entitytaglink_alias = 'tl_' || index || '_' || tag_index;
+    entity_tag_link_alias = 'tl_' || index || '_' || tag_index;
     entitytag_alias = 't_' || index || '_' || tag_index;
 
-    IF NOT entity_id_table = entitytaglink_alias THEN
-        RETURN format(' JOIN directory.entitytaglink %I ON %I.%I = %I.entity_id', entitytaglink_alias, entity_id_table, entity_id_column, entitytaglink_alias) ||
-            format(' JOIN directory.entitytag %I ON %I.id = %I.entitytag_id AND lower(%I.name) = lower(%L)', entitytag_alias, entitytag_alias, entitytaglink_alias, entitytag_alias, tag);
+    IF NOT entity_id_table = entity_tag_link_alias THEN
+        RETURN format(' JOIN directory.entity_tag_link %I ON %I.%I = %I.entity_id', entity_tag_link_alias, entity_id_table, entity_id_column, entity_tag_link_alias) ||
+            format(' JOIN directory.entitytag %I ON %I.id = %I.entitytag_id AND lower(%I.name) = lower(%L)', entitytag_alias, entitytag_alias, entity_tag_link_alias, entitytag_alias, tag);
     ELSE
-        RETURN format(' JOIN directory.entitytag %I ON %I.id = %I.entitytag_id AND lower(%I.name) = lower(%L)', entitytag_alias, entitytag_alias, entitytaglink_alias, entitytag_alias, tag);
+        RETURN format(' JOIN directory.entitytag %I ON %I.id = %I.entitytag_id AND lower(%I.name) = lower(%L)', entitytag_alias, entitytag_alias, entity_tag_link_alias, entitytag_alias, tag);
     END IF;
 END;
 $$ LANGUAGE plpgsql STABLE STRICT;
@@ -414,31 +330,31 @@ $$ LANGUAGE plpgsql STABLE STRICT;
 CREATE FUNCTION directory.tag_entity(entity_id integer, tag character varying)
     RETURNS integer
 AS $$
-    INSERT INTO directory.entitytaglink(tag_id, entity_id) SELECT id, $1 FROM directory.tag WHERE name = $2 RETURNING $1;
-$$ LANGUAGE SQL VOLATILE;
+    INSERT INTO directory.entity_tag_link(tag_id, entity_id) SELECT id, $1 FROM directory.tag WHERE name = $2 RETURNING $1;
+$$ LANGUAGE sql VOLATILE;
 
 
 CREATE FUNCTION directory.tag_entity(dn character varying, tag character varying)
     RETURNS character varying
 AS $$
-    INSERT INTO directory.entitytaglink(tag_id, entity_id)
+    INSERT INTO directory.entity_tag_link(tag_id, entity_id)
     SELECT tag.id, entity.id
     FROM directory.tag, directory.entity
     WHERE tag.name = $2 AND entity.dn = $1 RETURNING $1;
-$$ LANGUAGE SQL VOLATILE;
+$$ LANGUAGE sql VOLATILE;
 
 
 CREATE FUNCTION directory.update_denormalized_entity_tags(entity_id integer)
-    RETURNS directory.entity_link_denorm
+    RETURNS directory.entity_tag_link_denorm
 AS $$
-DELETE FROM directory.entity_link_denorm WHERE entity_id = $1;
-INSERT INTO directory.entity_link_denorm
+DELETE FROM directory.entity_tag_link_denorm WHERE entity_id = $1;
+INSERT INTO directory.entity_tag_link_denorm
 SELECT
     entity.id,
     array_agg(lower(tag.name)),
     lower(entity.name)
 FROM directory.entity
-JOIN directory.entitytaglink etl ON etl.entity_id = entity.id
+JOIN directory.entity_tag_link etl ON etl.entity_id = entity.id
 JOIN directory.tag ON tag.id = etl.tag_id
 WHERE entity.id = $1
 GROUP BY entity.id
@@ -457,15 +373,14 @@ $BODY$
   GROUP BY existence.entity_id
 
 $BODY$
-  LANGUAGE sql STABLE STRICT
-  COST 100;
+  LANGUAGE sql STABLE STRICT;
 
 
 CREATE FUNCTION directory.existing_staging(timestamp with time zone)
     RETURNS SETOF directory.existence
 AS $$
     SELECT
-        $1, True, entity.id, entity.entitytype_id
+        $1, True, entity.id, entity.entity_type_id
     FROM directory.existence_staging
     JOIN directory.entity ON entity.dn = existence_staging.dn;
 $$ LANGUAGE sql STABLE;
@@ -474,9 +389,9 @@ $$ LANGUAGE sql STABLE;
 CREATE FUNCTION directory.non_existing_staging(timestamp with time zone)
     RETURNS SETOF directory.existence
 AS $$
-    SELECT $1, False, entity.id, entity.entitytype_id
-    FROM directory.existence_staging_entitytype_ids
-    JOIN directory.entity ON entity.entitytype_id = existence_staging_entitytype_ids.entitytype_id
+    SELECT $1, False, entity.id, entity.entity_type_id
+    FROM directory.existence_staging_entity_type_ids
+    JOIN directory.entity ON entity.entity_type_id = existence_staging_entity_type_ids.entity_type_id
     LEFT JOIN directory.existence_staging ON existence_staging.dn = entity.dn
     WHERE existence_staging.dn IS NULL;
 $$ LANGUAGE sql STABLE;
@@ -498,7 +413,7 @@ AS $$
         existence.timestamp,
         existence.exists,
         existence.entity_id,
-        existence.entitytype_id
+        existence.entity_type_id
     FROM directory.existence JOIN (
         SELECT entity_id, max(timestamp) AS timestamp
         FROM directory.existence
@@ -515,7 +430,7 @@ SELECT
     staging_state.timestamp,
     staging_state.exists,
     staging_state.entity_id,
-    staging_state.entitytype_id
+    staging_state.entity_type_id
 FROM directory.existence_staging_state($1) staging_state
 LEFT JOIN directory.existence_at($1) existence_at ON existence_at.entity_id = staging_state.entity_id
 WHERE existence_at.entity_id IS NULL OR (existence_at.exists <> staging_state.exists AND existence_at.timestamp < staging_state.timestamp);
@@ -525,7 +440,7 @@ $$ LANGUAGE sql STABLE;
 CREATE FUNCTION directory.transfer_existence(timestamp with time zone)
     RETURNS timestamp with time zone
 AS $$
-INSERT INTO directory.existence(timestamp, exists, entity_id, entitytype_id)
+INSERT INTO directory.existence(timestamp, exists, entity_id, entity_type_id)
 (
     SELECT * FROM directory.new_existence_state($1)
 );

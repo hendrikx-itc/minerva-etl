@@ -1,18 +1,14 @@
-import datetime
-import pytz
-
-
 class Entity():
     """
     All data within the Minerva platform is linked to entities. Entities are
     very minimal objects with only very generic properties such as name,
     parent, type and a few more.
     """
-    def __init__(self, id, name, entitytype_id, dn, parent_id):
+    def __init__(self, id, created, name, entity_type_id, dn, parent_id):
         self.id = id
-        self.first_appearance = pytz.utc.localize(datetime.datetime.utcnow())
+        self.created = created
         self.name = name
-        self.entitytype_id = entitytype_id
+        self.entity_type_id = entity_type_id
         self.dn = dn
         self.parent_id = parent_id
 
@@ -23,49 +19,44 @@ class Entity():
         return self.name
 
     @staticmethod
-    def create_from_dn(cursor, dn):
+    def create_from_dn(dn):
         """
-        :param conn: A cursor an a Minerva Directory database.
         :param dn: The distinguished name of the entity.
         """
-        cursor.callproc("directory.create_entity", (dn,))
+        def f(cursor):
+            cursor.callproc("directory.create_entity", (dn,))
 
-        row = cursor.fetchone()
+            return Entity(*cursor.fetchone())
 
-        id, _first_appearance, name, entitytype_id, dn, parent_id = row
-
-        return Entity(id, name, entitytype_id, dn, parent_id)
-
-    @staticmethod
-    def get(cursor, entity_id):
-        """Return entity with specified distinguished name."""
-        args = (entity_id,)
-
-        cursor.callproc("directory.getentitybyid", args)
-
-        if cursor.rowcount == 1:
-            (dn, entitytype_id, entity_name, parent_id) = cursor.fetchone()
-
-            return Entity(entity_id, entity_name, entitytype_id, dn, parent_id)
+        return f
 
     @staticmethod
-    def get_by_dn(cursor, dn):
-        """Return entity with specified distinguished name."""
-        args = (dn,)
+    def get(entity_id):
+        """Return entity with specified distinguished name"""
+        def f(cursor):
+            cursor.callproc("directory.get_entity_by_id", (entity_id,))
 
-        cursor.callproc("directory.getentitybydn", args)
+            if cursor.rowcount == 1:
+                return Entity(*cursor.fetchone())
 
-        if cursor.rowcount == 1:
-            (entity_id, entitytype_id, entity_name, parent_id) = cursor.fetchone()
-
-            return Entity(entity_id, entity_name, entitytype_id, dn, parent_id)
+        return f
 
     @staticmethod
-    def from_dn(cursor, dn):
-        cursor.callproc("directory.dn_to_entity", (dn,))
+    def get_by_dn(dn):
+        """Return entity with specified distinguished name"""
+        def f(cursor):
+            cursor.callproc("directory.get_entity_by_dn", (dn,))
 
-        row = cursor.fetchone()
+            if cursor.rowcount == 1:
+                return Entity(*cursor.fetchone())
 
-        id, first_appearance, name, entitytype_id, _dn, parent_id = row
+        return f
 
-        return Entity(id, name, entitytype_id, dn, parent_id)
+    @staticmethod
+    def from_dn(dn):
+        def f(cursor):
+            cursor.callproc("directory.dn_to_entity", (dn,))
+
+            return Entity(*cursor.fetchone())
+
+        return f

@@ -2,9 +2,9 @@ BEGIN;
 
 SELECT plan(3);
 
-SELECT trend_directory.create_trendstore(
+SELECT trend_directory.create_trend_store(
     'test1',
-    'some_entitytype_name',
+    'some_entity_type_name',
     '900',
     ARRAY[
         ('x', 'integer', 'some column with integer values')
@@ -13,13 +13,13 @@ SELECT trend_directory.create_trendstore(
 
 SELECT has_table(
     'trend',
-    'test1_some_entitytype_name_qtr',
-    'trendstore table with one trend column should exist'
+    'test1_some_entity_type_name_qtr',
+    'trend_store table with one trend column should exist'
 );
 
 SELECT columns_are(
     'trend',
-    'test1_some_entitytype_name_qtr',
+    'test1_some_entity_type_name_qtr',
     ARRAY[
         'entity_id',
         'timestamp',
@@ -28,17 +28,17 @@ SELECT columns_are(
     ]
 );
 
-SELECT trend_directory.create_trendstore(
+SELECT trend_directory.create_trend_store(
     'test2',
-    'some_entitytype_name',
+    'some_entity_type_name',
     '900',
     ARRAY[]::trend_directory.trend_descr[]
 );
 
 SELECT has_table(
     'trend',
-    'test2_some_entitytype_name_qtr',
-    'trendstore table without trend columns should exist'
+    'test2_some_entity_type_name_qtr',
+    'trend_store table without trend columns should exist'
 );
 
 

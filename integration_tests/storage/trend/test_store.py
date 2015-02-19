@@ -324,7 +324,7 @@ def test_update_modified_column(conn):
         max_modified = first(cursor.fetchone())
 
         modified_table.select(Column("end")).where_(
-            Eq(Column("trendstore_id"), trend_store.id)
+            Eq(Column("trend_store_id"), trend_store.id)
         ).execute(cursor)
 
         end = first(cursor.fetchone())
@@ -492,7 +492,7 @@ def test_create_trend_store(conn, data_set):
 
 @with_conn(clear_database)
 @with_dataset(TestData)
-def test_create_trendstore_with_children(conn, data_set):
+def test_create_trend_store_with_children(conn, data_set):
     partition_size = 3600
 
     with closing(conn.cursor()) as cursor:
@@ -514,7 +514,7 @@ def test_create_trendstore_with_children(conn, data_set):
 
 @with_conn(clear_database)
 @with_dataset(TestData)
-def test_get_trendstore(conn, data_set):
+def test_get_trend_store(conn, data_set):
     partition_size = 3600
 
     with closing(conn.cursor()) as cursor:
@@ -529,7 +529,7 @@ def test_get_trendstore(conn, data_set):
 
         eq_(trend_store.data_source.id, data_set.data_source.id)
         eq_(trend_store.partition_size, partition_size)
-        assert trend_store.id is not None, "trendstore.id is None"
+        assert trend_store.id is not None, "trend_store.id is None"
 
 
 @with_conn(clear_database)
@@ -685,7 +685,8 @@ def test_store(conn, data_set):
 
     rows = [
         (1234, [1, 2, 3]),
-        (2345, [4, 5, 7])]
+        (2345, [4, 5, 7])
+    ]
 
     data_package = refined_package_type_for_entity_type('Node')(
         data_set.granularity, timestamp, trend_names, rows

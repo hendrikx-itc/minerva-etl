@@ -1,7 +1,7 @@
 CREATE TRIGGER propagate_changes_on_update_to_trend
-    AFTER UPDATE on directory.datasource
+    AFTER UPDATE on directory.data_source
     FOR EACH ROW
-    EXECUTE PROCEDURE trend_directory.changes_on_datasource_update();
+    EXECUTE PROCEDURE trend_directory.changes_on_data_source_update();
 
 
 CREATE TRIGGER propagate_changes_on_trend_update
@@ -16,16 +16,16 @@ CREATE TRIGGER drop_table_on_delete
     EXECUTE PROCEDURE trend_directory.drop_partition_table_on_delete();
 
 
-CREATE TRIGGER delete_trendstores_on_datasource_delete
-    BEFORE DELETE ON directory.datasource
+CREATE TRIGGER delete_trend_stores_on_data_source_delete
+    BEFORE DELETE ON directory.data_source
     FOR EACH ROW
-    EXECUTE PROCEDURE trend_directory.cleanup_on_datasource_delete();
+    EXECUTE PROCEDURE trend_directory.cleanup_on_data_source_delete();
 
 
-CREATE TRIGGER cleanup_trendstore_on_delete
-    BEFORE DELETE ON trend_directory.trendstore
+CREATE TRIGGER cleanup_trend_store_on_delete
+    BEFORE DELETE ON trend_directory.trend_store
     FOR EACH ROW
-    EXECUTE PROCEDURE trend_directory.cleanup_trendstore_on_delete();
+    EXECUTE PROCEDURE trend_directory.cleanup_trend_store_on_delete();
 
 
 CREATE TRIGGER drop_view_on_delete

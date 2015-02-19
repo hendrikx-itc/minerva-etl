@@ -54,10 +54,12 @@ class Query():
 
         for level, part in enumerate(self.parts):
             if isinstance(part, Context):
-                entitytags_table = As(Table("directory", "entitytags"),
-                                      "etags_{}".format(level))
+                entity_tags_table = As(
+                    Table("directory", "entity_tags"),
+                    "etags_{}".format(level)
+                )
                 if not from_item:
-                    from_item = FromItem(entitytags_table)
+                    from_item = FromItem(entity_tags_table)
 
                 col_id = Column("id")
 
@@ -65,14 +67,15 @@ class Query():
 
                 tag_name_criterion = Eq(Call("lower", Column("name")), Any())
 
-                subselect = Select(columns).from_(
-                    [Table("directory", "tag")]).where_(tag_name_criterion)
+                sub_select = Select(columns).from_(
+                    [Table("directory", "tag")]
+                ).where_(tag_name_criterion)
 
                 criterion = ArrayContains(
-                    Column(entitytags_table.alias, "tag_ids"),
-                    Parenthesis(subselect))
+                    Column(entity_tags_table.alias, "tag_ids"),
+                    Parenthesis(sub_select))
 
-                entity_id_column = Column(entitytags_table, "entity_id")
+                entity_id_column = Column(entity_tags_table, "entity_id")
 
                 criteria.append(criterion)
 
@@ -82,18 +85,27 @@ class Query():
                 args.extend(context_args)
 
             elif isinstance(part, Alias):
-                alias_table = As(Table("directory", "alias"),
-                                 "alias_{}".format(level))
-                specifier_criterion = Eq(Column(alias_table, "name"),
-                                         part.name)
-                entity_id_criterion = Eq(entity_id_column, Column(alias_table,
-                                                                  "entity_id"))
+                alias_table = As(
+                    Table("directory", "alias"),
+                    "alias_{}".format(level)
+                )
+                specifier_criterion = Eq(
+                    Column(alias_table, "name"),
+                    part.name
+                )
+                entity_id_criterion = Eq(
+                    entity_id_column,
+                    Column(alias_table, "entity_id")
+                )
 
                 criterion = And(entity_id_criterion, specifier_criterion)
                 from_item = from_item.join(alias_table, criterion)
 
-        return Select([entity_id_column]).from_(from_item).where_(
-            ands(criteria)), args
+        query = Select(
+            [entity_id_column]
+        ).from_(from_item).where_(ands(criteria))
+
+        return query, args
 
     def execute(self, cursor):
         select, args = self.compile()

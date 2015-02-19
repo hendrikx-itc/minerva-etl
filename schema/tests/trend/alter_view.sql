@@ -4,7 +4,7 @@ SELECT plan(2);
 
 SELECT trend_directory.create_view(
     trend_directory.define_view(
-        trend_directory.attributes_to_view_trendstore('test-source', 'test-type', '900'),
+        trend_directory.attributes_to_view_trend_store('test-source', 'test-type', '900'),
         'SELECT 1 x, 2 y'
     )
 );

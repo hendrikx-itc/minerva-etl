@@ -13,7 +13,7 @@ import psycopg2
 from minerva import __version__ as version
 from minerva.db import parse_db_url
 from minerva.db.util import render_result
-from minerva.directory.query import compile_sql, get_entitytags_by_query
+from minerva.directory.query import compile_sql, get_entity_tags_by_query
 from minerva.util import unlines
 from minerva.instance import MinervaInstance
 
@@ -64,7 +64,7 @@ def main():
             #query = "SELECT * {}".format(select)
             #print(cursor.mogrify(query, query_args))
 
-            tag_ids = get_entitytags_by_query(cursor, query, 'AWACS')
+            tag_ids = get_entity_tags_by_query(cursor, query, 'AWACS')
 
             print(tag_ids)
 

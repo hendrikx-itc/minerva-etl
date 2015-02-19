@@ -22,7 +22,7 @@ CREATE TRIGGER create_column_on_insert
     EXECUTE PROCEDURE notification.create_attribute_column_on_insert();
 
 
-CREATE TRIGGER delete_notificationstores_on_datasource_delete
-    BEFORE DELETE ON directory.datasource
+CREATE TRIGGER delete_notificationstores_on_data_source_delete
+    BEFORE DELETE ON directory.data_source
     FOR EACH ROW
-    EXECUTE PROCEDURE notification.cleanup_on_datasource_delete();
+    EXECUTE PROCEDURE notification.cleanup_on_data_source_delete();

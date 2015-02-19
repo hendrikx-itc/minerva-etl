@@ -6,7 +6,7 @@ CREATE VIEW materialization.tagged_runnable_materializations AS
         JOIN materialization.type_tag_link mtl ON mtl.type_id = mstate.type_id
         JOIN directory.tag t ON t.id = mtl.tag_id
         JOIN materialization.type mt ON mt.id = mstate.type_id
-        JOIN trend_directory.trendstore ts ON ts.id = mt.dst_trendstore_id
+        JOIN trend_directory.trend_store ts ON ts.id = mt.dst_trend_store_id
         LEFT JOIN system.job j ON j.id = mstate.job_id
         WHERE
             materialization.requires_update(mstate)
@@ -25,18 +25,18 @@ CREATE VIEW materialization.materializable_source_state AS
         SELECT
             mt.id AS type_id,
             trend_directory.get_timestamp_for(dst.granularity, mdf.timestamp) AS timestamp,
-            mdf.trendstore_id,
+            mdf.trend_store_id,
             mdf.timestamp AS src_timestamp,
             mdf."end" AS modified
         FROM trend_directory.modified mdf
-        JOIN trend_directory.view_trendstore_link vtl ON
-                vtl.trendstore_id = mdf.trendstore_id
+        JOIN trend_directory.view_trend_store_link vtl ON
+                vtl.trend_store_id = mdf.trend_store_id
         JOIN trend_directory.view v ON
         v.id = vtl.view_id
         JOIN materialization.type mt ON
-                mt.src_trendstore_id = v.trendstore_id
-        JOIN trend_directory.trendstore dst ON
-                dst.id = mt.dst_trendstore_id;
+                mt.src_trend_store_id = v.trend_store_id
+        JOIN trend_directory.trend_store dst ON
+                dst.id = mt.dst_trend_store_id;
 
 ALTER VIEW materialization.materializable_source_state OWNER TO minerva_admin;
 
@@ -52,10 +52,10 @@ CREATE VIEW materialization.materializables AS
         max(modified) AS max_modified,
         array_agg(
             (
-                (trendstore_id, src_timestamp)::materialization.source_fragment,
+                (trend_store_id, src_timestamp)::materialization.source_fragment,
                 modified
             )::materialization.source_fragment_state
-            ORDER BY trendstore_id, src_timestamp
+            ORDER BY trend_store_id, src_timestamp
         ) AS source_states
     FROM materialization.materializable_source_state
     GROUP BY type_id, timestamp;
@@ -129,18 +129,18 @@ CREATE VIEW materialization.trend_ext AS
 SELECT
     t.id,
     t.name,
-    ds.name AS datasource_name,
-    et.name AS entitytype_name,
+    ds.name AS data_source_name,
+    et.name AS entity_type_name,
     ts.granularity,
     CASE
-        WHEN m.src_trendstore_id IS NULL THEN false
+        WHEN m.src_trend_store_id IS NULL THEN false
         ELSE true
     END AS materialized
     FROM trend_directory.trend t
-    JOIN trend_directory.trendstore ts ON ts.id = t.trendstore_id
-    JOIN directory.datasource ds ON ds.id = ts.datasource_id
-    JOIN directory.entitytype et ON et.id = ts.entitytype_id
-    LEFT JOIN materialization.type m ON m.src_trendstore_id = ts.id;
+    JOIN trend_directory.trend_store ts ON ts.id = t.trend_store_id
+    JOIN directory.data_source ds ON ds.id = ts.data_source_id
+    JOIN directory.entity_type et ON et.id = ts.entity_type_id
+    LEFT JOIN materialization.type m ON m.src_trend_store_id = ts.id;
 
 
 ALTER VIEW materialization.trend_ext OWNER TO minerva_admin;

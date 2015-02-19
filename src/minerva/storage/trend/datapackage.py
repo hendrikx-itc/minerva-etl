@@ -95,8 +95,8 @@ class DataPackageBase():
     @staticmethod
     def merge_packages(packages):
         return [
-            package_group(k, list(group))
-            for k, group in grouped_by(packages, DataPackageBase.get_key)
+            package_group(key, list(group))
+            for key, group in grouped_by(packages, DataPackageBase.get_key)
         ]
 
     def copy_from(self, table, value_descriptors, modified):
@@ -202,10 +202,6 @@ def parse_values(parsers):
     return zip_apply(parsers)
 
 
-def values_pass_through(parsers):
-    return identity
-
-
 DefaultPackage = data_package_type(
     'DataPackageClassic', EntityDnRef, from_first_dn, parse_values
 )
@@ -220,5 +216,5 @@ def refined_package_type_for_entity_type(entity_type_name):
         '{}DataPackage'.format(entity_type_name),
         EntityIdRef,
         k(entity_type_name),
-        values_pass_through
+        k(identity)
     )

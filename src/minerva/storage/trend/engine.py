@@ -244,11 +244,3 @@ class TrendEngine():
             pass
 
         return complete
-
-    def reset_schema(self, cursor):
-        schema.reset(cursor)
-
-    def store_raw(self, datasource, raw_datapackage):
-        transaction = store_raw(datasource, raw_datapackage)
-
-        transaction.run(self.conn)

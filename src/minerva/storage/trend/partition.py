@@ -48,8 +48,8 @@ class Partition():
 
     def create(self, cursor):
         query = (
-            "SELECT trend_directory.create_partition(trendstore, %s) "
-            "FROM trend_directory.trendstore "
+            "SELECT trend_directory.create_partition(trend_store, %s) "
+            "FROM trend_directory.trend_store "
             "WHERE id = %s"
         )
         args = self.index, self.trend_store.id

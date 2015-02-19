@@ -16,9 +16,9 @@ CREATE TYPE notification.attr_def AS (name name, data_type name);
 
 CREATE TABLE notification.notificationstore (
     id serial PRIMARY KEY,
-    datasource_id integer REFERENCES directory.datasource ON DELETE CASCADE,
+    data_source_id integer REFERENCES directory.data_source ON DELETE CASCADE,
     version integer not null,
-    CONSTRAINT uniqueness UNIQUE(datasource_id)
+    CONSTRAINT uniqueness UNIQUE(data_source_id)
 );
 
 COMMENT ON TABLE notification.notificationstore IS
@@ -26,8 +26,8 @@ COMMENT ON TABLE notification.notificationstore IS
 'and functions that can store and manage notifications of a certain type. '
 'These corresponding tables and functions are created automatically for each '
 'notificationstore. Because each notificationstore maps one-on-one to a '
-'datasource, the name of the notificationstore is the same as that of the '
-'datasource. Use the create_notificationstore function to create new '
+'data_source, the name of the notificationstore is the same as that of the '
+'data_source. Use the create_notificationstore function to create new '
 'notificationstores.';
 
 ALTER TABLE notification.notificationstore OWNER TO minerva_admin;

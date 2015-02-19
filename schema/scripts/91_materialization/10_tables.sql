@@ -9,8 +9,8 @@ GRANT USAGE ON SCHEMA materialization TO minerva;
 
 CREATE TABLE materialization.type (
     id serial NOT NULL,
-    src_trendstore_id integer NOT NULL,
-    dst_trendstore_id integer NOT NULL,
+    src_trend_store_id integer NOT NULL,
+    dst_trend_store_id integer NOT NULL,
     processing_delay interval NOT NULL,
     stability_delay interval NOT NULL,
     reprocessing_period interval NOT NULL,
@@ -18,12 +18,12 @@ CREATE TABLE materialization.type (
     cost integer NOT NULL DEFAULT 10
 );
 
-COMMENT ON COLUMN materialization.type.src_trendstore_id IS
+COMMENT ON COLUMN materialization.type.src_trend_store_id IS
 'The unique identifier of this materialization type';
-COMMENT ON COLUMN materialization.type.src_trendstore_id IS
-'The Id of the source trendstore, which should be the Id of a view based trendstore';
-COMMENT ON COLUMN materialization.type.dst_trendstore_id IS
-'The Id of the destination trendstore, which should be the Id of a table based trendstore';
+COMMENT ON COLUMN materialization.type.src_trend_store_id IS
+'The Id of the source trend_store, which should be the Id of a view based trend_store';
+COMMENT ON COLUMN materialization.type.dst_trend_store_id IS
+'The Id of the destination trend_store, which should be the Id of a table based trend_store';
 COMMENT ON COLUMN materialization.type.processing_delay IS
 'The time after the destination timestamp before this materialization can be executed';
 COMMENT ON COLUMN materialization.type.stability_delay IS
@@ -42,23 +42,23 @@ GRANT SELECT ON TABLE materialization.type TO minerva;
 GRANT INSERT,DELETE,UPDATE ON TABLE materialization.type TO minerva_writer;
 
 ALTER TABLE ONLY materialization.type
-    ADD CONSTRAINT materialization_type_src_trendstore_id_fkey
-    FOREIGN KEY (src_trendstore_id) REFERENCES trend_directory.trendstore(id)
+    ADD CONSTRAINT materialization_type_src_trend_store_id_fkey
+    FOREIGN KEY (src_trend_store_id) REFERENCES trend_directory.trend_store(id)
     ON DELETE CASCADE;
 
 ALTER TABLE ONLY materialization.type
-    ADD CONSTRAINT materialization_type_dst_trendstore_id_fkey
-    FOREIGN KEY (dst_trendstore_id) REFERENCES trend_directory.trendstore(id)
+    ADD CONSTRAINT materialization_type_dst_trend_store_id_fkey
+    FOREIGN KEY (dst_trend_store_id) REFERENCES trend_directory.trend_store(id)
     ON DELETE CASCADE;
 
 CREATE UNIQUE INDEX ix_materialization_type_uniqueness
-    ON materialization.type (src_trendstore_id, dst_trendstore_id);
+    ON materialization.type (src_trend_store_id, dst_trend_store_id);
 
 
 -- table state
 
 CREATE TYPE materialization.source_fragment AS (
-    trendstore_id integer,
+    trend_store_id integer,
     timestamp timestamp with time zone
 );
 
@@ -88,7 +88,7 @@ COMMENT ON COLUMN materialization.state.timestamp IS
 COMMENT ON COLUMN materialization.state.max_modified IS
 'The greatest modified timestamp of all materialization sources';
 COMMENT ON COLUMN materialization.state.source_states IS
-'Array of trendstore_id/timestamp/modified combinations for all source data fragments';
+'Array of trend_store_id/timestamp/modified combinations for all source data fragments';
 COMMENT ON COLUMN materialization.state.processed_states IS
 'Array containing a snapshot of the source_states at the time of the most recent materialization';
 COMMENT ON COLUMN materialization.state.job_id IS

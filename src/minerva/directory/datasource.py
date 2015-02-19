@@ -13,14 +13,14 @@ class DataSource():
     @staticmethod
     def create(name, description):
         """
-        Create new datasource
+        Create new data source
         :param cursor: cursor instance used to store into the Minerva database.
         :param name: identifying name of data source.
         :param description: A short description.
         """
         def f(cursor):
             query = (
-                "INSERT INTO directory.datasource "
+                "INSERT INTO directory.data_source "
                 "(id, name, description) "
                 "VALUES (DEFAULT, %s, %s) RETURNING *"
             )
@@ -36,10 +36,10 @@ class DataSource():
     @staticmethod
     def get(datasource_id):
         def f(cursor):
-            """Return the datasource with the specified Id."""
+            """Return the data source with the specified Id."""
             query = (
                 "SELECT id, name, description "
-                "FROM directory.datasource "
+                "FROM directory.data_source "
                 "WHERE id=%s"
             )
 
@@ -58,7 +58,7 @@ class DataSource():
             """Return the datasource with the specified name."""
             query = (
                 "SELECT id, name, description "
-                "FROM directory.datasource "
+                "FROM directory.data_source "
                 "WHERE lower(name)=lower(%s)"
             )
 
@@ -75,7 +75,7 @@ class DataSource():
     def from_name(name):
         def f(cursor):
             """Return new or existing datasource with name `name`."""
-            cursor.callproc("directory.name_to_datasource", (name,))
+            cursor.callproc("directory.name_to_data_source", (name,))
 
             if cursor.rowcount > 0:
                 return DataSource(*cursor.fetchone())

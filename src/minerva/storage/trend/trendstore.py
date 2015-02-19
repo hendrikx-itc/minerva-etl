@@ -53,8 +53,25 @@ class TrendStoreDescriptor():
 
 class TrendStore():
     """
-    All data belonging to a specific datasource, entitytype and granularity.
+    All data belonging to a specific data source, entity type and granularity.
     """
+    column_names = [
+        "id", "data_source_id", "entity_type_id", "granularity",
+        "partition_size", "type"
+    ]
+
+    columns = list(map(Column, column_names))
+
+    get_query = schema.trend_store.select(columns).where_(ands([
+        Eq(Column("data_source_id")),
+        Eq(Column("entity_type_id")),
+        Eq(Column("granularity"))
+    ]))
+
+    get_by_id_query = schema.trend_store.select(
+        columns
+    ).where_(Eq(Column("id")))
+
     def __init__(
             self, id, data_source, entity_type, granularity, partition_size,
             type, trends):
@@ -101,9 +118,9 @@ class TrendStore():
     def check_trends_exist(self, trend_descriptors):
         query = (
             "SELECT trend_directory.assure_trends_exist("
-            "trendstore, %s::trend_directory.trend_descr[]"
+            "trend_store, %s::trend_directory.trend_descr[]"
             ") "
-            "FROM trend_directory.trendstore "
+            "FROM trend_directory.trend_store "
             "WHERE id = %s"
         )
 
@@ -121,9 +138,9 @@ class TrendStore():
         """
         query = (
             "SELECT trend_directory.assure_data_types("
-            "trendstore, %s::trend_directory.trend_descr[]"
+            "trend_store, %s::trend_directory.trend_descr[]"
             ") "
-            "FROM trend_directory.trendstore "
+            "FROM trend_directory.trend_store "
             "WHERE id = %s"
         )
 
@@ -136,9 +153,9 @@ class TrendStore():
 
     def get_trend(self, cursor, trend_name):
         query = (
-            "SELECT id, name, data_type, trendstore_id, description "
+            "SELECT id, name, data_type, trend_store_id, description "
             "FROM trend_directory.trend "
-            "WHERE trendstore_id = %s AND name = %s"
+            "WHERE trend_store_id = %s AND name = %s"
         )
 
         args = self.id, trend_name
@@ -151,9 +168,9 @@ class TrendStore():
     @staticmethod
     def get_trends(cursor, trend_store_id):
         query = (
-            "SELECT id, name, data_type, trendstore_id, description "
+            "SELECT id, name, data_type, trend_store_id, description "
             "FROM trend_directory.trend "
-            "WHERE trendstore_id = %s"
+            "WHERE trend_store_id = %s"
         )
 
         args = (trend_store_id, )
@@ -161,8 +178,12 @@ class TrendStore():
         cursor.execute(query, args)
 
         return [
-            Trend(id, name, datatype.type_map[data_type], trendstore_id, description)
-            for id, name, data_type, trendstore_id, description in cursor.fetchall()
+            Trend(
+                id, name, datatype.type_map[data_type], trend_store_id,
+                description
+            )
+            for id, name, data_type, trend_store_id, description
+            in cursor.fetchall()
         ]
 
     @staticmethod
@@ -177,7 +198,7 @@ class TrendStore():
             )
 
             query = (
-                "SELECT * FROM trend_directory.create_trendstore("
+                "SELECT * FROM trend_directory.create_trend_store("
                 "%s, %s, %s, %s::trend_directory.trend_descr[], %s"
                 ")"
             )
@@ -185,17 +206,17 @@ class TrendStore():
             cursor.execute(query, args)
 
             (
-                trendstore_id, entitytype_id, datasource_id, granularity_str,
+                trend_store_id, entity_type_id, data_source_id, granularity_str,
                 partition_size, type, retention_period
             ) = cursor.fetchone()
 
-            entity_type = EntityType.get(entitytype_id)(cursor)
-            data_source = DataSource.get(datasource_id)(cursor)
+            entity_type = EntityType.get(entity_type_id)(cursor)
+            data_source = DataSource.get(data_source_id)(cursor)
 
-            trends = TrendStore.get_trends(cursor, trendstore_id)
+            trends = TrendStore.get_trends(cursor, trend_store_id)
 
             return TrendStore(
-                trendstore_id, data_source, entity_type,
+                trend_store_id, data_source, entity_type,
                 create_granularity(granularity_str), partition_size, type,
                 trends
             )
@@ -212,9 +233,9 @@ class TrendStore():
             )
 
             query = (
-                "UPDATE trend_directory.trendstore SET "
-                "datasource_id = %s, "
-                "entitytype_id = %s, "
+                "UPDATE trend_directory.trend_store SET "
+                "data_source_id = %s, "
+                "entity_type_id = %s, "
                 "granularity = %s, "
                 "partition_size = %s, "
                 "type = %s, "
@@ -230,24 +251,24 @@ class TrendStore():
         def f(cursor):
             args = data_source.id, entity_type.id, str(granularity)
 
-            get_query.execute(cursor, args)
+            cls.get_query.execute(cursor, args)
 
             if cursor.rowcount > 1:
                 raise Exception(
-                    "more than 1 ({}) trendstore matches".format(
+                    "more than 1 ({}) trend store matches".format(
                         cursor.rowcount
                     )
                 )
             elif cursor.rowcount == 1:
                 (
-                    trendstore_id, datasource_id, entitytype_id,
+                    trend_store_id, data_source_id, entity_type_id,
                     granularity_str, partition_size, type
                 ) = cursor.fetchone()
 
-                trends = TrendStore.get_trends(cursor, trendstore_id)
+                trends = TrendStore.get_trends(cursor, trend_store_id)
 
                 return TrendStore(
-                    trendstore_id, data_source, entity_type, granularity,
+                    trend_store_id, data_source, entity_type, granularity,
                     partition_size, type, trends
                 )
 
@@ -258,23 +279,23 @@ class TrendStore():
         def f(cursor):
             args = (id,)
 
-            get_by_id_query.execute(cursor, args)
+            cls.get_by_id_query.execute(cursor, args)
 
             if cursor.rowcount == 1:
                 (
-                    trendstore_id, datasource_id, entitytype_id,
+                    trend_store_id, data_source_id, entity_type_id,
                     granularity_str, partition_size, type
                 ) = cursor.fetchone()
 
-                data_source = DataSource.get(datasource_id)(cursor)
-                entity_type = EntityType.get(entitytype_id)(cursor)
+                data_source = DataSource.get(data_source_id)(cursor)
+                entity_type = EntityType.get(entity_type_id)(cursor)
 
                 trends = TrendStore.get_trends(cursor, id)
 
                 granularity = create_granularity(granularity_str)
 
                 return TrendStore(
-                    trendstore_id, data_source, entity_type, granularity,
+                    trend_store_id, data_source, entity_type, granularity,
                     partition_size, type, trends
                 )
 
@@ -283,7 +304,7 @@ class TrendStore():
     def has_trend(self, cursor, trend_name):
         query = (
             "SELECT 1 FROM trend_directory.trend "
-            "WHERE trendstore_id = %s AND name = %s"
+            "WHERE trend_store_id = %s AND name = %s"
         )
 
         args = self.id, trend_name
@@ -313,8 +334,8 @@ class TrendStore():
     def clear_timestamp(self, timestamp):
         def f(cursor):
             query = (
-                "SELECT trend_directory.cleare_timestamp(trendstore, %s) "
-                "FROM trend_directory.trendstore "
+                "SELECT trend_directory.clear_timestamp(trend_store, %s) "
+                "FROM trend_directory.trend_store "
                 "WHERE id = %s"
             )
 
@@ -397,8 +418,6 @@ class TrendStore():
         """
         Store the data using the PostgreSQL specific COPY FROM command
 
-        :param conn: DBAPI2 database connection
-        :param table: Name of table, including schema
         :param data_package: A DataPackage object
         """
         return self._store_copy_from(
@@ -537,22 +556,6 @@ class TrendStore():
             cursor.callproc("trend_directory.mark_modified", args)
 
         return f
-
-
-column_names = [
-    "id", "datasource_id", "entitytype_id", "granularity",
-    "partition_size", "type"
-]
-
-columns = map(Column, column_names)
-
-get_query = schema.trendstore.select(columns).where_(ands([
-    Eq(Column("datasource_id")),
-    Eq(Column("entitytype_id")),
-    Eq(Column("granularity"))
-]))
-
-get_by_id_query = schema.trendstore.select(columns).where_(Eq(Column("id")))
 
 
 class StoreState():

@@ -44,9 +44,9 @@ SELECT
 FROM gis.handover_relation
 JOIN directory.entity src_et ON src_et.id = handover_relation.source_entity_id
 JOIN directory.entity trg_et ON trg_et.id = handover_relation.target_entity_id
-JOIN directory.entitytaglink etl ON etl.entity_id = trg_et.id
+JOIN directory.entity_tag_link etl ON etl.entity_id = trg_et.id
 JOIN directory.tag ON etl.tag_id = tag.id
-JOIN directory.taggroup etg ON etg.id = tag.taggroup_id AND etg.name = 'generation'
+JOIN directory.tag_group etg ON etg.id = tag.tag_group_id AND etg.name = 'generation'
 JOIN relation.real_handover ON real_handover.source_id = handover_relation.ho_entity_id
 JOIN directory.existence existence ON existence.entity_id = real_handover.target_id
 GROUP BY
@@ -78,9 +78,9 @@ SELECT
 FROM gis.handover_relation
 JOIN directory.entity src_et ON src_et.id = handover_relation.source_entity_id
 JOIN directory.entity trg_et ON trg_et.id = handover_relation.target_entity_id
-JOIN directory.entitytaglink etl ON etl.entity_id = handover_relation.neighbour_entity_id
+JOIN directory.entity_tag_link etl ON etl.entity_id = handover_relation.neighbour_entity_id
 JOIN directory.tag ON etl.tag_id = tag.id
-JOIN directory.taggroup etg ON etg.id = tag.taggroup_id AND etg.name = 'generation'
+JOIN directory.tag_group etg ON etg.id = tag.tag_group_id AND etg.name = 'generation'
 JOIN relation.real_handover ON real_handover.source_id = handover_relation.ho_entity_id
 JOIN directory.existence existence ON existence.entity_id = real_handover.target_id
 GROUP BY
@@ -98,11 +98,11 @@ GRANT SELECT ON TABLE gis.handover_relation_existence TO minerva;
 
 
 CREATE VIEW gis.handoverrelation_tags AS
-    SELECT entitytaglink.entity_id entity_id, array_agg( tag.name ) tags
-    FROM directory.entitytaglink
-    JOIN directory.tag ON entitytaglink.tag_id = tag.id
-    JOIN directory.taggroup ON taggroup.id = tag.taggroup_id AND taggroup.name = 'handover'
-    GROUP BY entitytaglink.entity_id;
+    SELECT entity_tag_link.entity_id entity_id, array_agg( tag.name ) tags
+    FROM directory.entity_tag_link
+    JOIN directory.tag ON entity_tag_link.tag_id = tag.id
+    JOIN directory.tag_group ON tag_group.id = tag.tag_group_id AND tag_group.name = 'handover'
+    GROUP BY entity_tag_link.entity_id;
 
 GRANT ALL ON TABLE gis.handoverrelation_tags TO minerva_admin;
 GRANT SELECT ON TABLE gis.handoverrelation_tags TO minerva;
@@ -134,9 +134,9 @@ $BODY$
         FROM gis.handover_relation
         JOIN directory.entity src_et ON src_et.id = handover_relation.source_entity_id
         JOIN directory.entity trg_et ON trg_et.id = handover_relation.target_entity_id
-        JOIN directory.entitytaglink etl ON etl.entity_id = handover_relation.neighbour_entity_id
+        JOIN directory.entity_tag_link etl ON etl.entity_id = handover_relation.neighbour_entity_id
         JOIN directory.tag ON etl.tag_id = tag.id
-        JOIN directory.taggroup etg ON etg.id = tag.taggroup_id AND etg.name = 'generation'
+        JOIN directory.tag_group etg ON etg.id = tag.tag_group_id AND etg.name = 'generation'
         JOIN relation.real_handover ON real_handover.source_id = handover_relation.ho_entity_id
         JOIN directory.existence existence ON existence.entity_id = real_handover.target_id
         WHERE handover_relation.cell_entity_id = $1
@@ -162,7 +162,7 @@ SELECT id FROM (
     SELECT sc.source_id as id FROM (
         SELECT e.id as id
         FROM directory.entity e
-        JOIN directory.entitytype et on et.id = e.entitytype_id
+        JOIN directory.entity_type et on et.id = e.entity_type_id
         JOIN relation.real_handover real_ho on real_ho.source_id = e.id
         JOIN directory.existence ex on ex.entity_id = real_ho.target_id
         WHERE et.name = 'HandoverRelation'and ex.timestamp > $1
@@ -172,7 +172,7 @@ SELECT id FROM (
     SELECT tc.source_id as id FROM (
         SELECT e.id as id
         FROM directory.entity e
-        JOIN directory.entitytype et on et.id = e.entitytype_id
+        JOIN directory.entity_type et on et.id = e.entity_type_id
         JOIN relation.real_handover real_ho on real_ho.source_id = e.id
         JOIN directory.existence ex on ex.entity_id = real_ho.target_id
         WHERE et.name = 'HandoverRelation'and ex.timestamp > $1

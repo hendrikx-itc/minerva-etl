@@ -3,7 +3,7 @@ CREATE FUNCTION directory."create alias for new entity (func)"()
 AS $$
 BEGIN
     INSERT INTO directory.alias (entity_id, name, type_id)
-        SELECT NEW.id, NEW.name, id FROM directory.aliastype WHERE name = 'name';
+        SELECT NEW.id, NEW.name, id FROM directory.alias_type WHERE name = 'name';
 
     RETURN NEW;
 END;
@@ -12,41 +12,41 @@ $$ LANGUAGE plpgsql VOLATILE;
 ALTER FUNCTION directory."create alias for new entity (func)"() OWNER TO postgres;
 
 
-CREATE FUNCTION directory."create tag for new entitytypes (func)"()
+CREATE FUNCTION directory."create tag for new entity_types (func)"()
     RETURNS trigger
 AS $$
 BEGIN
     BEGIN
-        INSERT INTO directory.tag (name, taggroup_id) SELECT NEW.name, id FROM directory.taggroup WHERE directory.taggroup.name = 'entitytype';
+        INSERT INTO directory.tag (name, tag_group_id) SELECT NEW.name, id FROM directory.tag_group WHERE directory.tag_group.name = 'entity_type';
     EXCEPTION WHEN unique_violation THEN
-        UPDATE directory.tag SET taggroup_id = (SELECT id FROM directory.taggroup WHERE directory.taggroup.name = 'entitytype') WHERE tag.name = NEW.name;
+        UPDATE directory.tag SET tag_group_id = (SELECT id FROM directory.tag_group WHERE directory.tag_group.name = 'entity_type') WHERE tag.name = NEW.name;
     END;
 
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql VOLATILE;
 
-ALTER FUNCTION directory."create tag for new entitytypes (func)"() OWNER TO postgres;
+ALTER FUNCTION directory."create tag for new entity_types (func)"() OWNER TO postgres;
 
 
-CREATE FUNCTION directory."create entitytaglink for new entity (func)"()
+CREATE FUNCTION directory."create entity_tag_link for new entity (func)"()
     RETURNS trigger
 AS $$
 BEGIN
-    INSERT INTO directory.entitytaglink (entity_id, tag_id) VALUES (NEW.id, (
+    INSERT INTO directory.entity_tag_link (entity_id, tag_id) VALUES (NEW.id, (
     SELECT tag.id FROM directory.tag
-    INNER JOIN directory.entitytype ON tag.name = entitytype.name
-    WHERE entitytype.id = NEW.entitytype_id
+    INNER JOIN directory.entity_type ON tag.name = entity_type.name
+    WHERE entity_type.id = NEW.entity_type_id
     ));
 
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql VOLATILE;
 
-ALTER FUNCTION directory."create entitytaglink for new entity (func)"() OWNER TO postgres;
+ALTER FUNCTION directory."create entity_tag_link for new entity (func)"() OWNER TO postgres;
 
 
-CREATE FUNCTION directory.update_entity_link_denorm_for_insert()
+CREATE FUNCTION directory.update_entity_tag_link_denorm_for_insert()
     RETURNS trigger
 AS $$
 BEGIN
@@ -57,7 +57,7 @@ END;
 $$ LANGUAGE plpgsql VOLATILE;
 
 
-CREATE FUNCTION directory.update_entity_link_denorm_for_delete()
+CREATE FUNCTION directory.update_entity_tag_link_denorm_for_delete()
     RETURNS trigger
 AS $$
 BEGIN

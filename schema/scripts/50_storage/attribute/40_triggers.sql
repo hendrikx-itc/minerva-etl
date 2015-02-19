@@ -1,19 +1,19 @@
-CREATE TRIGGER delete_attributestores_on_datasource_delete
-    BEFORE DELETE ON directory.datasource
+CREATE TRIGGER delete_attribute_stores_on_data_source_delete
+    BEFORE DELETE ON directory.data_source
     FOR EACH ROW
-    EXECUTE PROCEDURE attribute_directory.cleanup_on_datasource_delete();
+    EXECUTE PROCEDURE attribute_directory.cleanup_on_data_source_delete();
 
 
-CREATE TRIGGER delete_attributestores_on_entitytype_delete
-    BEFORE DELETE ON directory.entitytype
+CREATE TRIGGER delete_attribute_stores_on_entity_type_delete
+    BEFORE DELETE ON directory.entity_type
     FOR EACH ROW
-    EXECUTE PROCEDURE attribute_directory.cleanup_on_entitytype_delete();
+    EXECUTE PROCEDURE attribute_directory.cleanup_on_entity_type_delete();
 
 
-CREATE TRIGGER cleanup_attributestore_on_delete
-    BEFORE DELETE ON attribute_directory.attributestore
+CREATE TRIGGER cleanup_attribute_store_on_delete
+    BEFORE DELETE ON attribute_directory.attribute_store
     FOR EACH ROW
-    EXECUTE PROCEDURE attribute_directory.cleanup_attributestore_on_delete();
+    EXECUTE PROCEDURE attribute_directory.cleanup_attribute_store_on_delete();
 
 
 CREATE TRIGGER update_attribute_type

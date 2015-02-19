@@ -2,7 +2,7 @@ BEGIN;
 
 SELECT plan(3);
 
-SELECT attribute_directory.create_attributestore(
+SELECT attribute_directory.create_attribute_store(
     'test',
     'Node',
     ARRAY[
@@ -31,11 +31,11 @@ SELECT columns_are(
 --
 SELECT attribute_directory.check_attributes_exist(
     ARRAY[
-       (NULL, attributestore.id, 'some column with floating point values', 'y', 'double precision') 
+       (NULL, attribute_store.id, 'some column with floating point values', 'y', 'double precision') 
     ]::attribute_directory.attribute[]
 )
-FROM attribute_directory.attributestore
-WHERE attributestore::text = 'test_Node';
+FROM attribute_directory.attribute_store
+WHERE attribute_store::text = 'test_Node';
 
 SELECT columns_are(
     'attribute_history',
@@ -59,11 +59,11 @@ SELECT * FROM attribute_history."test_Node";
 --
 SELECT attribute_directory.check_attributes_exist(
     ARRAY[
-       (NULL, attributestore.id, 'some column with text values', 'z', 'text')
+       (NULL, attribute_store.id, 'some column with text values', 'z', 'text')
     ]::attribute_directory.attribute[]
 )
-FROM attribute_directory.attributestore
-WHERE attributestore::text = 'test_Node';
+FROM attribute_directory.attribute_store
+WHERE attribute_store::text = 'test_Node';
 
 SELECT columns_are(
     'attribute_history',

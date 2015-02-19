@@ -2,7 +2,7 @@ BEGIN;
 
 SELECT plan(1);
 
-SELECT trend_directory.create_trendstore(
+SELECT trend_directory.create_trend_store(
     'test',
     'Node',
     '900',
@@ -14,9 +14,9 @@ SELECT trend_directory.create_trendstore(
 
 
 SELECT
-    trend_directory.create_partition(trendstore, 379958)
-FROM trend_directory.trendstore
-WHERE trendstore::text = 'test_Node_qtr';
+    trend_directory.create_partition(trend_store, 379958)
+FROM trend_directory.trend_store
+WHERE trend_store::text = 'test_Node_qtr';
 
 SELECT has_table(
     'trend_partition',

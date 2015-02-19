@@ -115,7 +115,7 @@ def get_entities_by_query(conn, minerva_query, relation_group_name):
     q, args, entity_id_column = compile_sql(minerva_query, relation_group_name)
 
     sql = (
-        " SELECT entity.id, entity.dn, entity.entitytype_id"
+        " SELECT entity.id, entity.dn, entity.entity_type_id"
         " {0}"
         " JOIN directory.entity entity ON entity.id = {1}").format(
         q, entity_id_column)
@@ -125,12 +125,12 @@ def get_entities_by_query(conn, minerva_query, relation_group_name):
 
         rows = cursor.fetchall()
 
-    attr_names = ("id", "dn", "entitytype_id")
+    attr_names = ("id", "dn", "entity_type_id")
 
     return [dict(zip(attr_names, row)) for row in rows]
 
 
-def get_entitytags_by_query(cursor, minerva_query, relation_group_name):
+def get_entity_tags_by_query(cursor, minerva_query, relation_group_name):
     if len(minerva_query) == 0:
         return []
 
@@ -140,7 +140,7 @@ def get_entitytags_by_query(cursor, minerva_query, relation_group_name):
     sql = (
         " SELECT etl.tag_id"
         " {0}"
-        " JOIN directory.entitytaglink etl ON etl.entity_id = {1}"
+        " JOIN directory.entity_tag_link etl ON etl.entity_id = {1}"
         " GROUP BY etl.tag_id"
     ).format(query_part, entity_id_column)
 
@@ -148,42 +148,42 @@ def get_entitytags_by_query(cursor, minerva_query, relation_group_name):
 
     rows = cursor.fetchall()
 
-    return [entitytag for entitytag, in rows]
+    return [entity_tag for entity_tag, in rows]
 
 
 def get_related_entities_by_query(
-        conn, minerva_query, relation_group_name, target_entitytype_id):
+        conn, minerva_query, relation_group_name, target_entity_type_id):
     # Quick Hack: get_entities_by_query -> get_related_entities on result
     entities = get_entities_by_query(conn, minerva_query, relation_group_name)
-    attr_names = ("id", "dn", "entitytype_id")
+    attr_names = ("id", "dn", "entity_type_id")
 
     related_entities = []
 
     with closing(conn.cursor()) as cursor:
-        target_entitytype = EntityType.get(target_entitytype_id)(cursor)
+        target_entity_type = EntityType.get(target_entity_type_id)(cursor)
 
     for entity in entities:
-        if entity["entitytype_id"] == target_entitytype_id:
+        if entity["entity_type_id"] == target_entity_type_id:
             related_entities.append(entity)
         else:
             with closing(conn.cursor()) as cursor:
-                source_entitytype = EntityType.get(
-                    entity["entitytype_id"]
+                source_entity_type = EntityType.get(
+                    entity["entity_type_id"]
                 )(cursor)
 
-            relationtype_name = "{}->{}".format(
-                source_entitytype.name, target_entitytype.name
+            relation_type_name = "{}->{}".format(
+                source_entity_type.name, target_entity_type.name
             )
 
             query = (
-                " SELECT target_id, e.dn, e.entitytype_id"
+                " SELECT target_id, e.dn, e.entity_type_id"
                 " FROM relation.\"{0}\""
                 " JOIN directory.entity e ON e.id = target_id"
-                " AND e.entitytype_id = %s"
-                " WHERE source_id = %s").format(relationtype_name)
+                " AND e.entity_type_id = %s"
+                " WHERE source_id = %s").format(relation_type_name)
 
             with closing(conn.cursor()) as cursor:
-                cursor.execute(query, (target_entitytype_id, entity["id"]))
+                cursor.execute(query, (target_entity_type_id, entity["id"]))
 
                 rows = cursor.fetchall()
 
@@ -228,7 +228,7 @@ def make_relation_join(index, entity_id_column, relation_group_name):
 def make_c_from():
     query_part = (
         ' FROM (VALUES(NULL)) dummy'
-        ' JOIN directory.entity_link_denorm eld'
+        ' JOIN directory.entity_tag_link_denorm eld'
         ' ON %s <@ eld.tags'
     )
 
@@ -236,22 +236,22 @@ def make_c_from():
 
 
 def make_c_join(index, entity_id_column):
-    taglink_alias = "eld_{0}".format(index)
+    tag_link_alias = "eld_{0}".format(index)
 
     query_part = (
-        ' JOIN directory.entity_link_denorm {0}'
+        ' JOIN directory.entity_tag_link_denorm {0}'
         ' ON {1} = {0}.entity_id'
         ' AND %s <@ {0}.tags'
-    ).format(taglink_alias, entity_id_column)
+    ).format(tag_link_alias, entity_id_column)
 
-    return query_part, taglink_alias
+    return query_part, tag_link_alias
 
 
-def make_c_and(taglink_alias):
+def make_c_and(tag_link_alias):
     query_part = (
         " AND %s <@ {0}.tags"
     ).format(
-        taglink_alias
+        tag_link_alias
     )
 
     return query_part
@@ -260,7 +260,7 @@ def make_c_and(taglink_alias):
 def make_any_c_from():
     query_part = (
         ' FROM (VALUES(NULL)) dummy'
-        ' JOIN directory.entity_link_denorm eld'
+        ' JOIN directory.entity_tag_link_denorm eld'
         ' ON %s && eld.tags'
     )
 
@@ -268,15 +268,15 @@ def make_any_c_from():
 
 
 def make_any_c_join(index, entity_id_column):
-    taglink_alias = "eld_{0}".format(index)
+    tag_link_alias = "eld_{0}".format(index)
 
     query_part = (
-        ' JOIN directory.entity_link_denorm {0}'
+        ' JOIN directory.entity_tag_link_denorm {0}'
         ' ON {1} = {0}.entity_id'
         ' AND %s && {0}.tags'
-    ).format(taglink_alias, entity_id_column)
+    ).format(tag_link_alias, entity_id_column)
 
-    return query_part, taglink_alias
+    return query_part, tag_link_alias
 
 
 def make_s_join(index, eld_alias):

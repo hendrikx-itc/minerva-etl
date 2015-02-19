@@ -9,8 +9,8 @@ The attribute storage is built up of a set of 5 database schemas:
 :attribute_staging: The attribute staging area for fast updating of the attribute history.
 :attribute: Views for the current state of all attributes.
 
-The name of the attribute store is built from the datasource name and the
-entity type name: <datasource_name>_<entitytype_name>
+The name of the attribute store is built from the data_source name and the
+entity type name: <data_source_name>_<entity_type_name>
 
 An attribute store is built up from the following components:
 
@@ -26,7 +26,7 @@ Creating an attribute store
 
 Use the following function to create new attribute stores::
 
-    attribute_directory.create_attributestore(datasource_name text, entitytype_name text, attributes attribute_descr[]) -> attributestore
+    attribute_directory.create_attributestore(data_source_name text, entity_type_name text, attributes attribute_descr[]) -> attributestore
 
 
 Usage example::

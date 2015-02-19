@@ -50,11 +50,11 @@ END;
 $$ LANGUAGE plpgsql VOLATILE;
 
 
-CREATE FUNCTION notification.cleanup_on_datasource_delete()
+CREATE FUNCTION notification.cleanup_on_data_source_delete()
     RETURNS TRIGGER
 AS $$
 BEGIN
-    DELETE FROM notification.notificationstore WHERE datasource_id = OLD.id;
+    DELETE FROM notification.notificationstore WHERE data_source_id = OLD.id;
 
     RETURN OLD;
 END;

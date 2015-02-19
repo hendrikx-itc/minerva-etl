@@ -4,7 +4,7 @@ SELECT plan(2);
 
 SELECT isa_ok(
     notification.create_notificationstore(
-        'some_datasource_name',
+        'some_data_source_name',
         ARRAY[('NV_ALARM_ID', 'integer')]::notification.attr_def[]
     ),
     'notification.notificationstore',
@@ -12,7 +12,7 @@ SELECT isa_ok(
 );
 
 SELECT has_column(
-    'notification'::name, 'some_datasource_name'::name, 'NV_ALARM_ID'::name,
+    'notification'::name, 'some_data_source_name'::name, 'NV_ALARM_ID'::name,
     'notification store table has a custom attribute column NV_ALARM_ID'
 );
 

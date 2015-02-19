@@ -4,14 +4,7 @@ name = "trend_directory"
 
 partition = Table(name, "partition")
 modified = Table(name, "modified")
-trendstore = Table(name, "trendstore")
-
-
-def reset(cursor):
-    cursor.execute("DELETE FROM trend.trend CASCADE")
-    cursor.execute("DELETE FROM trend.partition CASCADE")
-    cursor.execute("DELETE FROM trend.trendstore CASCADE")
-    cursor.execute("DELETE FROM trend.modified")
+trend_store = Table(name, "trend_store")
 
 
 system_columns = ['entity_id', 'timestamp', 'modified']

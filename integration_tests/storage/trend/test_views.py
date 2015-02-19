@@ -34,7 +34,7 @@ def test_create_view(conn):
         view_query = (
             "SELECT "
             "999 AS entity_id, "
-            "'2013-08-26 13:00:00+02:00'::timestamp with time zone AS timestamp, "
+            "'2013-08-26 13:00:00+02:00'::timestamptz AS timestamp, "
             '10 AS "CntrA"'
         )
 

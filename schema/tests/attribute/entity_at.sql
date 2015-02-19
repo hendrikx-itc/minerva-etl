@@ -2,7 +2,7 @@ BEGIN;
 
 SELECT plan(3);
 
-SELECT attribute_directory.create_attributestore(
+SELECT attribute_directory.create_attribute_store(
     'test',
     'Node',
     ARRAY[
@@ -16,9 +16,9 @@ VALUES
     (id(directory.dn_to_entity('Network=A,Node=001')), '2015-01-02 10:00', 42),
     (id(directory.dn_to_entity('Network=A,Node=001')), '2015-01-02 11:00', 43);
 
-SELECT attribute_directory.transfer_staged(attributestore)
-FROM attribute_directory.attributestore
-WHERE attributestore::text = 'test_Node';
+SELECT attribute_directory.transfer_staged(attribute_store)
+FROM attribute_directory.attribute_store
+WHERE attribute_store::text = 'test_Node';
 
 SELECT is(
     (attribute_history."test_Node_at"(id(directory.dn_to_entity('Network=A,Node=001')), '2015-01-02 11:00')).x,

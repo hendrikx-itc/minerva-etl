@@ -7,7 +7,7 @@ The attribute storage class stores attributes of entities and their history of c
 - 'state' - with possible values 'enabled' or 'disabled'
 - 'status' - with possible values 'new', 'planned', 'in-service' or 'decomissioned'
 
-Attributes are grouped by their originating datasource and entitytype. Such a combination of datasource, entitytype and attributes is called an 'attribute store'.
+Attributes are grouped by their originating data_source and entity_type. Such a combination of data_source, entity_type and attributes is called an 'attribute store'.
 
 Attribute
 ---------
@@ -27,7 +27,7 @@ An attribute store is represented in the database in the form of a record in the
 - a changes view on the history table
 - a view with only the current set of attributes for each entity
 
-An example attribute store for 'Node' entities from the 'CMDB' datasource would be formed by the following combination of database objects:
+An example attribute store for 'Node' entities from the 'CMDB' data_source would be formed by the following combination of database objects:
 
 
 +----------+-----------------------------+

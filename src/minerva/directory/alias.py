@@ -12,7 +12,7 @@ the Free Software Foundation; either version 3, or (at your option) any later
 version.  The full license is in the file COPYING, distributed as part of
 this software.
 """
-import StringIO
+from io import StringIO
 from contextlib import closing
 
 
@@ -35,7 +35,7 @@ def store(conn, aliases, type_name):
     except NoSuchAliasType:
         type_id = create_type(conn, type_name)
 
-    _f = StringIO.StringIO()
+    _f = StringIO()
 
     for entity_id, alias in aliases:
         _f.write("{0}\t{1}\t{2}\n".format(entity_id, alias, type_id))
@@ -75,7 +75,7 @@ def create_type(conn, type_name):
     """
     Create alias type and return type id
     """
-    query = "INSERT INTO directory.aliastype (name) VALUES (%s) RETURNING id"
+    query = "INSERT INTO directory.alias_type (name) VALUES (%s) RETURNING id"
 
     with closing(conn.cursor()) as cursor:
         cursor.execute(query, (type_name,))
@@ -88,7 +88,7 @@ def get_type_id(conn, type_name):
     """
     Return id of alias type
     """
-    query = "SELECT id FROM directory.aliastype WHERE name = %s"
+    query = "SELECT id FROM directory.alias_type WHERE name = %s"
 
     with closing(conn.cursor()) as cursor:
         cursor.execute(query, (type_name,))

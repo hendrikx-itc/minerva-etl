@@ -29,7 +29,7 @@ class EntityRef():
 
     def get_entity_type(self, cursor):
         """
-        Return the entitytype corresponding to the referenced entity.
+        Return the entity type corresponding to the referenced entity.
         """
         raise NotImplementedError()
 

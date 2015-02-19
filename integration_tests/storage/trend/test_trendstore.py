@@ -147,7 +147,7 @@ class TestStore():
 
             trend_store = TrendStore.get_by_id(t.id)(cursor)
 
-            eq_(trend_store.datasource.id, self.data_source.id)
+            eq_(trend_store.data_source.id, self.data_source.id)
             eq_(trend_store.partition_size, partition_size)
             assert trend_store.id is not None, "trendstore.id is None"
 

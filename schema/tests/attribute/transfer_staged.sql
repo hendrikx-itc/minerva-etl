@@ -2,15 +2,15 @@ BEGIN;
 
 SELECT plan(2);
 
-SELECT attribute_directory.create_attributestore(
-    'some_datasource_name',
-    'some_entitytype_name',
+SELECT attribute_directory.create_attribute_store(
+    'some_data_source_name',
+    'some_entity_type_name',
     ARRAY[
         ('x', 'integer', 'some column with integer values')
     ]::attribute_directory.attribute_descr[]
 );
 
-INSERT INTO attribute_staging."some_datasource_name_some_entitytype_name"(
+INSERT INTO attribute_staging."some_data_source_name_some_entity_type_name"(
     entity_id,
     timestamp,
     x
@@ -20,15 +20,15 @@ INSERT INTO attribute_staging."some_datasource_name_some_entitytype_name"(
     42
 );
 
-SELECT attribute_directory.transfer_staged(attributestore)
-FROM attribute_directory.attributestore
-WHERE attributestore::text = 'some_datasource_name_some_entitytype_name';
+SELECT attribute_directory.transfer_staged(attribute_store)
+FROM attribute_directory.attribute_store
+WHERE attribute_store::text = 'some_data_source_name_some_entity_type_name';
 
 SELECT is(
     x,
     42
 )
-FROM attribute_history."some_datasource_name_some_entitytype_name" a
+FROM attribute_history."some_data_source_name_some_entity_type_name" a
 JOIN directory.entity ON entity.id = a.entity_id
 WHERE entity.dn = 'Node=001';
 
@@ -36,13 +36,13 @@ WHERE entity.dn = 'Node=001';
 
 SELECT attribute_directory.check_attributes_exist(
     ARRAY[
-       (NULL, attributestore.id, 'some column with floating point values', 'y', 'double precision') 
+       (NULL, attribute_store.id, 'some column with floating point values', 'y', 'double precision') 
     ]::attribute_directory.attribute[]
 )
-FROM attribute_directory.attributestore
-WHERE attributestore::text = 'some_datasource_name_some_entitytype_name';
+FROM attribute_directory.attribute_store
+WHERE attribute_store::text = 'some_data_source_name_some_entity_type_name';
 
-INSERT INTO attribute_staging."some_datasource_name_some_entitytype_name"(
+INSERT INTO attribute_staging."some_data_source_name_some_entity_type_name"(
     entity_id,
     timestamp,
     x,
@@ -54,15 +54,15 @@ INSERT INTO attribute_staging."some_datasource_name_some_entitytype_name"(
     43.0
 );
 
-SELECT attribute_directory.transfer_staged(attributestore)
-FROM attribute_directory.attributestore
-WHERE attributestore::text = 'some_datasource_name_some_entitytype_name';
+SELECT attribute_directory.transfer_staged(attribute_store)
+FROM attribute_directory.attribute_store
+WHERE attribute_store::text = 'some_data_source_name_some_entity_type_name';
 
 SELECT is(
     y,
     43.0::double precision
 )
-FROM attribute_history."some_datasource_name_some_entitytype_name" a
+FROM attribute_history."some_data_source_name_some_entity_type_name" a
 JOIN directory.entity ON entity.id = a.entity_id
 WHERE entity.dn = 'Node=001';
 

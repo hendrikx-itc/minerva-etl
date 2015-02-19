@@ -12,18 +12,18 @@ $$ LANGUAGE plpgsql VOLATILE;
 CREATE FUNCTION notification.to_char(notification.notificationstore)
     RETURNS text
 AS $$
-    SELECT datasource.name
-    FROM directory.datasource
-    WHERE datasource.id = $1.datasource_id;
+    SELECT data_source.name
+    FROM directory.data_source
+    WHERE data_source.id = $1.data_source_id;
 $$ LANGUAGE SQL STABLE STRICT;
 
 
-CREATE FUNCTION notification.get_notificationstore(datasource_name name)
+CREATE FUNCTION notification.get_notificationstore(data_source_name name)
     RETURNS notification.notificationstore
 AS $$
     SELECT ns
     FROM notification.notificationstore ns
-    JOIN directory.datasource ds ON ds.id = ns.datasource_id
+    JOIN directory.data_source ds ON ds.id = ns.data_source_id
     WHERE ds.name = $1;
 $$ LANGUAGE SQL STABLE;
 
@@ -32,8 +32,8 @@ CREATE FUNCTION notification.table_name(notification.notificationstore)
     RETURNS name
 AS $$
     SELECT name::name
-    FROM directory.datasource
-    WHERE id = $1.datasource_id;
+    FROM directory.data_source
+    WHERE id = $1.data_source_id;
 $$ LANGUAGE SQL STABLE;
 
 
@@ -136,17 +136,17 @@ AS $$
 $$ LANGUAGE sql STABLE;
 
 
-CREATE FUNCTION notification.create_notificationstore(datasource_id integer)
+CREATE FUNCTION notification.create_notificationstore(data_source_id integer)
     RETURNS notification.notificationstore
 AS $$
-    INSERT INTO notification.notificationstore(datasource_id, version) VALUES ($1, 1) RETURNING *;
+    INSERT INTO notification.notificationstore(data_source_id, version) VALUES ($1, 1) RETURNING *;
 $$ LANGUAGE SQL VOLATILE;
 
 
-CREATE FUNCTION notification.create_notificationstore(datasource_name text)
+CREATE FUNCTION notification.create_notificationstore(data_source_name text)
     RETURNS notification.notificationstore
 AS $$
-    SELECT notification.create_notificationstore((directory.name_to_datasource($1)).id);
+    SELECT notification.create_notificationstore((directory.name_to_data_source($1)).id);
 $$ LANGUAGE SQL VOLATILE;
 
 
@@ -158,7 +158,7 @@ AS $$
 $$ LANGUAGE SQL VOLATILE;
 
 
-CREATE FUNCTION notification.create_notificationstore(datasource_id integer, notification.attr_def[])
+CREATE FUNCTION notification.create_notificationstore(data_source_id integer, notification.attr_def[])
     RETURNS notification.notificationstore
 AS $$
 DECLARE
@@ -173,10 +173,10 @@ END;
 $$ LANGUAGE plpgsql VOLATILE;
 
 
-CREATE FUNCTION notification.create_notificationstore(datasource_name text, notification.attr_def[])
+CREATE FUNCTION notification.create_notificationstore(data_source_name text, notification.attr_def[])
     RETURNS notification.notificationstore
 AS $$
-    SELECT notification.create_notificationstore((directory.name_to_datasource($1)).id, $2);
+    SELECT notification.create_notificationstore((directory.name_to_data_source($1)).id, $2);
 $$ LANGUAGE SQL VOLATILE;
 
 

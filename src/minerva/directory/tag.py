@@ -36,12 +36,12 @@ class NoSuchTagGroupError(Exception):
 
 def tag_entities(conn, tag_links):
     """
-    Tag entities by updating directory.entitytaglink table
+    Tag entities by updating directory.entity_tag_link table
 
     :param conn: database connection
     :param tag_links: list of tuples like (entity_id, tag_name)
     """
-    group_id = get_taggroup_id(conn, 'default')
+    group_id = get_tag_group_id(conn, 'default')
 
     tag_links_with_group_id = [
         (entity_id, tag_name, group_id)
@@ -56,10 +56,10 @@ def tag_entities(conn, tag_links):
     conn.commit()
 
 
-def get_taggroup_id(conn, name):
+def get_tag_group_id(conn, name):
     with closing(conn.cursor()) as cursor:
         cursor.execute(
-            "SELECT id FROM directory.taggroup WHERE name = %s",
+            "SELECT id FROM directory.tag_group WHERE name = %s",
             (name,)
         )
 
@@ -75,8 +75,8 @@ def store_in_staging_table(conn, tag_links):
     :param conn: Minerva database connection
     :param tag_links: list of tuples like (trend_id, tag_name, taggroup_id)
     """
-    table_name = "entity_tag.entitytaglink_staging"
-    column_names = ["entity_id", "tag_name", "taggroup_id"]
+    table_name = "entity_tag.entity_tag_link_staging"
+    column_names = ["entity_id", "tag_name", "tag_group_id"]
 
     copy_from_file = create_copy_from_file(tag_links, ('d', 's', 'd'))
 
@@ -86,9 +86,10 @@ def store_in_staging_table(conn, tag_links):
 
 def flush_tag_links(conn, tag_name):
     query = (
-        "DELETE FROM {0}.entitytaglink etl "
+        "DELETE FROM {0}.entity_tag_link etl "
         "USING {0}.tag tag "
-        "WHERE tag.id = etl.tag_id AND tag.name = %s").format(SCHEMA)
+        "WHERE tag.id = etl.tag_id AND tag.name = %s"
+    ).format(SCHEMA)
 
     args = (tag_name, )
 
@@ -105,7 +106,7 @@ def create_tag_group(conn, name, complementary):
     etc
     """
     insert_query = (
-        "INSERT INTO directory.taggroup (id, name, complementary) "
+        "INSERT INTO directory.tag_group (id, name, complementary) "
         "VALUES (DEFAULT, %s, %s) "
         "RETURNING id ")
 
@@ -138,7 +139,7 @@ def create_tag(conn, name, group, description=""):
     :param description: Description (optional)
     """
     insert_query = (
-        "INSERT INTO directory.tag (id, name, taggroup_id, description) "
+        "INSERT INTO directory.tag (id, name, tag_group_id, description) "
         "VALUES (DEFAULT, %s, %s, %s) "
         "RETURNING id")
 
@@ -167,8 +168,9 @@ def get_tag(conn, name):
     :param name: name of tag
     """
     query = (
-        "SELECT id, name, taggroup_id, description "
-        "FROM directory.tag WHERE lower(name) = lower(%s)")
+        "SELECT id, name, tag_group_id, description "
+        "FROM directory.tag WHERE lower(name) = lower(%s)"
+    )
 
     with closing(conn.cursor()) as cursor:
         cursor.execute(query, (name,))
@@ -189,7 +191,8 @@ def get_tag_group(conn, name):
     """
     query = (
         "SELECT id, name, complementary "
-        "FROM directory.taggroup WHERE lower(name) = lower(%s)")
+        "FROM directory.tag_group WHERE lower(name) = lower(%s)"
+    )
 
     with closing(conn.cursor()) as cursor:
         cursor.execute(query, (name,))
@@ -200,7 +203,8 @@ def get_tag_group(conn, name):
             return TagGroup(id, name, complementary)
         else:
             raise NoSuchTagGroupError(
-                "No tag group with name {0}".format(name))
+                "No tag group with name {0}".format(name)
+            )
 
 
 def get_tags_for_entity_id(conn, entity_id):
@@ -208,10 +212,11 @@ def get_tags_for_entity_id(conn, entity_id):
     Return tags for specific entity.
     """
     query = (
-        "SELECT tag.id, tag.name, tag.taggroup_id, tag.description "
-        "FROM directory.entitytaglink etl "
+        "SELECT tag.id, tag.name, tag.tag_group_id, tag.description "
+        "FROM directory.entity_tag_link etl "
         "JOIN directory.tag tag on tag.id = etl.tag_id "
-        "WHERE etl.entity_id = %s")
+        "WHERE etl.entity_id = %s"
+    )
 
     args = (entity_id, )
 
