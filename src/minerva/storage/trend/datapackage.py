@@ -51,6 +51,13 @@ class DataPackageBase():
     def entity_ref_type(cls):
         raise NotImplementedError()
 
+    @staticmethod
+    def refine_values(value_parsers):
+        raise NotImplementedError()
+
+    def entity_type_name(self):
+        raise NotImplementedError()
+
     def is_empty(self):
         """Return True if the package has no data rows."""
         return len(self.rows) == 0
