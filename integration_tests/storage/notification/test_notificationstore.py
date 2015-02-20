@@ -12,64 +12,69 @@ this software.
 from datetime import datetime
 from contextlib import closing
 
-from nose.tools import eq_
-
 from minerva.directory import DataSource
 from minerva.directory.entityref import EntityIdRef
-from minerva.storage.notification.types import NotificationStore, Attribute, \
-    Record
-from minerva.test import with_conn
-
-from minerva_db import clear_database
+from minerva.storage import datatype
+from minerva.storage.notification import NotificationStore, Attribute, \
+    Record, NotificationStoreDescriptor, AttributeDescriptor
+from minerva.test import with_conn, clear_database, eq_
 
 
 @with_conn(clear_database)
 def test_create(conn):
     with closing(conn.cursor()) as cursor:
-        datasource = DataSource.from_name(cursor, "test-source-001")
+        data_source = DataSource.from_name("test-source-001")(cursor)
 
-        notificationstore = NotificationStore(datasource, [])
+        attribute_descriptors = [
+            AttributeDescriptor('x', datatype.DataTypeInteger, '')
+        ]
 
-        notificationstore.create(cursor)
+        notification_store = NotificationStore.create(
+            NotificationStoreDescriptor(
+                data_source, attribute_descriptors
+            )
+        )(cursor)
 
-        assert notificationstore.id is not None
+        assert notification_store.id is not None
 
         query = (
-            "SELECT datasource_id "
-            "FROM notification.notificationstore "
+            "SELECT data_source_id "
+            "FROM notification.notification_store "
             "WHERE id = %s"
         )
 
-        args = (notificationstore.id,)
+        args = (notification_store.id,)
 
         cursor.execute(query, args)
 
         eq_(cursor.rowcount, 1)
 
-        datasource_id, = cursor.fetchone()
+        data_source_id, = cursor.fetchone()
 
-        eq_(datasource_id, datasource.id)
+        eq_(data_source_id, data_source.id)
 
 
 @with_conn(clear_database)
 def test_store(conn):
     with closing(conn.cursor()) as cursor:
-        datasource = DataSource.from_name(cursor, "test-source-002")
+        data_source = DataSource.from_name("test-source-002")(cursor)
 
-        attributes = [
-            Attribute("a", "integer", "a attribute"),
-            Attribute("b", "integer", "b attribute")
+        attribute_descriptors = [
+            AttributeDescriptor("a", datatype.DataTypeInteger, "a attribute"),
+            AttributeDescriptor("b", datatype.DataTypeInteger, "b attribute")
         ]
 
-        notificationstore = NotificationStore(datasource, attributes)
+        notification_store = NotificationStore.create(
+            NotificationStoreDescriptor(
+                data_source, attribute_descriptors
+            )
+        )(cursor)
 
-        notificationstore.create(cursor)
-
-        datarecord = Record(
+        record = Record(
             entity_ref=EntityIdRef(100),
             timestamp=datetime(2013, 6, 5, 12, 0, 0),
             attribute_names=["a", "b"],
             values=[1, 42]
         )
 
-        notificationstore.store_record(datarecord)(cursor)
+        notification_store.store_record(record)(cursor)

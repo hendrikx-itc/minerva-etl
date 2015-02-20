@@ -12,27 +12,29 @@ this software.
 from contextlib import closing
 from datetime import datetime
 
-from minerva.test import with_conn
+from minerva.test import with_conn, clear_database
 from minerva.directory import DataSource
 from minerva.directory.entityref import EntityIdRef
-from minerva.storage.notification.types import NotificationStore, Attribute, \
-    Record
-
-from minerva_db import clear_database
+from minerva.storage import datatype
+from minerva.storage.notification import NotificationStore, \
+    NotificationStoreDescriptor, AttributeDescriptor, Record
 
 
 @with_conn(clear_database)
 def test_store_record(conn):
+    attribute_descriptors = [
+        AttributeDescriptor("a", datatype.DataTypeInteger, "a attribute"),
+        AttributeDescriptor("b", datatype.DataTypeInteger, "b attribute")
+    ]
+
     with closing(conn.cursor()) as cursor:
-        data_source = DataSource.from_name(cursor, "test-source-003")
+        data_source = DataSource.from_name("test-source-003")(cursor)
 
-        attributes = [
-            Attribute("a", "integer", "a attribute"),
-            Attribute("b", "integer", "b attribute")]
-
-        notification_store = NotificationStore(data_source, attributes)
-
-        notification_store.create(cursor)
+        notification_store = NotificationStore.create(
+            NotificationStoreDescriptor(
+                data_source, attribute_descriptors
+            )
+        )(cursor)
 
         record = Record(
             entity_ref=EntityIdRef(100),
