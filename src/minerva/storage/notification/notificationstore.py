@@ -33,7 +33,7 @@ class NotificationStore():
         """Load NotificationStore from database and return it."""
         query = (
             "SELECT id "
-            "FROM notification.notification_store "
+            "FROM notification_directory.notification_store "
             "WHERE data_source_id = %s")
 
         args = data_source.id,
@@ -54,7 +54,7 @@ class NotificationStore():
             query = (
                 "SELECT id, notification_store_id, name, data_type, "
                 "description "
-                "FROM notification.attribute "
+                "FROM notification_directory.attribute "
                 "WHERE notification_store_id = %s"
             )
 
@@ -75,8 +75,9 @@ class NotificationStore():
         """Create notification store in database"""
         def f(cursor):
             query = (
-                "SELECT * FROM notification.create_notification_store("
-                "%s, %s::notification.attr_def[]"
+                "SELECT * "
+                "FROM notification_directory.create_notification_store("
+                "%s, %s::notification_directory.attr_def[]"
                 ")"
             )
 

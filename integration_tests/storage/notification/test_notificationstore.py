@@ -39,7 +39,7 @@ def test_create(conn):
 
         query = (
             "SELECT data_source_id "
-            "FROM notification.notification_store "
+            "FROM notification_directory.notification_store "
             "WHERE id = %s"
         )
 
