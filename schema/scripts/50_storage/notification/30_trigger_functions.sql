@@ -1,20 +1,3 @@
-CREATE FUNCTION notification.create_table_on_insert()
-    RETURNS TRIGGER
-AS $$
-BEGIN
-    IF NOT notification.table_exists(notification.table_name(NEW)) THEN
-        PERFORM notification.create_table(NEW);
-    END IF;
-
-    IF NOT notification.table_exists(notification.staging_table_name(NEW)) THEN
-        PERFORM notification.create_staging_table(NEW);
-    END IF;
-
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql VOLATILE;
-
-
 CREATE FUNCTION notification.drop_table_on_delete()
     RETURNS TRIGGER
 AS $$
@@ -39,22 +22,11 @@ END;
 $$ LANGUAGE plpgsql VOLATILE;
 
 
-CREATE FUNCTION notification.create_attribute_column_on_insert()
-    RETURNS TRIGGER
-AS $$
-BEGIN
-    PERFORM notification.create_attribute_column(NEW);
-
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql VOLATILE;
-
-
 CREATE FUNCTION notification.cleanup_on_data_source_delete()
     RETURNS TRIGGER
 AS $$
 BEGIN
-    DELETE FROM notification.notificationstore WHERE data_source_id = OLD.id;
+    DELETE FROM notification.notification_store WHERE data_source_id = OLD.id;
 
     RETURN OLD;
 END;

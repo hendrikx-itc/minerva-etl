@@ -1,2 +1,2 @@
-CREATE CAST (notification.notificationstore AS text)
-WITH FUNCTION notification.to_char(notification.notificationstore);
+CREATE CAST (notification.notification_store AS text)
+WITH FUNCTION notification.to_char(notification.notification_store);

@@ -9,48 +9,51 @@ ALTER SCHEMA notification OWNER TO minerva_admin;
 GRANT ALL ON SCHEMA notification TO minerva_writer;
 GRANT USAGE ON SCHEMA notification TO minerva;
 
-CREATE TYPE notification.attr_def AS (name name, data_type name);
+CREATE TYPE notification.attr_def AS (
+    name name,
+    data_type name,
+    description text
+);
 
 
--- Table 'notification.notificationstore'
+-- Table 'notification.notification_store'
 
-CREATE TABLE notification.notificationstore (
+CREATE TABLE notification.notification_store (
     id serial PRIMARY KEY,
     data_source_id integer REFERENCES directory.data_source ON DELETE CASCADE,
-    version integer not null,
     CONSTRAINT uniqueness UNIQUE(data_source_id)
 );
 
-COMMENT ON TABLE notification.notificationstore IS
-'Describes notificationstores. Each notificationstore maps to a set of tables '
+COMMENT ON TABLE notification.notification_store IS
+'Describes notification_stores. Each notification_store maps to a set of tables '
 'and functions that can store and manage notifications of a certain type. '
 'These corresponding tables and functions are created automatically for each '
-'notificationstore. Because each notificationstore maps one-on-one to a '
-'data_source, the name of the notificationstore is the same as that of the '
-'data_source. Use the create_notificationstore function to create new '
-'notificationstores.';
+'notification_store. Because each notification_store maps one-on-one to a '
+'data_source, the name of the notification_store is the same as that of the '
+'data_source. Use the create_notification_store function to create new '
+'notification_stores.';
 
-ALTER TABLE notification.notificationstore OWNER TO minerva_admin;
+ALTER TABLE notification.notification_store OWNER TO minerva_admin;
 
-GRANT SELECT ON TABLE notification.notificationstore TO minerva;
-GRANT INSERT,DELETE,UPDATE ON TABLE notification.notificationstore TO minerva_writer;
+GRANT SELECT ON TABLE notification.notification_store TO minerva;
+GRANT INSERT,DELETE,UPDATE ON TABLE notification.notification_store TO minerva_writer;
 
 
 -- Table 'notification.attribute'
 
 CREATE TABLE notification.attribute (
     id serial PRIMARY KEY,
-    notificationstore_id integer REFERENCES notification.notificationstore ON DELETE CASCADE,
+    notification_store_id integer REFERENCES notification.notification_store ON DELETE CASCADE,
     name name not null,
     data_type name not null,
     description varchar not null
 );
 
 COMMENT ON TABLE notification.attribute IS
-'Describes attributes of notificationstores. An attribute of a '
-'notificationstore is an attribute that each notification stored in that '
-'notificationstore has. An attribute corresponds directly to a column in '
-'the main notificationstore table';
+'Describes attributes of notification_stores. An attribute of a '
+'notification_store is an attribute that each notification stored in that '
+'notification_store has. An attribute corresponds directly to a column in '
+'the main notification_store table';
 
 ALTER TABLE notification.attribute OWNER TO minerva_admin;
 
@@ -63,7 +66,7 @@ GRANT INSERT,DELETE,UPDATE ON TABLE notification.attribute TO minerva_writer;
 CREATE TABLE notification.notificationsetstore (
     id serial PRIMARY KEY,
     name name not null,
-    notificationstore_id integer REFERENCES notification.notificationstore ON DELETE CASCADE
+    notification_store_id integer REFERENCES notification.notification_store ON DELETE CASCADE
 );
 
 COMMENT ON TABLE notification.notificationsetstore IS
