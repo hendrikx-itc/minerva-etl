@@ -15,8 +15,7 @@ this software.
 import decimal
 from datetime import datetime
 
-from nose.tools import eq_, assert_raises
-
+from minerva.test import eq_, assert_raises, assert_is_not_none, assert_is_none
 from minerva.storage import datatype
 
 
@@ -38,12 +37,16 @@ def test_matches_bigint():
     min_bigint = -pow(2, 63)
     max_bigint = pow(2, 63) - 1
 
-    assert datatype.DataTypeBigint.deduce_parser_config("10")
-    assert datatype.DataTypeBigint.deduce_parser_config("-10")
-    assert datatype.DataTypeBigint.deduce_parser_config(str(max_bigint))
-    assert datatype.DataTypeBigint.deduce_parser_config(str(min_bigint))
+    assert_is_not_none(datatype.DataTypeBigint.deduce_parser_config("10"))
+    assert_is_not_none(datatype.DataTypeBigint.deduce_parser_config("-10"))
+    assert_is_not_none(
+        datatype.DataTypeBigint.deduce_parser_config(str(max_bigint))
+    )
+    assert_is_not_none(
+        datatype.DataTypeBigint.deduce_parser_config(str(min_bigint))
+    )
 
-    assert not datatype.DataTypeBigint.deduce_parser_config(None)
+    assert_is_none(datatype.DataTypeBigint.deduce_parser_config(None))
     assert not datatype.DataTypeBigint.deduce_parser_config("abc")
     assert not datatype.DataTypeBigint.deduce_parser_config(str(max_bigint + 1))
     assert not datatype.DataTypeBigint.deduce_parser_config(str(min_bigint - 1))
@@ -81,20 +84,30 @@ def test_matches_integer():
     assert datatype.DataTypeInteger.deduce_parser_config(str(max_integer))
     assert datatype.DataTypeInteger.deduce_parser_config(str(min_integer))
 
-    assert not datatype.DataTypeInteger.deduce_parser_config(None), \
+    assert_is_none(
+        datatype.DataTypeInteger.deduce_parser_config(None),
         "Integer shouldn't accept None value"
-    assert not datatype.DataTypeInteger.deduce_parser_config("abc"), \
+    )
+    assert_is_none(
+        datatype.DataTypeInteger.deduce_parser_config("abc"),
         "Integer shouldn't accept alphabetic characters"
-    assert not datatype.DataTypeInteger.deduce_parser_config(str(max_integer + 1)), \
+    )
+    assert_is_none(
+        datatype.DataTypeInteger.deduce_parser_config(str(max_integer + 1)),
         "Int32 shouldn't accept a value greater than %d" % max_integer
-    assert not datatype.DataTypeInteger.deduce_parser_config(str(min_integer - 1)), \
+    )
+    assert_is_none(
+        datatype.DataTypeInteger.deduce_parser_config(str(min_integer - 1)),
         "Int32 shouldn't accept a value smaller than %d" % min_integer
+    )
 
     # Checking for a match with any other type than a string shouldn't
     # result in a TypeError exception, but just return None.
     assert not datatype.DataTypeInteger.deduce_parser_config(("41", "42", "43"))
 
-    assert not datatype.DataTypeInteger.deduce_parser_config(decimal.Decimal('528676.842519685039'))
+    assert not datatype.DataTypeInteger.deduce_parser_config(
+        decimal.Decimal('528676.842519685039')
+    )
 
 
 def test_parse_integer():
@@ -122,20 +135,34 @@ def test_matches_smallint():
     assert datatype.DataTypeSmallInt.deduce_parser_config(str(max_int16))
     assert datatype.DataTypeSmallInt.deduce_parser_config(str(min_int16))
 
-    assert not datatype.DataTypeSmallInt.deduce_parser_config(None), \
+    assert_is_none(
+        datatype.DataTypeSmallInt.deduce_parser_config(None),
         "smallint shouldn't accept None value"
-    assert not datatype.DataTypeSmallInt.deduce_parser_config("abc"), \
+    )
+    assert_is_none(
+        datatype.DataTypeSmallInt.deduce_parser_config("abc"),
         "Integer shouldn't accept alphabetic characters"
-    assert not datatype.DataTypeSmallInt.deduce_parser_config(str(max_int16 + 1)), \
+    )
+    assert_is_none(
+        datatype.DataTypeSmallInt.deduce_parser_config(str(max_int16 + 1)),
         "Int16 shouldn't accept a value greater than %d" % max_int16
-    assert not datatype.DataTypeSmallInt.deduce_parser_config(str(min_int16 - 1)), \
+    )
+    assert_is_none(
+        datatype.DataTypeSmallInt.deduce_parser_config(str(min_int16 - 1)),
         "Int16 shouldn't accept a value smaller than %d" % min_int16
+    )
 
     # Checking for a match with any other type than a string shouldn't
     # result in an exception, but just return None.
-    assert not datatype.DataTypeSmallInt.deduce_parser_config(("41", "42", "43"))
+    assert_is_none(
+        datatype.DataTypeSmallInt.deduce_parser_config(("41", "42", "43"))
+    )
 
-    assert not datatype.DataTypeSmallInt.deduce_parser_config(decimal.Decimal('5.842519685039'))
+    assert_is_none(
+        datatype.DataTypeSmallInt.deduce_parser_config(
+            decimal.Decimal('5.842519685039')
+        )
+    )
 
 
 def test_parse_smallint():
@@ -226,7 +253,9 @@ def test_matches_double_precision():
     assert not datatype.DataTypeDoublePrecision.deduce_parser_config(None)
     assert not datatype.DataTypeDoublePrecision.deduce_parser_config(0.0)
     assert not datatype.DataTypeDoublePrecision.deduce_parser_config(42.0)
-    assert not datatype.DataTypeDoublePrecision.deduce_parser_config(("42.41", "42.42", "42.43"))
+    assert not datatype.DataTypeDoublePrecision.deduce_parser_config(
+        ("42.41", "42.42", "42.43")
+    )
 
 
 def test_parse_double_precision():
@@ -236,23 +265,23 @@ def test_parse_double_precision():
 
     value = parse_double_precision("1.1")
 
-    assert (value >= 1.0 and value <= 1.2)
+    assert (1.0 <= value <= 1.2)
 
     value = parse_double_precision("42.42")
 
-    assert (value >= 42.41 and value <= 42.43)
+    assert (42.41 <= value <= 42.43)
 
     value = parse_double_precision("42e10")
 
-    assert (value >= 419999999999.0 and value <= 420000000000.1)
+    assert (419999999999.0 <= value <= 420000000000.1)
 
     value = parse_double_precision("42.42e10")
 
-    assert (value >= 424199999999.9 and value <= 424200000000.1)
+    assert (424199999999.9 <= value <= 424200000000.1)
 
     value = parse_double_precision("42.33e-10")
 
-    assert (value >= 0.000000004232 and value <= 0.000000004234)
+    assert (0.000000004232 <= value <= 0.000000004234)
 
 
 def test_matches_timestamp():
@@ -272,7 +301,10 @@ def test_parse_timestamp():
         datatype.DataTypeTimestamp.string_parser_config({})
     )
 
-    assert parse_timestamp("2009-05-10T11:00:00") == datetime(2009, 5, 10, 11, 0, 0)
+    eq_(
+        parse_timestamp("2009-05-10T11:00:00"),
+        datetime(2009, 5, 10, 11, 0, 0)
+    )
 
 
 def test_serialize_timestamp():
@@ -290,7 +322,9 @@ def test_matches_numeric():
 
     # Checking for a match with any other type than a string shouldn't
     # result in a TypeError exception, but just return False.
-    assert not datatype.DataTypeNumeric.deduce_parser_config(("123.456", "123.456", "123.456"))
+    assert not datatype.DataTypeNumeric.deduce_parser_config(
+        ("123.456", "123.456", "123.456")
+    )
 
     assert datatype.DataTypeNumeric.deduce_parser_config(
         decimal.Decimal('528676.842519685039')
@@ -333,7 +367,7 @@ def test_deduce_from_string():
     eq_(parser_descriptor.data_type.name, "real")
 
 
-def test_max_datatypes():
+def test_max_data_types():
     current_data_types = [
         datatype.DataTypeSmallInt,
         datatype.DataTypeSmallInt
@@ -352,4 +386,3 @@ def test_max_datatypes():
             datatype.DataTypeInteger
         ]
     )
-
