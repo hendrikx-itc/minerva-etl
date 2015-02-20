@@ -52,7 +52,8 @@ class NotificationStore():
     def get_attributes(notification_store_id):
         def f(cursor):
             query = (
-                "SELECT id, notification_store_id, name, data_type, description "
+                "SELECT id, notification_store_id, name, data_type, "
+                "description "
                 "FROM notification.attribute "
                 "WHERE notification_store_id = %s"
             )
