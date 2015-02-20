@@ -804,6 +804,7 @@ def test_store_add_column(conn, data_set):
     eq_(c, 7)
 
 
+@raises(DataTypeMismatch)
 @with_conn(clear_database)
 @with_dataset(TestData)
 def test_store_alter_column(conn, data_set):

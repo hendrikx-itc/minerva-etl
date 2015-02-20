@@ -600,12 +600,8 @@ class CopyFrom(DbAction):
             return no_op
         except NoSuchTable:
             return insert_before(CreatePartition())
-        except NoSuchColumnError:
-            return insert_before(CheckColumnsExist())
         except UniqueViolation:
             return replace(Update())
-        except DataTypeMismatch:
-            return insert_before(CheckDataTypes())
 
 
 class BatchInsert(DbAction):
@@ -617,12 +613,8 @@ class BatchInsert(DbAction):
             )(cursor)
         except NoSuchTable:
             return insert_before(CreatePartition())
-        except NoSuchColumnError:
-            return insert_before(CheckColumnsExist())
         except UniqueViolation:
             return replace(Update())
-        except DataTypeMismatch:
-            return insert_before(CheckDataTypes())
 
 
 class Update(DbAction):
@@ -634,10 +626,6 @@ class Update(DbAction):
             )(cursor)
         except NoSuchTable:
             return insert_before(CreatePartition())
-        except NoSuchColumnError:
-            return insert_before(CheckColumnsExist())
-        except DataTypeMismatch:
-            return insert_before(CheckDataTypes())
 
 
 class CheckColumnsExist(DbAction):
