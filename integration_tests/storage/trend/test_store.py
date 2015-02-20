@@ -4,7 +4,6 @@ from contextlib import closing
 
 import pytz
 
-from minerva.util import first
 from minerva.db.query import Table, Call, Column, Eq, And
 from minerva.db.error import DataTypeMismatch
 from minerva.test import with_conn, clear_database, assert_not_equal, raises, \
@@ -14,7 +13,8 @@ from minerva.storage import datatype
 from minerva.storage.trend.test import DataSet
 from minerva.storage.trend.datapackage import \
     refined_package_type_for_entity_type
-from minerva.storage.trend.trendstore import TrendStore, TrendStoreDescriptor
+from minerva.storage.trend.trendstore import TrendStore, TrendStoreDescriptor, \
+    NoSuchTrendError
 from minerva.storage.trend.trend import TrendDescriptor
 from minerva.storage.trend.partitioning import Partitioning
 from minerva.storage.trend.granularity import create_granularity
@@ -76,7 +76,7 @@ def test_store_copy_from_1(conn):
 
         table.select(Call("max", Column("modified"))).execute(cursor)
 
-        max_modified = first(cursor.fetchone())
+        max_modified, = cursor.fetchone()
 
         eq_(max_modified, modified)
 
@@ -122,7 +122,7 @@ def test_store_copy_from_2(conn):
 
         table.select(Call("max", Column("modified"))).execute(cursor)
 
-        max_modified = first(cursor.fetchone())
+        max_modified, = cursor.fetchone()
 
         eq_(max_modified, modified)
 
@@ -150,7 +150,6 @@ def test_store_using_tmp(conn):
         (10051, (10051, 0.9944, 17, 2, 2)),
         (10052, (10052, 0.9889, 18, 2, 0)),
         (10053, (10053, 0.9920, 15, 3, 1)),
-        (10023, (10023, 0.9931, 9, 0, 1)),
         (10085, (10085, 0.9987, 3, 0, 0)),
         (10086, (10086, 0.9972, 3, 2, 0))
     ]
@@ -190,7 +189,7 @@ def test_store_using_tmp(conn):
 
         table.select(Call("max", Column("modified"))).execute(cursor)
 
-        max_modified = first(cursor.fetchone())
+        max_modified, = cursor.fetchone()
 
         eq_(max_modified, modified)
 
@@ -198,7 +197,15 @@ def test_store_using_tmp(conn):
 @with_conn(clear_database)
 def test_store_insert_rows(conn):
     granularity = create_granularity("900")
-    trend_names = ['CellID', 'CCR', 'Drops']
+
+    trend_descriptors = [
+        TrendDescriptor('CellID', datatype.DataTypeSmallInt, ''),
+        TrendDescriptor('CCR', datatype.DataTypeDoublePrecision, ''),
+        TrendDescriptor('Drops', datatype.DataTypeSmallInt, ''),
+    ]
+
+    trend_names = [t.name for t in trend_descriptors]
+
     data_rows = [
         (10023, (10023, 0.9919, 17)),
         (10047, (10047, 0.9963, 18))
@@ -208,16 +215,9 @@ def test_store_insert_rows(conn):
     time1 = pytz.utc.localize(datetime(2013, 1, 2, 10, 45, 0))
     time2 = time1 - timedelta(days=1)
 
-    data_types = datatype.deduce_data_types(data_rows)
-
     with closing(conn.cursor()) as cursor:
         data_source = DataSource.from_name("test-src009")(cursor)
         entity_type = EntityType.from_name("test-type001")(cursor)
-
-        trend_descriptors = [
-            TrendDescriptor(trend_name, data_type, '')
-            for trend_name, data_type in zip(trend_names, data_types)
-        ]
 
         trend_store = TrendStore.create(TrendStoreDescriptor(
             data_source, entity_type, granularity, trend_descriptors, 86400 * 7
@@ -255,7 +255,7 @@ def test_store_insert_rows(conn):
 
         table.select(Call("max", Column("modified"))).execute(cursor)
 
-        max_modified = first(cursor.fetchone())
+        max_modified, = cursor.fetchone()
 
         eq_(max_modified, modified)
 
@@ -321,13 +321,13 @@ def test_update_modified_column(conn):
 
         table.select(Call("max", Column("modified"))).execute(cursor)
 
-        max_modified = first(cursor.fetchone())
+        max_modified, = cursor.fetchone()
 
         modified_table.select(Column("end")).where_(
             Eq(Column("trend_store_id"), trend_store.id)
         ).execute(cursor)
 
-        end = first(cursor.fetchone())
+        end, = cursor.fetchone()
 
         eq_(end, max_modified)
 
@@ -573,6 +573,7 @@ def test_store_copy_from(conn, data_set):
     transaction.run(conn)
 
 
+@raises(NoSuchTrendError)
 @with_conn(clear_database)
 @with_dataset(TestData)
 def test_store_copy_from_missing_column(conn, data_set):
@@ -730,15 +731,24 @@ def test_generate_index(conn, data_set):
         eq_(postgresql_partition_index, partition_index)
 
 
+@raises(NoSuchTrendError)
 @with_conn(clear_database)
 @with_dataset(TestData)
 def test_store_add_column(conn, data_set):
     partition_size = 86400
 
+    trend_descriptors = [
+        TrendDescriptor('a', datatype.DataTypeSmallInt, ''),
+        TrendDescriptor('b', datatype.DataTypeSmallInt, ''),
+        TrendDescriptor('c', datatype.DataTypeSmallInt, '')
+    ]
+
+    trend_names = [t.name for t in trend_descriptors]
+
     with closing(conn.cursor()) as cursor:
         trend_store = TrendStore.create(TrendStoreDescriptor(
             data_set.data_source, data_set.entity_type, data_set.granularity,
-            [], partition_size
+            trend_descriptors, partition_size
         ))(cursor)
 
     conn.commit()
@@ -747,15 +757,13 @@ def test_store_add_column(conn, data_set):
         datetime(2013, 4, 25, 10, 45)
     )
 
-    trends = ["a", "b", "c"]
-
     rows = [
         (1234, [1, 2, 3]),
         (2345, [4, 5, 6])
     ]
 
     data_package = refined_package_type_for_entity_type('Node')(
-        data_set.granularity, timestamp, trends, rows
+        data_set.granularity, timestamp, trend_names, rows
     )
 
     transaction = trend_store.store(data_package)
@@ -776,14 +784,13 @@ def test_store_add_column(conn, data_set):
 
     eq_(c, 6)
 
-    trends = ["a", "b", "c", "d"]
-
-    rows = [
-        (2345, [4, 5, 7, "2013-04-25 11:00:00"])
-    ]
-
     data_package = refined_package_type_for_entity_type('Node')(
-        data_set.granularity, timestamp, trends, rows
+        granularity=data_set.granularity,
+        timestamp=timestamp,
+        trend_names=["a", "b", "c", "d"],
+        rows=[
+            (2345, [4, 5, 7, "2013-04-25 11:00:00"])
+        ]
     )
 
     transaction = trend_store.store(data_package)
