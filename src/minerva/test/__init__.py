@@ -45,7 +45,9 @@ def raises(exception_type):
 
 
 def connect():
-    conn = psycopg2.connect('', connection_factory=psycopg2.extras.LoggingConnection)
+    conn = psycopg2.connect(
+        '', connection_factory=psycopg2.extras.LoggingConnection
+    )
 
     conn.initialize(logging.root)
 
