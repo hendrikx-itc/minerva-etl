@@ -17,7 +17,7 @@ import psycopg2
 
 from minerva.util import first, no_op, zip_apply, compose
 from minerva.db.error import NoCopyInProgress, NoSuchTable, \
-    NoSuchColumnError, UniqueViolation, DataTypeMismatch, DuplicateTable, \
+    UniqueViolation, DuplicateTable, \
     translate_postgresql_exception, translate_postgresql_exceptions
 from minerva.db.query import Table, Column, Eq, ands
 from minerva.db.util import create_temp_table_from, quote_ident
