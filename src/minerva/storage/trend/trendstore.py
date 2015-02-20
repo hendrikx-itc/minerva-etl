@@ -207,7 +207,7 @@ class TrendStore():
 
             (
                 trend_store_id, entity_type_id, data_source_id, granularity_str,
-                partition_size, type, retention_period
+                partition_size, store_type, retention_period
             ) = cursor.fetchone()
 
             entity_type = EntityType.get(entity_type_id)(cursor)
@@ -217,7 +217,7 @@ class TrendStore():
 
             return TrendStore(
                 trend_store_id, data_source, entity_type,
-                create_granularity(granularity_str), partition_size, type,
+                create_granularity(granularity_str), partition_size, store_type,
                 trends
             )
 
@@ -262,14 +262,14 @@ class TrendStore():
             elif cursor.rowcount == 1:
                 (
                     trend_store_id, data_source_id, entity_type_id,
-                    granularity_str, partition_size, type
+                    granularity_str, partition_size, store_type
                 ) = cursor.fetchone()
 
                 trends = TrendStore.get_trends(cursor, trend_store_id)
 
                 return TrendStore(
                     trend_store_id, data_source, entity_type, granularity,
-                    partition_size, type, trends
+                    partition_size, store_type, trends
                 )
 
         return f
@@ -284,7 +284,7 @@ class TrendStore():
             if cursor.rowcount == 1:
                 (
                     trend_store_id, data_source_id, entity_type_id,
-                    granularity_str, partition_size, type
+                    granularity_str, partition_size, store_type
                 ) = cursor.fetchone()
 
                 data_source = DataSource.get(data_source_id)(cursor)
@@ -296,7 +296,7 @@ class TrendStore():
 
                 return TrendStore(
                     trend_store_id, data_source, entity_type, granularity,
-                    partition_size, type, trends
+                    partition_size, store_type, trends
                 )
 
         return f
@@ -448,7 +448,8 @@ class TrendStore():
 
             rows = [
                 (entity_id, data_package.timestamp, modified) + tuple(values)
-                for entity_id, values in data_package.refined_rows(value_parsers)(cursor)
+                for entity_id, values
+                in data_package.refined_rows(value_parsers)(cursor)
             ]
 
             try:
