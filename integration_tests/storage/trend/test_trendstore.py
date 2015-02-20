@@ -149,7 +149,7 @@ class TestStore():
 
             eq_(trend_store.data_source.id, self.data_source.id)
             eq_(trend_store.partition_size, partition_size)
-            assert trend_store.id is not None, "trendstore.id is None"
+            assert trend_store.id is not None, "trend_store.id is None"
 
     def test_check_column_types(self):
         granularity = create_granularity("900")
