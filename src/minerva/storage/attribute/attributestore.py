@@ -97,7 +97,6 @@ class AttributeStore():
             cursor.execute(query, args)
 
             def row_to_attribute(row):
-                """Create Attribute, link to this attribute store and return it."""
                 attribute_id, name, data_type, attribute_store_id, description = row
 
                 return Attribute(
