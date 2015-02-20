@@ -513,7 +513,7 @@ class TrendStore():
         combination) are inserted.
         """
         def f(cursor):
-            all_column_names = ['entity_id', 'timestamp']
+            all_column_names = ['entity_id', 'timestamp', 'modified']
             all_column_names.extend(column_names)
 
             tmp_column_names = ", ".join(
