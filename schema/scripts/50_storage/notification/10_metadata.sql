@@ -1,30 +1,33 @@
-CREATE SCHEMA notification;
+----------------------------------
+-- Schema 'notification_directory'
+----------------------------------
 
-COMMENT ON SCHEMA notification IS
-'Stores information of events that can occur at irregular intervals, but '
-'still have a fixed, known format.';
+CREATE SCHEMA notification_directory;
 
-ALTER SCHEMA notification OWNER TO minerva_admin;
+COMMENT ON SCHEMA notification_directory IS
+'Stores meta-data about notification data in the notification schema.';
 
-GRANT ALL ON SCHEMA notification TO minerva_writer;
-GRANT USAGE ON SCHEMA notification TO minerva;
+ALTER SCHEMA notification_directory OWNER TO minerva_admin;
 
-CREATE TYPE notification.attr_def AS (
+GRANT ALL ON SCHEMA notification_directory TO minerva_writer;
+GRANT USAGE ON SCHEMA notification_directory TO minerva;
+
+CREATE TYPE notification_directory.attr_def AS (
     name name,
     data_type name,
     description text
 );
 
 
--- Table 'notification.notification_store'
+-- Table 'notification_directory.notification_store'
 
-CREATE TABLE notification.notification_store (
+CREATE TABLE notification_directory.notification_store (
     id serial PRIMARY KEY,
     data_source_id integer REFERENCES directory.data_source ON DELETE CASCADE,
     CONSTRAINT uniqueness UNIQUE(data_source_id)
 );
 
-COMMENT ON TABLE notification.notification_store IS
+COMMENT ON TABLE notification_directory.notification_store IS
 'Describes notification_stores. Each notification_store maps to a set of tables '
 'and functions that can store and manage notifications of a certain type. '
 'These corresponding tables and functions are created automatically for each '
@@ -33,69 +36,88 @@ COMMENT ON TABLE notification.notification_store IS
 'data_source. Use the create_notification_store function to create new '
 'notification_stores.';
 
-ALTER TABLE notification.notification_store OWNER TO minerva_admin;
+ALTER TABLE notification_directory.notification_store OWNER TO minerva_admin;
 
-GRANT SELECT ON TABLE notification.notification_store TO minerva;
-GRANT INSERT,DELETE,UPDATE ON TABLE notification.notification_store TO minerva_writer;
+GRANT SELECT ON TABLE notification_directory.notification_store TO minerva;
+GRANT INSERT,DELETE,UPDATE ON TABLE notification_directory.notification_store TO minerva_writer;
 
 
--- Table 'notification.attribute'
+-- Table 'notification_directory.attribute'
 
-CREATE TABLE notification.attribute (
+CREATE TABLE notification_directory.attribute (
     id serial PRIMARY KEY,
-    notification_store_id integer REFERENCES notification.notification_store ON DELETE CASCADE,
+    notification_store_id integer REFERENCES notification_directory.notification_store ON DELETE CASCADE,
     name name not null,
     data_type name not null,
     description varchar not null
 );
 
-COMMENT ON TABLE notification.attribute IS
-'Describes attributes of notification_stores. An attribute of a '
-'notification_store is an attribute that each notification stored in that '
-'notification_store has. An attribute corresponds directly to a column in '
-'the main notification_store table';
+COMMENT ON TABLE notification_directory.attribute IS
+'Describes attributes of notification stores. An attribute of a '
+'notification store is an attribute that each notification stored in that '
+'notification store has. An attribute corresponds directly to a column in '
+'the main notification store table';
 
-ALTER TABLE notification.attribute OWNER TO minerva_admin;
+ALTER TABLE notification_directory.attribute OWNER TO minerva_admin;
 
-GRANT SELECT ON TABLE notification.attribute TO minerva;
-GRANT INSERT,DELETE,UPDATE ON TABLE notification.attribute TO minerva_writer;
+GRANT SELECT ON TABLE notification_directory.attribute TO minerva;
+GRANT INSERT,DELETE,UPDATE ON TABLE notification_directory.attribute TO minerva_writer;
 
 
--- Table 'notification.notificationsetstore'
+-- Table 'notification_directory.notificationsetstore'
 
-CREATE TABLE notification.notificationsetstore (
+CREATE TABLE notification_directory.notificationsetstore (
     id serial PRIMARY KEY,
     name name not null,
-    notification_store_id integer REFERENCES notification.notification_store ON DELETE CASCADE
+    notification_store_id integer REFERENCES notification_directory.notification_store ON DELETE CASCADE
 );
 
-COMMENT ON TABLE notification.notificationsetstore IS
+COMMENT ON TABLE notification_directory.notificationsetstore IS
 'Describes notificationsetstores. A notificationsetstore can hold information '
 'over sets of notifications that are related to each other.';
 
-ALTER TABLE notification.notificationsetstore OWNER TO minerva_admin;
+ALTER TABLE notification_directory.notificationsetstore OWNER TO minerva_admin;
 
-GRANT SELECT ON TABLE notification.notificationsetstore TO minerva;
-GRANT INSERT,DELETE,UPDATE ON TABLE notification.notificationsetstore TO minerva_writer;
+GRANT SELECT ON TABLE notification_directory.notificationsetstore TO minerva;
+GRANT INSERT,DELETE,UPDATE ON TABLE notification_directory.notificationsetstore TO minerva_writer;
 
 
--- Table 'notification.setattribute'
+-- Table 'notification_directory.setattribute'
 
-CREATE TABLE notification.setattribute (
+CREATE TABLE notification_directory.setattribute (
     id serial PRIMARY KEY,
-    notificationsetstore_id integer REFERENCES notification.notificationsetstore ON DELETE CASCADE,
+    notificationsetstore_id integer REFERENCES notification_directory.notificationsetstore ON DELETE CASCADE,
     name name not null,
     data_type name not null,
     description varchar not null
 );
 
-COMMENT ON TABLE notification.setattribute IS
+COMMENT ON TABLE notification_directory.setattribute IS
 'Describes attributes of notificationsetstores. A setattribute of a '
 'notificationsetstore is an attribute that each notification set has. '
 'A setattribute corresponds directly to a column in the main '
 'notificationsetstore table.';
 
-ALTER TABLE notification.attribute OWNER TO minerva_admin;
+ALTER TABLE notification_directory.attribute OWNER TO minerva_admin;
 
-GRANT SELECT ON TABLE notification.attribute TO minerva;
-GRANT INSERT,DELETE,UPDATE ON TABLE notification.attribute TO minerva_writer;
+GRANT SELECT ON TABLE notification_directory.attribute TO minerva;
+GRANT INSERT,DELETE,UPDATE ON TABLE notification_directory.attribute TO minerva_writer;
+
+
+------------------------
+-- Schema 'notification'
+------------------------
+
+CREATE SCHEMA notification;
+
+COMMENT ON SCHEMA notification IS
+'Stores information of events that can occur at irregular intervals, but
+still have a fixed, known format.
+
+This schema is dynamically populated.';
+
+ALTER SCHEMA notification OWNER TO minerva_admin;
+
+GRANT ALL ON SCHEMA notification TO minerva_writer;
+GRANT USAGE ON SCHEMA notification TO minerva;
+
