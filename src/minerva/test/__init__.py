@@ -19,13 +19,25 @@ def assert_not_equal(a, b):
     assert a != b, '{} == {}'.format(a, b)
 
 
+def assert_is_none(a, message=None):
+    assert a is None, message or '{} is not None'.format(a)
+
+
+def assert_is_not_none(a, message=None):
+    assert a is not None, message or '{} is None'.format(a)
+
+
+def assert_raises(exception_type, f, *args, **kwargs):
+    try:
+        return f(*args, **kwargs)
+    except Exception as exc:
+        eq_(type(exc), exception_type)
+
+
 def raises(exception_type):
     def fn(f):
         def wrapped(*args, **kwargs):
-            try:
-                return f(*args, **kwargs)
-            except Exception as exc:
-                eq_(type(exc), exception_type)
+            assert_raises(exception_type, f, *args, **kwargs)
 
         return wrapped()
 
