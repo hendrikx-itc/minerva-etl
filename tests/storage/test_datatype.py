@@ -335,21 +335,21 @@ def test_deduce_from_string():
 
 def test_max_datatypes():
     current_data_types = [
-        (datatype.DataTypeSmallInt, {}),
-        (datatype.DataTypeSmallInt, {})
+        datatype.DataTypeSmallInt,
+        datatype.DataTypeSmallInt
     ]
 
     new_data_types = [
-        (datatype.DataTypeInteger, {}),
-        (datatype.DataTypeInteger, {})
+        datatype.DataTypeInteger,
+        datatype.DataTypeInteger
     ]
 
     max_data_types = datatype.max_data_types(current_data_types, new_data_types)
 
     eq_(
         max_data_types, [
-            (datatype.DataTypeInteger, {}),
-            (datatype.DataTypeInteger, {})
+            datatype.DataTypeInteger,
+            datatype.DataTypeInteger
         ]
     )
 
