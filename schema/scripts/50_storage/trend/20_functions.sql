@@ -878,7 +878,7 @@ CREATE FUNCTION trend_directory.assure_data_types(trend_directory.trend_store, t
 AS $$
     SELECT trend_directory.modify_data_type($1, trend, required.data_type)
     FROM unnest($2) required
-    LEFT JOIN trend_directory.trend ON
+    JOIN trend_directory.trend ON
         trend.name = required.name
             AND
         trend.trend_store_id = $1.id
