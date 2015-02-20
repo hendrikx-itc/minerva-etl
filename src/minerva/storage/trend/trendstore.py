@@ -433,17 +433,16 @@ class TrendStore():
             column_names = ["entity_id", "timestamp", "modified"]
             column_names.extend(data_package.trend_names)
 
-            dest_column_names = ",".join(
-                '"{0}"'.format(column_name)
-                for column_name in column_names
+            columns_part = ",".join(
+                map(quote_ident, column_names)
             )
 
-            parameters = ", ".join(["%s"] * len(column_names))
+            parameters = ", ".join(['%s'] * len(column_names))
 
             query = (
                 "INSERT INTO {0} ({1}) "
                 "VALUES ({2})"
-            ).format(table.render(), dest_column_names, parameters)
+            ).format(table.render(), columns_part, parameters)
 
             value_parsers = self.get_string_parsers(data_package.trend_names)
 
