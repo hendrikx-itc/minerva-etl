@@ -131,7 +131,7 @@ class TrendStore():
 
         return f
 
-    def check_data_types(self, trend_descriptors):
+    def ensure_data_types(self, trend_descriptors):
         """
         Check if database column types match trend data type and correct it if
         necessary.
@@ -647,7 +647,7 @@ class CreatePartition(DbAction):
 
 class CheckDataTypes(DbAction):
     def execute(self, cursor, state):
-        state.trend_store.check_data_types(
+        state.trend_store.ensure_data_types(
             trend_descriptors_from_data_package(state.data_package)
         )(cursor)
 
