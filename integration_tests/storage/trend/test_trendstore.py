@@ -169,7 +169,7 @@ class TestStore():
             trend_store = TrendStore.create(trend_store_descriptor)(cursor)
 
             trend_store.check_trends_exist(trend_descriptors)(cursor)
-            trend_store.check_data_types(trend_descriptors)(cursor)
+            trend_store.ensure_data_types(trend_descriptors)(cursor)
 
     def test_store_raw_qtr(self):
         trend_store_descriptor = TrendStoreDescriptor(
