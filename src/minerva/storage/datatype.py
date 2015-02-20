@@ -60,8 +60,8 @@ def merge_dicts(x, y):
 class DataTypeBoolean(DataType):
     name = 'boolean'
 
-    true_set = set(["1", "True", "true"])
-    false_set = set(["0", "False", "false"])
+    true_set = {"1", "True", "true"}
+    false_set = {"0", "False", "false"}
     bool_set = true_set | false_set
 
     default_parser_config = {
@@ -216,11 +216,17 @@ class DataTypeTimestamp(DataType):
 
     known_formats = [
         (
-            re.compile("^([0-9]{4})-([0-9]{2})-([0-9]{2})T([0-9]{2}):([0-9]{2}):([0-9]{2})$"),
+            re.compile(
+                "^([0-9]{4})-([0-9]{2})-([0-9]{2})T"
+                "([0-9]{2}):([0-9]{2}):([0-9]{2})$"
+            ),
             "%Y-%m-%dT%H:%M:%S"
         ),
         (
-            re.compile("^([0-9]{4})-([0-9]{2})-([0-9]{2}) ([0-9]{2}):([0-9]{2}):([0-9]{2})$"),
+            re.compile(
+                "^([0-9]{4})-([0-9]{2})-([0-9]{2}) "
+                "([0-9]{2}):([0-9]{2}):([0-9]{2})$"
+            ),
             "%Y-%m-%d %H:%M:%S"
         )
     ]
@@ -499,8 +505,8 @@ class DataTypeReal(DataType):
             """
             Parse value and return float value. If value is empty ('') or None,
             None is returned.
-            :param value: string representation of a real value, e.g.; '34.00034',
-            '343', ''
+            :param value: string representation of a real value, e.g.;
+            '34.00034', '343', ''
             :return: float value
             """
             if value == config["null_value"]:
@@ -767,15 +773,15 @@ def deduce_data_types(rows):
     )
 
 
-def load_data_format(format):
-    data_type_name = format["datatype"]
+def load_data_format(format_config):
+    data_type_name = format_config["data_type"]
 
     try:
         data_type = type_map[data_type_name]
     except KeyError:
         raise Exception("No such data type: {}".format(data_type_name))
     else:
-        config = data_type.string_parser_config(format["string_format"])
+        config = data_type.string_parser_config(format_config["string_format"])
 
         return data_type, data_type.string_parser(config)
 
