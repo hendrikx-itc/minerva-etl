@@ -7,8 +7,7 @@ from minerva.test import with_conn, clear_database, eq_
 from minerva.test.trend import TestSet1Small
 from minerva.directory import DataSource
 from minerva.storage.trend.engine import TrendEngine
-from minerva.storage.trend.trendstore import TrendStore, TrendStoreDescriptor
-from minerva.storage.trend.view import View
+from minerva.storage.trend.viewtrendstore import ViewTrendStore, ViewTrendStoreDescriptor
 
 
 @with_conn(clear_database)
@@ -20,17 +19,6 @@ def test_create_view(conn):
 
         data_source = DataSource.from_name("view-test")(cursor)
 
-        trend_store = TrendStore.get(
-            data_source, test_set_small.entity_type,
-            test_set_small.granularity
-        )(cursor)
-
-        if not trend_store:
-            trend_store = TrendStore.create(TrendStoreDescriptor(
-                data_source, test_set_small.entity_type,
-                test_set_small.granularity, [], partition_size=86400
-            ))(cursor)
-
         view_query = (
             "SELECT "
             "999 AS entity_id, "
@@ -38,17 +26,16 @@ def test_create_view(conn):
             '10 AS "CntrA"'
         )
 
-        View(trend_store, view_query).define(cursor).create(cursor)
+        trend_store = ViewTrendStore.create(ViewTrendStoreDescriptor(
+            data_source, test_set_small.entity_type,
+            test_set_small.granularity, view_query
+        ))(cursor)
 
-    conn.commit()
+        start = pytz.utc.localize(
+            datetime.datetime(2013, 8, 26, 13, 0, 0)
+        )
+        end = start
 
-    engine = TrendEngine(conn)
+        result = trend_store.retrieve(["CntrA"]).execute(cursor)
 
-    start = pytz.utc.localize(
-        datetime.datetime(2013, 8, 26, 13, 0, 0)
-    )
-    end = start
-
-    result = engine.retrieve(trend_store, ["CntrA"], None, start, end)
-
-    eq_(len(result), 1)
+        eq_(len(result), 1)

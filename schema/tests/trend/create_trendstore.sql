@@ -2,7 +2,7 @@ BEGIN;
 
 SELECT plan(3);
 
-SELECT trend_directory.create_trend_store(
+SELECT trend_directory.create_table_trend_store(
     'test1',
     'some_entity_type_name',
     '900',
@@ -28,7 +28,7 @@ SELECT columns_are(
     ]
 );
 
-SELECT trend_directory.create_trend_store(
+SELECT trend_directory.create_table_trend_store(
     'test2',
     'some_entity_type_name',
     '900',

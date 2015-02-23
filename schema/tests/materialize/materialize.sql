@@ -3,7 +3,7 @@ BEGIN;
 SELECT plan(3);
 
 
-SELECT trend_directory.create_trend_store(
+SELECT trend_directory.create_table_trend_store(
     'test-data',
     'Node',
     '900',
@@ -24,22 +24,20 @@ VALUES
     (id(directory.dn_to_entity('Network=G01,Node=A002')), '2015-01-21 15:00+00', now(), 43);
 
 
-SELECT trend_directory.transfer_staged(trend_store)
-FROM trend_directory.trend_store
-WHERE trend_store::text = 'test-data_Node_qtr';
+SELECT trend_directory.transfer_staged(table_trend_store)
+FROM trend_directory.table_trend_store
+WHERE table_trend_store::text = 'test-data_Node_qtr';
 
 
 SELECT materialization.define(
-    trend_directory.create_view(
-        trend_directory.define_view(
-        trend_directory.attributes_to_view_trend_store('vtest', 'Node', '900'),
+    trend_directory.create_view_trend_store(
+        'vtest', 'Node', '900',
         $view_def$SELECT
     entity_id,
     timestamp,
-    modified,
+    now() as modified,
     x
 FROM trend."test-data_Node_qtr"$view_def$
-        )
     )
 );
 
@@ -52,12 +50,12 @@ SELECT has_table(
 
 
 SELECT
-    is(materialization.materialize(type, '2015-01-21 15:00+00'), 2)
+    is(materialization.materialize(type, '2015-01-21 15:00+00'), 2, 'should materialize 2 records')
 FROM materialization.type
 WHERE type::text = 'vtest_Node_qtr -> test_Node_qtr';
 
 SELECT
-    is(materialization.materialize(type, '2015-01-22 11:00+00'), 0)
+    is(materialization.materialize(type, '2015-01-22 11:00+00'), 0, 'should materialize nothing')
 FROM materialization.type
 WHERE type::text = 'vtest_Node_qtr -> test_Node_qtr';
 

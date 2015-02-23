@@ -3,6 +3,7 @@ from minerva.storage.trend.trendstore import TrendStore
 from minerva.storage.trend.partition import Partition
 from minerva.storage.trend.partitioning import Partitioning
 from minerva.storage.trend.tables import DATA_TABLE_POSTFIXES
+from minerva.storage.trend import schema
 from minerva.directory import DataSource, EntityType
 from minerva.storage.trend.granularity import create_granularity
 
@@ -19,6 +20,23 @@ class TableTrendStoreDescriptor():
 
 
 class TableTrendStore(TrendStore):
+    column_names = [
+        "id", "data_source_id", "entity_type_id", "granularity",
+        "partition_size"
+    ]
+
+    columns = list(map(Column, column_names))
+
+    get_query = schema.table_trend_store.select(columns).where_(ands([
+        Eq(Column("data_source_id")),
+        Eq(Column("entity_type_id")),
+        Eq(Column("granularity"))
+    ]))
+
+    get_by_id_query = schema.table_trend_store.select(
+        columns
+    ).where_(Eq(Column("id")))
+
     def __init__(
             self, id, data_source, entity_type, granularity, trends,
             partition_size):
@@ -60,9 +78,9 @@ class TableTrendStore(TrendStore):
     def check_trends_exist(self, trend_descriptors):
         query = (
             "SELECT trend_directory.assure_trends_exist("
-            "trend_store, %s::trend_directory.trend_descr[]"
+            "table_trend_store, %s::trend_directory.trend_descr[]"
             ") "
-            "FROM trend_directory.trend_store "
+            "FROM trend_directory.table_trend_store "
             "WHERE id = %s"
         )
 
@@ -80,9 +98,9 @@ class TableTrendStore(TrendStore):
         """
         query = (
             "SELECT trend_directory.assure_data_types("
-            "trend_store, %s::trend_directory.trend_descr[]"
+            "table_trend_store, %s::trend_directory.trend_descr[]"
             ") "
-            "FROM trend_directory.trend_store "
+            "FROM trend_directory.table_trend_store "
             "WHERE id = %s"
         )
 
@@ -114,7 +132,7 @@ class TableTrendStore(TrendStore):
 
             (
                 trend_store_id, entity_type_id, data_source_id, granularity_str,
-                partition_size, store_type, retention_period
+                partition_size, retention_period
             ) = cursor.fetchone()
 
             entity_type = EntityType.get(entity_type_id)(cursor)
@@ -124,8 +142,62 @@ class TableTrendStore(TrendStore):
 
             return TableTrendStore(
                 trend_store_id, data_source, entity_type,
-                create_granularity(granularity_str), trends, partition_size,
-                store_type
+                create_granularity(granularity_str), trends, partition_size
             )
+
+        return f
+
+    @classmethod
+    def get(cls, data_source, entity_type, granularity):
+        def f(cursor):
+            args = data_source.id, entity_type.id, str(granularity)
+
+            cls.get_query.execute(cursor, args)
+
+            if cursor.rowcount > 1:
+                raise Exception(
+                    "more than 1 ({}) trend store matches".format(
+                        cursor.rowcount
+                    )
+                )
+            elif cursor.rowcount == 1:
+                (
+                    trend_store_id, data_source_id, entity_type_id,
+                    granularity_str, partition_size
+                ) = cursor.fetchone()
+
+                trends = TableTrendStore.get_trends(cursor, trend_store_id)
+
+                return TableTrendStore(
+                    trend_store_id, data_source, entity_type, granularity,
+                    trends, partition_size
+                )
+
+        return f
+
+    @classmethod
+    def get_by_id(cls, id):
+        def f(cursor):
+            args = (id,)
+
+            cls.get_by_id_query.execute(cursor, args)
+
+            if cursor.rowcount == 1:
+                (
+                    trend_store_id, data_source_id, entity_type_id,
+                    granularity_str, partition_size
+                ) = cursor.fetchone()
+
+                data_source = DataSource.get(data_source_id)(cursor)
+                entity_type = EntityType.get(entity_type_id)(cursor)
+
+                trends = TableTrendStore.get_trends(cursor, id)
+
+                granularity = create_granularity(granularity_str)
+
+                return TableTrendStore(
+                    trend_store_id, data_source, entity_type, granularity,
+                    trends, partition_size
+                )
 
         return f

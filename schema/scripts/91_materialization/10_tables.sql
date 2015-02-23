@@ -9,8 +9,8 @@ GRANT USAGE ON SCHEMA materialization TO minerva;
 
 CREATE TABLE materialization.type (
     id serial NOT NULL,
-    src_trend_store_id integer NOT NULL,
-    dst_trend_store_id integer NOT NULL,
+    view_trend_store_id integer NOT NULL REFERENCES trend_directory.view_trend_store(id) ON DELETE CASCADE,
+    table_trend_store_id integer NOT NULL REFERENCES trend_directory.table_trend_store(id) ON DELETE CASCADE,
     processing_delay interval NOT NULL,
     stability_delay interval NOT NULL,
     reprocessing_period interval NOT NULL,
@@ -18,11 +18,11 @@ CREATE TABLE materialization.type (
     cost integer NOT NULL DEFAULT 10
 );
 
-COMMENT ON COLUMN materialization.type.src_trend_store_id IS
+COMMENT ON COLUMN materialization.type.id IS
 'The unique identifier of this materialization type';
-COMMENT ON COLUMN materialization.type.src_trend_store_id IS
+COMMENT ON COLUMN materialization.type.view_trend_store_id IS
 'The Id of the source trend_store, which should be the Id of a view based trend_store';
-COMMENT ON COLUMN materialization.type.dst_trend_store_id IS
+COMMENT ON COLUMN materialization.type.table_trend_store_id IS
 'The Id of the destination trend_store, which should be the Id of a table based trend_store';
 COMMENT ON COLUMN materialization.type.processing_delay IS
 'The time after the destination timestamp before this materialization can be executed';
@@ -41,18 +41,8 @@ ALTER TABLE ONLY materialization.type
 GRANT SELECT ON TABLE materialization.type TO minerva;
 GRANT INSERT,DELETE,UPDATE ON TABLE materialization.type TO minerva_writer;
 
-ALTER TABLE ONLY materialization.type
-    ADD CONSTRAINT materialization_type_src_trend_store_id_fkey
-    FOREIGN KEY (src_trend_store_id) REFERENCES trend_directory.trend_store(id)
-    ON DELETE CASCADE;
-
-ALTER TABLE ONLY materialization.type
-    ADD CONSTRAINT materialization_type_dst_trend_store_id_fkey
-    FOREIGN KEY (dst_trend_store_id) REFERENCES trend_directory.trend_store(id)
-    ON DELETE CASCADE;
-
 CREATE UNIQUE INDEX ix_materialization_type_uniqueness
-    ON materialization.type (src_trend_store_id, dst_trend_store_id);
+    ON materialization.type (view_trend_store_id, table_trend_store_id);
 
 
 -- table state

@@ -20,7 +20,7 @@ from minerva.storage.trend.test import DataSet
 from minerva.storage.trend.granularity import create_granularity
 from minerva.storage.trend.datapackage import refined_package_type_for_entity_type
 from minerva.storage.trend.trend import TrendDescriptor
-from minerva.storage.trend.trendstore import TrendStore, TrendStoreDescriptor
+from minerva.storage.trend.tabletrendstore import TableTrendStore, TableTrendStoreDescriptor
 
 
 class TestSetQtr(DataSet):
@@ -51,12 +51,12 @@ class TestSet1Small(TestSetQtr):
             self.granularity, self.timestamp, self.entities
         )
 
-        self.trend_store = TrendStore.get(
+        self.trend_store = TableTrendStore.get(
             self.data_source, self.entity_type, self.granularity
         )(cursor)
 
         if not self.trend_store:
-            self.trend_store = TrendStore.create(TrendStoreDescriptor(
+            self.trend_store = TableTrendStore.create(TableTrendStoreDescriptor(
                 self.data_source, self.entity_type, self.granularity,
                 trend_descriptors, partition_size=86400
             ))(cursor)

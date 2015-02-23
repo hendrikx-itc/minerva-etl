@@ -20,7 +20,7 @@ libpq-dev:
   pkg:
     - installed
 
-python3-virtualenv:
+python-virtualenv:
   pkg:
     - installed
 

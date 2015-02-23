@@ -5,7 +5,7 @@
 
 .. autofunction:: compose
 
-.. autofunction:: zipapply
+.. autofunction:: zip_apply
 
 .. autofunction:: reorderer
 

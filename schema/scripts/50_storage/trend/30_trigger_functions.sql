@@ -85,19 +85,17 @@ END;
 $$ LANGUAGE plpgsql VOLATILE;
 
 
-CREATE FUNCTION trend_directory.cleanup_trend_store_on_delete()
+CREATE FUNCTION trend_directory.cleanup_table_trend_store_on_delete()
     RETURNS TRIGGER
 AS $$
 DECLARE
     table_name text;
 BEGIN
-    table_name = trend_directory.base_table_name(OLD);
 
-    IF OLD.type = 'table' THEN
-        EXECUTE format('DROP TABLE IF EXISTS trend.%I CASCADE', table_name);
-    ELSIF OLD.type = 'view' THEN
-        DELETE FROM trend_directory.view WHERE trend_store_id = OLD.id;
-    END IF;
+    EXECUTE format(
+        'DROP TABLE IF EXISTS trend.%I CASCADE',
+        trend_directory.base_table_name(OLD)
+    );
 
     RETURN OLD;
 END;

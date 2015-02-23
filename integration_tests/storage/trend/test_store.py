@@ -13,8 +13,8 @@ from minerva.storage import datatype
 from minerva.storage.trend.test import DataSet
 from minerva.storage.trend.datapackage import \
     refined_package_type_for_entity_type
-from minerva.storage.trend.trendstore import TrendStore, TrendStoreDescriptor, \
-    NoSuchTrendError
+from minerva.storage.trend.tabletrendstore import TableTrendStore, TableTrendStoreDescriptor
+from minerva.storage.trend.trendstore import NoSuchTrendError
 from minerva.storage.trend.trend import TrendDescriptor
 from minerva.storage.trend.partitioning import Partitioning
 from minerva.storage.trend.granularity import create_granularity
@@ -56,7 +56,7 @@ def test_store_copy_from_1(conn):
         data_source = DataSource.from_name("test-src009")(cursor)
         entity_type = EntityType.from_name("test-type001")(cursor)
 
-        trend_store = TrendStore.create(TrendStoreDescriptor(
+        trend_store = TableTrendStore.create(TableTrendStoreDescriptor(
             data_source, entity_type, granularity, trend_descriptors, 86400
         ))(cursor)
 
@@ -104,7 +104,7 @@ def test_store_copy_from_2(conn):
         data_source = DataSource.from_name("test-src010")(cursor)
         entity_type = EntityType.from_name("test-type002")(cursor)
 
-        trend_store = TrendStore.create(TrendStoreDescriptor(
+        trend_store = TableTrendStore.create(TableTrendStoreDescriptor(
             data_source, entity_type, granularity, trend_descriptors, 86400
         ))(cursor)
         partition = trend_store.partition(timestamp)
@@ -158,7 +158,7 @@ def test_store_using_tmp(conn):
         data_source = DataSource.from_name("test-src009")(cursor)
         entity_type = EntityType.from_name("test-type001")(cursor)
 
-        trend_store = TrendStore.create(TrendStoreDescriptor(
+        trend_store = TableTrendStore.create(TableTrendStoreDescriptor(
             data_source, entity_type, granularity, trend_descriptors, 86400
         ))(cursor)
 
@@ -219,7 +219,7 @@ def test_store_insert_rows(conn):
         data_source = DataSource.from_name("test-src009")(cursor)
         entity_type = EntityType.from_name("test-type001")(cursor)
 
-        trend_store = TrendStore.create(TrendStoreDescriptor(
+        trend_store = TableTrendStore.create(TableTrendStoreDescriptor(
             data_source, entity_type, granularity, trend_descriptors, 86400 * 7
         ))(cursor)
 
@@ -286,7 +286,7 @@ def test_update_modified_column(conn):
         data_source = DataSource.from_name("test-src009")(cursor)
         entity_type = EntityType.from_name("test-type001")(cursor)
 
-        trend_store = TrendStore.create(TrendStoreDescriptor(
+        trend_store = TableTrendStore.create(TableTrendStoreDescriptor(
             data_source, entity_type, granularity, trend_descriptors, 86400
         ))(cursor)
 
@@ -324,7 +324,7 @@ def test_update_modified_column(conn):
         max_modified, = cursor.fetchone()
 
         modified_table.select(Column("end")).where_(
-            Eq(Column("trend_store_id"), trend_store.id)
+            Eq(Column("table_trend_store_id"), trend_store.id)
         ).execute(cursor)
 
         end, = cursor.fetchone()
@@ -358,7 +358,7 @@ def test_update(conn):
         data_source = DataSource.from_name("test-src009")(cursor)
         entity_type = EntityType.from_name("test-type001")(cursor)
 
-        trend_store = TrendStore.create(TrendStoreDescriptor(
+        trend_store = TableTrendStore.create(TableTrendStoreDescriptor(
             data_source, entity_type, granularity, trend_descriptors, 86400
         ))(cursor)
 
@@ -420,7 +420,7 @@ def test_update_and_modify_columns_fractured(conn):
         data_source = DataSource.from_name("test-src009")(cursor)
         entity_type = EntityType.from_name("test-type001")(cursor)
 
-        trend_store = TrendStore.create(TrendStoreDescriptor(
+        trend_store = TableTrendStore.create(TableTrendStoreDescriptor(
             data_source, entity_type, granularity, trend_descriptors, 86400
         ))(cursor)
 
@@ -477,7 +477,7 @@ class TestData(DataSet):
 def test_create_trend_store(conn, data_set):
     partition_size = 3600
 
-    create_trend_store = TrendStore.create(TrendStoreDescriptor(
+    create_trend_store = TableTrendStore.create(TableTrendStoreDescriptor(
         data_set.data_source, data_set.entity_type, data_set.granularity, [],
         partition_size
     ))
@@ -485,7 +485,7 @@ def test_create_trend_store(conn, data_set):
     with closing(conn.cursor()) as cursor:
         trend_store = create_trend_store(cursor)
 
-    assert isinstance(trend_store, TrendStore)
+    assert isinstance(trend_store, TableTrendStore)
 
     assert trend_store.id is not None
 
@@ -496,7 +496,7 @@ def test_create_trend_store_with_children(conn, data_set):
     partition_size = 3600
 
     with closing(conn.cursor()) as cursor:
-        trend_store = TrendStore.create(TrendStoreDescriptor(
+        trend_store = TableTrendStore.create(TableTrendStoreDescriptor(
             data_set.data_source, data_set.entity_type, data_set.granularity,
             [], partition_size
         ))(cursor)
@@ -518,12 +518,12 @@ def test_get_trend_store(conn, data_set):
     partition_size = 3600
 
     with closing(conn.cursor()) as cursor:
-        TrendStore.create(TrendStoreDescriptor(
+        TableTrendStore.create(TableTrendStoreDescriptor(
             data_set.data_source, data_set.entity_type, data_set.granularity,
             [], partition_size
         ))(cursor)
 
-        trend_store = TrendStore.get(
+        trend_store = TableTrendStore.get(
             data_set.data_source, data_set.entity_type, data_set.granularity
         )(cursor)
 
@@ -546,7 +546,7 @@ def test_store_copy_from(conn, data_set):
     trend_names = [t.name for t in trend_descriptors]
 
     with closing(conn.cursor()) as cursor:
-        trend_store = TrendStore.create(TrendStoreDescriptor(
+        trend_store = TableTrendStore.create(TableTrendStoreDescriptor(
             data_set.data_source, data_set.entity_type, data_set.granularity,
             trend_descriptors, partition_size
         ))(cursor)
@@ -588,7 +588,7 @@ def test_store_copy_from_missing_column(conn, data_set):
     trend_names = [t.name for t in trend_descriptors]
 
     with closing(conn.cursor()) as cursor:
-        trend_store = TrendStore.create(TrendStoreDescriptor(
+        trend_store = TableTrendStore.create(TableTrendStoreDescriptor(
             data_set.data_source, data_set.entity_type, data_set.granularity,
             trend_descriptors, partition_size
         ))(cursor)
@@ -646,7 +646,7 @@ def test_store(conn, data_set):
     trend_names = [t.name for t in trend_descriptors]
 
     with closing(conn.cursor()) as cursor:
-        trend_store = TrendStore.create(TrendStoreDescriptor(
+        trend_store = TableTrendStore.create(TableTrendStoreDescriptor(
             data_set.data_source, data_set.entity_type, data_set.granularity,
             trend_descriptors, partition_size
         ))(cursor)
@@ -746,7 +746,7 @@ def test_store_add_column(conn, data_set):
     trend_names = [t.name for t in trend_descriptors]
 
     with closing(conn.cursor()) as cursor:
-        trend_store = TrendStore.create(TrendStoreDescriptor(
+        trend_store = TableTrendStore.create(TableTrendStoreDescriptor(
             data_set.data_source, data_set.entity_type, data_set.granularity,
             trend_descriptors, partition_size
         ))(cursor)
@@ -819,7 +819,7 @@ def test_store_alter_column(conn, data_set):
     trend_names = [t.name for t in trend_descriptors]
 
     with closing(conn.cursor()) as cursor:
-        trend_store = TrendStore.create(TrendStoreDescriptor(
+        trend_store = TableTrendStore.create(TableTrendStoreDescriptor(
             data_set.data_source, data_set.entity_type, data_set.granularity,
             trend_descriptors, partition_size
         ))(cursor)

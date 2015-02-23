@@ -17,7 +17,7 @@ import pytz
 from minerva.directory import EntityType, DataSource
 from minerva.test import connect, clear_database, eq_
 from minerva.storage import datatype
-from minerva.storage.trend.trendstore import TrendStore, TrendStoreDescriptor
+from minerva.storage.trend.tabletrendstore import TableTrendStore, TableTrendStoreDescriptor
 from minerva.storage.trend.trend import TrendDescriptor
 from minerva.storage.trend.granularity import create_granularity
 from minerva.storage.trend.datapackage import DefaultPackage
@@ -52,12 +52,12 @@ class TestStore():
         partition_size = 3600
 
         with closing(self.conn.cursor()) as cursor:
-            trend_store = TrendStore.create(TrendStoreDescriptor(
+            trend_store = TableTrendStore.create(TableTrendStoreDescriptor(
                 self.data_source, self.entity_type, granularity,
                 [], partition_size
             ))(cursor)
 
-        assert isinstance(trend_store, TrendStore)
+        assert isinstance(trend_store, TableTrendStore)
 
         assert trend_store.id is not None
 
@@ -69,7 +69,7 @@ class TestStore():
         partition_size = 3600
 
         with closing(self.conn.cursor()) as cursor:
-            trend_store = TrendStore.create(TrendStoreDescriptor(
+            trend_store = TableTrendStore.create(TableTrendStoreDescriptor(
                 self.data_source, self.entity_type, granularity,
                 [
                     TrendDescriptor('x', datatype.DataTypeInteger, ''),
@@ -77,7 +77,7 @@ class TestStore():
                 ], partition_size
             ))(cursor)
 
-        assert isinstance(trend_store, TrendStore)
+        assert isinstance(trend_store, TableTrendStore)
 
         assert trend_store.id is not None
 
@@ -93,7 +93,7 @@ class TestStore():
         partition_size = 3600
 
         with closing(self.conn.cursor()) as cursor:
-            trend_store = TrendStore.create(TrendStoreDescriptor(
+            trend_store = TableTrendStore.create(TableTrendStoreDescriptor(
                 self.data_source, self.entity_type, granularity,
                 [], partition_size
             ))(cursor)
@@ -117,7 +117,7 @@ class TestStore():
         partition_size = 3600
 
         with closing(self.conn.cursor()) as cursor:
-            TrendStore.create(TrendStoreDescriptor(
+            TableTrendStore.create(TableTrendStoreDescriptor(
                 self.data_source, self.entity_type, granularity,
                 [
                     TrendDescriptor('x', datatype.DataTypeInteger, ''),
@@ -125,7 +125,7 @@ class TestStore():
                 ], partition_size
             ))(cursor)
 
-            trend_store = TrendStore.get(
+            trend_store = TableTrendStore.get(
                 self.data_source, self.entity_type, granularity
             )(cursor)
 
@@ -140,12 +140,12 @@ class TestStore():
         partition_size = 3600
 
         with closing(self.conn.cursor()) as cursor:
-            t = TrendStore.create(TrendStoreDescriptor(
+            t = TableTrendStore.create(TableTrendStoreDescriptor(
                 self.data_source, self.entity_type, granularity, [],
                 partition_size
             ))(cursor)
 
-            trend_store = TrendStore.get_by_id(t.id)(cursor)
+            trend_store = TableTrendStore.get_by_id(t.id)(cursor)
 
             eq_(trend_store.data_source.id, self.data_source.id)
             eq_(trend_store.partition_size, partition_size)
@@ -160,19 +160,19 @@ class TestStore():
             TrendDescriptor("counter2", datatype.DataTypeInteger, '')
         ]
 
-        trend_store_descriptor = TrendStoreDescriptor(
+        trend_store_descriptor = TableTrendStoreDescriptor(
             self.data_source, self.entity_type, granularity,
             [], partition_size
         )
 
         with closing(self.conn.cursor()) as cursor:
-            trend_store = TrendStore.create(trend_store_descriptor)(cursor)
+            trend_store = TableTrendStore.create(trend_store_descriptor)(cursor)
 
             trend_store.check_trends_exist(trend_descriptors)(cursor)
             trend_store.ensure_data_types(trend_descriptors)(cursor)
 
     def test_store_raw_qtr(self):
-        trend_store_descriptor = TrendStoreDescriptor(
+        trend_store_descriptor = TableTrendStoreDescriptor(
             self.data_source,
             self.entity_type,
             create_granularity("900"),
@@ -184,7 +184,7 @@ class TestStore():
         )
 
         with closing(self.conn.cursor()) as cursor:
-            trend_store = TrendStore.create(trend_store_descriptor)(cursor)
+            trend_store = TableTrendStore.create(trend_store_descriptor)(cursor)
 
         self.conn.commit()
 
@@ -202,7 +202,7 @@ class TestStore():
     def test_store_raw_day(self):
         granularity = create_granularity("1 day")
 
-        trend_store_descriptor = TrendStoreDescriptor(
+        trend_store_descriptor = TableTrendStoreDescriptor(
             self.data_source,
             self.entity_type,
             granularity,
@@ -214,7 +214,7 @@ class TestStore():
         )
 
         with closing(self.conn.cursor()) as cursor:
-            trend_store = TrendStore.create(trend_store_descriptor)(cursor)
+            trend_store = TableTrendStore.create(trend_store_descriptor)(cursor)
 
         self.conn.commit()
 
