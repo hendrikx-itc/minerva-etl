@@ -315,7 +315,7 @@ class TrendStore():
 
     def store(self, data_package):
         if data_package.is_empty():
-            return DbTransaction()
+            return DbTransaction(None, [])
         else:
             if len(data_package.rows) <= LARGE_BATCH_THRESHOLD:
                 insert_action = BatchInsert
