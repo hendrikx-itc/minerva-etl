@@ -49,10 +49,10 @@ def str_to_granularity(granularity_str):
             relativedelta(hours=hours, minutes=minutes, seconds=seconds)
         )
 
-    m = re.match('^([0-9]+)$', granularity_str)
+    m = re.match('^([0-9]+)( second[s]?)?$', granularity_str)
 
     if m:
-        seconds, = m.groups()
+        seconds, _ = m.groups()
 
         return Granularity(relativedelta(seconds=int(seconds)))
 

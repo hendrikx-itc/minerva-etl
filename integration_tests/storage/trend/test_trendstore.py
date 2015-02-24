@@ -17,6 +17,7 @@ import pytz
 from minerva.directory import EntityType, DataSource
 from minerva.test import connect, clear_database, eq_
 from minerva.storage import datatype
+from minerva.storage.trend.trendstore import TimestampEquals
 from minerva.storage.trend.tabletrendstore import TableTrendStore, TableTrendStoreDescriptor
 from minerva.storage.trend.trend import TrendDescriptor
 from minerva.storage.trend.granularity import create_granularity
@@ -227,3 +228,57 @@ class TestStore():
         package = DefaultPackage(granularity, timestamp, trend_names, rows)
 
         trend_store.store(package).run(self.conn)
+
+    def test_retrieve(self):
+        granularity = create_granularity("900 second")
+
+        trend_store_descriptor = TableTrendStoreDescriptor(
+            self.data_source,
+            self.entity_type,
+            granularity,
+            [
+                TrendDescriptor('counter1', datatype.DataTypeInteger, ''),
+                TrendDescriptor('counter2', datatype.DataTypeText, '')
+            ],
+            3600
+        )
+
+        with closing(self.conn.cursor()) as cursor:
+            trend_store = TableTrendStore.create(trend_store_descriptor)(cursor)
+
+        self.conn.commit()
+
+        timestamp = pytz.utc.localize(datetime.datetime(2015, 2, 24, 20, 0))
+        trend_names = ['counter1', 'counter2']
+        rows = [
+            ('Network=G1,Node=001', ('42', 'foo'))
+        ]
+
+        package = DefaultPackage(granularity, timestamp, trend_names, rows)
+
+        trend_store.store(package).run(self.conn)
+
+        with closing(self.conn.cursor()) as cursor:
+            trend_store.retrieve(['counter1']).execute(cursor)
+
+            rows = cursor.fetchall()
+
+        eq_(len(rows), 1)
+
+        with closing(self.conn.cursor()) as cursor:
+            trend_store.retrieve(['counter1']).timestamp(
+                TimestampEquals(timestamp)
+            ).execute(cursor)
+
+            rows = cursor.fetchall()
+
+        eq_(len(rows), 1)
+
+        with closing(self.conn.cursor()) as cursor:
+            trend_store.retrieve(['counter1']).timestamp(
+                TimestampEquals(pytz.utc.localize(datetime.datetime(2015, 1, 10, 13, 0)))
+            ).execute(cursor)
+
+            rows = cursor.fetchall()
+
+        eq_(len(rows), 0)

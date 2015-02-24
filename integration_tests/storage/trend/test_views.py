@@ -36,6 +36,8 @@ def test_create_view(conn):
         )
         end = start
 
-        result = trend_store.retrieve(["CntrA"]).execute(cursor)
+        trend_store.retrieve(["CntrA"]).execute(cursor)
+
+        result = cursor.fetchall()
 
         eq_(len(result), 1)

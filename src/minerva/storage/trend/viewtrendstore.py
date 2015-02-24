@@ -12,17 +12,6 @@ class ViewTrendStoreDescriptor():
         self.query = query
 
 
-class TrendStoreQuery():
-    def __init__(self, trend_store, trend_names):
-        self.trend_store = trend_store
-        self.trend_names = trend_names
-
-    def execute(self, cursor):
-        cursor.execute('SELECT 1')
-
-        return cursor.fetchall()
-
-
 class ViewTrendStore(TrendStore):
     @staticmethod
     def create(descriptor):
@@ -57,6 +46,3 @@ class ViewTrendStore(TrendStore):
             )
 
         return f
-
-    def retrieve(self, trend_names):
-        return TrendStoreQuery(self, trend_names)
