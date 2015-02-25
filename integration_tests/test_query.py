@@ -12,9 +12,7 @@ this software.
 from io import StringIO
 from contextlib import closing
 
-from nose.tools import eq_
-
-from minerva.test import with_conn
+from minerva.test import with_conn, eq_
 from minerva.db.query import Table, table_exists, Column, Copy, Eq
 
 
@@ -82,13 +80,12 @@ def test_copy_from(conn):
 
         query_by_id.execute(cursor, (2,))
 
-        id, name = cursor.fetchone()
+        id_, name = cursor.fetchone()
 
         eq_(name, "second")
 
         query_by_name.execute(cursor, ("third",))
 
-        id, name = cursor.fetchone()
+        id_, name = cursor.fetchone()
 
-        eq_(id, 3)
-
+        eq_(id_, 3)
