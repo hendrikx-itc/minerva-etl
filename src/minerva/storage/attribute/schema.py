@@ -14,5 +14,5 @@ from minerva.db.query import Table
 
 name = "attribute"
 
-attributestore = Table(name, "attributestore")
+attribute_store = Table(name, "attribute_store")
 attribute = Table(name, "attribute")

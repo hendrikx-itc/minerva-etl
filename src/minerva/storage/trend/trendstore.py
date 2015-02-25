@@ -9,14 +9,10 @@ the Free Software Foundation; either version 3, or (at your option) any later
 version.  The full license is in the file COPYING, distributed as part of
 this software.
 """
-
-from minerva.util import first, no_op, zip_apply, compose
 from minerva.db.util import quote_ident
 from minerva.db.query import Table, Column, Eq, ands
-from minerva.directory import DataSource, EntityType
 from minerva.storage.trend import schema
-from minerva.storage.trend.granularity import create_granularity
-from minerva.storage.trend.trend import Trend, TrendDescriptor
+from minerva.storage.trend.trend import Trend
 from minerva.storage import datatype
 from minerva.storage.valuedescriptor import ValueDescriptor
 from minerva.storage.trend.tables import DATA_TABLE_POSTFIXES
@@ -96,8 +92,8 @@ class TrendStore():
     ).where_(Eq(Column("id")))
 
     def __init__(
-            self, id, data_source, entity_type, granularity, trends):
-        self.id = id
+            self, id_, data_source, entity_type, granularity, trends):
+        self.id = id_
         self.data_source = data_source
         self.entity_type = entity_type
         self.granularity = granularity
@@ -145,10 +141,10 @@ class TrendStore():
 
         return [
             Trend(
-                id, name, datatype.type_map[data_type], trend_store_id,
+                id_, name, datatype.type_map[data_type], trend_store_id,
                 description
             )
-            for id, name, data_type, trend_store_id, description
+            for id_, name, data_type, trend_store_id, description
             in cursor.fetchall()
         ]
 

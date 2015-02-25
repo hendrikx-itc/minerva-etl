@@ -30,21 +30,21 @@ from minerva.storage.trend.tables import PARTITION_SIZES
 
 
 def get_aggregate_shard(
-        conn, entities_sql, entitytype_id, granularity, formula_str,
+        conn, entities_sql, entity_type_id, granularity, formula_str,
         shard_index):
     start, end = shard_interval(granularity, shard_index)
 
     return get_aggregate_data(
-        conn, entities_sql, entitytype_id, granularity, formula_str, start, end
+        conn, entities_sql, entity_type_id, granularity, formula_str, start, end
     )
 
 
 def get_aggregate_data(
-        conn, entities_query, entitytype_id, granularity, formula_str, start,
+        conn, entities_query, entity_type_id, granularity, formula_str, start,
         end):
     formula = arith_expr.parseString(formula_str, parseAll=True)[0]
 
-    get_tm = partial(get_trend_meta, conn, entitytype_id, granularity)
+    get_tm = partial(get_trend_meta, conn, entity_type_id, granularity)
 
     context = Context(get_tm)
 
@@ -91,29 +91,29 @@ def get_aggregate_data(
 
 
 def get_trend_meta(
-        conn, entitytype_id, granularity, datasource_name, trend_name):
+        conn, entity_type_id, granularity, data_source_name, trend_name):
     """
     Return tuple (datasource_name, trend_name, table_name)
     """
     criteria = [
-        "ts.entitytype_id = %s",
+        "ts.entity_type_id = %s",
         "ts.granularity = %s",
         "trend.name = %s"
     ]
 
-    criteria_args = [entitytype_id, granularity.name, trend_name]
+    criteria_args = [entity_type_id, granularity.name, trend_name]
 
-    if datasource_name:
+    if data_source_name:
         criteria.append('lower(d.name) = lower(%s)')
-        criteria_args.append(datasource_name)
+        criteria_args.append(data_source_name)
 
     sql = (
         "SELECT d.name, trend.name, trend_directory.base_table_name(ts) "
         "FROM trend_directory.trend "
-        "JOIN trend_directory.trendstore ts "
-        "ON ts.id = trend.trendstore_id "
-        "JOIN directory.datasource d "
-        "ON d.id = ts.datasource_id "
+        "JOIN trend_directory.trend_store ts "
+        "ON ts.id = trend.trend_store_id "
+        "JOIN directory.data_source d "
+        "ON d.id = ts.data_source_id "
         "WHERE {}"
     ).format(" AND ".join(criteria))
 
@@ -271,12 +271,12 @@ class Context():
         self.table_by_trend = {}
         self.get_trend_meta = get_trend_meta
 
-    def get_trend_column(self, datasource_name, trend_name):
-        trend_meta = self.get_trend_meta(datasource_name, trend_name)
+    def get_trend_column(self, data_source_name, trend_name):
+        trend_meta = self.get_trend_meta(data_source_name, trend_name)
 
-        datasource_name, trend_name, table_name = trend_meta
+        data_source_name, trend_name, table_name = trend_meta
 
-        trend_ident = (datasource_name, trend_name)
+        trend_ident = (data_source_name, trend_name)
 
         logging.debug("meta: {}".format(trend_meta))
 

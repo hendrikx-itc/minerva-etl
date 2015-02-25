@@ -4,8 +4,8 @@ class Entity():
     very minimal objects with only very generic properties such as name,
     parent, type and a few more.
     """
-    def __init__(self, id, created, name, entity_type_id, dn, parent_id):
-        self.id = id
+    def __init__(self, id_, created, name, entity_type_id, dn, parent_id):
+        self.id = id_
         self.created = created
         self.name = name
         self.entity_type_id = entity_type_id

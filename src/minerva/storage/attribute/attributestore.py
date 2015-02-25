@@ -56,8 +56,8 @@ class AttributeStore():
 
     """
 
-    def __init__(self, id, data_source, entity_type, attributes=tuple()):
-        self.id = id
+    def __init__(self, id_, data_source, entity_type, attributes=tuple()):
+        self.id = id_
         self.data_source = data_source
         self.entity_type = entity_type
 
@@ -97,7 +97,7 @@ class AttributeStore():
             cursor.execute(query, args)
 
             def row_to_attribute(row):
-                attribute_id, name, data_type, attribute_store_id, description = row
+                attribute_id, name, data_type, attribute_store_id_, description = row
 
                 return Attribute(
                     attribute_id, name, datatype.type_map[data_type],
@@ -162,7 +162,7 @@ class AttributeStore():
         )
 
     @staticmethod
-    def get(id):
+    def get(id_):
         """Load and return attribute store by its Id."""
         def f(cursor):
             query = (
@@ -171,7 +171,7 @@ class AttributeStore():
                 "WHERE id = %s"
             )
 
-            args = id,
+            args = id_,
             cursor.execute(query, args)
 
             data_source_id, entity_type_id = cursor.fetchone()
@@ -180,8 +180,8 @@ class AttributeStore():
             data_source = DataSource.get(data_source_id)(cursor)
 
             return AttributeStore(
-                id, data_source, entity_type,
-                AttributeStore.get_attributes(id)(cursor)
+                id_, data_source, entity_type,
+                AttributeStore.get_attributes(id_)(cursor)
             )
 
         return f
@@ -201,14 +201,14 @@ class AttributeStore():
         return map(load, cursor.fetchall())
 
     @staticmethod
-    def load_attribute_store(id, data_source_id, entity_type_id):
+    def load_attribute_store(id_, data_source_id, entity_type_id):
         def f(cursor):
             data_source = DataSource.get(data_source_id)(cursor)
             entity_type = EntityType.get(entity_type_id)(cursor)
 
             return AttributeStore(
-                id, data_source, entity_type,
-                AttributeStore.get_attributes(id)(cursor)
+                id_, data_source, entity_type,
+                AttributeStore.get_attributes(id_)(cursor)
             )
 
         return f

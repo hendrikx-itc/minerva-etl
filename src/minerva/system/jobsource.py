@@ -25,8 +25,8 @@ class JobSource():
 
     """
 
-    def __init__(self, id, name, job_type, config):
-        self.id = id
+    def __init__(self, id_, name, job_type, config):
+        self.id = id_
         self.name = name
         self.job_type = job_type
         self.config = self.deserialize_config(config)

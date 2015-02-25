@@ -26,13 +26,13 @@ from minerva.storage.geospatial.types import set_srid, transform_srid
 
 
 def get_entities_in_region(
-        conn, database_srid, region, region_srid, entitytype):
+        conn, database_srid, region, region_srid, entity_type):
 
     bbox2d = transform_srid(
         set_srid(make_box_2d(region), region_srid), database_srid
     )
 
-    relation_name = get_relation_name(conn, "Cell", entitytype.name)
+    relation_name = get_relation_name(conn, "Cell", entity_type.name)
     relation_site_cell_name = get_relation_name(conn, "Cell", "Site")
 
     query = (
@@ -103,17 +103,17 @@ def get_sites_in_region(conn, database_srid, region, region_srid):
 
 
 def retrieve_trend(
-        conn, database_srid, region, region_srid, datasource, entitytype,
-        attribute_name, granularity_str, timestamp, limit=None):
+        conn, database_srid, region, region_srid, data_source, entity_type,
+        attribute_name, granularity_str, timestamp):
 
     granularity = create_granularity(granularity_str)
 
     with closing(conn.cursor()) as cursor:
-        trendstore = TrendStore.get(
-            cursor, datasource, entitytype, granularity
+        trend_store = TrendStore.get(
+            cursor, data_source, entity_type, granularity
         )
 
-    partition = trendstore.partition(timestamp)
+    partition = trend_store.partition(timestamp)
     table = partition.table()
 
     full_base_tbl_name = table.render()
@@ -155,22 +155,22 @@ def retrieve_trend(
 
 
 def retrieve_related_trend(
-        conn, database_srid, region, region_srid, datasource, entitytype,
-        attribute_name, granularity_str, timestamp, limit=None):
+        conn, database_srid, region, region_srid, data_source, entity_type,
+        attribute_name, granularity_str, timestamp):
 
     granularity = create_granularity(granularity_str)
 
     with closing(conn.cursor()) as cursor:
-        trendstore = TrendStore.get(
-            cursor, datasource, entitytype, granularity
+        trend_store = TrendStore.get(
+            cursor, data_source, entity_type, granularity
         )
 
-    partition = trendstore.partition(timestamp)
+    partition = trend_store.partition(timestamp)
     table = partition.table()
 
     full_base_tbl_name = table.render()
 
-    relation_name = get_relation_name(conn, "Cell", entitytype.name)
+    relation_name = get_relation_name(conn, "Cell", entity_type.name)
     relation_cell_site_name = get_relation_name(conn, "Cell", "Site")
 
     bbox2d = transform_srid(
@@ -217,13 +217,13 @@ def retrieve_related_trend(
 
 
 def retrieve_attribute(
-        conn, database_srid, region, region_srid, datasource, entitytype,
-        attribute_name, srid, limit=None):
+        conn, database_srid, region, region_srid, data_source, entity_type,
+        attribute_name, srid):
     with closing(conn.cursor()) as cursor:
-        attributestore = AttributeStore.get_by_attributes(
-            cursor, datasource, entitytype
+        attribute_store = AttributeStore.get_by_attributes(
+            cursor, data_source, entity_type
         )
-    full_base_tbl_name = attributestore.history_table.render()
+    full_base_tbl_name = attribute_store.history_table.render()
 
     relation_name = get_relation_name(conn, "Cell", "Site")
 
@@ -265,16 +265,16 @@ def retrieve_attribute(
 
 
 def retrieve_related_attribute(
-        conn, database_srid, region, region_srid, datasource, entitytype,
-        attribute_name, limit):
+        conn, database_srid, region, region_srid, data_source, entity_type,
+        attribute_name):
 
     with closing(conn.cursor()) as cursor:
-        attributestore = AttributeStore.get_by_attributes(
-            cursor, datasource, entitytype
+        attribute_store = AttributeStore.get_by_attributes(
+            cursor, data_source, entity_type
         )
-    full_base_tbl_name = attributestore.history_table.render()
+    full_base_tbl_name = attribute_store.history_table.render()
 
-    relation_name = get_relation_name(conn, "Cell", entitytype.name)
+    relation_name = get_relation_name(conn, "Cell", entity_type.name)
     relation_cell_site_name = get_relation_name(conn, "Cell", "Site")
 
     bbox2d = transform_srid(

@@ -27,26 +27,26 @@ class TrendDescriptor():
 
 
 class Trend():
-    def __init__(self, id, name, data_type, trendstore_id, description):
-        self.id = id
+    def __init__(self, id_, name, data_type, trend_store_id, description):
+        self.id = id_
         self.name = name
         self.data_type = data_type
-        self.trendstore_id = trendstore_id
+        self.trend_store_id = trend_store_id
         self.description = description
 
     @staticmethod
-    def create(trendstore_id, descriptor):
+    def create(trend_store_id, descriptor):
         def f(cursor):
             query = (
                 "INSERT INTO trend_directory.trend ("
-                "name, data_type, trendstore_id, description"
+                "name, data_type, trend_store_id, description"
                 ") "
                 "VALUES (%s, %s, %s, %s) "
                 "RETURNING *"
             )
 
             args = (
-                descriptor.name, descriptor.data_type, trendstore_id,
+                descriptor.name, descriptor.data_type, trend_store_id,
                 descriptor.description
             )
 

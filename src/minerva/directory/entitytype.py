@@ -1,6 +1,6 @@
 class EntityType():
-    def __init__(self, id, name, description):
-        self.id = id
+    def __init__(self, id_, name, description):
+        self.id = id_
         self.name = name
         self.description = description
 

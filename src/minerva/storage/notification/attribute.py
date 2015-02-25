@@ -11,8 +11,9 @@ class AttributeDescriptor():
 class Attribute():
     """Describes the attribute of a specific NotificationStore."""
 
-    def __init__(self, id, notification_store_id, name, data_type, description):
-        self.id = id
+    def __init__(
+            self, id_, notification_store_id, name, data_type, description):
+        self.id = id_
         self.notification_store_id = notification_store_id
         self.name = name
         self.data_type = data_type

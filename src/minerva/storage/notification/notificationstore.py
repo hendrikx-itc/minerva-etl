@@ -22,8 +22,8 @@ class NotificationStoreDescriptor():
 
 
 class NotificationStore():
-    def __init__(self, id, data_source, attributes):
-        self.id = id
+    def __init__(self, id_, data_source, attributes):
+        self.id = id_
         self.data_source = data_source
         self.attributes = attributes
         self.table = Table("notification", data_source.name)

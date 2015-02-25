@@ -53,9 +53,9 @@ class TableTrendStore(TrendStore):
     ).where_(Eq(Column("id")))
 
     def __init__(
-            self, id, data_source, entity_type, granularity, trends,
+            self, id_, data_source, entity_type, granularity, trends,
             partition_size):
-        super().__init__(id, data_source, entity_type, granularity, trends)
+        super().__init__(id_, data_source, entity_type, granularity, trends)
         self.partition_size = partition_size
         self.partitioning = Partitioning(partition_size)
 
@@ -191,9 +191,9 @@ class TableTrendStore(TrendStore):
         return f
 
     @classmethod
-    def get_by_id(cls, id):
+    def get_by_id(cls, id_):
         def f(cursor):
-            args = (id,)
+            args = (id_,)
 
             cls.get_by_id_query.execute(cursor, args)
 
@@ -206,7 +206,7 @@ class TableTrendStore(TrendStore):
                 data_source = DataSource.get(data_source_id)(cursor)
                 entity_type = EntityType.get(entity_type_id)(cursor)
 
-                trends = TableTrendStore.get_trends(cursor, id)
+                trends = TableTrendStore.get_trends(cursor, id_)
 
                 granularity = create_granularity(granularity_str)
 
@@ -443,15 +443,6 @@ class TableTrendStore(TrendStore):
         return f
 
 
-def trend_descriptors_from_data_package(data_package):
-    return [
-        TrendDescriptor(name, data_type, 'Created by CopyFrom')
-        for name, data_type in zip(
-            data_package.trend_names, data_package.deduce_data_types()
-        )
-    ]
-
-
 class StoreState():
     def __init__(self, trend_store, data_package):
         self.trend_store = trend_store
@@ -514,13 +505,6 @@ class Update(DbAction):
             return insert_before(CreatePartition())
 
 
-class CheckColumnsExist(DbAction):
-    def execute(self, cursor, state):
-        state.trend_store.check_trends_exist(
-            trend_descriptors_from_data_package(state.data_package)
-        )(cursor)
-
-
 class CreatePartition(DbAction):
     def execute(self, cursor, state):
         try:
@@ -529,13 +513,6 @@ class CreatePartition(DbAction):
             ).create(cursor)
         except DuplicateTable:
             return drop_action()
-
-
-class CheckDataTypes(DbAction):
-    def execute(self, cursor, state):
-        state.trend_store.ensure_data_types(
-            trend_descriptors_from_data_package(state.data_package)
-        )(cursor)
 
 
 def get_timestamp(cursor):

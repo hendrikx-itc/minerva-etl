@@ -83,12 +83,24 @@ def test_deduce_value_descriptors():
     """The max data types should be deduced from the package."""
     data_package = simple_package
 
-    data_types = data_package.deduce_value_descriptors()
+    value_descriptors = data_package.deduce_value_descriptors()
 
-    eq_(data_types[0], ValueDescriptor())
-    eq_(data_types[1], ValueDescriptor())
-    eq_(data_types[2], ValueDescriptor())
-    eq_(data_types[3], ValueDescriptor())
+    eq_(
+        value_descriptors[0],
+        ValueDescriptor("power", datatype.DataTypeSmallInt)
+    )
+    eq_(
+        value_descriptors[1],
+        ValueDescriptor("height", datatype.DataTypeSmallInt)
+    )
+    eq_(
+        value_descriptors[2],
+        ValueDescriptor("state", datatype.DataTypeSmallInt)
+    )
+    eq_(
+        value_descriptors[3],
+        ValueDescriptor("freetext", datatype.DataTypeSmallInt)
+    )
 
 
 def test_deduce_data_types_array():
@@ -99,10 +111,13 @@ def test_deduce_data_types_array():
 
     attr_type_dict = dict(zip(data_package.attribute_names, data_types))
 
-    eq_(attr_type_dict["curve"], ValueDescriptor())
+    eq_(
+        attr_type_dict["curve"],
+        ValueDescriptor('curve', datatype.DataTypeSmallInt)
+    )
 
 
-def test_deduce_datatypes_empty():
+def test_deduce_data_types_empty():
     data_package = DataPackage(
         attribute_names=('height', 'power', 'refs'),
         rows=[]
@@ -111,9 +126,9 @@ def test_deduce_datatypes_empty():
     data_types = data_package.deduce_value_descriptors()
 
     eq_(data_types, [
-        ValueDescriptor(datatype.DataTypeSmallInt),
-        ValueDescriptor(datatype.DataTypeSmallInt),
-        ValueDescriptor(datatype.DataTypeSmallInt)
+        ValueDescriptor('height', datatype.DataTypeSmallInt),
+        ValueDescriptor('power', datatype.DataTypeSmallInt),
+        ValueDescriptor('refs', datatype.DataTypeSmallInt)
     ])
 
 

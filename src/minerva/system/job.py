@@ -20,11 +20,11 @@ class Job():
     Represents a Minerva job for processing by a node.
     """
     def __init__(
-            self, id, job_source_id, type, description, size=0,
+            self, id_, job_source_id, type_, description, size=0,
             created=None, started=None, finished=None, state=None):
-        self.id = id
+        self.id = id_
         self.job_source_id = job_source_id
-        self.type = type
+        self.type = type_
         self.description = description
         self.size = size
         self.created = created
