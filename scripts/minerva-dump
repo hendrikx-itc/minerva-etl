@@ -111,10 +111,21 @@ def dump(conn, trend_store_query):
             yield "    '{}',".format(entity_type_name)
             yield "    '{}',".format(granularity)
             yield "    ARRAY["
-            cursor.execute("SELECT name, data_type, description FROM trend_directory.table_trend WHERE trend_store_id = %s", (id_,))
+
+            cursor.execute(
+                "SELECT name, data_type, description\n"
+                "FROM trend_directory.table_trend\n"
+                "WHERE trend_store_id = %s",
+                (id_,)
+            )
+
             trends = cursor.fetchall()
             yield ",\n".join(
-                "        ('{}', '{}', '{}')".format(trend_name, data_type, description)
+                "        ('{}', '{}', '{}')".format(
+                    trend_name,
+                    data_type,
+                    description
+                )
                 for trend_name, data_type, description in trends
             )
             yield "    ]::trend_directory.trend_descr[]"
@@ -139,7 +150,11 @@ def dump(conn, trend_store_query):
             )
 
             yield ",\n".join(
-                "        ({}, {}, {})".format(format_str(attribute_name), format_str(data_type), format_str(description))
+                "        ({}, {}, {})".format(
+                    format_str(attribute_name),
+                    format_str(data_type),
+                    format_str(description)
+                )
                 for attribute_name, data_type, description in cursor.fetchall()
             )
 
