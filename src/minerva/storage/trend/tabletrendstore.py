@@ -10,12 +10,11 @@ version.  The full license is in the file COPYING, distributed as part of
 this software.
 """
 import logging
-from io import StringIO
 from itertools import chain
 
 import psycopg2
 
-from minerva.db.util import create_temp_table_from, quote_ident
+from minerva.db.util import create_temp_table_from, quote_ident, create_file
 from minerva.util import first, no_op, zip_apply, compose
 from minerva.db.query import Table, Column, Eq, ands
 from minerva.storage.trend.trendstore import TrendStore
@@ -559,16 +558,6 @@ def create_copy_from_lines(timestamp, modified, rows, value_descriptors):
         )
         for entity_id, values in rows
     )
-
-
-def create_file(lines):
-    copy_from_file = StringIO()
-
-    copy_from_file.writelines(lines)
-
-    copy_from_file.seek(0)
-
-    return copy_from_file
 
 
 create_copy_from_file = compose(create_file, create_copy_from_lines)

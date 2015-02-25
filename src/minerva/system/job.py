@@ -12,28 +12,59 @@ this software.
 """
 import json
 
-from minerva.system.jobqueue import enqueue_job
-
 
 class Job():
     """
     Represents a Minerva job for processing by a node.
     """
     def __init__(
-            self, id_, job_source_id, type_, description, size=0,
-            created=None, started=None, finished=None, state=None):
+            self, id_, type_, description, size, created, started,
+            finished, job_source_id, state):
         self.id = id_
-        self.job_source_id = job_source_id
         self.type = type_
         self.description = description
         self.size = size
         self.created = created
         self.started = started
         self.finished = finished
+        self.job_source_id = job_source_id
         self.state = state
 
+    @staticmethod
+    def create(job_type, description, size, job_source_id):
+        def f(cursor):
+            cursor.callproc(
+                "system.create_job",
+                (job_type, description, size, job_source_id)
+            )
+
+            Job.from_record(cursor.fetchone())
+
+        return f
+
+    @staticmethod
+    def from_record(record):
+        (
+            id_, job_type, description, size, created, started, finished,
+            job_source_id, state
+        ) = record
+
+        return Job(
+            id_, job_type, description, size, created, started, finished,
+            job_source_id, state
+        )
+
+    def finish(self, cursor):
+        cursor.callproc("system.finish_job", (self.id,))
+
+    def fail_job(self, message):
+        def f(cursor):
+            cursor.callproc("system.fail_job", (self.id, message,))
+
+        return f
+
     def enqueue(self, conn):
-        enqueue_job(
+        create_job(
             conn, self.type, json.dumps(self.description), self.size,
             self.job_source_id
         )

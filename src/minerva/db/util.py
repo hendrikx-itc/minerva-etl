@@ -13,9 +13,9 @@ from functools import partial
 from contextlib import closing
 from io import StringIO
 
-from minerva.util import zip_apply
 from minerva.util.tabulate import render_table
 from minerva.db.query import Table
+from minerva.util import zip_apply, compose
 
 
 def exec_sql(conn, *args, **kwargs):
@@ -37,22 +37,29 @@ def create_copy_from_query(table, columns):
     return "COPY {0}({1}) FROM STDIN".format(table, columns_part)
 
 
-def create_copy_from_file(tuples, formats):
+def create_copy_from_lines(tuples, formats):
     format_tuple = zip_apply(
         partial(str.format, "{:" + f + "}")
         for f in formats
     )
 
-    copy_from_file = StringIO()
-
-    copy_from_file.writelines(
+    return (
         "{}\n".format("\t".join(format_tuple(tup)))
         for tup in tuples
     )
 
+
+def create_file(lines):
+    copy_from_file = StringIO()
+
+    copy_from_file.writelines(lines)
+
     copy_from_file.seek(0)
 
     return copy_from_file
+
+
+create_copy_from_file = compose(create_file, create_copy_from_lines)
 
 
 def render_result(cursor):

@@ -18,7 +18,7 @@ from functools import partial
 
 from minerva.util import each, expand_args
 from minerva.test import connect
-from minerva.system.jobqueue import enqueue_job
+from minerva.system.jobqueue import create_job
 from minerva.system.helpers import add_job_source, get_job_source
 
 
@@ -36,7 +36,7 @@ def run(conn, jobsource_id):
 
 
 def enqueue(conn, jobsource_id, description, size):
-    enqueue_job(conn, 'dummy', description, size, jobsource_id)
+    create_job(conn, 'dummy', description, size, jobsource_id)
     conn.commit()
 
 

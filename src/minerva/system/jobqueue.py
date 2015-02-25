@@ -12,22 +12,10 @@ the Free Software Foundation; either version 3, or (at your option) any later
 version.  The full license is in the file COPYING, distributed as part of
 this software.
 """
-from functools import partial
-
-from minerva.db.util import stored_procedure
 
 
 class NoJobAvailable(Exception):
     pass
-
-
-enqueue_job = partial(stored_procedure, "system.create_job")
-
-
-finish_job = partial(stored_procedure, "system.finish_job")
-
-
-fail_job = partial(stored_procedure, "system.fail_job")
 
 
 def get_job(cursor):

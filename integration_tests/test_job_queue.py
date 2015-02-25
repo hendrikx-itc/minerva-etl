@@ -18,7 +18,8 @@ import psycopg2
 
 from minerva.test import with_conn, connect, eq_
 from minerva.system.jobsource import JobSource, JobSourceDescriptor
-from minerva.system.jobqueue import enqueue_job, get_job
+from minerva.system.job import Job
+from minerva.system.jobqueue import get_job
 
 
 def clear(conn):
@@ -41,7 +42,7 @@ def test_enqueue_job(conn):
             job_source_name, "dummy", '{}'
         ))(cursor)
 
-    enqueue_job(conn, job_type, description_json, file_size, job_source.id)
+        Job.create(job_type, description_json, file_size, job_source.id)(cursor)
 
     with closing(conn.cursor()) as cursor:
         cursor.execute(
@@ -70,7 +71,7 @@ def test_get_job(conn):
             job_source_name, "dummy", '{}'
         ))(cursor)
 
-    enqueue_job(conn, job_type, description_json, file_size, job_source.id)
+        Job.create(job_type, description_json, file_size, job_source.id)(cursor)
 
     conn.commit()
 
@@ -152,7 +153,7 @@ def test_waiting_locks(conn):
             job_source_name, "dummy", '{}'
         ))(cursor)
 
-    enqueue_job(conn, job_type, description_json, file_size, job_source.id)
+        Job.create(job_type, description_json, file_size, job_source.id)(cursor)
 
     conn.commit()
 
