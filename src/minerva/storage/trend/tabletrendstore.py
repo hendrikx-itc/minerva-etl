@@ -47,7 +47,7 @@ class TableTrendStoreDescriptor():
 class TableTrendStore(TrendStore):
     column_names = [
         "id", "data_source_id", "entity_type_id", "granularity",
-        "partition_size"
+        "partition_size", "retention_period"
     ]
 
     columns = list(map(Column, column_names))
@@ -155,10 +155,23 @@ class TableTrendStore(TrendStore):
 
             cursor.execute(query, args)
 
+            return TableTrendStore.from_record(cursor.fetchone())(cursor)
+
+        return f
+
+    @staticmethod
+    def from_record(record):
+        """
+        Return function that can instantiate a TableTrendStore from a
+        table_trend_store type record.
+        :param record: An iterable that represents a table_trend_store record
+        :return: function that creates and returns TableTrendStore object
+        """
+        def f(cursor):
             (
                 trend_store_id, entity_type_id, data_source_id, granularity_str,
                 partition_size, retention_period
-            ) = cursor.fetchone()
+            ) = record
 
             entity_type = EntityType.get(entity_type_id)(cursor)
             data_source = DataSource.get(data_source_id)(cursor)
@@ -186,17 +199,7 @@ class TableTrendStore(TrendStore):
                     )
                 )
             elif cursor.rowcount == 1:
-                (
-                    trend_store_id, data_source_id, entity_type_id,
-                    granularity_str, partition_size
-                ) = cursor.fetchone()
-
-                trends = TableTrendStore.get_trends(cursor, trend_store_id)
-
-                return TableTrendStore(
-                    trend_store_id, data_source, entity_type, granularity,
-                    trends, partition_size
-                )
+                return TableTrendStore.from_record(cursor.fetchone())(cursor)
 
         return f
 
@@ -208,22 +211,7 @@ class TableTrendStore(TrendStore):
             cls.get_by_id_query.execute(cursor, args)
 
             if cursor.rowcount == 1:
-                (
-                    trend_store_id, data_source_id, entity_type_id,
-                    granularity_str, partition_size
-                ) = cursor.fetchone()
-
-                data_source = DataSource.get(data_source_id)(cursor)
-                entity_type = EntityType.get(entity_type_id)(cursor)
-
-                trends = TableTrendStore.get_trends(cursor, id_)
-
-                granularity = create_granularity(granularity_str)
-
-                return TableTrendStore(
-                    trend_store_id, data_source, entity_type, granularity,
-                    trends, partition_size
-                )
+                return TableTrendStore.from_record(cursor.fetchone())(cursor)
 
         return f
 
