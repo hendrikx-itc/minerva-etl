@@ -290,7 +290,9 @@ def test_retrieve(conn):
 
     with closing(conn.cursor()) as cursor:
         trend_store.retrieve(['counter1']).timestamp(
-            TimestampEquals(pytz.utc.localize(datetime.datetime(2015, 1, 10, 13, 0)))
+            TimestampEquals(
+                pytz.utc.localize(datetime.datetime(2015, 1, 10, 13, 0))
+            )
         ).execute(cursor)
 
         rows = cursor.fetchall()
