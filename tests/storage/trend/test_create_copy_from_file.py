@@ -43,8 +43,8 @@ def test_create_copy_from_file_simple():
     ]
 
     value_descriptors = [
-        ValueDescriptor('x', datatype.DataTypeText),
-        ValueDescriptor('y', datatype.DataTypeText)
+        ValueDescriptor('x', datatype.Text),
+        ValueDescriptor('y', datatype.Text)
     ]
 
     f = create_copy_from_file(timestamp, modified, rows, value_descriptors)
@@ -72,9 +72,9 @@ def test_create_copy_from_file_int_array():
     ]
 
     value_descriptors = [
-        ValueDescriptor('x', datatype.DataTypeText),
-        ValueDescriptor('y', datatype.DataTypeText),
-        ValueDescriptor('z', datatype.DataTypeSmallInt)  # should be array
+        ValueDescriptor('x', datatype.Text),
+        ValueDescriptor('y', datatype.Text),
+        ValueDescriptor('z', datatype.SmallInt)  # should be array
     ]
 
     f = create_copy_from_file(timestamp, modified, rows, value_descriptors)
@@ -101,9 +101,9 @@ def test_create_copy_from_file_text_array():
     ]
 
     value_descriptors = [
-        ValueDescriptor('x', datatype.DataTypeText),
-        ValueDescriptor('y', datatype.DataTypeSmallInt),
-        ValueDescriptor('z', datatype.DataTypeText)  # should be array
+        ValueDescriptor('x', datatype.Text),
+        ValueDescriptor('y', datatype.SmallInt),
+        ValueDescriptor('z', datatype.Text)  # should be array
     ]
 
     f = create_copy_from_file(timestamp, modified, rows, value_descriptors)

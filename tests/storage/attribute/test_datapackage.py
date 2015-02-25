@@ -87,19 +87,19 @@ def test_deduce_value_descriptors():
 
     eq_(
         value_descriptors[0],
-        ValueDescriptor("power", datatype.DataTypeSmallInt)
+        ValueDescriptor("power", datatype.SmallInt)
     )
     eq_(
         value_descriptors[1],
-        ValueDescriptor("height", datatype.DataTypeSmallInt)
+        ValueDescriptor("height", datatype.SmallInt)
     )
     eq_(
         value_descriptors[2],
-        ValueDescriptor("state", datatype.DataTypeSmallInt)
+        ValueDescriptor("state", datatype.SmallInt)
     )
     eq_(
         value_descriptors[3],
-        ValueDescriptor("freetext", datatype.DataTypeSmallInt)
+        ValueDescriptor("freetext", datatype.SmallInt)
     )
 
 
@@ -113,7 +113,7 @@ def test_deduce_data_types_array():
 
     eq_(
         attr_type_dict["curve"],
-        ValueDescriptor('curve', datatype.DataTypeSmallInt)
+        ValueDescriptor('curve', datatype.SmallInt)
     )
 
 
@@ -126,9 +126,9 @@ def test_deduce_data_types_empty():
     data_types = data_package.deduce_value_descriptors()
 
     eq_(data_types, [
-        ValueDescriptor('height', datatype.DataTypeSmallInt),
-        ValueDescriptor('power', datatype.DataTypeSmallInt),
-        ValueDescriptor('refs', datatype.DataTypeSmallInt)
+        ValueDescriptor('height', datatype.SmallInt),
+        ValueDescriptor('power', datatype.SmallInt),
+        ValueDescriptor('refs', datatype.SmallInt)
     ])
 
 
@@ -178,9 +178,9 @@ def test_deduce_attributes():
         for attribute in attributes
     }
 
-    eq_(attr_dict["power"].data_type, datatype.DataTypeInteger)
-    eq_(attr_dict["height"].data_type, datatype.DataTypeReal)
-    eq_(attr_dict["state"].data_type, datatype.DataTypeText)
+    eq_(attr_dict["power"].data_type, datatype.Integer)
+    eq_(attr_dict["height"].data_type, datatype.Real)
+    eq_(attr_dict["state"].data_type, datatype.Text)
 
 
 def test_create_copy_from_lines():

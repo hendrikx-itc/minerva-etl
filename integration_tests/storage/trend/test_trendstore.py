@@ -60,8 +60,8 @@ def test_create_trend_store_with_trends(conn):
         trend_store = TableTrendStore.create(TableTrendStoreDescriptor(
             data_source, entity_type, granularity,
             [
-                TrendDescriptor('x', datatype.DataTypeInteger, ''),
-                TrendDescriptor('y', datatype.DataTypeDoublePrecision, '')
+                TrendDescriptor('x', datatype.Integer, ''),
+                TrendDescriptor('y', datatype.DoublePrecision, '')
             ], partition_size
         ))(cursor)
 
@@ -118,8 +118,8 @@ def test_get(conn):
         TableTrendStore.create(TableTrendStoreDescriptor(
             data_source, entity_type, granularity,
             [
-                TrendDescriptor('x', datatype.DataTypeInteger, ''),
-                TrendDescriptor('y', datatype.DataTypeDoublePrecision, '')
+                TrendDescriptor('x', datatype.Integer, ''),
+                TrendDescriptor('y', datatype.DoublePrecision, '')
             ], partition_size
         ))(cursor)
 
@@ -161,8 +161,8 @@ def test_check_column_types(conn):
     partition_size = 3600
 
     trend_descriptors = [
-        TrendDescriptor("counter1", datatype.DataTypeInteger, ''),
-        TrendDescriptor("counter2", datatype.DataTypeInteger, '')
+        TrendDescriptor("counter1", datatype.Integer, ''),
+        TrendDescriptor("counter2", datatype.Integer, '')
     ]
 
     with closing(conn.cursor()) as cursor:
@@ -189,8 +189,8 @@ def test_store_raw_qtr(conn):
             entity_type,
             create_granularity("900"),
             [
-                TrendDescriptor('counter1', datatype.DataTypeInteger, ''),
-                TrendDescriptor('counter2', datatype.DataTypeText, '')
+                TrendDescriptor('counter1', datatype.Integer, ''),
+                TrendDescriptor('counter2', datatype.Text, '')
             ],
             3600
         ))(cursor)
@@ -222,8 +222,8 @@ def test_store_raw_day(conn):
             entity_type,
             granularity,
             [
-                TrendDescriptor('counter1', datatype.DataTypeInteger, ''),
-                TrendDescriptor('counter2', datatype.DataTypeText, '')
+                TrendDescriptor('counter1', datatype.Integer, ''),
+                TrendDescriptor('counter2', datatype.Text, '')
             ],
             3600
         ))(cursor)
@@ -254,8 +254,8 @@ def test_retrieve(conn):
             entity_type,
             granularity,
             [
-                TrendDescriptor('counter1', datatype.DataTypeInteger, ''),
-                TrendDescriptor('counter2', datatype.DataTypeText, '')
+                TrendDescriptor('counter1', datatype.Integer, ''),
+                TrendDescriptor('counter2', datatype.Text, '')
             ],
             3600
         ))(cursor)

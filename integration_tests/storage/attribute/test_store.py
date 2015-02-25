@@ -148,9 +148,9 @@ def test_update_modified_column(conn):
 def test_update(conn):
     with closing(conn.cursor()) as cursor:
         attribute_descriptors = [
-            AttributeDescriptor('CellID', datatype.DataTypeText, ''),
-            AttributeDescriptor('CCR', datatype.DataTypeDoublePrecision, ''),
-            AttributeDescriptor('Drops', datatype.DataTypeSmallInt, '')
+            AttributeDescriptor('CellID', datatype.Text, ''),
+            AttributeDescriptor('CCR', datatype.DoublePrecision, ''),
+            AttributeDescriptor('Drops', datatype.SmallInt, '')
         ]
 
         attribute_names = [a.name for a in attribute_descriptors]

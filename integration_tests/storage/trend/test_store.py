@@ -28,10 +28,10 @@ modified_table = Table("trend_directory", "modified")
 @with_conn(clear_database)
 def test_store_copy_from_1(conn):
     trend_descriptors = [
-        TrendDescriptor('CellID', datatype.DataTypeInteger, ''),
-        TrendDescriptor('CCR', datatype.DataTypeDoublePrecision, ''),
-        TrendDescriptor('CCRatts', datatype.DataTypeSmallInt, ''),
-        TrendDescriptor('Drops', datatype.DataTypeSmallInt, '')
+        TrendDescriptor('CellID', datatype.Integer, ''),
+        TrendDescriptor('CCR', datatype.DoublePrecision, ''),
+        TrendDescriptor('CCRatts', datatype.SmallInt, ''),
+        TrendDescriptor('Drops', datatype.SmallInt, '')
     ]
 
     trend_names = [t.name for t in trend_descriptors]
@@ -87,9 +87,9 @@ def test_store_copy_from_1(conn):
 @with_conn(clear_database)
 def test_store_copy_from_2(conn):
     trend_descriptors = [
-        TrendDescriptor('CCR', datatype.DataTypeInteger, ''),
-        TrendDescriptor('CCRatts', datatype.DataTypeSmallInt, ''),
-        TrendDescriptor('Drops', datatype.DataTypeSmallInt, '')
+        TrendDescriptor('CCR', datatype.Integer, ''),
+        TrendDescriptor('CCRatts', datatype.SmallInt, ''),
+        TrendDescriptor('Drops', datatype.SmallInt, '')
     ]
 
     trend_names = [t.name for t in trend_descriptors]
@@ -125,11 +125,11 @@ def test_store_using_tmp(conn):
     granularity = create_granularity(900)
 
     trend_descriptors = [
-        TrendDescriptor('CellID', datatype.DataTypeSmallInt, ''),
-        TrendDescriptor('CCR', datatype.DataTypeDoublePrecision, ''),
-        TrendDescriptor('RadioFail', datatype.DataTypeSmallInt, ''),
-        TrendDescriptor('RFOldHo', datatype.DataTypeSmallInt, ''),
-        TrendDescriptor('AbisFailCall', datatype.DataTypeSmallInt, '')
+        TrendDescriptor('CellID', datatype.SmallInt, ''),
+        TrendDescriptor('CCR', datatype.DoublePrecision, ''),
+        TrendDescriptor('RadioFail', datatype.SmallInt, ''),
+        TrendDescriptor('RFOldHo', datatype.SmallInt, ''),
+        TrendDescriptor('AbisFailCall', datatype.SmallInt, '')
     ]
 
     trend_names = [t.name for t in trend_descriptors]
@@ -192,9 +192,9 @@ def test_store_insert_rows(conn):
     granularity = create_granularity("900")
 
     trend_descriptors = [
-        TrendDescriptor('CellID', datatype.DataTypeSmallInt, ''),
-        TrendDescriptor('CCR', datatype.DataTypeDoublePrecision, ''),
-        TrendDescriptor('Drops', datatype.DataTypeSmallInt, ''),
+        TrendDescriptor('CellID', datatype.SmallInt, ''),
+        TrendDescriptor('CCR', datatype.DoublePrecision, ''),
+        TrendDescriptor('Drops', datatype.SmallInt, ''),
     ]
 
     trend_names = [t.name for t in trend_descriptors]
@@ -256,9 +256,9 @@ def test_store_insert_rows(conn):
 @with_conn(clear_database)
 def test_update_modified_column(conn):
     trend_descriptors = [
-        TrendDescriptor('CellID', datatype.DataTypeSmallInt, ''),
-        TrendDescriptor('CCR', datatype.DataTypeDoublePrecision, ''),
-        TrendDescriptor('Drops', datatype.DataTypeSmallInt, ''),
+        TrendDescriptor('CellID', datatype.SmallInt, ''),
+        TrendDescriptor('CCR', datatype.DoublePrecision, ''),
+        TrendDescriptor('Drops', datatype.SmallInt, ''),
     ]
 
     trend_names = [t.name for t in trend_descriptors]
@@ -328,9 +328,9 @@ def test_update_modified_column(conn):
 @with_conn(clear_database)
 def test_update(conn):
     trend_descriptors = [
-        TrendDescriptor("CellID", datatype.DataTypeSmallInt, ''),
-        TrendDescriptor("CCR", datatype.DataTypeDoublePrecision, ''),
-        TrendDescriptor("Drops", datatype.DataTypeSmallInt, '')
+        TrendDescriptor("CellID", datatype.SmallInt, ''),
+        TrendDescriptor("CCR", datatype.DoublePrecision, ''),
+        TrendDescriptor("Drops", datatype.SmallInt, '')
     ]
 
     trend_names = [t.name for t in trend_descriptors]
@@ -391,9 +391,9 @@ def test_update_and_modify_columns_fractured(conn):
     entity_ids = range(1023, 1023 + 100)
 
     trend_descriptors = [
-        TrendDescriptor("CellID", datatype.DataTypeSmallInt, ''),
-        TrendDescriptor("CCR", datatype.DataTypeDoublePrecision, ''),
-        TrendDescriptor("Drops", datatype.DataTypeSmallInt, '')
+        TrendDescriptor("CellID", datatype.SmallInt, ''),
+        TrendDescriptor("CCR", datatype.DoublePrecision, ''),
+        TrendDescriptor("Drops", datatype.SmallInt, '')
     ]
 
     trend_names_a = ["CellID", "CCR", "Drops"]
@@ -532,9 +532,9 @@ def test_store_copy_from(conn):
     partition_size = 86400
 
     trend_descriptors = [
-        TrendDescriptor('a', datatype.DataTypeSmallInt, ''),
-        TrendDescriptor('b', datatype.DataTypeSmallInt, ''),
-        TrendDescriptor('c', datatype.DataTypeSmallInt, '')
+        TrendDescriptor('a', datatype.SmallInt, ''),
+        TrendDescriptor('b', datatype.SmallInt, ''),
+        TrendDescriptor('c', datatype.SmallInt, '')
     ]
 
     trend_names = [t.name for t in trend_descriptors]
@@ -578,9 +578,9 @@ def test_store_copy_from_missing_column(conn):
     partition_size = 86400
 
     trend_descriptors = [
-        TrendDescriptor('a', datatype.DataTypeSmallInt, ''),
-        TrendDescriptor('b', datatype.DataTypeSmallInt, ''),
-        TrendDescriptor('c', datatype.DataTypeSmallInt, '')
+        TrendDescriptor('a', datatype.SmallInt, ''),
+        TrendDescriptor('b', datatype.SmallInt, ''),
+        TrendDescriptor('c', datatype.SmallInt, '')
     ]
 
     trend_names = [t.name for t in trend_descriptors]
@@ -640,9 +640,9 @@ def test_store(conn):
     partition_size = 86400
 
     trend_descriptors = [
-        TrendDescriptor('a', datatype.DataTypeSmallInt, ''),
-        TrendDescriptor('b', datatype.DataTypeSmallInt, ''),
-        TrendDescriptor('c', datatype.DataTypeSmallInt, '')
+        TrendDescriptor('a', datatype.SmallInt, ''),
+        TrendDescriptor('b', datatype.SmallInt, ''),
+        TrendDescriptor('c', datatype.SmallInt, '')
     ]
 
     trend_names = [t.name for t in trend_descriptors]
@@ -745,9 +745,9 @@ def test_store_add_column(conn):
     partition_size = 86400
 
     trend_descriptors = [
-        TrendDescriptor('a', datatype.DataTypeSmallInt, ''),
-        TrendDescriptor('b', datatype.DataTypeSmallInt, ''),
-        TrendDescriptor('c', datatype.DataTypeSmallInt, '')
+        TrendDescriptor('a', datatype.SmallInt, ''),
+        TrendDescriptor('b', datatype.SmallInt, ''),
+        TrendDescriptor('c', datatype.SmallInt, '')
     ]
 
     trend_names = [t.name for t in trend_descriptors]
@@ -821,9 +821,9 @@ def test_store_alter_column(conn):
     partition_size = 86400
 
     trend_descriptors = [
-        TrendDescriptor('a', datatype.DataTypeSmallInt, ''),
-        TrendDescriptor('b', datatype.DataTypeSmallInt, ''),
-        TrendDescriptor('c', datatype.DataTypeSmallInt, ''),
+        TrendDescriptor('a', datatype.SmallInt, ''),
+        TrendDescriptor('b', datatype.SmallInt, ''),
+        TrendDescriptor('c', datatype.SmallInt, ''),
     ]
 
     trend_names = [t.name for t in trend_descriptors]
@@ -903,8 +903,8 @@ def test_store_ignore_column(conn):
     partition_size = 86400
 
     trend_descriptors = [
-        TrendDescriptor('x', datatype.DataTypeSmallInt, ''),
-        TrendDescriptor('y', datatype.DataTypeSmallInt, ''),
+        TrendDescriptor('x', datatype.SmallInt, ''),
+        TrendDescriptor('y', datatype.SmallInt, ''),
     ]
 
     with closing(conn.cursor()) as cursor:

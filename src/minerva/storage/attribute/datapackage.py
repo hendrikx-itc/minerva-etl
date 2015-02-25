@@ -62,7 +62,7 @@ class DataPackage():
         if self.is_empty():
             if len(self.attribute_names):
                 return [
-                    ValueDescriptor(name, datatype.DataTypeSmallInt, None, None)
+                    ValueDescriptor(name, datatype.SmallInt, None, None)
                     for name in self.attribute_names
                 ]
             else:

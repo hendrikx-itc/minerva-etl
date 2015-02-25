@@ -57,7 +57,7 @@ def merge_dicts(x, y):
     return z
 
 
-class DataTypeBoolean(DataType):
+class Boolean(DataType):
     name = 'boolean'
 
     true_set = {"1", "True", "true"}
@@ -151,7 +151,7 @@ def assure_tzinfo(tz):
         return pytz.timezone(tz)
 
 
-class DataTypeTimestampWithTimeZone(DataType):
+class TimestampWithTimeZone(DataType):
     name = 'timestamp with time zone'
 
     default_parser_config = {
@@ -202,7 +202,7 @@ class DataTypeTimestampWithTimeZone(DataType):
             return cls.default_parser_config
 
 
-class DataTypeTimestamp(DataType):
+class Timestamp(DataType):
     name = 'timestamp'
 
     default_parser_config = {
@@ -277,7 +277,7 @@ class DataTypeTimestamp(DataType):
                 )
 
 
-class DataTypeSmallInt(DataType):
+class SmallInt(DataType):
     name = 'smallint'
 
     min = -pow(2, 15)
@@ -356,7 +356,7 @@ class DataTypeSmallInt(DataType):
         return int_val
 
 
-class DataTypeInteger(DataType):
+class Integer(DataType):
     name = 'integer'
 
     min = -pow(2, 31)
@@ -422,7 +422,7 @@ class DataTypeInteger(DataType):
         return int_val
 
 
-class DataTypeBigint(DataType):
+class Bigint(DataType):
     name = 'bigint'
 
     min = -pow(2, 63)
@@ -447,7 +447,7 @@ class DataTypeBigint(DataType):
             if value == null_value:
                 return None
             else:
-                return DataTypeBigint.parse(value)
+                return Bigint.parse(value)
 
         return parse
 
@@ -485,7 +485,7 @@ class DataTypeBigint(DataType):
         return int_val
 
 
-class DataTypeReal(DataType):
+class Real(DataType):
     name = 'real'
 
     default_parser_config = {
@@ -538,7 +538,7 @@ class DataTypeReal(DataType):
             return cls.default_parser_config
 
 
-class DataTypeDoublePrecision(DataType):
+class DoublePrecision(DataType):
     name = 'double precision'
 
     default_parser_config = {
@@ -584,7 +584,7 @@ class DataTypeDoublePrecision(DataType):
         return serialize
 
 
-class DataTypeNumeric(DataType):
+class Numeric(DataType):
     name = 'numeric'
 
     default_parser_config = {
@@ -634,7 +634,7 @@ class DataTypeNumeric(DataType):
             return cls.default_parser_config
 
 
-class DataTypeText(DataType):
+class Text(DataType):
     name = 'text'
 
     default_parser_config = {
@@ -674,20 +674,20 @@ class DataTypeText(DataType):
 
 # The set of types that are integer
 INTEGER_TYPES = {
-    DataTypeBigint,
-    DataTypeInteger,
-    DataTypeSmallInt
+    Bigint,
+    Integer,
+    SmallInt
 }
 
 TYPE_ORDER = [
-    DataTypeSmallInt,
-    DataTypeInteger,
-    DataTypeBigint,
-    DataTypeReal,
-    DataTypeDoublePrecision,
-    DataTypeNumeric,
-    DataTypeTimestamp,
-    DataTypeText
+    SmallInt,
+    Integer,
+    Bigint,
+    Real,
+    DoublePrecision,
+    Numeric,
+    Timestamp,
+    Text
 ]
 
 
@@ -738,16 +738,16 @@ def parser_descriptor_from_string(value):
 
 
 all_data_types = [
-    DataTypeBigint,
-    DataTypeBoolean,
-    DataTypeTimestamp,
-    DataTypeTimestampWithTimeZone,
-    DataTypeInteger,
-    DataTypeSmallInt,
-    DataTypeReal,
-    DataTypeDoublePrecision,
-    DataTypeNumeric,
-    DataTypeText
+    Bigint,
+    Boolean,
+    Timestamp,
+    TimestampWithTimeZone,
+    Integer,
+    SmallInt,
+    Real,
+    DoublePrecision,
+    Numeric,
+    Text
 ]
 
 
@@ -787,34 +787,34 @@ def load_data_format(format_config):
 
 
 copy_from_serializer_config = {
-    DataTypeBigint: {
+    Bigint: {
         'null_value': '\\N'
     },
-    DataTypeBoolean: {
+    Boolean: {
         'null_value': '\\N'
     },
-    DataTypeTimestamp: {
+    Timestamp: {
         'null_value': '\\N'
     },
-    DataTypeTimestampWithTimeZone: {
+    TimestampWithTimeZone: {
         'null_value': '\\N'
     },
-    DataTypeInteger: {
+    Integer: {
         'null_value': '\\N'
     },
-    DataTypeSmallInt: {
+    SmallInt: {
         'null_value': '\\N'
     },
-    DataTypeReal: {
+    Real: {
         'null_value': '\\N'
     },
-    DataTypeDoublePrecision: {
+    DoublePrecision: {
         'null_value': '\\N'
     },
-    DataTypeNumeric: {
+    Numeric: {
         'null_value': '\\N'
     },
-    DataTypeText: {
+    Text: {
         'null_value': '\\N'
     }
 }

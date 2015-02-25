@@ -23,8 +23,8 @@ from minerva.storage.notification import NotificationStore, \
 @with_conn(clear_database)
 def test_store_record(conn):
     attribute_descriptors = [
-        AttributeDescriptor("a", datatype.DataTypeInteger, "a attribute"),
-        AttributeDescriptor("b", datatype.DataTypeInteger, "b attribute")
+        AttributeDescriptor("a", datatype.Integer, "a attribute"),
+        AttributeDescriptor("b", datatype.Integer, "b attribute")
     ]
 
     with closing(conn.cursor()) as cursor:

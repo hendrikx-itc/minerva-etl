@@ -26,7 +26,7 @@ def test_create(conn):
         data_source = DataSource.from_name("test-source-001")(cursor)
 
         attribute_descriptors = [
-            AttributeDescriptor('x', datatype.DataTypeInteger, '')
+            AttributeDescriptor('x', datatype.Integer, '')
         ]
 
         notification_store = NotificationStore.create(
@@ -60,8 +60,8 @@ def test_store(conn):
         data_source = DataSource.from_name("test-source-002")(cursor)
 
         attribute_descriptors = [
-            AttributeDescriptor("a", datatype.DataTypeInteger, "a attribute"),
-            AttributeDescriptor("b", datatype.DataTypeInteger, "b attribute")
+            AttributeDescriptor("a", datatype.Integer, "a attribute"),
+            AttributeDescriptor("b", datatype.Integer, "b attribute")
         ]
 
         notification_store = NotificationStore.create(

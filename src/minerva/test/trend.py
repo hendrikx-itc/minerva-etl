@@ -189,10 +189,10 @@ class TestData():
 
 def generate_data_package_a(granularity, timestamp, entities):
     trend_descriptors = [
-        TrendDescriptor('CellID', datatype.DataTypeSmallInt, ''),
-        TrendDescriptor('CCR', datatype.DataTypeDoublePrecision, ''),
-        TrendDescriptor('CCRatts', datatype.DataTypeSmallInt, ''),
-        TrendDescriptor('Drops', datatype.DataTypeSmallInt, '')
+        TrendDescriptor('CellID', datatype.SmallInt, ''),
+        TrendDescriptor('CCR', datatype.DoublePrecision, ''),
+        TrendDescriptor('CCRatts', datatype.SmallInt, ''),
+        TrendDescriptor('Drops', datatype.SmallInt, '')
     ]
 
     trend_names = [t.name for t in trend_descriptors]
@@ -213,10 +213,10 @@ def generate_data_package_a(granularity, timestamp, entities):
 
 def generate_data_package_a_large(granularity, timestamp, entities):
     trend_descriptors = [
-        TrendDescriptor('CellID', datatype.DataTypeSmallInt, ''),
-        TrendDescriptor('CCR', datatype.DataTypeDoublePrecision, ''),
-        TrendDescriptor('CCRatts', datatype.DataTypeSmallInt, ''),
-        TrendDescriptor('Drops', datatype.DataTypeSmallInt, '')
+        TrendDescriptor('CellID', datatype.SmallInt, ''),
+        TrendDescriptor('CCR', datatype.DoublePrecision, ''),
+        TrendDescriptor('CCRatts', datatype.SmallInt, ''),
+        TrendDescriptor('Drops', datatype.SmallInt, '')
     ]
 
     trend_names = [t.name for t in trend_descriptors]
@@ -237,8 +237,8 @@ def generate_data_package_a_large(granularity, timestamp, entities):
 
 def generate_data_package_b(granularity, timestamp, entities):
     trend_descriptors = [
-        TrendDescriptor('counter_a', datatype.DataTypeSmallInt, ''),
-        TrendDescriptor('counter_b', datatype.DataTypeSmallInt, '')
+        TrendDescriptor('counter_a', datatype.SmallInt, ''),
+        TrendDescriptor('counter_b', datatype.SmallInt, '')
     ]
 
     trend_names = [t.name for t in trend_descriptors]
@@ -260,8 +260,8 @@ def generate_data_package_b(granularity, timestamp, entities):
 
 def generate_data_package_c(granularity, timestamp, entities):
     trend_descriptors = [
-        TrendDescriptor('counter_x', datatype.DataTypeSmallInt, ''),
-        TrendDescriptor('counter_y', datatype.DataTypeSmallInt, '')
+        TrendDescriptor('counter_x', datatype.SmallInt, ''),
+        TrendDescriptor('counter_y', datatype.SmallInt, '')
     ]
 
     trend_names = [t.name for t in trend_descriptors]
@@ -282,8 +282,8 @@ def generate_data_package_c(granularity, timestamp, entities):
 
 def generate_data_package_d(granularity, timestamp, entities):
     trend_descriptors = [
-        TrendDescriptor('counter_x', datatype.DataTypeSmallInt, ''),
-        TrendDescriptor('counter_y', datatype.DataTypeSmallInt, '')
+        TrendDescriptor('counter_x', datatype.SmallInt, ''),
+        TrendDescriptor('counter_y', datatype.SmallInt, '')
     ]
 
     trend_names = [t.name for t in trend_descriptors]

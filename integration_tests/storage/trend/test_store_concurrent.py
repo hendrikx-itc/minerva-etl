@@ -91,9 +91,9 @@ def test_store_concurrent(conn):
         entity_type = EntityType.from_name("test_type")(cursor)
         trend_store = TableTrendStore.create(TableTrendStoreDescriptor(
             data_source, entity_type, granularity, [
-                TrendDescriptor('c1', datatype.DataTypeSmallInt, ''),
-                TrendDescriptor('c2', datatype.DataTypeSmallInt, ''),
-                TrendDescriptor('c3', datatype.DataTypeSmallInt, '')
+                TrendDescriptor('c1', datatype.SmallInt, ''),
+                TrendDescriptor('c2', datatype.SmallInt, ''),
+                TrendDescriptor('c3', datatype.SmallInt, '')
             ],
             86400
         ))(cursor)
