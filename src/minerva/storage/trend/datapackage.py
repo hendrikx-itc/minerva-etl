@@ -11,6 +11,7 @@ this software.
 """
 from io import StringIO
 from itertools import chain
+from operator import itemgetter
 
 from minerva.db.util import quote_ident
 from minerva.storage.datatype import deduce_data_types
@@ -61,6 +62,28 @@ class DataPackageBase():
     def is_empty(self):
         """Return True if the package has no data rows."""
         return len(self.rows) == 0
+
+    def filter_trends(self, fn):
+        """
+        :param fn: Filter function for trend names
+        :return: A new data package with just the trend data for the trends
+        filtered by provided function
+        """
+        value_getters, filtered_trend_names = zip(*[
+            (itemgetter(index), trend_name)
+            for index, trend_name in enumerate(self.trend_names)
+            if fn(trend_name)
+        ])
+
+        return self.__class__(
+            self.granularity,
+            self.timestamp,
+            filtered_trend_names,
+            [
+                (entity_ref, tuple(g(values) for g in value_getters))
+                for entity_ref, values in self.rows
+            ]
+        )
 
     def deduce_data_types(self):
         """

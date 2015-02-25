@@ -8,8 +8,15 @@ the Free Software Foundation; either version 3, or (at your option) any later
 version.  The full license is in the file COPYING, distributed as part of
 this software.
 """
+from datetime import datetime
+from operator import contains
+from functools import partial
+
+import pytz
+
+from minerva.test import eq_
 from minerva.storage.trend.granularity import create_granularity
-from minerva.storage.trend.datapackage import DataPackage, DefaultPackageType
+from minerva.storage.trend.datapackage import DataPackageBase, DefaultPackage
 
 
 def test_constructor():
@@ -28,7 +35,7 @@ def test_constructor():
         )
     ]
 
-    data_package = DefaultPackageType(
+    data_package = DefaultPackage(
         granularity, timestamp, trend_names, rows
     )
 
@@ -51,7 +58,7 @@ def test_merge_packages():
         )
     ]
 
-    data_package_1 = DefaultPackageType(
+    data_package_1 = DefaultPackage(
         granularity, timestamp, trend_names, rows
     )
 
@@ -67,12 +74,34 @@ def test_merge_packages():
         )
     ]
 
-    data_package_2 = DefaultPackageType(
+    data_package_2 = DefaultPackage(
         granularity, timestamp, trend_names, rows
     )
 
     packages = [data_package_1, data_package_2]
 
-    merged_packages = DataPackage.merge_packages(packages)
+    merged_packages = DataPackageBase.merge_packages(packages)
 
     assert len(merged_packages) == 1
+
+
+def test_filter_trends():
+    package = DefaultPackage(
+        create_granularity("900"),
+        pytz.utc.localize(datetime(2015, 2, 25, 10, 0, 0)),
+        ['x', 'y', 'z'],
+        [
+            ('Node=001', (11, 12, 13)),
+            ('Node=002', (21, 22, 23)),
+            ('Node=003', (31, 32, 33)),
+            ('Node=004', (41, 42, 43))
+        ]
+    )
+
+    filtered_package = package.filter_trends(partial(contains, {'x', 'z'}))
+
+    eq_(len(filtered_package.trend_names), 2)
+
+    eq_(filtered_package.trend_names, ('x', 'z'))
+
+    eq_(filtered_package.rows[3], ('Node=004', (41, 43)))
