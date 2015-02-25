@@ -9,10 +9,9 @@ import pytz
 from minerva.db.query import Table, Call, Column, Eq, And
 from minerva.db.error import DataTypeMismatch
 from minerva.test import with_conn, clear_database, assert_not_equal, raises, \
-    with_dataset, eq_
+    eq_
 from minerva.directory import DataSource, EntityType
 from minerva.storage import datatype
-from minerva.storage.trend.test import DataSet
 from minerva.storage.trend.datapackage import \
     refined_package_type_for_entity_type
 from minerva.storage.trend.tabletrendstore import TableTrendStore, \
@@ -455,28 +454,21 @@ def test_update_and_modify_columns_fractured(conn):
     assert_not_equal(row_before[1], row_after[1])
 
 
-class TestData(DataSet):
-    def __init__(self):
-        self.granularity = create_granularity("900")
-        self.data_source = None
-        self.entity_type = None
-
-    def load(self, cursor):
-        self.data_source = DataSource.from_name("test-source")(cursor)
-        self.entity_type = EntityType.from_name("test_type")(cursor)
-
-
 @with_conn(clear_database)
-@with_dataset(TestData)
-def test_create_trend_store(conn, data_set):
+def test_create_trend_store(conn):
+    granularity = create_granularity('900 seconds')
+
     partition_size = 3600
 
-    create_trend_store = TableTrendStore.create(TableTrendStoreDescriptor(
-        data_set.data_source, data_set.entity_type, data_set.granularity, [],
-        partition_size
-    ))
-
     with closing(conn.cursor()) as cursor:
+        data_source = DataSource.create("test-source", '')(cursor)
+        entity_type = EntityType.create("test_type", '')(cursor)
+
+        create_trend_store = TableTrendStore.create(TableTrendStoreDescriptor(
+            data_source, entity_type, granularity, [],
+            partition_size
+        ))
+
         trend_store = create_trend_store(cursor)
 
     assert isinstance(trend_store, TableTrendStore)
@@ -485,13 +477,17 @@ def test_create_trend_store(conn, data_set):
 
 
 @with_conn(clear_database)
-@with_dataset(TestData)
-def test_create_trend_store_with_children(conn, data_set):
+def test_create_trend_store_with_children(conn):
+    granularity = create_granularity('900 seconds')
+
     partition_size = 3600
 
     with closing(conn.cursor()) as cursor:
+        data_source = DataSource.create("test-source", '')(cursor)
+        entity_type = EntityType.create("test_type", '')(cursor)
+
         trend_store = TableTrendStore.create(TableTrendStoreDescriptor(
-            data_set.data_source, data_set.entity_type, data_set.granularity,
+            data_source, entity_type, granularity,
             [], partition_size
         ))(cursor)
 
@@ -507,28 +503,32 @@ def test_create_trend_store_with_children(conn, data_set):
 
 
 @with_conn(clear_database)
-@with_dataset(TestData)
-def test_get_trend_store(conn, data_set):
+def test_get_trend_store(conn,):
     partition_size = 3600
 
     with closing(conn.cursor()) as cursor:
+        data_source = DataSource.create("test-source", '')(cursor)
+        entity_type = EntityType.create("test_type", '')(cursor)
+        granularity = create_granularity('900 seconds')
+
         TableTrendStore.create(TableTrendStoreDescriptor(
-            data_set.data_source, data_set.entity_type, data_set.granularity,
+            data_source, entity_type, granularity,
             [], partition_size
         ))(cursor)
 
         trend_store = TableTrendStore.get(
-            data_set.data_source, data_set.entity_type, data_set.granularity
+            data_source, entity_type, granularity
         )(cursor)
 
-        eq_(trend_store.data_source.id, data_set.data_source.id)
+        eq_(trend_store.data_source.id, data_source.id)
         eq_(trend_store.partition_size, partition_size)
         assert trend_store.id is not None, "trend_store.id is None"
 
 
 @with_conn(clear_database)
-@with_dataset(TestData)
-def test_store_copy_from(conn, data_set):
+def test_store_copy_from(conn):
+    granularity = create_granularity('900 seconds')
+
     partition_size = 86400
 
     trend_descriptors = [
@@ -540,8 +540,11 @@ def test_store_copy_from(conn, data_set):
     trend_names = [t.name for t in trend_descriptors]
 
     with closing(conn.cursor()) as cursor:
+        data_source = DataSource.create("test-source", '')(cursor)
+        entity_type = EntityType.create("test_type", '')(cursor)
+
         trend_store = TableTrendStore.create(TableTrendStoreDescriptor(
-            data_set.data_source, data_set.entity_type, data_set.granularity,
+            data_source, entity_type, granularity,
             trend_descriptors, partition_size
         ))(cursor)
 
@@ -557,7 +560,7 @@ def test_store_copy_from(conn, data_set):
     rows = list(map(make_row, range(100)))
 
     data_package = refined_package_type_for_entity_type('Node')(
-        data_set.granularity, timestamp, trend_names, rows
+        granularity, timestamp, trend_names, rows
     )
 
     transaction = trend_store.store(data_package)
@@ -569,8 +572,9 @@ def test_store_copy_from(conn, data_set):
 
 @raises(NoSuchTrendError)
 @with_conn(clear_database)
-@with_dataset(TestData)
-def test_store_copy_from_missing_column(conn, data_set):
+def test_store_copy_from_missing_column(conn):
+    granularity = create_granularity('900 seconds')
+
     partition_size = 86400
 
     trend_descriptors = [
@@ -582,8 +586,11 @@ def test_store_copy_from_missing_column(conn, data_set):
     trend_names = [t.name for t in trend_descriptors]
 
     with closing(conn.cursor()) as cursor:
+        data_source = DataSource.create("test-source", '')(cursor)
+        entity_type = EntityType.create("test_type", '')(cursor)
+
         trend_store = TableTrendStore.create(TableTrendStoreDescriptor(
-            data_set.data_source, data_set.entity_type, data_set.granularity,
+            data_source, entity_type, granularity,
             trend_descriptors, partition_size
         ))(cursor)
 
@@ -599,7 +606,7 @@ def test_store_copy_from_missing_column(conn, data_set):
     ]
 
     data_package = refined_package_type_for_entity_type('Node')(
-        data_set.granularity, timestamp, trend_names, rows
+        granularity, timestamp, trend_names, rows
     )
 
     transaction = trend_store.store(data_package)
@@ -619,7 +626,7 @@ def test_store_copy_from_missing_column(conn, data_set):
     rows = list(map(make_row_y, range(100)))
 
     data_package = refined_package_type_for_entity_type('Node')(
-        data_set.granularity, timestamp, trends, rows
+        granularity, timestamp, trends, rows
     )
 
     transaction = trend_store.store(data_package)
@@ -627,8 +634,9 @@ def test_store_copy_from_missing_column(conn, data_set):
 
 
 @with_conn(clear_database)
-@with_dataset(TestData)
-def test_store(conn, data_set):
+def test_store(conn):
+    granularity = create_granularity('900 seconds')
+
     partition_size = 86400
 
     trend_descriptors = [
@@ -640,8 +648,11 @@ def test_store(conn, data_set):
     trend_names = [t.name for t in trend_descriptors]
 
     with closing(conn.cursor()) as cursor:
+        data_source = DataSource.create("test-source", '')(cursor)
+        entity_type = EntityType.create("test_type", '')(cursor)
+
         trend_store = TableTrendStore.create(TableTrendStoreDescriptor(
-            data_set.data_source, data_set.entity_type, data_set.granularity,
+            data_source, entity_type, granularity,
             trend_descriptors, partition_size
         ))(cursor)
 
@@ -657,7 +668,7 @@ def test_store(conn, data_set):
     ]
 
     data_package = refined_package_type_for_entity_type('Node')(
-        data_set.granularity, timestamp, trend_names, rows
+        granularity, timestamp, trend_names, rows
     )
 
     transaction = trend_store.store(data_package)
@@ -684,7 +695,7 @@ def test_store(conn, data_set):
     ]
 
     data_package = refined_package_type_for_entity_type('Node')(
-        data_set.granularity, timestamp, trend_names, rows
+        granularity, timestamp, trend_names, rows
     )
 
     transaction = trend_store.store(data_package)
@@ -699,8 +710,9 @@ def test_store(conn, data_set):
 
 
 @with_conn(clear_database)
-@with_dataset(TestData)
-def test_generate_index(conn, data_set):
+def test_generate_index(conn):
+    granularity = create_granularity('900 seconds')
+
     partition_size = 86400
 
     start = pytz.utc.localize(
@@ -712,7 +724,7 @@ def test_generate_index(conn, data_set):
 
     partitioning = Partitioning(partition_size)
 
-    for timestamp in data_set.granularity.range(start, end):
+    for timestamp in granularity.range(start, end):
         partition_index = partitioning.index(timestamp)
 
         args = partition_size, timestamp
@@ -727,8 +739,9 @@ def test_generate_index(conn, data_set):
 
 @raises(NoSuchTrendError)
 @with_conn(clear_database)
-@with_dataset(TestData)
-def test_store_add_column(conn, data_set):
+def test_store_add_column(conn):
+    granularity = create_granularity('900 seconds')
+
     partition_size = 86400
 
     trend_descriptors = [
@@ -740,8 +753,11 @@ def test_store_add_column(conn, data_set):
     trend_names = [t.name for t in trend_descriptors]
 
     with closing(conn.cursor()) as cursor:
+        data_source = DataSource.create("test-source", '')(cursor)
+        entity_type = EntityType.create("test_type", '')(cursor)
+
         trend_store = TableTrendStore.create(TableTrendStoreDescriptor(
-            data_set.data_source, data_set.entity_type, data_set.granularity,
+            data_source, entity_type, granularity,
             trend_descriptors, partition_size
         ))(cursor)
 
@@ -757,7 +773,7 @@ def test_store_add_column(conn, data_set):
     ]
 
     data_package = refined_package_type_for_entity_type('Node')(
-        data_set.granularity, timestamp, trend_names, rows
+        granularity, timestamp, trend_names, rows
     )
 
     transaction = trend_store.store(data_package)
@@ -779,7 +795,7 @@ def test_store_add_column(conn, data_set):
     eq_(c, 6)
 
     data_package = refined_package_type_for_entity_type('Node')(
-        granularity=data_set.granularity,
+        granularity=granularity,
         timestamp=timestamp,
         trend_names=["a", "b", "c", "d"],
         rows=[
@@ -800,8 +816,8 @@ def test_store_add_column(conn, data_set):
 
 @raises(DataTypeMismatch)
 @with_conn(clear_database)
-@with_dataset(TestData)
-def test_store_alter_column(conn, data_set):
+def test_store_alter_column(conn):
+    granularity = create_granularity('900 seconds')
     partition_size = 86400
 
     trend_descriptors = [
@@ -813,8 +829,11 @@ def test_store_alter_column(conn, data_set):
     trend_names = [t.name for t in trend_descriptors]
 
     with closing(conn.cursor()) as cursor:
+        data_source = DataSource.create("test-source", '')(cursor)
+        entity_type = EntityType.create("test_type", '')(cursor)
+
         trend_store = TableTrendStore.create(TableTrendStoreDescriptor(
-            data_set.data_source, data_set.entity_type, data_set.granularity,
+            data_source, entity_type, granularity,
             trend_descriptors, partition_size
         ))(cursor)
 
@@ -830,7 +849,7 @@ def test_store_alter_column(conn, data_set):
     ]
 
     data_package = refined_package_type_for_entity_type('Node')(
-        data_set.granularity, timestamp, trend_names, rows
+        granularity, timestamp, trend_names, rows
     )
 
     transaction = trend_store.store(data_package)
@@ -857,7 +876,7 @@ def test_store_alter_column(conn, data_set):
     ]
 
     data_package = refined_package_type_for_entity_type('Node')(
-        data_set.granularity, timestamp, trend_names, rows
+        granularity, timestamp, trend_names, rows
     )
 
     transaction = trend_store.store(data_package)
