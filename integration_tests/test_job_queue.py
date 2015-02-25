@@ -14,13 +14,11 @@ import json
 from threading import Thread
 import time
 
-from nose.tools import eq_
 import psycopg2
 
-from minerva.test import with_conn, connect
+from minerva.test import with_conn, connect, eq_
+from minerva.system.jobsource import JobSource, JobSourceDescriptor
 from minerva.system.jobqueue import enqueue_job, get_job
-from minerva.system.helpers import add_job_source, get_job_source
-from minerva.directory.datasource import DataSource
 
 
 def clear(conn):
@@ -34,14 +32,16 @@ def test_enqueue_job(conn):
     job_source_name = "dummy-job-src"
     path = "/data/kpi_1.csv"
     job_type = "dummy"
-    filesize = 1000
+    file_size = 1000
     description = {"uri": path}
     description_json = json.dumps(description)
 
     with closing(conn.cursor()) as cursor:
-        job_source_id = add_job_source(cursor, job_source_name, "dummy", '{}')
+        job_source = JobSource.create(JobSourceDescriptor(
+            job_source_name, "dummy", '{}'
+        ))(cursor)
 
-    enqueue_job(conn, job_type, description_json, filesize, job_source_id)
+    enqueue_job(conn, job_type, description_json, file_size, job_source.id)
 
     with closing(conn.cursor()) as cursor:
         cursor.execute(
@@ -61,14 +61,16 @@ def test_get_job(conn):
     job_source_name = "dummy-job-src"
     path = "/data/kpi_2.csv"
     job_type = 'dummy'
-    filesize = 1060
+    file_size = 1060
     description = {"uri": path}
     description_json = json.dumps(description)
 
     with closing(conn.cursor()) as cursor:
-        job_source_id = add_job_source(cursor, job_source_name, "dummy", '{}')
+        job_source = JobSource.create(JobSourceDescriptor(
+            job_source_name, "dummy", '{}'
+        ))(cursor)
 
-    enqueue_job(conn, job_type, description_json, filesize, job_source_id)
+    enqueue_job(conn, job_type, description_json, file_size, job_source.id)
 
     conn.commit()
 
@@ -142,16 +144,15 @@ def test_waiting_locks(conn):
     job_source_name = "dummy-job-src"
     path = "/data/kpi_2.csv"
     job_type = 'dummy'
-    filesize = 1060
+    file_size = 1060
     description_json = '{{"uri": "{}"}}'.format(path)
 
     with closing(conn.cursor()) as cursor:
-        job_source_id = get_job_source(cursor, job_source_name)
+        job_source = JobSource.create(JobSourceDescriptor(
+            job_source_name, "dummy", '{}'
+        ))(cursor)
 
-        if not job_source_id:
-            job_source_id = add_job_source(cursor, job_source_name, "dummy", '{}')
-
-    enqueue_job(conn, job_type, description_json, filesize, job_source_id)
+    enqueue_job(conn, job_type, description_json, file_size, job_source.id)
 
     conn.commit()
 

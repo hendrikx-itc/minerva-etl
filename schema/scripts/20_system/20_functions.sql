@@ -72,9 +72,9 @@ $$ LANGUAGE sql VOLATILE;
 
 
 CREATE FUNCTION system.create_job(type character varying, description character varying, size bigint, job_source_id int)
-    RETURNS integer
+    RETURNS system.job
 AS $$
-    SELECT (system.enqueue_job(system.define_job($1, $2, $3, $4))).id;
+    SELECT system.enqueue_job(system.define_job($1, $2, $3, $4));
 $$ LANGUAGE sql VOLATILE;
 
 
@@ -112,49 +112,40 @@ $$ LANGUAGE plpgsql VOLATILE;
 CREATE FUNCTION system.finish_job(job_id int)
     RETURNS void
 AS $$
-DECLARE
-BEGIN
-    UPDATE system.job SET state = 'finished', finished = NOW() WHERE system.job.id = job_id;
-END;
-$$ LANGUAGE plpgsql VOLATILE STRICT;
+    UPDATE system.job SET state = 'finished', finished = NOW() WHERE system.job.id = $1;
+$$ LANGUAGE sql VOLATILE;
 
 
 CREATE FUNCTION system.fail_job(job_id int)
     RETURNS void
 AS $$
-DECLARE
-BEGIN
-    UPDATE system.job SET state = 'failed', finished = NOW() WHERE system.job.id = job_id;
-END;
-$$ LANGUAGE plpgsql VOLATILE STRICT;
+    UPDATE system.job SET state = 'failed', finished = NOW() WHERE system.job.id = $1;
+$$ LANGUAGE sql VOLATILE;
 
 
-CREATE FUNCTION system.fail_job(job_id int, message character varying)
+CREATE FUNCTION system.fail_job(job_id int, message text)
     RETURNS void
 AS $$
-DECLARE
-BEGIN
-    UPDATE system.job SET state = 'failed', finished = NOW() WHERE system.job.id = job_id;
+    UPDATE system.job SET state = 'failed', finished = NOW() WHERE system.job.id = $1;
 
-    INSERT INTO system.job_error_log (job_id, message) VALUES (job_id, message);
-END;
-$$ LANGUAGE plpgsql VOLATILE STRICT;
+    INSERT INTO system.job_error_log (job_id, message) VALUES ($1, $2);
+$$ LANGUAGE sql VOLATILE;
 
 
-CREATE FUNCTION system.add_job_source(character varying, character varying, character varying)
-    RETURNS integer
+CREATE FUNCTION system.create_job_source(text, text, text)
+    RETURNS system.job_source
 AS $$
     INSERT INTO system.job_source (id, name, job_type, config)
     VALUES (DEFAULT, $1, $2, $3)
-    RETURNING id;
-$$ LANGUAGE SQL;
+    RETURNING *;
+$$ LANGUAGE sql VOLATILE;
 
 
 CREATE FUNCTION system.get_job_source(integer)
-    RETURNS TABLE(name character varying, job_type character varying, config character varying)
+    RETURNS system.job_source
 AS $$
-    SELECT name, job_type, config FROM system.job_source WHERE id = $1;
-$$ LANGUAGE SQL;
+    SELECT * FROM system.job_source WHERE id = $1;
+$$ LANGUAGE sql STABLE;
 
 
 CREATE FUNCTION system.remove_jobs(before timestamp with time zone)
@@ -201,39 +192,39 @@ CREATE FUNCTION system.get_setting(name text)
     RETURNS system.setting
 AS $$
     SELECT setting FROM system.setting WHERE name = $1;
-$$ LANGUAGE SQL STABLE STRICT;
+$$ LANGUAGE sql STABLE STRICT;
 
 
 CREATE FUNCTION system.add_setting(name text, value text)
     RETURNS system.setting
 AS $$
     INSERT INTO system.setting (name, value) VALUES ($1, $2) RETURNING setting;
-$$ LANGUAGE SQL VOLATILE STRICT;
+$$ LANGUAGE sql VOLATILE STRICT;
 
 
 CREATE FUNCTION system.update_setting(name text, value text)
     RETURNS system.setting
 AS $$
     UPDATE system.setting SET value = $2 WHERE name = $1 RETURNING setting;
-$$ LANGUAGE SQL VOLATILE STRICT;
+$$ LANGUAGE sql VOLATILE STRICT;
 
 
 CREATE FUNCTION system.set_setting(name text, value text)
     RETURNS system.setting
 AS $$
     SELECT COALESCE(system.update_setting($1, $2), system.add_setting($1, $2));
-$$ LANGUAGE SQL VOLATILE STRICT;
+$$ LANGUAGE sql VOLATILE STRICT;
 
 
 CREATE FUNCTION system.get_setting_value(name text)
     RETURNS text
 AS $$
     SELECT value FROM system.setting WHERE name = $1;
-$$ LANGUAGE SQL STABLE STRICT;
+$$ LANGUAGE sql STABLE STRICT;
 
 
 CREATE FUNCTION system.get_setting_value(name text, "default" text)
     RETURNS text
 AS $$
     SELECT COALESCE(system.get_setting_value($1), $2);
-$$ LANGUAGE SQL STABLE STRICT;
+$$ LANGUAGE sql STABLE STRICT;

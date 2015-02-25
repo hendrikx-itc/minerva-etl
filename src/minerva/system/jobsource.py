@@ -14,6 +14,13 @@ import json
 from minerva.system.struct import Struct
 
 
+class JobSourceDescriptor():
+    def __init__(self, name, job_type, config):
+        self.name = name
+        self.job_type = job_type
+        self.config = config
+
+
 class JobSource():
 
     """
@@ -42,32 +49,41 @@ class JobSource():
         return json.dumps(config)
 
     @staticmethod
-    def get_by_name(cursor, name):
+    def get_by_name(name):
         """Retrieve the a job_source by its name and return Id."""
-        query = "SELECT id FROM system.job_source WHERE name=%s"
+        def f(cursor):
+            query = (
+                "SELECT id, name, job_type, config "
+                "FROM system.job_source WHERE name=%s"
+            )
 
-        args = (name, )
+            args = (name, )
 
-        cursor.execute(query, args)
+            cursor.execute(query, args)
 
-        if cursor.rowcount == 1:
-            (datasource_id, ) = cursor.fetchone()
+            if cursor.rowcount == 1:
+                (job_source_id, name_, job_type, config) = cursor.fetchone()
 
-            return datasource_id
+                return JobSource(job_source_id, name_, job_type, config)
 
-    def create(self, cursor):
+        return f
+
+    @staticmethod
+    def create(job_source_descriptor):
         """
         Create the job source in the database and return self.
-
-        :param cursor: A psycopg2 cursor on a Minerva database.
-
         """
-        args = self.name, self.job_type, self.serialize_config(self.config)
+        def f(cursor):
+            args = (
+                job_source_descriptor.name,
+                job_source_descriptor.job_type,
+                job_source_descriptor.config
+            )
 
-        cursor.callproc("system.add_job_source", args)
+            cursor.callproc("system.create_job_source", args)
 
-        (jobsource_id, ) = cursor.fetchone()
+            (job_source_id, name, job_type, config) = cursor.fetchone()
 
-        self.id = jobsource_id
+            return JobSource(job_source_id, name, job_type, config)
 
-        return self
+        return f
