@@ -63,7 +63,7 @@ def with_conn(*setup_functions):
         Decorator for functions that require a database connection:
 
         @with_conn
-        def somefunction(conn):
+        def some_function(conn):
             ...
         """
         @wraps(f)
@@ -79,26 +79,10 @@ def with_conn(*setup_functions):
     return dec_fn
 
 
-def with_dataset(dataset):
-    def dec_fn(f):
-        @wraps(f)
-        def wrapper(conn, *args, **kwargs):
-            with closing(conn.cursor()) as cursor:
-                d = dataset()
-                d.load(cursor)
-
-            conn.commit()
-
-            return f(conn, d, *args, **kwargs)
-
-        return wrapper
-
-    return dec_fn
-
-
 def clear_database(conn):
     with closing(conn.cursor()) as cursor:
         cursor.execute("DELETE FROM trend_directory.trend CASCADE")
         cursor.execute("DELETE FROM trend_directory.trend_store CASCADE")
         cursor.execute("DELETE FROM directory.data_source CASCADE")
         cursor.execute("DELETE FROM directory.entity_type CASCADE")
+        cursor.execute("DELETE FROM directory.tag CASCADE")
