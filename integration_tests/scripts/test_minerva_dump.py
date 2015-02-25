@@ -14,13 +14,13 @@ class MinervaDump(unittest.TestCase):
         self.maxDiff = None
         with closing(connect()) as conn:
             with closing(conn.cursor()) as cursor:
-                cursor.execute("DELETE FROM trend_directory.trendstore")
-                cursor.execute("DELETE FROM attribute_directory.attributestore")
+                cursor.execute("DELETE FROM trend_directory.trend_store")
+                cursor.execute("DELETE FROM attribute_directory.attribute_store")
                 cursor.execute(
-                    "SELECT trend_directory.create_trendstore("
-                    "    'test-datasource',"
-                    "    'test-entitytype',"
-                    "    '900',"
+                    "SELECT trend_directory.create_table_trend_store("
+                    "    'test-data-source',"
+                    "    'test-entity-type',"
+                    "    '00:15:00',"
                     "    ARRAY["
                     "        ('x', 'integer', 'test trend'),"
                     "        ('y', 'double precision', 'another test trend')"
@@ -28,9 +28,9 @@ class MinervaDump(unittest.TestCase):
                     ")")
 
                 cursor.execute(
-                    "SELECT attribute_directory.create_attributestore("
-                    "    'test-datasource',"
-                    "    'test-entitytype',"
+                    "SELECT attribute_directory.create_attribute_store("
+                    "    'test-data-source',"
+                    "    'test-entity-type',"
                     "    ARRAY["
                     "       ('height', 'double precision', 'fictive attribute'),"
                     "       ('power', 'integer', 'another fictive attribute')"
@@ -43,20 +43,20 @@ class MinervaDump(unittest.TestCase):
         process = subprocess.Popen(['minerva-dump'], stdout=subprocess.PIPE)
         out, err = process.communicate()
 
-        self.assertMultiLineEqual(out, """\
-SELECT trend_directory.create_trendstore(
-    'test-datasource',
-    'test-entitytype',
-    '900',
+        self.assertMultiLineEqual(out.decode('utf-8'), """\
+SELECT trend_directory.create_table_trend_store(
+    'test-data-source',
+    'test-entity-type',
+    '0:15:00',
     ARRAY[
-        ('x', 'integer', ''),
-        ('y', 'double precision', '')
+        ('x', 'integer', 'test trend'),
+        ('y', 'double precision', 'another test trend')
     ]::trend_directory.trend_descr[]
 );
 
-SELECT attribute_directory.create_attributestore(
-    'test-datasource',
-    'test-entitytype',
+SELECT attribute_directory.create_attribute_store(
+    'test-data-source',
+    'test-entity-type',
     ARRAY[
         ('height', 'double precision', 'fictive attribute'),
         ('power', 'integer', 'another fictive attribute')

@@ -19,10 +19,6 @@ from minerva.instance.error import ConfigurationError
 INSTANCES_PATH = "/etc/minerva/instances"
 CLASSES_PATH = "/usr/lib/minerva/classes"
 
-EXPECTED_EXCEPTIONS = (
-    psycopg2.InterfaceError, psycopg2.InternalError, psycopg2.OperationalError
-)
-
 
 class MinervaInstance():
     def __init__(self, config):
@@ -58,7 +54,6 @@ class MinervaInstance():
         db_conf = self.config["database"]
 
         merged_kwargs = {
-            "failures": EXPECTED_EXCEPTIONS,
             "database": db_conf.get("name"),
             "host": db_conf.get("host"),
             "port": db_conf.get("port")
@@ -78,7 +73,6 @@ class MinervaInstance():
         db_conf = self.config["database_ro"]
 
         merged_kwargs = {
-            "failures": EXPECTED_EXCEPTIONS,
             "database": db_conf.get("name"),
             "host": db_conf.get("host"),
             "port": db_conf.get("port")
