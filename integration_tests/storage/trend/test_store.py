@@ -110,7 +110,6 @@ def test_store_copy_from_2(conn):
         ))(cursor)
         partition = trend_store.partition(timestamp)
         partition.create(cursor)
-        table = partition.table()
 
         trend_store.store_copy_from(
             refined_package_type_for_entity_type('Node')(
@@ -118,14 +117,6 @@ def test_store_copy_from_2(conn):
             ),
             modified
         )(cursor)
-
-        eq_(row_count(cursor, table), 1)
-
-        table.select(Call("max", Column("modified"))).execute(cursor)
-
-        max_modified, = cursor.fetchone()
-
-        eq_(max_modified, modified)
 
 
 @with_conn(clear_database)
