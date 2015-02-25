@@ -13,7 +13,8 @@ from minerva.storage import datatype
 from minerva.storage.trend.test import DataSet
 from minerva.storage.trend.datapackage import \
     refined_package_type_for_entity_type
-from minerva.storage.trend.tabletrendstore import TableTrendStore, TableTrendStoreDescriptor
+from minerva.storage.trend.tabletrendstore import TableTrendStore, \
+    TableTrendStoreDescriptor
 from minerva.storage.trend.trendstore import NoSuchTrendError
 from minerva.storage.trend.trend import TrendDescriptor
 from minerva.storage.trend.partitioning import Partitioning
