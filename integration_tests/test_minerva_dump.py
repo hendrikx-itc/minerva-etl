@@ -7,8 +7,8 @@ from minerva.test import connect
 
 class MinervaDump(unittest.TestCase):
     """
-    Use standard Python unittest TestCase here because of the assertMultiLineEqual
-    function.
+    Use standard Python unittest TestCase here because of the
+    assertMultiLineEqual function.
     """
     def test_run(self):
         self.maxDiff = None
