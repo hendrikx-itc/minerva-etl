@@ -165,4 +165,3 @@ def test_waiting_locks(conn):
     job_id, job_type, description, size, parser_config = job
 
     eq_(path, json.loads(description)["uri"])
-
