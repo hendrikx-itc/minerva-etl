@@ -1,6 +1,8 @@
 import time
 from datetime import timedelta, datetime
 from contextlib import closing
+from functools import partial
+from operator import contains
 
 import pytz
 
@@ -875,3 +877,45 @@ def row_count(cursor, table):
     count, = cursor.fetchone()
 
     return count
+
+
+@with_conn(clear_database)
+def test_store_ignore_column(conn):
+    partition_size = 86400
+
+    trend_descriptors = [
+        TrendDescriptor('x', datatype.DataTypeSmallInt, ''),
+        TrendDescriptor('y', datatype.DataTypeSmallInt, ''),
+    ]
+
+    with closing(conn.cursor()) as cursor:
+        data_source = DataSource.create("test-source", '')(cursor)
+        entity_type = EntityType.create("test_type", '')(cursor)
+        granularity = create_granularity('900 seconds')
+
+        trend_store = TableTrendStore.create(TableTrendStoreDescriptor(
+            data_source, entity_type, granularity,
+            trend_descriptors, partition_size
+        ))(cursor)
+
+    conn.commit()
+
+    data_package = refined_package_type_for_entity_type('Node')(
+        granularity,
+        pytz.utc.localize(
+            datetime(2013, 4, 25, 10, 45)
+        ),
+        ['x', 'y', 'z'],
+        [
+            (1234, [1, 2, 3]),
+            (2345, [4, 5, 6])
+        ]
+    )
+
+    trend_names = [t.name for t in trend_store.trends]
+
+    transaction = trend_store.store(
+        data_package.filter_trends(partial(contains, set(trend_names)))
+    )
+
+    transaction.run(conn)
