@@ -9,7 +9,7 @@ from minerva.directory import Entity
 from minerva.directory import existence
 
 
-def prepare_datebase(conn):
+def prepare_database(conn):
     with closing(conn.cursor()) as cursor:
         cursor.execute("DELETE FROM directory.entity")
         cursor.execute("DELETE FROM directory.existence")
@@ -17,14 +17,14 @@ def prepare_datebase(conn):
     clear_database(conn)
 
 
-@with_conn(prepare_datebase)
+@with_conn(prepare_database)
 def test_existence_simple(conn):
     dn = "network=1,cell=1"
 
     dt = pytz.utc.localize(datetime(2014, 1, 1, 14, 0, 0))
 
     with closing(conn.cursor()) as cursor:
-        Entity.create_from_dn(cursor, dn)
+        Entity.create_from_dn(dn)(cursor)
 
     ex = existence.Existence(conn)
     ex.mark_existing([dn])
@@ -33,7 +33,7 @@ def test_existence_simple(conn):
     check_existence(conn, [(dn, dt, True)])
 
 
-@with_conn(prepare_datebase)
+@with_conn(prepare_database)
 def test_existence_onoff(conn):
     dn1 = "network=1,cell=1"
     dn2 = "network=1,cell=2"
@@ -42,8 +42,8 @@ def test_existence_onoff(conn):
     dt2 = pytz.utc.localize(datetime(2014, 2, 1, 14, 0, 0))
 
     with closing(conn.cursor()) as cursor:
-        Entity.create_from_dn(cursor, dn1)
-        Entity.create_from_dn(cursor, dn2)
+        Entity.create_from_dn(dn1)(cursor)
+        Entity.create_from_dn(dn2)(cursor)
 
     ex = existence.Existence(conn)
 
@@ -61,7 +61,7 @@ def test_existence_onoff(conn):
     ])
 
 
-@with_conn(prepare_datebase)
+@with_conn(prepare_database)
 def test_existence_history_on(conn):
     dn1 = "network=1,cell=1"
     dn2 = "network=1,cell=2"
@@ -72,8 +72,8 @@ def test_existence_history_on(conn):
     ex = existence.Existence(conn)
 
     with closing(conn.cursor()) as cursor:
-        Entity.create_from_dn(cursor, dn1)
-        Entity.create_from_dn(cursor, dn2)
+        Entity.create_from_dn(dn1)(cursor)
+        Entity.create_from_dn(dn2)(cursor)
 
     ex.mark_existing([dn1])
     ex.flush(dt2)
@@ -88,7 +88,7 @@ def test_existence_history_on(conn):
     ])
 
 
-@with_conn(prepare_datebase)
+@with_conn(prepare_database)
 def test_existence_history_off(conn):
     dn1 = "network=1,cell=1"
     dn2 = "network=1,cell=2"
@@ -100,8 +100,8 @@ def test_existence_history_off(conn):
     ex = existence.Existence(conn)
 
     with closing(conn.cursor()) as cursor:
-        Entity.create_from_dn(cursor, dn1)
-        Entity.create_from_dn(cursor, dn2)
+        Entity.create_from_dn(dn1)(cursor)
+        Entity.create_from_dn(dn2)(cursor)
 
     ex.mark_existing([dn1])
     ex.flush(dt1)
@@ -121,13 +121,13 @@ def test_existence_history_off(conn):
     ])
 
 
-@with_conn(prepare_datebase)
+@with_conn(prepare_database)
 def test_existence_duplicate(conn):
     dn = "network=1,cell=1"
     dt = pytz.utc.localize(datetime(2014, 1, 1, 14, 0, 0))
 
     with closing(conn.cursor()) as cursor:
-        Entity.create_from_dn(cursor, dn)
+        Entity.create_from_dn(dn)(cursor)
 
     ex = existence.Existence(conn)
 
@@ -140,14 +140,14 @@ def test_existence_duplicate(conn):
     check_existence(conn, [(dn, dt, True)])
 
 
-@with_conn(prepare_datebase)
+@with_conn(prepare_database)
 def test_existence_still_on(conn):
     dn = "network=1,cell=1"
     dt1 = pytz.utc.localize(datetime(2014, 1, 1, 14, 0, 0))
     dt2 = pytz.utc.localize(datetime(2014, 2, 1, 14, 0, 0))
 
     with closing(conn.cursor()) as cursor:
-        Entity.create_from_dn(cursor, dn)
+        Entity.create_from_dn(dn)(cursor)
 
     ex = existence.Existence(conn)
 
@@ -160,7 +160,7 @@ def test_existence_still_on(conn):
     check_existence(conn, [(dn, dt1, True)])
 
 
-@with_conn(prepare_datebase)
+@with_conn(prepare_database)
 def test_duplicate(conn):
     dn1 = "network=1,cell=1"
     dn2 = "network=1,cell=2"
@@ -175,9 +175,9 @@ def test_duplicate(conn):
     ex = existence.Existence(conn)
 
     with closing(conn.cursor()) as cursor:
-        Entity.create_from_dn(cursor, dn1)
-        Entity.create_from_dn(cursor, dn2)
-        Entity.create_from_dn(cursor, dn3)
+        Entity.create_from_dn(dn1)(cursor)
+        Entity.create_from_dn(dn2)(cursor)
+        Entity.create_from_dn(dn3)(cursor)
 
     ex.mark_existing([dn1])
     ex.flush(dt1)
