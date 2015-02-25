@@ -14,8 +14,6 @@ from minerva.instance import MinervaInstance
 
 
 def main():
-    default_minerva_instance = os.environ.get("DEFAULT_MINERVA_INSTANCE")
-
     parser = argparse.ArgumentParser(
         description="Create tags between entities"
     )
@@ -43,7 +41,7 @@ def main():
 
     minerva_instance = MinervaInstance.load(
         args.instance or
-        default_minerva_instance or
+        os.environ.get("DEFAULT_MINERVA_INSTANCE") or
         "default"
     )
 
