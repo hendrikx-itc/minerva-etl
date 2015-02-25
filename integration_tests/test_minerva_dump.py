@@ -2,8 +2,6 @@ from contextlib import closing
 import subprocess
 import unittest
 
-from nose.tools import eq_
-
 from minerva.test import connect
 
 
