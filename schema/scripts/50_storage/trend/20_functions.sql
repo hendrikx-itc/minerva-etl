@@ -549,24 +549,10 @@ $$ LANGUAGE SQL STABLE;
 CREATE OR REPLACE FUNCTION trend.modify_trendstore_columns(trendstore_id integer, columns trend.column_info[])
     RETURNS void
 AS $$
-DECLARE
-    dependent_views trend.view[];
-BEGIN
-    IF array_length(columns, 1) IS NULL THEN
-        RETURN;
-    END IF;
-
-    SELECT array_agg(trend.drop_view(dependent_view)) INTO dependent_views
-        FROM trend.get_dependent_views(trendstore_id) dependent_view;
-
-    PERFORM trend.alter_column_types('trend', trend.to_base_table_name(trendstore), columns)
-        FROM trend.trendstore
-        WHERE trendstore.id = trendstore_id;
-
-    PERFORM trend.create_view(dependent_view)
-        FROM unnest(dependent_views) AS dependent_view;
-END;
-$$ LANGUAGE plpgsql;
+    SELECT trend.alter_column_types('trend', trend.to_base_table_name(trendstore), $2)
+    FROM trend.trendstore
+    WHERE trendstore.id = $1;
+$$ LANGUAGE sql VOLATILE;
 
 
 CREATE OR REPLACE FUNCTION trend.alter_column_types(namespace_name name, table_name name, columns trend.column_info[])
@@ -575,6 +561,10 @@ AS $$
 DECLARE
     column_alterations varchar;
 BEGIN
+    IF array_length(columns, 1) IS NULL THEN
+        RETURN;
+    END IF;
+
     SELECT
         array_to_string(array_agg(format('ALTER %I TYPE %s USING CAST (%I AS %s)', cs.name, cs.datatype, cs.name, cs.datatype)), ', ') INTO column_alterations
     FROM unnest(columns) AS cs;
