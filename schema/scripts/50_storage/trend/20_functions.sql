@@ -570,7 +570,7 @@ BEGIN
     FROM unnest(columns) AS cs;
 
     PERFORM dep_recurse.alter(
-        dep_recurse.table_ref('trend', base_table_name),
+        dep_recurse.table_ref('trend', table_name),
         ARRAY[
             format('ALTER TABLE %I.%I %s', namespace_name, table_name, column_alterations)
         ]
