@@ -10,3 +10,5 @@ version.  The full license is in the file COPYING, distributed as part of
 this software.
 """
 from minerva.storage.trend.trend import TrendDescriptor, Trend
+from minerva.storage.trend.tabletrendstore import TableTrendStore
+from minerva.storage.trend.viewtrendstore import ViewTrendStore
