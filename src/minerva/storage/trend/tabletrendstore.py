@@ -101,6 +101,17 @@ class TableTrendStore(TrendStore):
         return self.partitioning.index_to_interval(partition_index)
 
     def check_trends_exist(self, trend_descriptors):
+        """
+        Returns function that creates missing trends as described by
+        'trend_descriptors' and returns a new TableTrendStore.
+
+        :param trend_descriptors: list(TrendDescriptor)
+        :return: function(cursor) -> TableTrendStore
+        """
+        """
+        :param trend_descriptors:
+        :return:
+        """
         query = (
             "SELECT trend_directory.assure_trends_exist("
             "table_trend_store, %s::trend_directory.trend_descr[]"
@@ -113,6 +124,8 @@ class TableTrendStore(TrendStore):
 
         def f(cursor):
             cursor.execute(query, args)
+
+            return TableTrendStore.get_by_id(self.id)(cursor)
 
         return f
 
