@@ -46,7 +46,7 @@ class TableTrendStoreDescriptor():
 
 class TableTrendStore(TrendStore):
     column_names = [
-        "id", "data_source_id", "entity_type_id", "granularity",
+        "id", "entity_type_id", "data_source_id", "granularity",
         "partition_size", "retention_period"
     ]
 
