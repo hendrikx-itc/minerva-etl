@@ -6,11 +6,11 @@ import os
 import sys
 import argparse
 from contextlib import closing
-from operator import itemgetter
 from functools import partial
 
 from minerva import __version__ as version
 from minerva.instance import MinervaInstance
+from minerva.storage.trend import TableTrendStore
 
 
 def main():
@@ -48,20 +48,17 @@ def main():
     with closing(minerva_instance.connect(user=args.user)) as conn:
         lines = dump(
             conn,
-            partial(trend_store_query, args.exclude_materialized)
+            partial(table_trend_store_query, args.exclude_materialized)
         )
 
         for line in lines:
             print(line)
 
 
-def trend_store_query(exclude_materialized):
+def table_trend_store_query(exclude_materialized):
     query = (
         "SELECT \n"
-        "    table_trend_store.id,\n"
-        "    data_source.name,\n"
-        "    entity_type.name,\n"
-        "    table_trend_store.granularity\n"
+        "    table_trend_store.*\n"
         "FROM trend_directory.table_trend_store\n"
         "JOIN directory.data_source ON\n"
         "    data_source.id = table_trend_store.data_source_id\n"
@@ -96,35 +93,29 @@ def attribute_store_query():
     )
 
 
-def dump(conn, trend_store_query):
+def dump(conn, table_trend_store_query):
     with closing(conn.cursor()) as cursor:
-        cursor.execute(trend_store_query())
+        cursor.execute(table_trend_store_query())
 
-        trend_stores = cursor.fetchall()
+        table_trend_stores = [
+            TableTrendStore.from_record(record)(cursor)
+            for record in cursor.fetchall()
+        ]
 
-        for id_, data_source_name, entity_type_name, granularity in trend_stores:
+        for table_trend_store in table_trend_stores:
 
             yield "SELECT trend_directory.create_table_trend_store("
-            yield "    '{}',".format(data_source_name)
-            yield "    '{}',".format(entity_type_name)
-            yield "    '{}',".format(granularity)
+            yield "    '{}',".format(table_trend_store.data_source.name)
+            yield "    '{}',".format(table_trend_store.entity_type.name)
+            yield "    '{}',".format(table_trend_store.granularity)
             yield "    ARRAY["
-
-            cursor.execute(
-                "SELECT name, data_type, description\n"
-                "FROM trend_directory.table_trend\n"
-                "WHERE trend_store_id = %s",
-                (id_,)
-            )
-
-            trends = cursor.fetchall()
             yield ",\n".join(
                 "        ('{}', '{}', '{}')".format(
-                    trend_name,
-                    data_type,
-                    description
+                    trend.name,
+                    trend.data_type.name,
+                    trend.description
                 )
-                for trend_name, data_type, description in trends
+                for trend in table_trend_store.trends
             )
             yield "    ]::trend_directory.trend_descr[]"
             yield ");"
