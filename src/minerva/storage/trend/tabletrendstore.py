@@ -64,10 +64,11 @@ class TableTrendStore(TrendStore):
 
     def __init__(
             self, id_, data_source, entity_type, granularity, trends,
-            partition_size):
-        super().__init__(id_, data_source, entity_type, granularity, trends)
+            partition_size, retention_period):
+        TrendStore.__init__(self, id_, data_source, entity_type, granularity, trends)
         self.partition_size = partition_size
         self.partitioning = Partitioning(partition_size)
+        self.retention_period = retention_period
 
     def __str__(self):
         return self.base_table_name()
@@ -193,7 +194,8 @@ class TableTrendStore(TrendStore):
 
             return TableTrendStore(
                 trend_store_id, data_source, entity_type,
-                create_granularity(granularity_str), trends, partition_size
+                create_granularity(granularity_str), trends, partition_size,
+                retention_period
             )
 
         return f
