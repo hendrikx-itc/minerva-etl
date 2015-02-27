@@ -12,3 +12,14 @@ the Free Software Foundation; either version 3, or (at your option) any later
 version.  The full license is in the file COPYING, distributed as part of
 this software.
 """
+
+
+class Engine():
+    @staticmethod
+    def store(package):
+        """
+        Returns function that executes a storage class specific store method.
+        :param package:
+        :return: function(data_source) -> function(conn)
+        """
+        raise NotImplementedError()

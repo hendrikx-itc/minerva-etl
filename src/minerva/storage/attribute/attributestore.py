@@ -10,28 +10,19 @@ the Free Software Foundation; either version 3, or (at your option) any later
 version.  The full license is in the file COPYING, distributed as part of
 this software.
 """
+from contextlib import closing
 from functools import partial
 
 import psycopg2
 
-from minerva.util import head, expand_args, k, no_op
+from minerva.util import expand_args
 from minerva.db.query import Table
 from minerva.directory import EntityType, DataSource
-from minerva.db.error import NoSuchColumnError, DataTypeMismatch, \
-    translate_postgresql_exception, translate_postgresql_exceptions, \
-    UniqueViolation
-from minerva.db.dbtransaction import DbTransaction, DbAction, insert_before
+from minerva.db.error import translate_postgresql_exception, \
+    translate_postgresql_exceptions
 from minerva.storage.attribute.attribute import Attribute
 from minerva.storage.valuedescriptor import ValueDescriptor
 from minerva.storage import datatype
-
-MAX_RETRIES = 10
-
-DATATYPE_MISMATCH_ERRORS = {
-    psycopg2.errorcodes.DATATYPE_MISMATCH,
-    psycopg2.errorcodes.NUMERIC_VALUE_OUT_OF_RANGE,
-    psycopg2.errorcodes.INVALID_TEXT_REPRESENTATION
-}
 
 
 class NoSuchAttributeError(Exception):
@@ -56,7 +47,7 @@ class AttributeStore():
 
     """
 
-    def __init__(self, id_, data_source, entity_type, attributes=tuple()):
+    def __init__(self, id_, data_source, entity_type, attributes):
         self.id = id_
         self.data_source = data_source
         self.entity_type = entity_type
@@ -97,7 +88,10 @@ class AttributeStore():
             cursor.execute(query, args)
 
             def row_to_attribute(row):
-                attribute_id, name, data_type, attribute_store_id_, description = row
+                (
+                    attribute_id, name, data_type, attribute_store_id_,
+                    description
+                ) = row
 
                 return Attribute(
                     attribute_id, name, datatype.type_map[data_type],
@@ -141,25 +135,28 @@ class AttributeStore():
         return f
 
     @classmethod
-    def get_by_attributes(cls, cursor, data_source, entity_type):
+    def get_by_attributes(cls, data_source, entity_type):
         """Load and return AttributeStore with specified attributes."""
-        query = (
-            "SELECT id "
-            "FROM attribute_directory.attribute_store "
-            "WHERE data_source_id = %s "
-            "AND entity_type_id = %s"
-        )
-        args = data_source.id, entity_type.id
-        cursor.execute(query, args)
+        def f(cursor):
+            query = (
+                "SELECT id "
+                "FROM attribute_directory.attribute_store "
+                "WHERE data_source_id = %s "
+                "AND entity_type_id = %s"
+            )
+            args = data_source.id, entity_type.id
+            cursor.execute(query, args)
 
-        attribute_store_id, = cursor.fetchone()
+            attribute_store_id, = cursor.fetchone()
 
-        return AttributeStore(
-            attribute_store_id,
-            data_source,
-            entity_type,
-            AttributeStore.get_attributes(attribute_store_id)(cursor)
-        )
+            return AttributeStore(
+                attribute_store_id,
+                data_source,
+                entity_type,
+                AttributeStore.get_attributes(attribute_store_id)(cursor)
+            )
+
+        return f
 
     @staticmethod
     def get(id_):
@@ -229,7 +226,9 @@ class AttributeStore():
             )
             cursor.execute(query, args)
 
-            attribute_store_id, data_source_id, entity_type_id = cursor.fetchone()
+            (
+                attribute_store_id, data_source_id, entity_type_id
+            ) = cursor.fetchone()
 
             entity_type = EntityType.get(entity_type_id)(cursor)
             data_source = DataSource.get(data_source_id)(cursor)
@@ -254,28 +253,25 @@ class AttributeStore():
         args = self.id,
         cursor.execute(query, args)
 
-    def store_txn(self, data_package):
-        """Return transaction to store the data in the attribute store."""
-        return DbTransaction(
-            StoreState(self, data_package),
-            [
-                StoreBatch()
-            ]
-        )
-
     @translate_postgresql_exceptions
-    def store_batch(self, cursor, data_package):
+    def store(self, data_package):
         """Write data in one batch using staging table."""
-        if data_package.is_empty():
-            return
+        def f(conn):
+            if data_package.is_empty():
+                return
 
-        value_descriptors = self.get_value_descriptors(
-            data_package.attribute_names
-        )
+            value_descriptors = self.get_value_descriptors(
+                data_package.attribute_names
+            )
 
-        data_package.copy_expert(self.staging_table, value_descriptors)(cursor)
+            with closing(conn.cursor()) as cursor:
+                data_package.copy_expert(
+                    self.staging_table, value_descriptors
+                )(cursor)
 
-        self._transfer_staged(cursor)
+                self._transfer_staged(cursor)
+
+        return f
 
     def get_value_descriptors(self, attribute_names):
         """Return list of data types corresponding to the `attribute_names`."""
@@ -341,39 +337,6 @@ class AttributeStore():
 
         return f
 
-    def store_raw(self, raw_data_package):
-        if raw_data_package.is_empty():
-            return DbTransaction(None, [])
-
-        return DbTransaction(
-            StoreRawState(self, raw_data_package),
-            [
-                RefineRawDataPackage(),
-                StoreBatch()
-            ]
-        )
-
-
-class StoreState():
-    def __init__(self, attribute_store, data_package):
-        self.attribute_store = attribute_store
-        self.data_package = data_package
-
-
-class StoreRawState():
-    def __init__(self, attribute_store, raw_data_package):
-        self.attribute_store = attribute_store
-        self.raw_data_package = raw_data_package
-        self.data_package = None
-
-
-class RefineRawDataPackage(DbAction):
-    def execute(self, cursor, state):
-        try:
-            state.data_package = state.raw_data_package.refine(cursor)
-        except UniqueViolation:
-            return no_op
-
 
 class Query():
 
@@ -392,52 +355,3 @@ class Query():
             raise translate_postgresql_exception(exc)
 
         return cursor
-
-
-def fetch_scalar(cursor):
-    """Return the one scalar result from `cursor`."""
-    return head(cursor.fetchone())
-
-
-def fetch_one(cursor):
-    """Return the one record result from `cursor`."""
-    return cursor.fetch_one()
-
-
-class StoreBatch(DbAction):
-    """
-    A DbAction subclass that calls the 'store_batch' method on the
-    attribute store and creates corrective actions if a known error occurs.
-    """
-    def execute(self, cursor, state):
-        try:
-            state.attribute_store.store_batch(cursor, state.data_package)
-        except psycopg2.DataError as exc:
-            if exc.pgcode == psycopg2.errorcodes.BAD_COPY_FILE_FORMAT:
-                return insert_before(CheckAttributesExist())
-            else:
-                raise
-        except DataTypeMismatch:
-            return insert_before(CheckAttributeTypes())
-        except (NoSuchColumnError, NoSuchAttributeError):
-            return insert_before(CheckAttributesExist())
-
-
-class CheckAttributesExist(DbAction):
-
-    """Calls the 'check_attributes_exist' method on the attribute store."""
-
-    def execute(self, cursor, state):
-        state.attribute_store.check_attributes_exist(
-            state.data_package.deduce_attributes()
-        )(cursor)
-
-
-class CheckAttributeTypes(DbAction):
-
-    """Calls the 'check_attributes_exist' method on the attribute store."""
-
-    def execute(self, cursor, state):
-        state.attribute_store.check_attribute_types(
-            state.data_package.deduce_attributes()
-        )(cursor)
