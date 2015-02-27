@@ -78,7 +78,7 @@ AS $$
 DECLARE
     src_trend_store trend_directory.view_trend_store;
     dst_trend_store trend_directory.table_trend_store;
-    table_name character varying;
+    view_name character varying;
     dst_table_name character varying;
     dst_partition trend_directory.partition;
     sources_query character varying;
@@ -94,7 +94,7 @@ BEGIN
     SELECT * INTO src_trend_store FROM trend_directory.view_trend_store WHERE id = type.view_trend_store_id;
     SELECT * INTO dst_trend_store FROM trend_directory.table_trend_store WHERE id = type.table_trend_store_id;
 
-    table_name = trend_directory.base_table_name(src_trend_store);
+    view_name = trend_directory.base_table_name(src_trend_store);
     dst_table_name = trend_directory.base_table_name(dst_trend_store);
 
     dst_partition = trend_directory.attributes_to_partition(
@@ -107,7 +107,7 @@ BEGIN
     SELECT
         array_to_string(array_agg(quote_ident(name)), ', ') INTO columns_part
     FROM
-        trend_directory.table_columns(trend_directory.base_table_schema(), table_name);
+        trend_directory.table_columns(trend_directory.view_schema(), view_name);
 
     sources_query = format(
         'SELECT source_states
@@ -121,7 +121,7 @@ BEGIN
 
     data_query = format(
         'SELECT %s FROM %I.%I WHERE timestamp = %L',
-        columns_part, trend_directory.base_table_schema(), table_name, timestamp
+        columns_part, trend_directory.view_schema(), view_name, timestamp
     );
 
     replicated_server_conn = system.get_setting('replicated_server_conn');
@@ -143,7 +143,7 @@ BEGIN
         SELECT
             array_to_string(array_agg(format('%I %s', col.name, col.data_type)), ', ') INTO column_defs_part
         FROM
-            trend_directory.table_columns(trend_directory.base_table_schema(), table_name) col;
+            trend_directory.table_columns(trend_directory.base_table_schema(), view_name) col;
 
         SELECT sources INTO tmp_source_states
         FROM public.dblink(conn_str, sources_query) AS r (sources materialization.source_fragment_state[]);
@@ -315,26 +315,29 @@ AS $$
 $$ LANGUAGE sql IMMUTABLE;
 
 
-CREATE FUNCTION materialization.create_job(type_id integer, "timestamp" timestamp with time zone)
-    RETURNS integer
+CREATE FUNCTION materialization.get_materialization_job_source()
+    RETURNS system.job_source
 AS $$
-DECLARE
-    description text;
-    new_job_id integer;
-BEGIN
-    description := materialization.render_job_json(type_id, "timestamp");
+    SELECT *
+    FROM system.job_source
+    WHERE name = 'compile-materialize-jobs';
+$$ LANGUAGE sql STABLE;
 
-    SELECT system.create_job('materialize', description, 1, job_source.id) INTO new_job_id
-        FROM system.job_source
-        WHERE name = 'compile-materialize-jobs';
 
+CREATE FUNCTION materialization.create_job(type_id integer, "timestamp" timestamp with time zone)
+    RETURNS system.job
+AS $$
     UPDATE materialization.state
-        SET job_id = new_job_id
-        WHERE state.type_id = $1 AND state.timestamp = $2;
-
-    RETURN new_job_id;
-END;
-$$ LANGUAGE plpgsql VOLATILE;
+    SET job_id = job.id
+    FROM system.create_job(
+        'materialize',
+        materialization.render_job_json($1, $2),
+        1,
+        (materialization.get_materialization_job_source()).id
+    ) AS job
+    WHERE state.type_id = $1 AND state.timestamp = $2
+    RETURNING job;
+$$ LANGUAGE sql VOLATILE;
 
 
 CREATE FUNCTION materialization.source_data_ready(type materialization.type, "timestamp" timestamp with time zone, max_modified timestamp with time zone)
@@ -370,72 +373,6 @@ AS $$
     FROM system.job
     WHERE type = 'materialize' AND (state = 'running' OR state = 'queued');
 $$ LANGUAGE sql STABLE;
-
-
-CREATE FUNCTION materialization.runnable_materializations(tag varchar)
-    RETURNS TABLE (type_id integer, "timestamp" timestamp with time zone)
-AS $$
-DECLARE
-    runnable_materializations_query text;
-    conn_str text;
-    replicated_server_conn system.setting;
-BEGIN
-    replicated_server_conn = system.get_setting('replicated_server_conn');
-
-    IF replicated_server_conn IS NULL THEN
-        RETURN QUERY SELECT trm.type_id, trm.timestamp
-        FROM materialization.tagged_runnable_materializations trm
-        WHERE trm.tag = $1;
-    ELSE
-        runnable_materializations_query = format('SELECT type_id, timestamp
-            FROM materialization.tagged_runnable_materializations
-            WHERE tag = %L', tag);
-
-        RETURN QUERY SELECT replicated_state.type_id, replicated_state.timestamp
-        FROM public.dblink(replicated_server_conn.value, runnable_materializations_query)
-            AS replicated_state(type_id integer, "timestamp" timestamp with time zone)
-        JOIN materialization.tagged_runnable_materializations rj ON
-            replicated_state.type_id = rj.type_id
-                AND
-            replicated_state.timestamp = rj.timestamp
-        WHERE materialization.no_slave_lag();
-    END IF;
-END;
-$$ LANGUAGE plpgsql;
-
-COMMENT ON FUNCTION materialization.runnable_materializations(tag varchar)
-IS 'Return table with all combinations (type_id, timestamp) that are ready to
-run. This includes the check between the master and slave states.';
-
-
-CREATE FUNCTION materialization.create_jobs(tag varchar, job_limit integer)
-    RETURNS integer
-AS $$
-    SELECT COUNT(materialization.create_job(type_id, timestamp))::integer
-    FROM (
-        SELECT type_id, timestamp
-        FROM materialization.runnable_materializations($1)
-        LIMIT materialization.open_job_slots($2)
-    ) mzs;
-$$ LANGUAGE SQL;
-
-
-CREATE FUNCTION materialization.create_jobs(tag varchar)
-    RETURNS integer
-AS $$
-    SELECT COUNT(materialization.create_job(type_id, timestamp))::integer
-    FROM materialization.runnable_materializations($1);
-$$ LANGUAGE SQL;
-
-
-CREATE FUNCTION materialization.create_jobs_limited(tag varchar, job_limit integer)
-    RETURNS integer
-AS $$
-    SELECT materialization.create_jobs($1, $2);
-$$ LANGUAGE SQL;
-
-COMMENT ON FUNCTION materialization.create_jobs_limited(tag varchar, job_limit integer)
-IS 'Deprecated function that just calls the overloaded create_jobs function.';
 
 
 CREATE FUNCTION materialization.tag(tag_name character varying, type_id integer)
@@ -547,10 +484,11 @@ $$ LANGUAGE sql STABLE;
 
 CREATE FUNCTION materialization.no_slave_lag()
     RETURNS boolean
-    LANGUAGE sql
-AS $$SELECT bytes_lag < 10000000
+AS $$
+SELECT bytes_lag < 10000000
 FROM metric.replication_lag
-WHERE client_addr = '192.168.42.19';$$;
+WHERE client_addr = '192.168.42.19';
+$$ LANGUAGE sql;
 
 
 -- View 'runnable_materializations'
@@ -601,10 +539,9 @@ ALTER VIEW materialization.next_up_materializations OWNER TO minerva_admin;
 
 CREATE FUNCTION materialization.create_jobs()
     RETURNS integer
-    LANGUAGE sql
-AS $function$
+AS $$
     SELECT COUNT(materialization.create_job(num.type_id, timestamp))::integer
     FROM materialization.next_up_materializations num
     WHERE NOT job_active AND materialization.no_slave_lag();
-$function$;
+$$ LANGUAGE sql;
 
