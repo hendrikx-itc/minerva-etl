@@ -14,7 +14,7 @@ class AttributeEngine(Engine):
                 entity_type_name = package.entity_type_name()
 
                 with closing(conn.cursor()) as cursor:
-                    entity_type = EntityType.get_by_name(entity_type_name)(
+                    entity_type = EntityType.from_name(entity_type_name)(
                         cursor
                     )
 
