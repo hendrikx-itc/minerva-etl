@@ -20,11 +20,11 @@ libpq-dev:
   pkg:
     - installed
 
-python-virtualenv:
+language-pack-nl:
   pkg:
     - installed
 
-language-pack-nl:
+python3-pip:
   pkg:
     - installed
 
@@ -37,8 +37,10 @@ python3-psycopg2:
 python-package:
   pip.installed:
     - editable: /vagrant/
+    - bin_env: /usr/bin/pip3
     - require:
       - pkg: python3-psycopg2
+      - pkg: python3-pip
 
 # python_dateutil from pypi currently has permission issues with some files
 # after installation, so use the standard Ubuntu package
@@ -56,9 +58,19 @@ vagrant:
     - require:
       - service: postgresql
 
+create-database:
+  cmd.wait:
+    - name: '/vagrant/provision/salt/roots/salt/resources/commands/create-database'
+    - user: vagrant
+    - env:
+      - MINERVA_DB_NAME: minerva
+      - MINERVA_DB_SCRIPT_ROOT: '/vagrant/schema/scripts'
+    - watch:
+      - postgres_user: vagrant
+
 install-pgtap:
   cmd.wait:
-    - name: '/vagrant/provision/salt/roots/salt/resources/install-pgtap'
+    - name: '/vagrant/provision/salt/roots/salt/resources/commands/install-pgtap'
     - watch:
       - postgres_user: vagrant
     - env:
@@ -66,13 +78,6 @@ install-pgtap:
     - user: vagrant
     - require:
       - pkg: git
-
-create-database:
-  cmd.wait:
-    - name: '/vagrant/provision/salt/roots/salt/resources/create-database'
-    - user: vagrant
-    - watch:
-      - cmd: install-pgtap
 
 git:
   pkg:

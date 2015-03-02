@@ -1,8 +1,9 @@
 #!/bin/bash
 set -e
+SCRIPT_DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 
 if [ ! -d "/home/vagrant/db-deps/" ]; then
 	git clone https://github.com/hendrikx-itc/db-deps
 fi
 
-PGDATABASE=minerva /vagrant/schema/run-scripts /home/vagrant/db-deps/scripts
+$SCRIPT_DIR/run-db-scripts /home/vagrant/db-deps/scripts

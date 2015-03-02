@@ -1,35 +1,8 @@
-/home/vagrant/bin/recreate-database:
+/home/vagrant/bin:
   file:
-    - managed
-    - source: salt://resources/recreate-database
+    - recurse
+    - source: salt://resources/commands
     - user: vagrant
     - group: vagrant
-    - mode: 755
-    - makedirs: True
-
-/home/vagrant/bin/create-database:
-  file:
-    - managed
-    - source: salt://resources/create-database
-    - user: vagrant
-    - group: vagrant
-    - mode: 755
-    - makedirs: True
-
-/home/vagrant/bin/run-db-tests:
-  file:
-    - managed
-    - source: salt://resources/run-db-tests
-    - user: vagrant
-    - group: vagrant
-    - mode: 755
-    - makedirs: True
-
-/home/vagrant/bin/build-db-docs:
-  file:
-    - managed
-    - source: salt://resources/build-db-docs
-    - user: vagrant
-    - group: vagrant
-    - mode: 755
+    - file_mode: 755
     - makedirs: True

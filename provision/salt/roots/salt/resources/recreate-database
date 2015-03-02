@@ -1,6 +1,0 @@
-#!/bin/bash
-
-set -e
-
-psql -d postgres -c "DROP DATABASE IF EXISTS minerva;"
-create-database
