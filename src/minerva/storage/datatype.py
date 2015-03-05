@@ -672,6 +672,61 @@ class Text(DataType):
         return cls.default_parser_config
 
 
+default_array_string_parser_config = {
+    'separator': ','
+}
+
+
+def array_string_parser_config(base_type):
+    @classmethod
+    def class_method(cls, config):
+        return merge_dicts(
+            default_array_string_parser_config,
+            {
+                'base_type_config': base_type.string_parser_config(
+                    config.get('base_type_config')
+                )
+            }
+        )
+
+    return class_method
+
+
+def strip_brackets(str_value):
+    return str_value.lstrip('[').rstrip(']')
+
+
+def array_string_parser(base_type):
+    @classmethod
+    def class_method(cls, config):
+        base_type_parser = base_type.string_parser(config['base_type_config'])
+        separator = config['separator']
+
+        values_part = strip_brackets
+
+        def parse(str_value):
+            return [
+                base_type_parser(part)
+                for part in values_part(str_value).split(separator)
+            ]
+
+        return parse
+
+    return class_method
+
+
+def array_of(data_type):
+    return type(
+        'Arr{}'.format(data_type.__name__),
+        (DataType,),
+        {
+            'name': '{}[]'.format(data_type.name),
+            'string_parser_config': array_string_parser_config(data_type),
+            'string_parser': array_string_parser(data_type)
+        }
+    )
+
+
 # The set of types that are integer
 INTEGER_TYPES = {
     Bigint,
@@ -747,7 +802,17 @@ all_data_types = [
     Real,
     DoublePrecision,
     Numeric,
-    Text
+    Text,
+    array_of(Bigint),
+    array_of(Boolean),
+    array_of(Timestamp),
+    array_of(TimestampWithTimeZone),
+    array_of(Integer),
+    array_of(SmallInt),
+    array_of(Real),
+    array_of(DoublePrecision),
+    array_of(Numeric),
+    array_of(Text)
 ]
 
 

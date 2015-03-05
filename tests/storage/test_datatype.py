@@ -386,3 +386,39 @@ def test_max_data_types():
             datatype.Integer
         ]
     )
+
+
+def test_array_of_integer():
+    arr_int = datatype.array_of(datatype.Integer)
+
+    parser_config = arr_int.string_parser_config({})
+
+    parser = arr_int.string_parser(parser_config)
+
+    value = parser('[1,2,3]')
+
+    eq_(value, [1, 2, 3])
+
+    value = parser('[1, 2, 3]')
+
+    eq_(value, [1, 2, 3])
+
+
+def test_array_of_text():
+    arr_text = datatype.array_of(datatype.Text)
+
+    parser = arr_text.string_parser(arr_text.string_parser_config({}))
+
+    value = parser('[foo,bar,baz]')
+
+    eq_(value, ['foo', 'bar', 'baz'])
+
+
+def test_type_map():
+    assert 'integer' in datatype.type_map
+
+    assert 'integer[]' in datatype.type_map
+
+    assert 'timestamp with time zone' in datatype.type_map
+
+    assert 'timestamp with time zone[]' in datatype.type_map
