@@ -204,6 +204,8 @@ def package_group(key, packages):
 
 def data_package_type(name, entity_ref_type, entity_type_name, refine_values):
     """
+    Define and return a new DataPackageBase sub-class.
+
     @type entity_ref_type: EntityRef
     @type entity_type_name: function(DataPackage) -> str
     @type refine_values: function(parsers) -> function(values) -> refined_values
