@@ -150,6 +150,9 @@ def test_get_by_id(conn):
 
         trend_store = TableTrendStore.get_by_id(t.id)(cursor)
 
+        assert trend_store is not None, "trend_store is None"
+        assert data_source is not None
+
         eq_(trend_store.data_source.id, data_source.id)
         eq_(trend_store.partition_size, partition_size)
         assert trend_store.id is not None, "trend_store.id is None"
