@@ -8,6 +8,13 @@ from minerva.storage.trend import TableTrendStore
 class TrendEngine(Engine):
     @staticmethod
     def store(package):
+        """
+        Return a function to bind a data source to the store command.
+
+        :param package: A DataPackageBase subclass instance
+        :return: function that can bind a data source to the store command
+        :rtype: (data_source) -> (conn) -> None
+        """
         def bind_data_source(data_source):
             def execute(conn):
                 entity_type_name = package.entity_type_name()
