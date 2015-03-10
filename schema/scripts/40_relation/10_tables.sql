@@ -49,11 +49,6 @@ ALTER TABLE relation_directory."type"
     ALTER COLUMN id
     SET DEFAULT nextval('relation_directory.type_id_seq'::regclass);
 
-ALTER TABLE ONLY relation_directory."type"
-    ADD CONSTRAINT group_id_fkey
-    FOREIGN KEY (group_id) REFERENCES relation_directory."group"(id)
-    ON DELETE CASCADE;
-
 GRANT SELECT ON SEQUENCE relation_directory.type_id_seq TO minerva;
 GRANT UPDATE ON SEQUENCE relation_directory.type_id_seq TO minerva_writer;
 

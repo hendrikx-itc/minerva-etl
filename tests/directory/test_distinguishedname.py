@@ -10,8 +10,7 @@ the Free Software Foundation; either version 3, or (at your option) any later
 version.  The full license is in the file COPYING, distributed as part of
 this software.
 """
-from nose.tools import assert_raises, assert_true, assert_false, assert_equal
-
+from minerva.test import assert_raises, assert_true, assert_false, assert_equal
 from minerva.directory.distinguishedname import explode, split_parts, escape, DistinguishedName
 
 
