@@ -3,9 +3,9 @@ BEGIN;
 SELECT plan(5);
 
 SELECT isa_ok(
-    notification.create_notificationstore('some_data_source_name'),
-    'notification.notificationstore',
-    'the result of create_notificationstore'
+    notification_directory.create_notification_store('some_data_source_name'),
+    'notification_directory.notification_store',
+    'the result of create_notification_store'
 );
 
 SELECT has_table(

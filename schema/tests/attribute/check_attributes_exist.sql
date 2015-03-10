@@ -30,9 +30,10 @@ SELECT columns_are(
 -- Test if the new column is correctly added
 --
 SELECT attribute_directory.check_attributes_exist(
+    attribute_store,
     ARRAY[
-       (NULL, attribute_store.id, 'some column with floating point values', 'y', 'double precision') 
-    ]::attribute_directory.attribute[]
+       ('y', 'double precision', 'some column with floating point values')
+    ]::attribute_directory.attribute_descr[]
 )
 FROM attribute_directory.attribute_store
 WHERE attribute_store::text = 'test_Node';
@@ -58,9 +59,10 @@ SELECT * FROM attribute_history."test_Node";
 -- Test if the new column is correctly added when there is a dependent view
 --
 SELECT attribute_directory.check_attributes_exist(
+    attribute_store,
     ARRAY[
-       (NULL, attribute_store.id, 'some column with text values', 'z', 'text')
-    ]::attribute_directory.attribute[]
+       ('z', 'text', 'some column with text values')
+    ]::attribute_directory.attribute_descr[]
 )
 FROM attribute_directory.attribute_store
 WHERE attribute_store::text = 'test_Node';

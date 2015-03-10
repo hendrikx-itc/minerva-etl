@@ -35,9 +35,10 @@ WHERE entity.dn = 'Node=001';
 -- Alter attribute table
 
 SELECT attribute_directory.check_attributes_exist(
+    attribute_store,
     ARRAY[
-       (NULL, attribute_store.id, 'some column with floating point values', 'y', 'double precision') 
-    ]::attribute_directory.attribute[]
+       ('y', 'double precision', 'some column with floating point values')
+    ]::attribute_directory.attribute_descr[]
 )
 FROM attribute_directory.attribute_store
 WHERE attribute_store::text = 'some_data_source_name_some_entity_type_name';

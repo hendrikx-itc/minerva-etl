@@ -3,22 +3,22 @@ BEGIN;
 SELECT plan(3);
 
 SELECT isa_ok(
-    notification.create_notificationsetstore(
+    notification_directory.create_notification_set_store(
         'ticket'::name,
-        notification.create_notificationstore('state_changes')
+        notification_directory.create_notification_store('state_changes')
     ),
-    'notification.notificationsetstore',
-    'the result of create_notificationsetstore'
+    'notification_directory.notification_set_store',
+    'the result of create_notification_set_store'
 );
 
 SELECT has_table(
     'notification'::name, 'ticket'::name,
-    'table with name of notificationsetstore should exist'
+    'table with name of notification_set_store should exist'
 );
 
 SELECT has_table(
     'notification'::name, 'ticket_link'::name,
-    'link table for notificationsetstore should exist'
+    'link table for notification_set_store should exist'
 );
 
 SELECT * FROM finish();
