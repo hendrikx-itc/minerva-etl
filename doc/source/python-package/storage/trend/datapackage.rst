@@ -3,5 +3,5 @@
 
 .. module:: minerva.storage.trend.datapackage
 
-.. autoclass:: DataPackage
+.. autoclass:: DataPackageBase
    :members: is_empty, deduce_data_types

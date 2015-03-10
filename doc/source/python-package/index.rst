@@ -16,14 +16,14 @@ Contents:
    storage/index
    storage/trend/index
    storage/trend/datapackage
-   storage/trend/rawdatapackage
    storage/attribute/index
    storage/attribute/datapackage
-   storage/attribute/rawdatapackage
    storage/attribute/attribute
    storage/attribute/attributestore
    storage/notification/index
-   storage/notification/types
+   storage/notification/record
+   storage/notification/package
+   storage/notification/notificationstore
    system/system
    system/jobqueue
    xmldochandler/xmldochandler
