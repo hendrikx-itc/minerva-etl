@@ -3,8 +3,7 @@ from datetime import datetime
 
 import pytz
 
-from minerva.test import with_conn, clear_database, assert_not_equal, raises, \
-    eq_
+from minerva.test import with_conn, clear_database, eq_
 from minerva.directory import DataSource, EntityType
 from minerva.storage.trend.granularity import create_granularity
 from minerva.storage.trend.trend import TrendDescriptor
