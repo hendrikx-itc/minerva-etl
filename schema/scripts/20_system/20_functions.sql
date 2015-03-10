@@ -45,7 +45,7 @@ AS $$
 $$ LANGUAGE sql VOLATILE;
 
 
-SELECT system.set_version(4, 7, 0);
+SELECT system.set_version(5, 0, 0);
 
 
 CREATE TYPE system.job_type AS (id int, type character varying, description character varying, size bigint, config text);
