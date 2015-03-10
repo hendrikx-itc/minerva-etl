@@ -3,5 +3,5 @@ from minerva.storage import Engine
 
 class NotificationEngine(Engine):
     @staticmethod
-    def store(package):
+    def store_cmd(package):
         raise NotImplementedError()

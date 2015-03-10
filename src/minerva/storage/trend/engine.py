@@ -10,7 +10,7 @@ from minerva.storage.trend import TableTrendStore
 
 class TrendEngine(Engine):
     @staticmethod
-    def store(package, filter_package=k(identity)):
+    def store_cmd(package, filter_package=k(identity)):
         """
         Return a function to bind a data source to the store command.
 

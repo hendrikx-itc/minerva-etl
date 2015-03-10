@@ -51,9 +51,13 @@ def test_store_matching(conn):
 
         conn.commit()
 
-        TrendEngine.store(refined_package_type_for_entity_type('test-type001')(
-            granularity, timestamp, trend_names, data_rows
-        ))(data_source)(conn)
+        store_cmd = TrendEngine.store_cmd(
+            refined_package_type_for_entity_type('test-type001')(
+                granularity, timestamp, trend_names, data_rows
+            )
+        )
+
+        store_cmd(data_source)(conn)
 
         cursor.execute(
             'SELECT x FROM trend."test-src009_test-type001_qtr" '
@@ -100,7 +104,7 @@ def test_store_ignore_extra(conn):
 
         conn.commit()
 
-        store_cmd = TrendEngine.store(
+        store_cmd = TrendEngine.store_cmd(
             refined_package_type_for_entity_type('test-type001')(
                 granularity, timestamp, trend_names, data_rows
             ),

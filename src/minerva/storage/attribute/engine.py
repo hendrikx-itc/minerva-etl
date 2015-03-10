@@ -8,7 +8,7 @@ from minerva.storage.attribute.attributestore import AttributeStore
 
 class AttributeEngine(Engine):
     @staticmethod
-    def store(package):
+    def store_cmd(package):
         def bind_data_source(data_source):
             def execute(conn):
                 entity_type_name = package.entity_type_name()

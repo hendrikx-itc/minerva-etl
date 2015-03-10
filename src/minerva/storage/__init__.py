@@ -32,7 +32,7 @@ class Engine():
     code from the database-unaware logic.
     """
     @staticmethod
-    def store(package):
+    def store_cmd(package):
         """
         Return a StoreCmd-like object.
 
