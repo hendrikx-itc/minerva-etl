@@ -10,12 +10,12 @@ from minerva.storage.trend import TableTrendStore
 
 class TrendEngine(Engine):
     @staticmethod
-    def store_cmd(package, filter_package=k(identity)):
+    def store_cmd(package, transform_package=k(identity)):
         """
         Return a function to bind a data source to the store command.
 
         :param package: A DataPackageBase subclass instance
-        :param filter_package: (TableTrendStore) -> (DataPackage) -> DataPackage
+        :param transform_package: (TableTrendStore) -> (DataPackage) -> DataPackage
         :return: function that binds a data source to the store command
         :rtype: (data_source) -> (conn) -> None
         """
@@ -33,7 +33,7 @@ class TrendEngine(Engine):
                     )(cursor)
 
                 trend_store.store(
-                    filter_package(trend_store)(package)
+                    transform_package(trend_store)(package)
                 ).run(conn)
 
             return execute
