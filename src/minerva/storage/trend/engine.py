@@ -16,7 +16,7 @@ class TrendEngine(Engine):
 
         :param package: A DataPackageBase subclass instance
         :param filter_package: (TableTrendStore) -> (DataPackage) -> DataPackage
-        :return: function that can bind a data source to the store command
+        :return: function that binds a data source to the store command
         :rtype: (data_source) -> (conn) -> None
         """
         def bind_data_source(data_source):
