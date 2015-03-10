@@ -51,6 +51,13 @@ def trend_store_for_package(data_source, package):
 
 
 def filter_existing_trends(trend_store):
+    """
+    Return function that transforms a data package to only contain trends that
+    are defined by *trend_store*.
+
+    :param trend_store: trend store with defined trends
+    :return: (DataPackage) -> DataPackage
+    """
     existing_trend_names = {trend.name for trend in trend_store.trends}
 
     def f(package):
