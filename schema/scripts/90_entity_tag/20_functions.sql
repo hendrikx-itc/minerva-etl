@@ -1,20 +1,31 @@
+CREATE FUNCTION entity_tag.create_view_sql(type_name name, sql text)
+    RETURNS text[]
+AS $$
+    SELECT ARRAY[
+        format('CREATE VIEW entity_tag.%I AS %s;', type_name, sql),
+        format('ALTER VIEW entity_tag.%I OWNER TO minerva_admin', type_name),
+        format('GRANT SELECT ON TABLE entity_tag.%I TO minerva;', type_name)
+    ];
+$$ LANGUAGE sql IMMUTABLE;
+
+
+CREATE FUNCTION entity_tag.create_view(type_name name, sql text)
+    RETURNS name
+AS $$
+    SELECT public.action($1, entity_tag.create_view_sql($1, $2));
+$$ LANGUAGE sql VOLATILE;
+
+
 CREATE FUNCTION entity_tag.define(type_name name, tag_group text, sql text)
     RETURNS entity_tag.type
 AS $$
-DECLARE
-    result entity_tag.type;
-BEGIN
-    INSERT INTO entity_tag.type(name, tag_group_id) SELECT type_name, id FROM directory.tag_group WHERE name = tag_group;
+    INSERT INTO entity_tag.type(name, tag_group_id)
+    SELECT type_name, id FROM directory.tag_group WHERE name = $2;
 
-    EXECUTE format('CREATE VIEW entity_tag.%I AS %s;', type_name, sql);
-    EXECUTE format('ALTER VIEW entity_tag.%I OWNER TO minerva_admin', type_name);
-        EXECUTE format('GRANT SELECT ON TABLE entity_tag.%I TO minerva;', type_name);
+    SELECT entity_tag.create_view($1, $3);
 
-    SELECT * INTO result FROM entity_tag.type WHERE name = type_name;
-
-    RETURN result;
-END;
-$$ LANGUAGE plpgsql VOLATILE;
+    SELECT * FROM entity_tag.type WHERE name = $1;
+$$ LANGUAGE sql VOLATILE;
 
 
 CREATE FUNCTION entity_tag.transfer_to_staging(name name)
