@@ -1,5 +1,6 @@
 from contextlib import closing
 
+from minerva.util import k, identity
 from minerva.directory import EntityType
 from minerva.storage import Engine
 from minerva.storage.trend import TableTrendStore
@@ -7,7 +8,7 @@ from minerva.storage.trend import TableTrendStore
 
 class TrendEngine(Engine):
     @staticmethod
-    def store(package):
+    def store(package, filter_package=k(identity)):
         """
         Return a function to bind a data source to the store command.
 
@@ -28,7 +29,9 @@ class TrendEngine(Engine):
                         data_source, entity_type, package.granularity
                     )(cursor)
 
-                trend_store.store(package).run(conn)
+                trend_store.store(
+                    filter_package(trend_store)(package)
+                ).run(conn)
 
             return execute
 
