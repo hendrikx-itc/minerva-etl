@@ -1,18 +1,19 @@
-postgresql:
+postgresql-repo:
+  pkgrepo:
+    - managed
+    - name: deb http://apt.postgresql.org/pub/repos/apt/ trusty-pgdg main
+    - key_url: https://www.postgresql.org/media/keys/ACCC4CF8.asc
+    - file: /etc/apt/sources.list.d/pgdg.list
+
+postgresql-9.4:
   pkg:
     - installed
+
+postgresql:
   service:
     - running
 
-postgis:
-  pkg:
-    - installed
-
-postgresql-9.3-postgis-scripts:
-  pkg:
-    - installed
-
-postgresql-server-dev-9.3:
+postgresql-server-dev-9.4:
   pkg:
     - installed
 
@@ -25,6 +26,10 @@ language-pack-nl:
     - installed
 
 python3-pip:
+  pkg:
+    - installed
+
+python-pip:
   pkg:
     - installed
 
@@ -45,6 +50,10 @@ python-package:
 # python_dateutil from pypi currently has permission issues with some files
 # after installation, so use the standard Ubuntu package
 python3-dateutil:
+  pkg:
+    - installed
+
+python3-nose2:
   pkg:
     - installed
 
@@ -88,6 +97,8 @@ git:
     - source: salt://resources/minerva_instance.conf
     - makedirs: True
 
-/etc/postgresql/9.3/main/postgresql.conf:
+/etc/postgresql/9.4/main/postgresql.conf:
   file.append:
     - text: 'minerva.trigger_mark_modified = on'
+    - require:
+      - pkg: postgresql-9.4
