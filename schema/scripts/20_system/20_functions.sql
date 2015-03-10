@@ -148,44 +148,14 @@ AS $$
 $$ LANGUAGE sql STABLE;
 
 
-CREATE FUNCTION system.remove_jobs(before timestamp with time zone)
-    RETURNS integer
+CREATE FUNCTION system.remove_jobs(before timestamp with time zone, max bigint DEFAULT 100000)
+    RETURNS bigint
 AS $$
-DECLARE
-    result integer;
-BEGIN
-    -- Acquire locks
-    PERFORM pg_advisory_xact_lock(0);
-
-    -- Drop constraints on dependent tables
-    ALTER TABLE system.job_queue DROP CONSTRAINT job_queue_job_id_fkey;
-    ALTER TABLE transform.state DROP CONSTRAINT job_id_fkey;
-
-    -- Select rows for deletion
-    CREATE TEMP TABLE to_be_deleted ON COMMIT DROP AS SELECT * FROM system.job WHERE created < before;
-
-    -- Actual deleting of jobs
-    DELETE FROM system.job USING to_be_deleted WHERE to_be_deleted.id = job.id;
-
-    GET DIAGNOSTICS result = ROW_COUNT;
-
-    -- Update dependent tables
-    DELETE FROM system.job_queue USING to_be_deleted WHERE to_be_deleted.id = job_queue.job_id;
-
-    UPDATE transform.state SET job_id = DEFAULT WHERE job_id IN (SELECT id FROM to_be_deleted);
-
-    -- Restore constraints on dependent tables
-    ALTER TABLE transform.state
-        ADD CONSTRAINT job_id_fkey FOREIGN KEY (job_id) REFERENCES system.job(id)
-        MATCH SIMPLE ON UPDATE NO ACTION ON DELETE SET DEFAULT;
-
-    ALTER TABLE system.job_queue
-        ADD CONSTRAINT job_queue_job_id_fkey FOREIGN KEY (job_id) REFERENCES system.job(id)
-        ON DELETE CASCADE;
-
-    return result;
-END;
-$$ LANGUAGE plpgsql VOLATILE STRICT;
+    WITH deleted AS (
+        DELETE FROM system.job WHERE id IN (SELECT id FROM system.job WHERE created < $1 ORDER BY created ASC LIMIT $2) RETURNING *
+    )
+    SELECT count(*) FROM deleted;
+$$ LANGUAGE sql VOLATILE;
 
 
 CREATE FUNCTION system.get_setting(name text)
