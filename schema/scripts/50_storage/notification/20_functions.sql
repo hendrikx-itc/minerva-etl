@@ -134,20 +134,6 @@ AS $$
 $$ LANGUAGE sql VOLATILE;
 
 
-CREATE FUNCTION notification_directory.create_notification_store(data_source_id integer)
-    RETURNS notification_directory.notification_store
-AS $$
-    INSERT INTO notification_directory.notification_store(data_source_id) VALUES ($1) RETURNING *;
-$$ LANGUAGE sql VOLATILE;
-
-
-CREATE FUNCTION notification_directory.create_notification_store(data_source_name text)
-    RETURNS notification_directory.notification_store
-AS $$
-    SELECT notification_directory.create_notification_store((directory.name_to_data_source($1)).id);
-$$ LANGUAGE sql VOLATILE;
-
-
 CREATE FUNCTION notification_directory.define_attribute(notification_directory.notification_store, name, name, text)
     RETURNS SETOF notification_directory.attribute
 AS $$
@@ -199,28 +185,48 @@ $$ LANGUAGE sql VOLATILE;
 CREATE FUNCTION notification_directory.create_notification_store(data_source_name text, notification_directory.attr_def[])
     RETURNS notification_directory.notification_store
 AS $$
-    SELECT notification_directory.create_notification_store((directory.name_to_data_source($1)).id, $2);
+    SELECT notification_directory.create_notification_store(
+        (directory.name_to_data_source($1)).id, $2
+    );
 $$ LANGUAGE sql VOLATILE;
 
 
-CREATE FUNCTION notification_directory.define_notificationsetstore(name name, notification_store_id integer)
-    RETURNS notification_directory.notificationsetstore
+CREATE FUNCTION notification_directory.create_notification_store(data_source_id integer)
+    RETURNS notification_directory.notification_store
 AS $$
-    INSERT INTO notification_directory.notificationsetstore(name, notification_store_id)
+    SELECT notification_directory.create_notification_store(
+        $1, ARRAY[]::notification_directory.attr_def[]
+    );
+$$ LANGUAGE sql VOLATILE;
+
+
+CREATE FUNCTION notification_directory.create_notification_store(data_source_name text)
+    RETURNS notification_directory.notification_store
+AS $$
+    SELECT notification_directory.create_notification_store(
+        (directory.name_to_data_source($1)).id
+    );
+$$ LANGUAGE sql VOLATILE;
+
+
+CREATE FUNCTION notification_directory.define_notification_set_store(name name, notification_store_id integer)
+    RETURNS notification_directory.notification_set_store
+AS $$
+    INSERT INTO notification_directory.notification_set_store(name, notification_store_id)
     VALUES ($1, $2)
     RETURNING *;
 $$ LANGUAGE sql VOLATILE;
 
 
-CREATE FUNCTION notification_directory.notification_store(notification_directory.notificationsetstore)
+CREATE FUNCTION notification_directory.notification_store(notification_directory.notification_set_store)
     RETURNS notification_directory.notification_store
 AS $$
     SELECT notification_store FROM notification_directory.notification_store WHERE id = $1.notification_store_id;
 $$ LANGUAGE sql STABLE;
 
 
-CREATE FUNCTION notification_directory.init_notificationsetstore(notification_directory.notificationsetstore)
-    RETURNS notification_directory.notificationsetstore
+CREATE FUNCTION notification_directory.init_notification_set_store(notification_directory.notification_set_store)
+    RETURNS notification_directory.notification_set_store
 AS $$
 BEGIN
     EXECUTE format(
@@ -249,19 +255,19 @@ END;
 $$ LANGUAGE plpgsql VOLATILE;
 
 
-CREATE FUNCTION notification_directory.create_notificationsetstore(name name, notification_store_id integer)
-    RETURNS notification_directory.notificationsetstore
+CREATE FUNCTION notification_directory.create_notification_set_store(name name, notification_store_id integer)
+    RETURNS notification_directory.notification_set_store
 AS $$
-    SELECT notification_directory.init_notificationsetstore(
-        notification_directory.define_notificationsetstore($1, $2)
+    SELECT notification_directory.init_notification_set_store(
+        notification_directory.define_notification_set_store($1, $2)
     );
 $$ LANGUAGE sql VOLATILE;
 
 
-CREATE FUNCTION notification_directory.create_notificationsetstore(name name, notification_directory.notification_store)
-    RETURNS notification_directory.notificationsetstore
+CREATE FUNCTION notification_directory.create_notification_set_store(name name, notification_directory.notification_store)
+    RETURNS notification_directory.notification_set_store
 AS $$
-    SELECT notification_directory.create_notificationsetstore($1, $2.id);
+    SELECT notification_directory.create_notification_set_store($1, $2.id);
 $$ LANGUAGE sql VOLATILE;
 
 

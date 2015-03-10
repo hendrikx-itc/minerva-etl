@@ -64,44 +64,44 @@ GRANT SELECT ON TABLE notification_directory.attribute TO minerva;
 GRANT INSERT,DELETE,UPDATE ON TABLE notification_directory.attribute TO minerva_writer;
 
 
--- Table 'notification_directory.notificationsetstore'
+-- Table 'notification_directory.notification_set_store'
 
-CREATE TABLE notification_directory.notificationsetstore (
+CREATE TABLE notification_directory.notification_set_store (
     id serial PRIMARY KEY,
     name name not null,
     notification_store_id integer REFERENCES notification_directory.notification_store ON DELETE CASCADE
 );
 
-COMMENT ON TABLE notification_directory.notificationsetstore IS
-'Describes notificationsetstores. A notificationsetstore can hold information '
+COMMENT ON TABLE notification_directory.notification_set_store IS
+'Describes notification_set_stores. A notification_set_store can hold information '
 'over sets of notifications that are related to each other.';
 
-ALTER TABLE notification_directory.notificationsetstore OWNER TO minerva_admin;
+ALTER TABLE notification_directory.notification_set_store OWNER TO minerva_admin;
 
-GRANT SELECT ON TABLE notification_directory.notificationsetstore TO minerva;
-GRANT INSERT,DELETE,UPDATE ON TABLE notification_directory.notificationsetstore TO minerva_writer;
+GRANT SELECT ON TABLE notification_directory.notification_set_store TO minerva;
+GRANT INSERT,DELETE,UPDATE ON TABLE notification_directory.notification_set_store TO minerva_writer;
 
 
--- Table 'notification_directory.setattribute'
+-- Table 'notification_directory.set_attribute'
 
-CREATE TABLE notification_directory.setattribute (
+CREATE TABLE notification_directory.set_attribute (
     id serial PRIMARY KEY,
-    notificationsetstore_id integer REFERENCES notification_directory.notificationsetstore ON DELETE CASCADE,
+    notification_set_store_id integer REFERENCES notification_directory.notification_set_store ON DELETE CASCADE,
     name name not null,
     data_type name not null,
     description varchar not null
 );
 
-COMMENT ON TABLE notification_directory.setattribute IS
-'Describes attributes of notificationsetstores. A setattribute of a '
-'notificationsetstore is an attribute that each notification set has. '
-'A setattribute corresponds directly to a column in the main '
-'notificationsetstore table.';
+COMMENT ON TABLE notification_directory.set_attribute IS
+'Describes attributes of notification_set_stores. A set_attribute of a '
+'notification_set_store is an attribute that each notification set has. '
+'A set_attribute corresponds directly to a column in the main '
+'notification_set_store table.';
 
-ALTER TABLE notification_directory.attribute OWNER TO minerva_admin;
+ALTER TABLE notification_directory.set_attribute OWNER TO minerva_admin;
 
-GRANT SELECT ON TABLE notification_directory.attribute TO minerva;
-GRANT INSERT,DELETE,UPDATE ON TABLE notification_directory.attribute TO minerva_writer;
+GRANT SELECT ON TABLE notification_directory.set_attribute TO minerva;
+GRANT INSERT,DELETE,UPDATE ON TABLE notification_directory.set_attribute TO minerva_writer;
 
 
 ------------------------

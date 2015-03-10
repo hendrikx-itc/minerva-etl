@@ -19,7 +19,7 @@ END;
 $$ LANGUAGE plpgsql VOLATILE;
 
 
-CREATE FUNCTION notification_directory.drop_notificationsetstore_table_on_delete()
+CREATE FUNCTION notification_directory.drop_notification_set_store_table_on_delete()
     RETURNS TRIGGER
 AS $$
 BEGIN
