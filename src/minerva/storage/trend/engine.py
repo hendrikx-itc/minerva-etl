@@ -21,16 +21,9 @@ class TrendEngine(Engine):
         """
         def bind_data_source(data_source):
             def execute(conn):
-                entity_type_name = package.entity_type_name()
-
-                with closing(conn.cursor()) as cursor:
-                    entity_type = EntityType.get_by_name(entity_type_name)(
-                        cursor
-                    )
-
-                    trend_store = TableTrendStore.get(
-                        data_source, entity_type, package.granularity
-                    )(cursor)
+                trend_store = trend_store_for_package(
+                    data_source, package
+                )(conn)
 
                 trend_store.store(
                     transform_package(trend_store)(package)
@@ -39,6 +32,22 @@ class TrendEngine(Engine):
             return execute
 
         return bind_data_source
+
+
+def trend_store_for_package(data_source, package):
+    def f(conn):
+        entity_type_name = package.entity_type_name()
+
+        with closing(conn.cursor()) as cursor:
+            entity_type = EntityType.get_by_name(entity_type_name)(
+                cursor
+            )
+
+            return TableTrendStore.get(
+                data_source, entity_type, package.granularity
+            )(cursor)
+
+    return f
 
 
 def filter_existing_trends(trend_store):
