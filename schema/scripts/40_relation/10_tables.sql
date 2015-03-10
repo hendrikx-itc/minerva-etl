@@ -12,41 +12,6 @@ ALTER SCHEMA relation_directory OWNER TO minerva_admin;
 GRANT ALL ON SCHEMA relation_directory TO minerva_writer;
 GRANT USAGE ON SCHEMA relation_directory TO minerva;
 
--- Table 'relation_directory.group'
-
-CREATE TABLE relation_directory."group" (
-    id integer NOT NULL,
-    name character varying NOT NULL
-);
-
-ALTER TABLE relation_directory."group" OWNER TO minerva_admin;
-
-ALTER TABLE ONLY relation_directory."group"
-    ADD CONSTRAINT group_pkey PRIMARY KEY (id);
-
-GRANT SELECT ON TABLE relation_directory."group" TO minerva;
-GRANT INSERT,DELETE,UPDATE ON TABLE relation_directory."group" TO minerva_writer;
-
-CREATE SEQUENCE relation_directory.group_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-ALTER TABLE relation_directory.group_id_seq OWNER TO minerva_admin;
-
-ALTER SEQUENCE relation_directory.group_id_seq OWNED BY relation_directory."group".id;
-
-ALTER TABLE relation_directory."group"
-    ALTER COLUMN id
-    SET DEFAULT nextval('relation_directory.group_id_seq'::regclass);
-
-GRANT SELECT ON SEQUENCE relation_directory.group_id_seq TO minerva;
-GRANT UPDATE ON SEQUENCE relation_directory.group_id_seq TO minerva_writer;
-
-CREATE UNIQUE INDEX ix_group_name ON relation_directory."group" (name);
-
 -- Table 'relation_directory.type'
 
 CREATE TYPE relation_directory.type_cardinality_enum AS ENUM (
@@ -58,8 +23,7 @@ CREATE TYPE relation_directory.type_cardinality_enum AS ENUM (
 CREATE TABLE relation_directory."type" (
     id integer NOT NULL,
     name character varying NOT NULL,
-    cardinality relation_directory.type_cardinality_enum DEFAULT NULL,
-    group_id integer DEFAULT NULL
+    cardinality relation_directory.type_cardinality_enum DEFAULT NULL
 );
 
 ALTER TABLE relation_directory."type" OWNER TO minerva_admin;
