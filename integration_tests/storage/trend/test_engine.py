@@ -1,7 +1,5 @@
 from contextlib import closing
 from datetime import datetime
-from operator import contains
-from functools import partial
 
 import pytz
 
@@ -13,7 +11,7 @@ from minerva.storage.trend.trend import TrendDescriptor
 from minerva.storage import datatype
 from minerva.storage.trend.tabletrendstore import TableTrendStore, \
     TableTrendStoreDescriptor
-from minerva.storage.trend.engine import TrendEngine
+from minerva.storage.trend.engine import TrendEngine, filter_existing_trends
 from minerva.storage.trend.datapackage import \
     refined_package_type_for_entity_type
 
@@ -107,7 +105,7 @@ def test_store_ignore_extra(conn):
             refined_package_type_for_entity_type('test-type001')(
                 granularity, timestamp, trend_names, data_rows
             ),
-            filter_trend_store_trends
+            filter_existing_trends
         )
 
         store_cmd(data_source)(conn)
@@ -120,12 +118,3 @@ def test_store_ignore_extra(conn):
         rows = cursor.fetchall()
 
         eq_(len(rows), 11)
-
-
-def filter_trend_store_trends(trend_store):
-    existing_trend_names = {trend.name for trend in trend_store.trends}
-
-    def f(package):
-        return package.filter_trends(partial(contains, existing_trend_names))
-
-    return f

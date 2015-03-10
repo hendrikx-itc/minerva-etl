@@ -1,4 +1,6 @@
 from contextlib import closing
+from operator import contains
+from functools import partial
 
 from minerva.util import k, identity
 from minerva.directory import EntityType
@@ -37,3 +39,12 @@ class TrendEngine(Engine):
             return execute
 
         return bind_data_source
+
+
+def filter_existing_trends(trend_store):
+    existing_trend_names = {trend.name for trend in trend_store.trends}
+
+    def f(package):
+        return package.filter_trends(partial(contains, existing_trend_names))
+
+    return f
