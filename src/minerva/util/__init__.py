@@ -253,7 +253,7 @@ def retry_while(fn, exception_handlers, condition=k(True), timeout=k(1.0)):
             handler = exception_handlers.get(type(exc))
 
             if handler:
-                handler()
+                handler(exc)
             else:
                 raise
 
