@@ -9,6 +9,19 @@ from minerva.storage.trend import TableTrendStore
 
 
 class TrendEngine(Engine):
+    pass_through = k(identity)
+
+    @staticmethod
+    def store_cmd(package):
+        """
+        Return a function to bind a data source to the store command.
+
+        :param package: A DataPackageBase subclass instance
+        :return: function that binds a data source to the store command
+        :rtype: (data_source) -> (conn) -> None
+        """
+        return TrendEngine.make_store_cmd(TrendEngine.pass_through)(package)
+
     @staticmethod
     def make_store_cmd(transform_package):
         """
@@ -34,15 +47,20 @@ class TrendEngine(Engine):
         return cmd
 
     @staticmethod
-    def store_cmd(package):
+    def filter_existing_trends(trend_store):
         """
-        Return a function to bind a data source to the store command.
+        Return function that transforms a data package to only contain trends that
+        are defined by *trend_store*.
 
-        :param package: A DataPackageBase subclass instance
-        :return: function that binds a data source to the store command
-        :rtype: (data_source) -> (conn) -> None
+        :param trend_store: trend store with defined trends
+        :return: (DataPackage) -> DataPackage
         """
-        return TrendEngine.make_store_cmd(k(identity))(package)
+        existing_trend_names = {trend.name for trend in trend_store.trends}
+
+        def f(package):
+            return package.filter_trends(partial(contains, existing_trend_names))
+
+        return f
 
 
 def trend_store_for_package(data_source, package):
@@ -57,21 +75,5 @@ def trend_store_for_package(data_source, package):
             return TableTrendStore.get(
                 data_source, entity_type, package.granularity
             )(cursor)
-
-    return f
-
-
-def filter_existing_trends(trend_store):
-    """
-    Return function that transforms a data package to only contain trends that
-    are defined by *trend_store*.
-
-    :param trend_store: trend store with defined trends
-    :return: (DataPackage) -> DataPackage
-    """
-    existing_trend_names = {trend.name for trend in trend_store.trends}
-
-    def f(package):
-        return package.filter_trends(partial(contains, existing_trend_names))
 
     return f
