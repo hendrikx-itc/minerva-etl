@@ -104,12 +104,14 @@ def test_store_ignore_extra(conn):
 
         conn.commit()
 
-        store_cmd = TrendEngine.store_cmd(
+        store_cmd = TrendEngine.make_store_cmd(
+            filter_existing_trends
+        )(
             refined_package_type_for_entity_type('test-type001')(
                 granularity, timestamp, trend_names, data_rows
-            ),
-            filter_existing_trends
+            )
         )
+
 
         store_cmd(data_source)(conn)
 
