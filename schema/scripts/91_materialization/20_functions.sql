@@ -309,9 +309,9 @@ $$ LANGUAGE plpgsql IMMUTABLE;
 
 
 CREATE FUNCTION materialization.render_job_json(type_id integer, timestamp with time zone)
-    RETURNS character varying
+    RETURNS json
 AS $$
-    SELECT format('{"type_id": %s, "timestamp": "%s"}', $1, $2);
+    SELECT format('{"type_id": %s, "timestamp": "%s"}', $1, $2)::json;
 $$ LANGUAGE sql IMMUTABLE;
 
 

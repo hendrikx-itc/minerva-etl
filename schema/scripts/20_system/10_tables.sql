@@ -16,7 +16,7 @@ CREATE TABLE system.job_source (
     id integer NOT NULL,
     name character varying(64) NOT NULL,
     job_type character varying(64) NOT NULL,
-    config character varying
+    config json
 );
 
 ALTER TABLE system.job_source OWNER TO minerva_admin;
@@ -54,7 +54,7 @@ GRANT UPDATE ON SEQUENCE system.job_source_id_seq TO minerva_writer;
 CREATE TABLE system.job (
     id integer NOT NULL,
     type character varying NOT NULL,
-    description character varying NOT NULL,
+    description json NOT NULL,
     size bigint NOT NULL,
     created timestamp with time zone NOT NULL DEFAULT now(),
     started timestamp with time zone,

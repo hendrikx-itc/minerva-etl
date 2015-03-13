@@ -60,7 +60,7 @@ AS $$
 $$ LANGUAGE sql VOLATILE;
 
 
-CREATE FUNCTION system.define_job(type character varying, description character varying, size bigint, job_source_id int)
+CREATE FUNCTION system.define_job(type character varying, description json, size bigint, job_source_id int)
     RETURNS system.job
 AS $$
     INSERT INTO system.job(
@@ -71,7 +71,7 @@ AS $$
 $$ LANGUAGE sql VOLATILE;
 
 
-CREATE FUNCTION system.create_job(type character varying, description character varying, size bigint, job_source_id int)
+CREATE FUNCTION system.create_job(type character varying, description json, size bigint, job_source_id int)
     RETURNS system.job
 AS $$
     SELECT system.enqueue_job(system.define_job($1, $2, $3, $4));
@@ -132,7 +132,7 @@ AS $$
 $$ LANGUAGE sql VOLATILE;
 
 
-CREATE FUNCTION system.create_job_source(text, text, text)
+CREATE FUNCTION system.create_job_source(text, text, json)
     RETURNS system.job_source
 AS $$
     INSERT INTO system.job_source (id, name, job_type, config)
