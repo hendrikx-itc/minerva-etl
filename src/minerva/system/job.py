@@ -10,7 +10,6 @@ the Free Software Foundation; either version 3, or (at your option) any later
 version.  The full license is in the file COPYING, distributed as part of
 this software.
 """
-import json
 
 
 class Job():
@@ -55,16 +54,21 @@ class Job():
         )
 
     def finish(self, cursor):
-        cursor.callproc("system.finish_job", (self.id,))
+        finish_job(self.id)(cursor)
 
-    def fail_job(self, message):
-        def f(cursor):
-            cursor.callproc("system.fail_job", (self.id, message,))
+    def fail(self, message):
+        return fail_job(self.id, message)
 
-        return f
 
-    def enqueue(self, conn):
-        create_job(
-            conn, self.type, json.dumps(self.description), self.size,
-            self.job_source_id
-        )
+def finish_job(job_id):
+    def f(cursor):
+        cursor.callproc("system.finish_job", (job_id,))
+
+    return f
+
+
+def fail_job(job_id, message):
+    def f(cursor):
+        cursor.callproc("system.fail_job", (job_id, message,))
+
+    return f
