@@ -63,25 +63,6 @@ class MinervaInstance():
 
         return psycopg2.connect(**merged_kwargs)
 
-    def connect_ro(self, **kwargs):
-        """
-        Return new read-only database connection.
-
-        The kwargs are merged with the read-only database configuration of the
-        instance and passed directly to the psycopg2 connect function.
-        """
-        db_conf = self.config["database_ro"]
-
-        merged_kwargs = {
-            "database": db_conf.get("name"),
-            "host": db_conf.get("host"),
-            "port": db_conf.get("port")
-        }
-
-        merged_kwargs.update(kwargs)
-
-        return psycopg2.connect(**merged_kwargs)
-
     @staticmethod
     def load(name):
         return MinervaInstance(MinervaInstance.load_config(name))
