@@ -14,6 +14,7 @@ import psycopg2.extras
 
 def connect_logging(logger, **kwargs):
     conn = psycopg2.connect(
+        dsn='',  # Empty dsn force use of environment variables
         connection_factory=psycopg2.extras.LoggingConnection,
         **kwargs
     )
@@ -29,4 +30,7 @@ def connect(**kwargs):
     The kwargs are merged with the database configuration of the instance
     and passed directly to the psycopg2 connect function.
     """
-    return psycopg2.connect(**kwargs)
+    return psycopg2.connect(
+        dsn='',  # Empty dsn force use of environment variables
+        **kwargs
+    )
