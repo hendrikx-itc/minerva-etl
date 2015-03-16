@@ -9,80 +9,24 @@ the Free Software Foundation; either version 3, or (at your option) any later
 version.  The full license is in the file COPYING, distributed as part of
 this software.
 """
-import os
-
 import psycopg2.extras
-from configobj import ConfigObj
-
-from minerva.instance.error import ConfigurationError
-
-INSTANCES_PATH = "/etc/minerva/instances"
-CLASSES_PATH = "/usr/lib/minerva/classes"
 
 
-class MinervaInstance():
-    def __init__(self, config):
-        self.config = config
+def connect_logging(logger, **kwargs):
+    conn = psycopg2.connect(
+        connection_factory=psycopg2.extras.LoggingConnection,
+        **kwargs
+    )
+    conn.initialize(logger)
 
-    def minerva_class(self):
-        return MinervaClass(self.config.get("class", "default"))
-
-    def connect_logging(self, logger, **kwargs):
-        db_conf = self.config["database"]
-
-        merged_kwargs = {
-            "database": db_conf.get("name"),
-            "host": db_conf.get("host"),
-            "port": db_conf.get("port")}
-
-        merged_kwargs.update(kwargs)
-
-        merged_kwargs["connection_factory"] = psycopg2.extras.LoggingConnection
-
-        conn = psycopg2.connect(**merged_kwargs)
-        conn.initialize(logger)
-
-        return conn
-
-    def connect(self, **kwargs):
-        """
-        Return new database connection.
-
-        The kwargs are merged with the database configuration of the instance
-        and passed directly to the psycopg2 connect function.
-        """
-        db_conf = self.config["database"]
-
-        merged_kwargs = {
-            "database": db_conf.get("name"),
-            "host": db_conf.get("host"),
-            "port": db_conf.get("port")
-        }
-
-        merged_kwargs.update(kwargs)
-
-        return psycopg2.connect(**merged_kwargs)
-
-    @staticmethod
-    def load(name):
-        return MinervaInstance(MinervaInstance.load_config(name))
-
-    @staticmethod
-    def load_config(name):
-        instance_config_path = os.path.join(
-            INSTANCES_PATH,
-            "{}.conf".format(name)
-        )
-
-        if not(os.path.isfile(instance_config_path)):
-            raise ConfigurationError("no such instance '{}'".format(name))
-
-        return ConfigObj(instance_config_path)
+    return conn
 
 
-class MinervaClass():
-    def __init__(self, name):
-        self.name = name
+def connect(**kwargs):
+    """
+    Return new database connection.
 
-    def path(self):
-        return os.path.join(CLASSES_PATH, self.name)
+    The kwargs are merged with the database configuration of the instance
+    and passed directly to the psycopg2 connect function.
+    """
+    return psycopg2.connect(**kwargs)
