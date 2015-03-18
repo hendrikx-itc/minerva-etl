@@ -1,148 +1,118 @@
-CREATE OR REPLACE VIEW gis.handover_relation AS
-SELECT
-    cell_ho.source_id AS cell_entity_id,
-    'OUT'::text direction,
-    ho_cell.target_id AS neighbour_entity_id,
 
-    cell_ho.source_id AS source_entity_id,
-    ho_cell.target_id AS target_entity_id,
-    cell_ho.target_id AS ho_entity_id
-FROM relation."Cell->HandoverRelation" cell_ho
-JOIN relation."HandoverRelation->Cell" ho_cell on cell_ho.target_id = ho_cell.source_id
+-- ===================
+--  handover_relation
+-- ===================
+-- All cell relations based on relation records of HandoverRelation and Cell.
 
+CREATE OR REPLACE VIEW gis.vhandover_relation AS
+         SELECT cell_ho.source_id AS cell_entity_id, 'OUT'::text AS direction, ho_cell.target_id AS neighbour_entity_id, cell_ho.source_id AS source_entity_id, ho_cell.target_id AS target_entity_id, cell_ho.target_id AS ho_entity_id
+           FROM relation."Cell->HandoverRelation" cell_ho
+      JOIN relation."HandoverRelation->Cell" ho_cell ON cell_ho.target_id = ho_cell.source_id
 UNION ALL
-
-SELECT
-    ho_cell.target_id AS cell_entity_id,
-    'IN'::text direction,
-    cell_ho.source_id AS neighbour_entity_id,
-
-    cell_ho.source_id AS source_entity_id,
-    ho_cell.target_id AS target_entity_id,
-    cell_ho.target_id AS ho_entity_id
-FROM relation."Cell->HandoverRelation" cell_ho
-JOIN relation."HandoverRelation->Cell" ho_cell on cell_ho.target_id = ho_cell.source_id;
-
-GRANT ALL ON TABLE gis.handover_relation TO minerva_admin;
-GRANT SELECT ON TABLE gis.handover_relation TO minerva;
+         SELECT ho_cell.target_id AS cell_entity_id, 'IN'::text AS direction, cell_ho.source_id AS neighbour_entity_id, cell_ho.source_id AS source_entity_id, ho_cell.target_id AS target_entity_id, cell_ho.target_id AS ho_entity_id
+           FROM relation."Cell->HandoverRelation" cell_ho
+      JOIN relation."HandoverRelation->Cell" ho_cell ON cell_ho.target_id = ho_cell.source_id;
+ALTER TABLE gis.vhandover_relation OWNER TO minerva_admin;
+GRANT ALL ON TABLE gis.vhandover_relation TO minerva_admin;
+GRANT SELECT ON TABLE gis.vhandover_relation TO minerva;
 
 
-CREATE TYPE gis.existence_change AS (exists boolean, unix_timestamp double precision);
+-- ============================
+--  existence_HandoverRelation
+-- ============================
+-- The existence records for HandoverRelation (virtual) entities based
+--  on existence records of the real_handover relations.
 
-CREATE OR REPLACE VIEW gis.handover_relation_existence AS
-SELECT
-    handover_relation.source_entity_id source_id,
-    handover_relation.ho_entity_id handover_id,
-    handover_relation.target_entity_id target_id, 
-    trg_et.name target_name,
-    src_et.name source_name,
-    tag.name tag_name,
-    handover_relation.direction, 
-    array_agg(
-        (existence.exists, date_part('epoch', existence.timestamp))::gis.existence_change
-    ) existence
-FROM gis.handover_relation
-JOIN directory.entity src_et ON src_et.id = handover_relation.source_entity_id
-JOIN directory.entity trg_et ON trg_et.id = handover_relation.target_entity_id
-JOIN directory.entitytaglink etl ON etl.entity_id = trg_et.id
-JOIN directory.tag ON etl.tag_id = tag.id 
-JOIN directory.taggroup etg ON etg.id = tag.taggroup_id AND etg.name = 'generation'
-JOIN relation.real_handover ON real_handover.source_id = handover_relation.ho_entity_id
-JOIN directory.existence existence ON existence.entity_id = real_handover.target_id
-GROUP BY
-    handover_relation.source_entity_id,
-    handover_relation.ho_entity_id,
-    handover_relation.target_entity_id,
-    trg_et.name,
-    src_et.name,
-    tag.name,
-    handover_relation.direction;
+CREATE OR REPLACE VIEW gis."vexistence_HandoverRelation" AS
+ SELECT DISTINCT existence."timestamp", (true IN ( SELECT last(ex."exists" ORDER BY ex."timestamp") AS last
+           FROM directory.existence ex
+          WHERE (ex.entity_id = ANY (source_targets.target_ids)) AND ex."timestamp" <= existence."timestamp"
+          GROUP BY ex.entity_id)) AS "exists", source_targets.source_id AS entity_id, 305 AS entitytype_id
+   FROM ( SELECT rho.source_id, array_agg(rho.target_id) AS target_ids
+           FROM relation.real_handover rho
+          GROUP BY rho.source_id) source_targets
+   JOIN directory.existence ON existence.entity_id = ANY (source_targets.target_ids);
+ALTER TABLE gis."vexistence_HandoverRelation" OWNER TO minerva_admin;
+GRANT ALL ON TABLE gis."vexistence_HandoverRelation" TO minerva_admin;
+GRANT SELECT ON TABLE gis."vexistence_HandoverRelation" TO minerva;
 
-GRANT ALL ON TABLE gis.handover_relation_existence TO minerva_admin;
-GRANT SELECT ON TABLE gis.handover_relation_existence TO minerva;
+-- ============================
+--  handover_relation_existence
+-- ============================
+-- Handover Relation records with existence information.
+
+CREATE OR REPLACE VIEW gis.vhandover_relation_existence AS
+ SELECT handover_relation.cell_entity_id AS entity_id, handover_relation.source_entity_id AS source_id, handover_relation.ho_entity_id AS handover_id, handover_relation.target_entity_id AS target_id, trg_et.name AS target_name, src_et.name AS source_name, tag.name AS tag_name, handover_relation.direction, array_agg((x."exists" || ','::text) || date_part('epoch'::text, x."timestamp") ORDER BY x."timestamp") AS existence, array_agg(htag.name) AS handover_tags
+   FROM gis.vhandover_relation handover_relation
+   JOIN directory.entity src_et ON src_et.id = handover_relation.source_entity_id
+   JOIN directory.entity trg_et ON trg_et.id = handover_relation.target_entity_id
+   JOIN directory.entitytaglink etl ON etl.entity_id = handover_relation.neighbour_entity_id
+   JOIN directory.tag ON etl.tag_id = tag.id
+   JOIN directory.taggroup etg ON etg.id = tag.taggroup_id AND etg.name::text = 'generation'::text
+   JOIN gis."existence_HandoverRelation" x ON x.entity_id = handover_relation.ho_entity_id
+   JOIN directory.entitytaglink htl ON htl.entity_id = handover_relation.ho_entity_id
+   JOIN directory.tag htag ON htl.tag_id = htag.id
+   JOIN directory.taggroup ON taggroup.name::text = 'handover'::text AND taggroup.id = htag.taggroup_id
+  GROUP BY handover_relation.cell_entity_id, handover_relation.source_entity_id, handover_relation.ho_entity_id, handover_relation.target_entity_id, trg_et.name, src_et.name, tag.name, handover_relation.direction;
+ALTER TABLE gis.vhandover_relation_existence OWNER TO minerva_admin;
+GRANT ALL ON TABLE gis.vhandover_relation_existence TO minerva_admin;
+GRANT SELECT ON TABLE gis.vhandover_relation_existence TO minerva;
 
 
-CREATE OR REPLACE VIEW gis.handoverrelation_tags AS
-    SELECT entitytaglink.entity_id entity_id, array_agg( tag.name ) tags
-    FROM directory.entitytaglink
-    JOIN directory.tag ON entitytaglink.tag_id = tag.id
-    JOIN directory.taggroup ON taggroup.id = tag.taggroup_id AND taggroup.name = 'handover'
-    GROUP BY entitytaglink.entity_id;
+-- ===============
+--  get_handovers
+-- ===============
+-- Function to get all handover information about the handovers to and from a certain Cell.
 
-GRANT ALL ON TABLE gis.handoverrelation_tags TO minerva_admin;
-GRANT SELECT ON TABLE gis.handoverrelation_tags TO minerva;
-
-CREATE OR REPLACE FUNCTION gis.get_handovers(integer)
+CREATE OR REPLACE FUNCTION gis.get_handovers(IN integer)
   RETURNS TABLE(source_id integer, handover_id integer, target_id integer, target_name character varying, source_name character varying, tag_name character varying, direction text, existence text[], handover_tags character varying[]) AS
 $BODY$
-    SELECT
-	source_id,
-	handover_id,
-	target_id,
-	target_name,
-	source_name,
-	tag_name,
-	direction,
-	existence,
-        handoverrelation_tags.tags
-    FROM (SELECT
-		handover_relation.source_entity_id source_id,
-		handover_relation.ho_entity_id handover_id,
-		handover_relation.target_entity_id target_id,
-		trg_et.name target_name,
-		src_et.name source_name,
-		tag.name tag_name,
-		handover_relation.direction,
-	        array_agg(
-	            existence.exists || ',' || date_part('epoch', existence.timestamp)
-		) existence
-	    FROM gis.handover_relation
-	    JOIN directory.entity src_et ON src_et.id = handover_relation.source_entity_id
-	    JOIN directory.entity trg_et ON trg_et.id = handover_relation.target_entity_id
-	    JOIN directory.entitytaglink etl ON etl.entity_id = handover_relation.neighbour_entity_id
-	    JOIN directory.tag ON etl.tag_id = tag.id
-	    JOIN directory.taggroup etg ON etg.id = tag.taggroup_id AND etg.name = 'generation'
-	    JOIN relation.real_handover ON real_handover.source_id = handover_relation.ho_entity_id
-	    JOIN directory.existence existence ON existence.entity_id = real_handover.target_id
-	    WHERE handover_relation.cell_entity_id = $1
-	    GROUP BY
-		handover_relation.source_entity_id,
-		handover_relation.ho_entity_id,
-		handover_relation.target_entity_id,
-		trg_et.name,
-		src_et.name,
-		tag.name,
-		handover_relation.direction ) t
-    LEFT JOIN gis.handoverrelation_tags ON handoverrelation_tags.entity_id = t.handover_id
+  SELECT source_id, handover_id, target_id, target_name, source_name, tag_name, direction, existence, handover_tags
+  FROM gis.handover_relation_existence t WHERE t.entity_id = $1
+$BODY$ LANGUAGE sql STABLE COST 100 ROWS 1000;
+ALTER FUNCTION gis.get_handovers(integer) OWNER TO minerva_admin;
+
+
+-- ===================================
+--  update_existence_handoverrelation
+-- ===================================
+-- Function to materialize (v)existence_HandoverRelation
+
+CREATE OR REPLACE FUNCTION gis.update_existence_handoverrelation()
+  RETURNS integer AS
 $BODY$
-  LANGUAGE sql STABLE;
+DECLARE
+  max_ts timestamp with time zone;
+  result integer;
+BEGIN
+  SELECT max(timestamp) INTO max_ts FROM gis."existence_HandoverRelation";
+  INSERT INTO gis."existence_HandoverRelation" SELECT * FROM gis."vexistence_HandoverRelation" WHERE timestamp > max_ts;
+
+  SELECT count(*) INTO result FROM gis.handover_relation_existence;
+
+  RETURN result;
+END;
+$BODY$ LANGUAGE plpgsql VOLATILE COST 1000;
+ALTER FUNCTION gis.update_existence_handoverrelation() OWNER TO minerva_admin;
 
 
--- Function: gis.get_changed_handover_cells(timestamp with time zone)
+-- ===================================
+--  update_handover_relation_existence
+-- ===================================
+-- Function to materialize (v)handover_relation_existence
 
-CREATE OR REPLACE FUNCTION gis.get_changed_handover_cells(timestamp with time zone)
-  RETURNS SETOF integer AS
-$$
-SELECT id FROM (
-    SELECT sc.source_id as id FROM (
-        SELECT e.id as id 
-        FROM directory.entity e
-        JOIN directory.entitytype et on et.id = e.entitytype_id
-        JOIN relation.real_handover real_ho on real_ho.source_id = e.id
-        JOIN directory.existence ex on ex.entity_id = real_ho.target_id
-        WHERE et.name = 'HandoverRelation'and ex.timestamp > $1
-         ) ho
-    JOIN relation."Cell->HandoverRelation" sc on sc.target_id = ho.id
-    UNION
-    SELECT tc.source_id as id FROM (
-        SELECT e.id as id
-        FROM directory.entity e
-        JOIN directory.entitytype et on et.id = e.entitytype_id
-        JOIN relation.real_handover real_ho on real_ho.source_id = e.id
-        JOIN directory.existence ex on ex.entity_id = real_ho.target_id
-        WHERE et.name = 'HandoverRelation'and ex.timestamp > $1
-         ) ho
-    JOIN relation."HandoverRelation->Cell" tc on tc.source_id = ho.id
-) t group by t.id order by t.id
+CREATE OR REPLACE FUNCTION gis.update_handover_relation_existence()
+  RETURNS integer AS
+$BODY$
+DECLARE
+  result integer;
+BEGIN
+  DELETE FROM gis.handover_relation_existence;
+  INSERT INTO gis.handover_relation_existence SELECT * FROM gis.vhandover_relation_existence;
 
-$$ LANGUAGE sql STABLE;
+  SELECT count(*) INTO result FROM gis.handover_relation_existence;
+
+  RETURN result;
+END;
+$BODY$ LANGUAGE plpgsql VOLATILE COST 1000;
+ALTER FUNCTION gis.update_handover_relation_existence() OWNER TO postgres;

@@ -13,3 +13,9 @@ SELECT relation.define(
     'real_handover',
     $$SELECT 0 as source_id, 0 as target_id WHERE false;$$
 );
+
+
+SELECT relation.define(
+    'self',
+    $$SELECT id as source_id, id as target_id FROM directory.entity;$$
+);
