@@ -120,10 +120,13 @@ CREATE TABLE gis.handover_relation_existence
   source_name character varying,
   tag_name character varying,
   direction text,
-  existence text[]
+  existence text[],
+  handover_tags character varying[]
 ) WITH ( OIDS=FALSE );
 ALTER TABLE gis.handover_relation_existence OWNER TO minerva_admin;
 GRANT ALL ON TABLE gis.handover_relation_existence TO minerva_admin;
 GRANT SELECT ON TABLE gis.handover_relation_existence TO minerva;
 GRANT UPDATE, INSERT, DELETE ON TABLE gis.handover_relation_existence TO minerva_writer;
+
+CREATE INDEX handover_relation_existence_entity_id_idx ON gis.handover_relation_existence USING btree (entity_id);
 
