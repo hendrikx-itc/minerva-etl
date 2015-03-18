@@ -13,6 +13,14 @@ this software.
 import json
 
 
+class JobDescriptor():
+    def __init__(self, job_type, description, size, job_source_id):
+        self.job_type = job_type
+        self.description = description
+        self.size = size
+        self.job_source_id = job_source_id
+
+
 class Job():
     """
     Represents a Minerva job for processing by a node.
@@ -31,11 +39,16 @@ class Job():
         self.state = state
 
     @staticmethod
-    def create(job_type, description, size, job_source_id):
+    def create(descriptor):
         def f(cursor):
             cursor.callproc(
                 "system.create_job",
-                (job_type, json.dumps(description), size, job_source_id)
+                (
+                    descriptor.job_type,
+                    json.dumps(descriptor.description),
+                    descriptor.size,
+                    descriptor.job_source_id
+                )
             )
 
             Job.from_record(cursor.fetchone())
