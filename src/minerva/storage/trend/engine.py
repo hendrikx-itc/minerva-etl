@@ -2,6 +2,7 @@ from contextlib import closing
 from operator import contains
 from functools import partial
 
+from minerva.error import ConfigurationError
 from minerva.util import k, identity
 from minerva.directory import EntityType
 from minerva.storage import Engine
@@ -71,6 +72,11 @@ def trend_store_for_package(data_source, package):
             entity_type = EntityType.get_by_name(entity_type_name)(
                 cursor
             )
+
+            if entity_type is None:
+                raise ConfigurationError(
+                    "no such entity type: {}".format(entity_type_name)
+                )
 
             return TableTrendStore.get(
                 data_source, entity_type, package.granularity
