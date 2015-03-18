@@ -546,15 +546,6 @@ AS $$
 $$ LANGUAGE SQL STABLE;
 
 
-CREATE OR REPLACE FUNCTION trend.modify_trendstore_columns(trendstore_id integer, columns trend.column_info[])
-    RETURNS void
-AS $$
-    SELECT trend.alter_column_types('trend', trend.to_base_table_name(trendstore), $2)
-    FROM trend.trendstore
-    WHERE trendstore.id = $1;
-$$ LANGUAGE sql VOLATILE;
-
-
 CREATE OR REPLACE FUNCTION trend.alter_column_types(namespace_name name, table_name name, columns trend.column_info[])
     RETURNS void
 AS $$
@@ -577,6 +568,15 @@ BEGIN
     );
 END;
 $$ LANGUAGE plpgsql;
+
+
+CREATE OR REPLACE FUNCTION trend.modify_trendstore_columns(trendstore_id integer, columns trend.column_info[])
+    RETURNS void
+AS $$
+    SELECT trend.alter_column_types('trend', trend.to_base_table_name(trendstore), $2)
+    FROM trend.trendstore
+    WHERE trendstore.id = $1;
+$$ LANGUAGE sql VOLATILE;
 
 
 CREATE OR REPLACE FUNCTION trend.view_name(trend.view)
