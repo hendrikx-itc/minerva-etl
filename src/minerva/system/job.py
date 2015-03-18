@@ -10,6 +10,7 @@ the Free Software Foundation; either version 3, or (at your option) any later
 version.  The full license is in the file COPYING, distributed as part of
 this software.
 """
+import json
 
 
 class Job():
@@ -34,7 +35,7 @@ class Job():
         def f(cursor):
             cursor.callproc(
                 "system.create_job",
-                (job_type, description, size, job_source_id)
+                (job_type, json.dumps(description), size, job_source_id)
             )
 
             Job.from_record(cursor.fetchone())
