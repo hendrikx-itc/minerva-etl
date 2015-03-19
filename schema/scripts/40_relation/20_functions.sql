@@ -93,7 +93,7 @@ CREATE FUNCTION relation_directory.create_relation_view_sql(relation_directory.t
     RETURNS text[]
 AS $$
     SELECT ARRAY[
-        format('CREATE VIEW %I.%I AS %s', relation_directory.view_schema(), $1.name, $2),
+        format('CREATE VIEW %I.%I AS %s', relation_directory.view_schema(), $1.name, $2)
     ];
 $$ LANGUAGE sql STABLE;
 

@@ -24,6 +24,7 @@ CREATE TABLE relation_directory."type" (
     cardinality relation_directory.type_cardinality_enum DEFAULT NULL
 );
 
+ALTER TABLE ONLY relation_directory."type"
     ADD CONSTRAINT type_pkey PRIMARY KEY (id);
 
 GRANT SELECT ON TABLE relation_directory."type" TO minerva;
