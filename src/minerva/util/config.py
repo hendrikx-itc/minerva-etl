@@ -11,7 +11,7 @@ this software.
 """
 import os
 import re
-from StringIO import StringIO
+from io import StringIO
 import pkg_resources
 
 from configobj import ConfigObj
