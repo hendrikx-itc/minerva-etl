@@ -37,9 +37,10 @@ class TrendEngine(Engine):
                         data_source, package
                     )(conn)
 
-                    trend_store.store(
-                        transform_package(trend_store)(package)
-                    ).run(conn)
+                    if trend_store is not None:
+                        trend_store.store(
+                            transform_package(trend_store)(package)
+                        ).run(conn)
 
                 return execute
 
@@ -74,12 +75,10 @@ def trend_store_for_package(data_source, package):
             )
 
             if entity_type is None:
-                raise ConfigurationError(
-                    "no such entity type: {}".format(entity_type_name)
-                )
-
-            return TableTrendStore.get(
-                data_source, entity_type, package.granularity
-            )(cursor)
+                return None
+            else:
+                return TableTrendStore.get(
+                    data_source, entity_type, package.granularity
+                )(cursor)
 
     return f
