@@ -17,6 +17,7 @@ from minerva.db.util import quote_ident
 from minerva.storage.datatype import deduce_data_types
 from minerva.storage.trend import schema
 from minerva.util import grouped_by, zip_apply, identity, k
+from minerva.util.tabulate import render_table
 from minerva.directory.entityref import EntityDnRef, EntityIdRef
 from minerva.directory.distinguishedname import entity_type_name_from_dn
 
@@ -47,6 +48,24 @@ class DataPackageBase():
         self.timestamp = timestamp
         self.trend_names = trend_names
         self.rows = rows
+
+    def render_table(self):
+        lines = [
+            str(self.timestamp),
+            str(self.granularity),
+            ','.join(self.trend_names),
+        ]
+
+        lines.extend([','.join(values) for dn, values in self.rows])
+
+        column_names = ["dn"] + list(self.trend_names)
+        column_align = ">" * len(column_names)
+        column_sizes = ["max"] * len(column_names)
+
+        rows = [row[:-1] + tuple(row[-1]) for row in self.rows]
+        table = render_table(column_names, column_align, column_sizes, rows)
+
+        return '\n'.join(table)
 
     @classmethod
     def entity_ref_type(cls):
