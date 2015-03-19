@@ -26,11 +26,6 @@ AS $$
             relation_directory.table_schema()
         ),
         format(
-            'ALTER TABLE %I.%I OWNER TO minerva_admin;',
-            relation_directory.table_schema(),
-            name
-        ),
-        format(
             'ALTER TABLE ONLY %I.%I
     ADD CONSTRAINT %I
     PRIMARY KEY (source_id, target_id);',
@@ -67,7 +62,7 @@ CREATE FUNCTION relation_directory.create_relation_table(name name, type_id int)
     RETURNS name
 AS $$
     SELECT public.action($1, relation_directory.create_relation_table_sql($1, $2));
-$$ LANGUAGE sql VOLATILE;
+$$ LANGUAGE sql VOLATILE SECURITY DEFINER;
 
 
 CREATE FUNCTION relation_directory.get_type(character varying)
@@ -99,7 +94,6 @@ CREATE FUNCTION relation_directory.create_relation_view_sql(relation_directory.t
 AS $$
     SELECT ARRAY[
         format('CREATE VIEW %I.%I AS %s', relation_directory.view_schema(), $1.name, $2),
-        format('ALTER VIEW %I.%I OWNER TO minerva_admin', relation_directory.view_schema(), $1.name)
     ];
 $$ LANGUAGE sql STABLE;
 
@@ -111,7 +105,7 @@ AS $$
         $1,
         relation_directory.create_relation_view_sql($1, $2)
     );
-$$ LANGUAGE sql VOLATILE;
+$$ LANGUAGE sql VOLATILE SECURITY DEFINER;
 
 
 CREATE FUNCTION relation_directory.define(name, text)

@@ -3,7 +3,6 @@ CREATE FUNCTION entity_tag.create_view_sql(type_name name, sql text)
 AS $$
     SELECT ARRAY[
         format('CREATE VIEW entity_tag.%I AS %s;', type_name, sql),
-        format('ALTER VIEW entity_tag.%I OWNER TO minerva_admin', type_name),
         format('GRANT SELECT ON TABLE entity_tag.%I TO minerva;', type_name)
     ];
 $$ LANGUAGE sql IMMUTABLE;
@@ -13,7 +12,7 @@ CREATE FUNCTION entity_tag.create_view(type_name name, sql text)
     RETURNS name
 AS $$
     SELECT public.action($1, entity_tag.create_view_sql($1, $2));
-$$ LANGUAGE sql VOLATILE;
+$$ LANGUAGE sql VOLATILE SECURITY DEFINER;
 
 
 CREATE FUNCTION entity_tag.define(type_name name, tag_group text, sql text)
@@ -53,7 +52,6 @@ FROM entity_tag.entity_tag_link_staging staging
 LEFT JOIN directory.tag ON lower(tag.name) = lower(tag_name) WHERE tag.name IS NULL
 GROUP BY staging.tag_name, staging.tag_group_id;
 
-ALTER VIEW entity_tag._new_tags_in_staging OWNER TO minerva_admin;
 GRANT SELECT ON TABLE entity_tag._new_tags_in_staging TO minerva;
 
 
@@ -79,7 +77,6 @@ JOIN directory.tag ON lower(tag.name) = lower(staging.tag_name)
 LEFT JOIN directory.entity_tag_link etl ON etl.entity_id = staging.entity_id AND etl.tag_id = tag.id
 WHERE etl.entity_id IS NULL;
 
-ALTER VIEW entity_tag._new_links_in_staging OWNER TO minerva_admin;
 GRANT SELECT ON TABLE entity_tag._new_links_in_staging TO minerva;
 
 
@@ -106,7 +103,6 @@ JOIN directory.tag ON tag.id = etl.tag_id
 LEFT JOIN entity_tag.entity_tag_link_staging staging ON staging.tag_name = tag.name AND staging.entity_id = etl.entity_id
 WHERE tag.name IN (SELECT tag_name FROM entity_tag.entity_tag_link_staging GROUP BY tag_name) AND staging.entity_id IS NULL;
 
-ALTER VIEW entity_tag._obsolete_links OWNER TO minerva_admin;
 GRANT SELECT ON TABLE entity_tag._obsolete_links TO minerva;
 
 

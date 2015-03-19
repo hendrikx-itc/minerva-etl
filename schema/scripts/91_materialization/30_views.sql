@@ -14,8 +14,6 @@ CREATE VIEW materialization.tagged_runnable_materializations AS
             AND materialization.runnable(mt, timestamp, max_modified)
         ORDER BY ts.granularity ASC, timestamp DESC;
 
-ALTER VIEW materialization.tagged_runnable_materializations OWNER TO minerva_admin;
-
 GRANT SELECT ON materialization.tagged_runnable_materializations TO minerva;
 
 
@@ -33,8 +31,6 @@ CREATE VIEW materialization.materializable_source_state AS
                 type.view_trend_store_id = modified.table_trend_store_id
         JOIN trend_directory.table_trend_store ON
                 table_trend_store.id = type.table_trend_store_id;
-
-ALTER VIEW materialization.materializable_source_state OWNER TO minerva_admin;
 
 GRANT SELECT ON materialization.materializable_source_state TO minerva;
 
@@ -56,8 +52,6 @@ CREATE VIEW materialization.materializables AS
     FROM materialization.materializable_source_state
     GROUP BY type_id, timestamp;
 
-ALTER VIEW materialization.materializables OWNER TO minerva_admin;
-
 GRANT ALL ON materialization.materializables TO minerva_admin;
 GRANT SELECT ON materialization.materializables TO minerva;
 
@@ -75,8 +69,6 @@ CREATE VIEW materialization.new_materializables AS
         state.type_id = mzb.type_id AND
         state.timestamp = mzb.timestamp
     WHERE state.type_id IS NULL;
-
-ALTER VIEW materialization.new_materializables OWNER TO minerva_admin;
 
 GRANT ALL ON materialization.new_materializables TO minerva_admin;
 GRANT SELECT ON materialization.new_materializables TO minerva;
@@ -96,8 +88,6 @@ CREATE VIEW materialization.modified_materializables AS
         state.timestamp = mzb.timestamp AND
         (state.source_states <> mzb.source_states OR state.source_states IS NULL);
 
-ALTER VIEW materialization.modified_materializables OWNER TO minerva_admin;
-
 GRANT ALL ON materialization.modified_materializables TO minerva_admin;
 GRANT SELECT ON materialization.modified_materializables TO minerva;
 
@@ -113,8 +103,6 @@ CREATE VIEW materialization.obsolete_state AS
         mzs.type_id = state.type_id AND
         mzs.timestamp = state.timestamp
     WHERE mzs.type_id IS NULL;
-
-ALTER VIEW materialization.obsolete_state OWNER TO minerva_admin;
 
 GRANT SELECT ON materialization.obsolete_state TO minerva;
 
@@ -139,8 +127,6 @@ SELECT
     LEFT JOIN materialization.type m ON m.view_trend_store_id = view_trend_store.id;
 
 
-ALTER VIEW materialization.trend_ext OWNER TO minerva_admin;
-
 GRANT SELECT ON TABLE materialization.trend_ext TO minerva;
 
 
@@ -153,4 +139,3 @@ JOIN materialization.type_tag_link ttl ON ttl.type_id = (rm.type).id
 JOIN materialization.group_priority gp ON gp.tag_id = ttl.tag_id
 GROUP BY ttl.tag_id;
 
-ALTER VIEW materialization.required_resources_by_group OWNER TO minerva_admin;

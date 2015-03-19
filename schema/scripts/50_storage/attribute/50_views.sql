@@ -11,6 +11,4 @@ CREATE VIEW attribute_directory.dependencies AS
             pg_depend.refobjsubid = pg_attribute.attnum
     WHERE n.nspname = 'attribute_directory' AND pg_attribute.attnum > 0;
 
-ALTER VIEW attribute_directory.dependencies OWNER TO minerva_admin;
-
 GRANT SELECT ON TABLE attribute_directory.dependencies TO minerva;

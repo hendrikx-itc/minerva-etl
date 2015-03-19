@@ -1,5 +1,4 @@
 CREATE SCHEMA materialization;
-ALTER SCHEMA materialization OWNER TO minerva_admin;
 
 GRANT ALL ON SCHEMA materialization TO minerva_writer;
 GRANT USAGE ON SCHEMA materialization TO minerva;
@@ -32,8 +31,6 @@ COMMENT ON COLUMN materialization.type.reprocessing_period IS
 'The maximum time after the destination timestamp that the materialization is allowed to be executed';
 COMMENT ON COLUMN materialization.type.enabled IS
 'Indicates if jobs should be created for this materialization (manual execution is always possible)';
-
-ALTER TABLE materialization.type OWNER TO minerva_admin;
 
 ALTER TABLE ONLY materialization.type
     ADD CONSTRAINT type_pkey PRIMARY KEY (id);
@@ -84,8 +81,6 @@ COMMENT ON COLUMN materialization.state.processed_states IS
 COMMENT ON COLUMN materialization.state.job_id IS
 'Id of the most recent job for this materialization';
 
-ALTER TABLE materialization.state OWNER TO minerva_admin;
-
 ALTER TABLE ONLY materialization.state
     ADD CONSTRAINT state_pkey PRIMARY KEY (type_id, timestamp);
 
@@ -104,8 +99,6 @@ CREATE TABLE materialization.type_tag_link (
     type_id integer NOT NULL,
     tag_id integer NOT NULL
 );
-
-ALTER TABLE materialization.type_tag_link OWNER TO minerva_admin;
 
 ALTER TABLE ONLY materialization.type_tag_link
     ADD CONSTRAINT type_tag_link_pkey PRIMARY KEY (type_id, tag_id);
@@ -128,8 +121,6 @@ CREATE TABLE materialization.group_priority (
     tag_id integer references directory.tag(id) PRIMARY KEY,
     resources integer not null default 500
 );
-
-ALTER TABLE materialization.group_priority OWNER TO minerva_admin;
 
 GRANT SELECT ON TABLE materialization.group_priority TO minerva;
 GRANT INSERT,DELETE,UPDATE ON TABLE materialization.group_priority TO minerva_writer;

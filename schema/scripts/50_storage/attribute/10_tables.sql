@@ -6,16 +6,12 @@ CREATE TABLE attribute_directory.attribute_store (
     entity_type_id integer not null
 );
 
-ALTER TABLE attribute_directory.attribute_store OWNER TO minerva_admin;
-
 CREATE SEQUENCE attribute_directory.attribute_store_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
     NO MAXVALUE
     CACHE 1;
-
-ALTER TABLE attribute_directory.attribute_store_id_seq OWNER TO minerva_admin;
 
 ALTER TABLE attribute_directory.attribute_store ALTER COLUMN id SET DEFAULT nextval('attribute_directory.attribute_store_id_seq'::regclass);
 
@@ -51,8 +47,6 @@ CREATE TYPE attribute_directory.attribute_descr AS (
     description text
 );
 
-ALTER TYPE attribute_directory.attribute_descr OWNER TO minerva_admin;
-
 
 -- Table 'attribute_directory.attribute'
 
@@ -64,16 +58,12 @@ CREATE TABLE attribute_directory.attribute (
     data_type text not null
 );
 
-ALTER TABLE attribute_directory.attribute OWNER TO minerva_admin;
-
 CREATE SEQUENCE attribute_directory.attribute_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
     NO MAXVALUE
     CACHE 1;
-
-ALTER TABLE attribute_directory.attribute_id_seq OWNER TO minerva_admin;
 
 ALTER TABLE attribute_directory.attribute ALTER COLUMN id SET DEFAULT nextval('attribute_directory.attribute_id_seq'::regclass);
 
@@ -103,8 +93,6 @@ CREATE TABLE attribute_directory.attribute_tag_link (
     tag_id integer NOT NULL
 );
 
-ALTER TABLE attribute_directory.attribute_tag_link OWNER TO minerva_admin;
-
 ALTER TABLE ONLY attribute_directory.attribute_tag_link
     ADD CONSTRAINT attribute_tag_link_pkey PRIMARY KEY (attribute_id, tag_id);
 
@@ -126,8 +114,6 @@ CREATE TABLE attribute_directory.attribute_store_modified (
     modified timestamp with time zone NOT NULL
 );
 
-ALTER TABLE attribute_directory.attribute_store_modified OWNER TO minerva_admin;
-
 ALTER TABLE ONLY attribute_directory.attribute_store_modified
     ADD CONSTRAINT attribute_store_modified_pkey PRIMARY KEY (attribute_store_id);
 
@@ -145,8 +131,6 @@ CREATE TABLE attribute_directory.attribute_store_curr_materialized (
     materialized timestamp with time zone NOT NULL
 );
 
-ALTER TABLE attribute_directory.attribute_store_curr_materialized OWNER TO minerva_admin;
-
 ALTER TABLE ONLY attribute_directory.attribute_store_curr_materialized
     ADD CONSTRAINT attribute_store_curr_materialized_pkey PRIMARY KEY (attribute_store_id);
 
@@ -163,8 +147,6 @@ CREATE TABLE attribute_directory.attribute_store_compacted (
     attribute_store_id integer NOT NULL,
     compacted timestamp with time zone NOT NULL
 );
-
-ALTER TABLE attribute_directory.attribute_store_compacted OWNER TO minerva_admin;
 
 ALTER TABLE ONLY attribute_directory.attribute_store_compacted
     ADD CONSTRAINT attribute_store_compacted_pkey PRIMARY KEY (attribute_store_id);

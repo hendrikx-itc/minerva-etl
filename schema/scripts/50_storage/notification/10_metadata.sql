@@ -7,8 +7,6 @@ CREATE SCHEMA notification_directory;
 COMMENT ON SCHEMA notification_directory IS
 'Stores meta-data about notification data in the notification schema.';
 
-ALTER SCHEMA notification_directory OWNER TO minerva_admin;
-
 GRANT ALL ON SCHEMA notification_directory TO minerva_writer;
 GRANT USAGE ON SCHEMA notification_directory TO minerva;
 
@@ -36,8 +34,6 @@ COMMENT ON TABLE notification_directory.notification_store IS
 'data_source. Use the create_notification_store function to create new '
 'notification_stores.';
 
-ALTER TABLE notification_directory.notification_store OWNER TO minerva_admin;
-
 GRANT SELECT ON TABLE notification_directory.notification_store TO minerva;
 GRANT INSERT,DELETE,UPDATE ON TABLE notification_directory.notification_store TO minerva_writer;
 
@@ -58,8 +54,6 @@ COMMENT ON TABLE notification_directory.attribute IS
 'notification store has. An attribute corresponds directly to a column in '
 'the main notification store table';
 
-ALTER TABLE notification_directory.attribute OWNER TO minerva_admin;
-
 GRANT SELECT ON TABLE notification_directory.attribute TO minerva;
 GRANT INSERT,DELETE,UPDATE ON TABLE notification_directory.attribute TO minerva_writer;
 
@@ -75,8 +69,6 @@ CREATE TABLE notification_directory.notification_set_store (
 COMMENT ON TABLE notification_directory.notification_set_store IS
 'Describes notification_set_stores. A notification_set_store can hold information '
 'over sets of notifications that are related to each other.';
-
-ALTER TABLE notification_directory.notification_set_store OWNER TO minerva_admin;
 
 GRANT SELECT ON TABLE notification_directory.notification_set_store TO minerva;
 GRANT INSERT,DELETE,UPDATE ON TABLE notification_directory.notification_set_store TO minerva_writer;
@@ -98,8 +90,6 @@ COMMENT ON TABLE notification_directory.set_attribute IS
 'A set_attribute corresponds directly to a column in the main '
 'notification_set_store table.';
 
-ALTER TABLE notification_directory.set_attribute OWNER TO minerva_admin;
-
 GRANT SELECT ON TABLE notification_directory.set_attribute TO minerva;
 GRANT INSERT,DELETE,UPDATE ON TABLE notification_directory.set_attribute TO minerva_writer;
 
@@ -115,8 +105,6 @@ COMMENT ON SCHEMA notification IS
 still have a fixed, known format.
 
 This schema is dynamically populated.';
-
-ALTER SCHEMA notification OWNER TO minerva_admin;
 
 GRANT ALL ON SCHEMA notification TO minerva_writer;
 GRANT USAGE ON SCHEMA notification TO minerva;

@@ -135,11 +135,6 @@ SELECT ARRAY[
         (SELECT array_to_string(array_agg(format('%I %s,', t.name, t.data_type)), ' ') FROM unnest($2) t)
     ),
     format(
-        'ALTER TABLE %I.%I OWNER TO minerva_writer;',
-        trend_directory.base_table_schema(),
-        name
-    ),
-    format(
         'GRANT SELECT ON TABLE %I.%I TO minerva;',
         trend_directory.base_table_schema(),
         name
@@ -167,7 +162,7 @@ CREATE FUNCTION trend_directory.create_base_table(name name, trend_directory.tre
     RETURNS name
 AS $$
     SELECT public.action($1, trend_directory.create_base_table_sql($1, $2))
-$$ LANGUAGE sql VOLATILE STRICT;
+$$ LANGUAGE sql VOLATILE STRICT SECURITY DEFINER;
 
 
 CREATE FUNCTION trend_directory.create_base_table(trend_directory.trend_store, trend_directory.trend[])
@@ -175,7 +170,7 @@ CREATE FUNCTION trend_directory.create_base_table(trend_directory.trend_store, t
 AS $$
     SELECT trend_directory.create_base_table(trend_directory.base_table_name($1), $2);
     SELECT $1;
-$$ LANGUAGE sql VOLATILE;
+$$ LANGUAGE sql VOLATILE SECURITY DEFINER;
 
 
 CREATE FUNCTION trend_directory.get_trend_store_trends(trend_directory.trend_store)
@@ -210,7 +205,6 @@ AS $$
 SELECT ARRAY[
     format('CREATE UNLOGGED TABLE trend.%I () INHERITS (trend.%I);', trend_directory.staging_table_name($1), trend_directory.base_table_name(trend_store)),
     format('ALTER TABLE ONLY trend.%I ADD PRIMARY KEY (entity_id, "timestamp");', trend_directory.staging_table_name($1)),
-    format('ALTER TABLE trend.%I OWNER TO minerva_writer;', trend_directory.staging_table_name($1)),
     format('GRANT SELECT ON TABLE trend.%I TO minerva;', trend_directory.staging_table_name($1)),
     format('GRANT INSERT,DELETE,UPDATE ON TABLE trend.%I TO minerva_writer;', trend_directory.staging_table_name($1))
 ];
@@ -221,7 +215,7 @@ CREATE FUNCTION trend_directory.create_staging_table(trend_store trend_directory
     RETURNS trend_directory.trend_store
 AS $$
     SELECT public.action($1, trend_directory.create_staging_table_sql($1));
-$$ LANGUAGE sql VOLATILE STRICT;
+$$ LANGUAGE sql VOLATILE STRICT SECURITY DEFINER;
 
 
 CREATE FUNCTION trend_directory.initialize_table_trend_store(trend_directory.table_trend_store)
@@ -352,7 +346,6 @@ CREATE FUNCTION trend_directory.create_view_sql(trend_directory.view_trend_store
 AS $$
 SELECT ARRAY[
     format('CREATE VIEW %I.%I AS %s;', trend_directory.view_schema(), trend_directory.view_name($1), $2),
-    format('ALTER TABLE %I.%I OWNER TO minerva_writer;', trend_directory.view_schema(), trend_directory.view_name($1)),
     format('GRANT SELECT ON TABLE %I.%I TO minerva;', trend_directory.view_schema(), trend_directory.view_name($1))
 ];
 $$ LANGUAGE sql STABLE;
@@ -375,8 +368,6 @@ CREATE VIEW trend_directory.view_dependencies AS
     JOIN pg_class ON pg_class.oid = ((d.dependency).obj).obj_id
     JOIN pg_namespace ON pg_class.relnamespace = pg_namespace.oid
     JOIN trend_directory.table_trend_store ON trend_directory.base_table_name(table_trend_store) = pg_class.relname;
-
-ALTER VIEW trend_directory.view_dependencies OWNER TO minerva_admin;
 
 GRANT SELECT ON TABLE trend_directory.view_dependencies TO minerva;
 
@@ -431,7 +422,7 @@ AS $$
     SELECT trend_directory.create_view_trends($1);
 
     SELECT $1;
-$$ LANGUAGE sql VOLATILE;
+$$ LANGUAGE sql VOLATILE SECURITY DEFINER;
 
 
 CREATE FUNCTION trend_directory.create_view_trend_store(
@@ -1145,11 +1136,6 @@ AS $$
             trend_directory.table_name($1)
         ),
         format(
-            'ALTER TABLE %I.%I OWNER TO minerva_writer;',
-            trend_directory.partition_table_schema(),
-            trend_directory.table_name($1)
-        ),
-        format(
             'GRANT SELECT ON TABLE %I.%I TO minerva;',
             trend_directory.partition_table_schema(),
             trend_directory.table_name($1)
@@ -1171,7 +1157,7 @@ CREATE FUNCTION trend_directory.create_partition_table(trend_directory.partition
     RETURNS trend_directory.partition
 AS $$
     SELECT public.action($1, trend_directory.create_partition_table_sql($1));
-$$ LANGUAGE sql VOLATILE STRICT;
+$$ LANGUAGE sql VOLATILE STRICT SECURITY DEFINER;
 
 
 CREATE FUNCTION trend_directory.get_table_trend(

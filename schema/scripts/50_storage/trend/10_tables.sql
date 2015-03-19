@@ -3,8 +3,6 @@ CREATE SCHEMA trend;
 COMMENT ON SCHEMA trend IS
 'Stores information with fixed interval and format, like periodic measurements.';
 
-ALTER SCHEMA trend OWNER TO minerva_admin;
-
 GRANT ALL ON SCHEMA trend TO minerva_writer;
 GRANT USAGE ON SCHEMA trend TO minerva;
 
@@ -14,8 +12,6 @@ CREATE SCHEMA trend_partition;
 COMMENT ON SCHEMA trend_partition IS
 'Stores information with fixed interval and format, like periodic measurements.';
 
-ALTER SCHEMA trend_partition OWNER TO minerva_admin;
-
 GRANT ALL ON SCHEMA trend_partition TO minerva_writer;
 GRANT USAGE ON SCHEMA trend_partition TO minerva;
 
@@ -24,8 +20,6 @@ CREATE SCHEMA trend_directory;
 
 COMMENT ON SCHEMA trend_directory IS
 'Stores information with fixed interval and format, like periodic measurements.';
-
-ALTER SCHEMA trend_directory OWNER TO minerva_admin;
 
 GRANT ALL ON SCHEMA trend_directory TO minerva_writer;
 GRANT USAGE ON SCHEMA trend_directory TO minerva;
@@ -39,8 +33,6 @@ CREATE TYPE trend_directory.trend_descr AS (
     description text
 );
 
-ALTER TYPE trend_directory.trend_descr OWNER TO minerva_admin;
-
 
 -- Table 'trend_directory.trend_store'
 
@@ -51,16 +43,12 @@ CREATE TABLE trend_directory.trend_store (
     granularity interval NOT NULL
 );
 
-ALTER TABLE trend_directory.trend_store OWNER TO minerva_admin;
-
 CREATE SEQUENCE trend_directory.trend_store_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
     NO MAXVALUE
     CACHE 1;
-
-ALTER TABLE trend_directory.trend_store_id_seq OWNER TO minerva_admin;
 
 ALTER SEQUENCE trend_directory.trend_store_id_seq OWNED BY trend_directory.trend_store.id;
 
@@ -127,16 +115,12 @@ CREATE TABLE trend_directory.trend (
     description text NOT NULL
 );
 
-ALTER TABLE trend_directory.trend OWNER TO minerva_admin;
-
 CREATE SEQUENCE trend_directory.trend_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
     NO MAXVALUE
     CACHE 1;
-
-ALTER TABLE trend_directory.trend_id_seq OWNER TO minerva_admin;
 
 ALTER TABLE trend_directory.trend
     ALTER COLUMN id
@@ -192,8 +176,6 @@ CREATE TABLE trend_directory.partition (
     index integer
 );
 
-ALTER TABLE trend_directory.partition OWNER TO minerva_admin;
-
 ALTER TABLE ONLY trend_directory.partition
     ADD CONSTRAINT trend_partition_pkey
     PRIMARY KEY (table_trend_store_id, index);
@@ -213,8 +195,6 @@ CREATE TABLE trend_directory.trend_tag_link (
     trend_id integer NOT NULL,
     tag_id integer NOT NULL
 );
-
-ALTER TABLE trend_directory.trend_tag_link OWNER TO minerva_admin;
 
 ALTER TABLE ONLY trend_directory.trend_tag_link
     ADD CONSTRAINT trend_tag_link_pkey
@@ -243,8 +223,6 @@ CREATE TABLE trend_directory.modified (
     PRIMARY KEY (table_trend_store_id, "timestamp")
 );
 
-ALTER TABLE trend_directory.modified OWNER TO minerva_admin;
-
 GRANT SELECT ON TABLE trend_directory.modified TO minerva;
 GRANT INSERT,DELETE,UPDATE ON TABLE trend_directory.modified TO minerva_writer;
 
@@ -255,8 +233,6 @@ CREATE TABLE trend_directory.view_dependency (
     view_trend_store_id integer not null,
     table_trend_store_id integer not null
 );
-
-ALTER TABLE trend_directory.view_dependency OWNER TO minerva_admin;
 
 ALTER TABLE ONLY trend_directory.view_dependency
     ADD CONSTRAINT trend_view_dependency_pkey

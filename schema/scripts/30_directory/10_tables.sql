@@ -4,8 +4,6 @@ COMMENT ON SCHEMA directory IS
 'Stores contextual information for the data. This includes the entities, '
 'entity_types, data_sources, etc. It is the entrypoint when looking for data.';
 
-ALTER SCHEMA directory OWNER TO minerva_admin;
-
 GRANT USAGE ON SCHEMA directory TO minerva;
 
 -- Table 'directory.data_source'
@@ -22,16 +20,12 @@ COMMENT ON TABLE directory.data_source IS
 'different sources, where names can be the same, but the meaning of the data '
 'differs.';
 
-ALTER TABLE directory.data_source OWNER TO minerva_admin;
-
 CREATE SEQUENCE directory.data_source_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
     NO MAXVALUE
     CACHE 1;
-
-ALTER TABLE directory.data_source_id_seq OWNER TO minerva_admin;
 
 ALTER SEQUENCE directory.data_source_id_seq OWNED BY directory.data_source.id;
 
@@ -60,8 +54,6 @@ COMMENT ON TABLE directory.entity_type IS
 'Stores the entity types that exist in the entity table. Entity types are '
 'also used to give context to data that is stored for entities.';
 
-ALTER TABLE directory.entity_type OWNER TO minerva_admin;
-
 CREATE SEQUENCE directory.entity_type_id_seq
     START WITH 1
     INCREMENT BY 1
@@ -69,7 +61,6 @@ CREATE SEQUENCE directory.entity_type_id_seq
     NO MAXVALUE
     CACHE 1;
 
-ALTER TABLE directory.entity_type_id_seq OWNER TO minerva_admin;
 ALTER SEQUENCE directory.entity_type_id_seq OWNED BY directory.entity_type.id;
 ALTER TABLE directory.entity_type
     ALTER COLUMN id
@@ -103,16 +94,12 @@ COMMENT ON TABLE directory.entity IS
 'hold further information such as attributes, trends and notifications. All '
 'data must have a reference to an entity.';
 
-ALTER TABLE directory.entity OWNER TO minerva_admin;
-
 CREATE SEQUENCE directory.entity_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
     NO MAXVALUE
     CACHE 1;
-
-ALTER TABLE directory.entity_id_seq OWNER TO minerva_admin;
 
 ALTER SEQUENCE directory.entity_id_seq OWNED BY directory.entity.id;
 
@@ -158,16 +145,12 @@ CREATE TABLE directory.tag_group (
 
 CREATE UNIQUE INDEX ix_directory_tag_group_name on directory.tag_group (lower(name));
 
-ALTER TABLE directory.tag_group OWNER TO minerva_admin;
-
 CREATE SEQUENCE directory.tag_group_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
     NO MAXVALUE
     CACHE 1;
-
-ALTER TABLE directory.tag_group_id_seq OWNER TO minerva_admin;
 
 ALTER TABLE directory.tag_group
     ALTER COLUMN id
@@ -205,16 +188,12 @@ CREATE UNIQUE INDEX ix_directory_tag_name
 
 CREATE INDEX ON directory.tag (lower(name), id);
 
-ALTER TABLE directory.tag OWNER TO minerva_admin;
-
 CREATE SEQUENCE directory.tag_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
     NO MAXVALUE
     CACHE 1;
-
-ALTER TABLE directory.tag_id_seq OWNER TO minerva_admin;
 
 ALTER TABLE directory.tag
     ALTER COLUMN id
@@ -243,8 +222,6 @@ CREATE TABLE directory.entity_tag_link (
     entity_id integer NOT NULL
 );
 
-ALTER TABLE directory.entity_tag_link OWNER TO minerva_admin;
-
 ALTER TABLE ONLY directory.entity_tag_link
     ADD CONSTRAINT entity_tag_link_pkey PRIMARY KEY (tag_id, entity_id);
 
@@ -271,8 +248,6 @@ CREATE TABLE directory.entity_tag_link_denorm (
     name text not null
 );
 
-ALTER TABLE directory.entity_tag_link_denorm OWNER TO minerva_admin;
-
 CREATE INDEX ON directory.entity_tag_link_denorm USING gin (tags);
 CREATE INDEX ON directory.entity_tag_link_denorm (name);
 
@@ -288,8 +263,6 @@ CREATE TABLE directory.alias_type
     "name" character varying NOT NULL
 );
 
-ALTER TABLE directory.alias_type OWNER TO minerva_admin;
-
 CREATE SEQUENCE directory.alias_type_id_seq
     START WITH 1
     INCREMENT BY 1
@@ -297,7 +270,6 @@ CREATE SEQUENCE directory.alias_type_id_seq
     NO MAXVALUE
     CACHE 1;
 
-ALTER TABLE directory.alias_type_id_seq OWNER TO minerva_admin;
 ALTER SEQUENCE directory.alias_type_id_seq OWNED BY directory.alias_type.id;
 ALTER TABLE directory.alias_type
     ALTER COLUMN id
@@ -325,8 +297,6 @@ CREATE TABLE directory.alias
     "name" character varying NOT NULL,
     type_id integer NOT NULL
 );
-
-ALTER TABLE directory.alias OWNER TO minerva_admin;
 
 ALTER TABLE ONLY directory.alias
     ADD CONSTRAINT alias_pkey PRIMARY KEY (entity_id, type_id);
@@ -357,8 +327,6 @@ CREATE TABLE directory.existence
     entity_id integer NOT NULL,
     entity_type_id integer NOT NULL
 );
-
-ALTER TABLE directory.existence OWNER TO minerva_admin;
 
 ALTER TABLE ONLY directory.existence
     ADD CONSTRAINT existence_pkey PRIMARY KEY (entity_id, timestamp);
@@ -397,8 +365,6 @@ CREATE UNLOGGED TABLE directory.existence_staging
 (
     dn character varying NOT NULL UNIQUE
 );
-
-ALTER TABLE directory.existence_staging OWNER TO minerva_admin;
 
 GRANT SELECT ON TABLE directory.existence_staging TO minerva;
 GRANT INSERT,DELETE,UPDATE ON TABLE directory.existence_staging TO minerva_writer;

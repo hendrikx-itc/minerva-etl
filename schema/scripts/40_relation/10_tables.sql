@@ -7,8 +7,6 @@ CREATE SCHEMA relation_directory;
 COMMENT ON SCHEMA relation_directory IS
 'Stores directional relations between entities.';
 
-ALTER SCHEMA relation_directory OWNER TO minerva_admin;
-
 GRANT ALL ON SCHEMA relation_directory TO minerva_writer;
 GRANT USAGE ON SCHEMA relation_directory TO minerva;
 
@@ -26,9 +24,6 @@ CREATE TABLE relation_directory."type" (
     cardinality relation_directory.type_cardinality_enum DEFAULT NULL
 );
 
-ALTER TABLE relation_directory."type" OWNER TO minerva_admin;
-
-ALTER TABLE ONLY relation_directory."type"
     ADD CONSTRAINT type_pkey PRIMARY KEY (id);
 
 GRANT SELECT ON TABLE relation_directory."type" TO minerva;
@@ -40,8 +35,6 @@ CREATE SEQUENCE relation_directory.type_id_seq
     NO MINVALUE
     NO MAXVALUE
     CACHE 1;
-
-ALTER TABLE relation_directory.type_id_seq OWNER TO minerva_admin;
 
 ALTER SEQUENCE relation_directory.type_id_seq OWNED BY relation_directory."type".id;
 
@@ -59,9 +52,7 @@ CREATE UNIQUE INDEX ix_type_name ON relation_directory."type" (name);
 ------------------------
 
 CREATE SCHEMA relation_def;
-ALTER SCHEMA relation_def OWNER TO minerva_admin;
 
-GRANT ALL ON SCHEMA relation_def TO minerva_admin;
 GRANT ALL ON SCHEMA relation_def TO minerva_writer;
 GRANT USAGE ON SCHEMA relation_def TO minerva;
 
@@ -75,8 +66,6 @@ CREATE SCHEMA relation;
 COMMENT ON SCHEMA relation IS
 'Stores the actual relations between entities in dynamically created tables.';
 
-ALTER SCHEMA relation OWNER TO minerva_admin;
-
 GRANT ALL ON SCHEMA relation TO minerva_writer;
 GRANT USAGE ON SCHEMA relation TO minerva;
 
@@ -88,8 +77,6 @@ CREATE TABLE relation."all" (
     target_id integer NOT NULL,
     type_id integer NOT NULL
 );
-
-ALTER TABLE relation."all" OWNER TO minerva_admin;
 
 ALTER TABLE ONLY relation."all"
     ADD PRIMARY KEY (source_id, target_id);
@@ -122,8 +109,6 @@ CREATE TABLE relation.all_materialized (
     target_id integer NOT NULL,
     type_id integer NOT NULL
 );
-
-ALTER TABLE relation."all_materialized" OWNER TO minerva_admin;
 
 ALTER TABLE relation."all_materialized"
     ADD PRIMARY KEY (source_id, target_id, type_id);

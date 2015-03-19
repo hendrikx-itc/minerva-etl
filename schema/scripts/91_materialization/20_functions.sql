@@ -502,8 +502,6 @@ WHERE
     AND
     materialization.runnable(type, materialization.state."timestamp", materialization.state.max_modified);
 
-ALTER VIEW materialization.runnable_materializations OWNER TO minerva_admin;
-
 
 -- View 'next_up_materializations'
 
@@ -533,8 +531,6 @@ FROM
 JOIN materialization.group_priority ON (summed.tag).id = group_priority.tag_id
 LEFT JOIN system.job ON job.id = job_id
 WHERE cumsum <= group_priority.resources;
-
-ALTER VIEW materialization.next_up_materializations OWNER TO minerva_admin;
 
 
 CREATE FUNCTION materialization.create_jobs()

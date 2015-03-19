@@ -1,5 +1,4 @@
 CREATE SCHEMA system;
-ALTER SCHEMA system OWNER TO minerva_admin;
 
 GRANT ALL ON SCHEMA system TO minerva_writer;
 
@@ -19,16 +18,12 @@ CREATE TABLE system.job_source (
     config json
 );
 
-ALTER TABLE system.job_source OWNER TO minerva_admin;
-
 CREATE SEQUENCE system.job_source_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
     NO MAXVALUE
     CACHE 1;
-
-ALTER TABLE system.job_source_id_seq OWNER TO minerva_admin;
 
 ALTER SEQUENCE system.job_source_id_seq OWNED BY system.job_source.id;
 
@@ -63,16 +58,12 @@ CREATE TABLE system.job (
     state system.job_state_enum NOT NULL DEFAULT 'queued'
 );
 
-ALTER TABLE system.job OWNER TO minerva_admin;
-
 CREATE SEQUENCE system.job_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
     NO MAXVALUE
     CACHE 1;
-
-ALTER TABLE system.job_id_seq OWNER TO minerva_admin;
 
 ALTER SEQUENCE system.job_id_seq OWNED BY system.job.id;
 
@@ -101,8 +92,6 @@ CREATE TABLE system.job_error_log (
     message character varying
 );
 
-ALTER TABLE system.job_error_log OWNER TO minerva_admin;
-
 ALTER TABLE ONLY system.job_error_log
     ADD CONSTRAINT job_error_log_pkey PRIMARY KEY (job_id);
 
@@ -114,8 +103,6 @@ GRANT INSERT,DELETE,UPDATE ON TABLE system.job_error_log TO minerva_writer;
 CREATE TABLE system.job_queue (
     job_id integer NOT NULL
 );
-
-ALTER TABLE system.job_queue OWNER TO minerva_admin;
 
 ALTER TABLE ONLY system.job_queue
     ADD CONSTRAINT job_queue_pkey PRIMARY KEY (job_id);
@@ -136,16 +123,12 @@ CREATE TABLE system.setting (
     value text
 );
 
-ALTER TABLE system.setting OWNER TO minerva_admin;
-
 CREATE SEQUENCE system.setting_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
     NO MAXVALUE
     CACHE 1;
-
-ALTER TABLE system.setting_id_seq OWNER TO minerva_admin;
 
 ALTER SEQUENCE system.setting_id_seq OWNED BY system.setting.id;
 
