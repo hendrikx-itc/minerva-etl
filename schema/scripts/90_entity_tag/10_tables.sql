@@ -3,7 +3,7 @@
 CREATE TABLE entity_tag.type (
     id serial,
     name name UNIQUE,
-    tag_group_id integer REFERENCES directory.tag_group(id) ON DELETE CASCADE
+    tag_group_id integer NOT NULL REFERENCES directory.tag_group(id) ON DELETE CASCADE
 );
 
 
