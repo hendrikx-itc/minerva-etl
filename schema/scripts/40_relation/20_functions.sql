@@ -150,3 +150,20 @@ FROM %I.%I$query$,
     )
 );
 $$ LANGUAGE sql VOLATILE;
+
+
+CREATE OR REPLACE FUNCTION relation.materialize_relation(type relation.type)
+  RETURNS integer AS
+$$
+DECLARE
+    result integer;
+BEGIN
+    EXECUTE format('DELETE FROM relation.%I;', $1.name);
+    EXECUTE format('INSERT INTO relation.%I SELECT *, %L FROM relation_def.%I;', $1.name, $1.id, $1.name);
+
+    GET DIAGNOSTICS result = ROW_COUNT;
+
+    RETURN result;
+END;
+$$ LANGUAGE plpgsql VOLATILE STRICT;
+
