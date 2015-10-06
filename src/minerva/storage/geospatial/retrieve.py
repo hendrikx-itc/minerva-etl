@@ -170,31 +170,16 @@ def retrieve_related_trend(conn, database_srid, region, region_srid,
     bbox2d = transform_srid(set_srid(make_box_2d(region), region_srid),
                             database_srid)
 
-    query = """
-    SELECT t.entity_id, t.rel_entity_id, base_table.\"{0}\"
-    FROM (
-
-        SELECT rel.source_id AS entity_id, rel.target_id AS rel_entity_id
-        FROM gis.site
-        JOIN relation."{3}" site_rel on site_rel.target_id = site.entity_id
-        JOIN relation."{2}" rel on rel.source_id = site_rel.source_id
-        WHERE site.position && {4}
-    ) t
-    JOIN  {1}_att(%(timestamp)s) att on att.entity_id = t.rel_entity_id"
-    """.format(
-            attribute_name, full_base_tbl_name, relation_name,
-            relation_cell_site_name, bbox2d)
-
-    # query = (
-    #     "SELECT r.source_id, r.target_id, base_table.\"{0}\" "
-    #     "FROM {1} base_table "
-    #     "JOIN relation.\"{2}\" r ON r.target_id = base_table.entity_id "
-    #     "JOIN relation.\"{3}\" site_rel on site_rel.source_id = r.source_id "
-    #     "JOIN gis.site site ON site.entity_id = site_rel.target_id "
-    #     "AND site.position && {4} "
-    #     "WHERE base_table.\"timestamp\" = %(timestamp)s").format(
-    #     attribute_name, full_base_tbl_name, relation_name,
-    #     relation_cell_site_name, bbox2d)
+    query = (
+        "SELECT r.source_id, r.target_id, base_table.\"{0}\" "
+        "FROM {1} base_table "
+        "JOIN relation.\"{2}\" r ON r.target_id = base_table.entity_id "
+        "JOIN relation.\"{3}\" site_rel on site_rel.source_id = r.source_id "
+        "JOIN gis.site site ON site.entity_id = site_rel.target_id "
+        "AND site.position && {4} "
+        "WHERE base_table.\"timestamp\" = %(timestamp)s").format(
+        attribute_name, full_base_tbl_name, relation_name,
+        relation_cell_site_name, bbox2d)
 
     args = {
         "left": region["left"],
