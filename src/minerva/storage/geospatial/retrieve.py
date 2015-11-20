@@ -226,7 +226,7 @@ FROM (
     FROM {1} base_table
     JOIN relation.\"{2}\" r ON r.target_id = base_table.entity_id
     JOIN gis.site site ON site.entity_id = r.target_id and site.position && {3}
-) t WHERE change """.format(
+) t WHERE change is not false """.format(
         attribute_name, full_base_tbl_name, relation_name, bbox2d)
 
     with closing(conn.cursor()) as cursor:
@@ -271,7 +271,7 @@ FROM (
     JOIN relation.\"{2}\" r ON r.target_id = base_table.entity_id
     JOIN relation.\"{3}\" site_rel on site_rel.source_id = r.source_id
     JOIN gis.site site ON site.entity_id = site_rel.target_id and site.position && {4}
-) t WHERE change """.format(
+) t WHERE change is not false """.format(
         attribute_name, full_base_tbl_name, relation_name, 
         relation_cell_site_name, bbox2d)
 
