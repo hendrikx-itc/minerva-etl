@@ -260,7 +260,9 @@ class AttributeStore(object):
         cursor.execute(
             "SELECT attribute_directory.transfer_staged(attributestore) "
             "FROM attribute_directory.attributestore "
-            "WHERE id = %s", (self.id,))
+            "WHERE id = %s "
+            "FOR UPDATE",  # FOR NO KEY UPDATE in pg 9.2+
+            (self.id,))
 
     def check_attributes_exist(self, cursor):
         """Check if attributes exist and create missing."""
