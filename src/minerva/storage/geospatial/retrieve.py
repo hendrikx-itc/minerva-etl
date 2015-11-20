@@ -218,7 +218,7 @@ def retrieve_attribute(conn, database_srid, region, region_srid, datasource,
                             database_srid)
 
     query ="""
-SELECT entity_id, related_id, timestamp, \"{0}\"
+SELECT entity_id, timestamp, \"{0}\"
 FROM (
     SELECT
         r.source_id as entity_id, r.target_id as related_id, base_table.timestamp, base_table.\"{0}\",
