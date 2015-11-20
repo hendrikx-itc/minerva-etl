@@ -222,9 +222,9 @@ SELECT entity_id, related_id, timestamp, \"{0}\"
 FROM (
     SELECT
         r.source_id as entity_id, r.target_id as related_id, base_table.timestamp, base_table.\"{0}\",
-        \"{0}\" <> lag(\"{0}\") OVER (PARTITION BY r.target_id ORDER BY base_table.timestamp asc) as change
+        \"{0}\" <> lag(\"{0}\") OVER (PARTITION BY r.source_id ORDER BY base_table.timestamp asc) as change
     FROM {1} base_table
-    JOIN relation.\"{2}\" r ON r.target_id = base_table.entity_id
+    JOIN relation.\"{2}\" r ON r.source_id = base_table.entity_id
     JOIN gis.site_curr site ON site.entity_id = r.target_id and site.position && {3}
 ) t WHERE change is not false """.format(
         attribute_name, full_base_tbl_name, relation_name, bbox2d)
