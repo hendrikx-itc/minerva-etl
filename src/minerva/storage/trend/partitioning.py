@@ -1,7 +1,7 @@
 from minerva.util.timestamp import to_unix_timestamp, from_unix_timestamp
 
 
-class Partitioning():
+class Partitioning:
     def __init__(self, size):
         self.size = size
 

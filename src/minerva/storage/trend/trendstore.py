@@ -12,7 +12,7 @@ class NoSuchTrendError(Exception):
     pass
 
 
-class TimestampEquals():
+class TimestampEquals:
     def __init__(self, timestamp):
         self.timestamp = timestamp
 
@@ -20,7 +20,7 @@ class TimestampEquals():
         return 'timestamp = %s', (self.timestamp,)
 
 
-class TrendStoreQuery():
+class TrendStoreQuery:
     def __init__(self, trend_store, trend_names):
         self.trend_store = trend_store
         self.trend_names = trend_names
@@ -52,7 +52,7 @@ class TrendStoreQuery():
         return self
 
 
-class TrendStoreDescriptor():
+class TrendStoreDescriptor:
     def __init__(
             self, data_source, entity_type, granularity):
         self.data_source = data_source
@@ -60,7 +60,7 @@ class TrendStoreDescriptor():
         self.granularity = granularity
 
 
-class TrendStore():
+class TrendStore:
     """
     All data belonging to a specific data source, entity type and granularity.
     """

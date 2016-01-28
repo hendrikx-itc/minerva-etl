@@ -23,7 +23,7 @@ from minerva.db.dbtransaction import DbTransaction, DbAction, \
 LARGE_BATCH_THRESHOLD = 10
 
 
-class TableTrendStoreDescriptor():
+class TableTrendStoreDescriptor:
     def __init__(
             self, data_source, entity_type, granularity, trend_descriptors,
             partition_size):
@@ -446,7 +446,7 @@ class TableTrendStore(TrendStore):
         return f
 
 
-class StoreState():
+class StoreState:
     def __init__(self, trend_store, data_package):
         self.trend_store = trend_store
         self.data_package = data_package

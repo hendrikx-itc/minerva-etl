@@ -4,7 +4,7 @@ from minerva.directory import DataSource, EntityType
 from minerva.storage.trend.granularity import create_granularity
 
 
-class ViewTrendStoreDescriptor():
+class ViewTrendStoreDescriptor:
     def __init__(
             self, data_source, entity_type, granularity, query):
         self.data_source = data_source

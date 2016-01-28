@@ -5,7 +5,7 @@ from minerva.db.error import translate_postgresql_exception, DuplicateTable
 from minerva.db.query import Table
 
 
-class Partition():
+class Partition:
     """
     A partition of a trend store.
     """

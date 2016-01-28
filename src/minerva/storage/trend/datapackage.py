@@ -12,7 +12,7 @@ from minerva.directory.entityref import EntityDnRef, EntityIdRef
 from minerva.directory.distinguishedname import entity_type_name_from_dn
 
 
-class DataPackageBase():
+class DataPackageBase:
     """
     A DataPackage represents a batch of trend records for the same EntityType
     granularity and timestamp. The EntityType is implicitly determined by the

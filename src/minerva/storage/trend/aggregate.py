@@ -254,7 +254,7 @@ arith_expr << operatorPrecedence(operand, [
     (plusop, 2, opAssoc.LEFT, eval_addop)])
 
 
-class Context():
+class Context:
     def __init__(self, get_trend_meta):
         self.trends = set()
         self.tables = set()

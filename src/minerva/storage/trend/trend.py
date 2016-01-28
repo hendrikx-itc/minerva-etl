@@ -2,7 +2,7 @@
 from psycopg2.extensions import adapt, register_adapter
 
 
-class TrendDescriptor():
+class TrendDescriptor:
     def __init__(self, name, data_type, description):
         """
 
@@ -16,7 +16,7 @@ class TrendDescriptor():
         self.description = description
 
 
-class Trend():
+class Trend:
     def __init__(self, id_, name, data_type, trend_store_id, description):
         self.id = id_
         self.name = name
