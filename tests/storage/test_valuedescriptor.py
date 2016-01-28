@@ -39,3 +39,21 @@ def test_parse_timestamp():
     assert value_descriptor.parse('2015-01-13T13:00:00') == datetime(
         2015, 1, 13, 13, 0, 0
     )
+
+
+def test_load_from_config():
+    config = {
+        'name': 'x',
+        'data_type': 'smallint',
+        'parser_config': {
+        },
+        'serializer_config': {
+        }
+    }
+    value_descriptor = ValueDescriptor.load_from_config(config)
+
+    assert_is(value_descriptor.data_type, SmallInt)
+
+    assert_equal(value_descriptor.name, 'x')
+
+    assert_equal(config, value_descriptor.to_config())
