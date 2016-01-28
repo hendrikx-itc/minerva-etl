@@ -11,7 +11,7 @@ this software.
 """
 
 
-class Proxy():
+class Proxy:
     def __init__(self, subject=None):
         self.__subject = subject
 

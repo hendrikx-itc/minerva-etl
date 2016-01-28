@@ -20,7 +20,7 @@ class MaxRetriesError(Exception):
     pass
 
 
-class DbTransaction():
+class DbTransaction:
     """
     A list of actions on a database that can be executed in sequence and will
     either succeed or fail completely.
@@ -100,7 +100,7 @@ class DbTransaction():
         conn.commit()
 
 
-class DbAction():
+class DbAction:
     def execute(self, cursor, state):
         """
         Override in subclass. Should return a Fix if it fails, or None

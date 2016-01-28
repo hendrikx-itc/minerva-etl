@@ -26,7 +26,7 @@ from minerva.directory.helpers import dns_to_entity_ids
 SYSTEM_COLUMNS = "entity_id", "timestamp"
 
 
-class DataPackage():
+class DataPackage:
     """
     A DataPackage represents a batch of attribute records for the same
     EntityType. The EntityType is implicitly determined by the

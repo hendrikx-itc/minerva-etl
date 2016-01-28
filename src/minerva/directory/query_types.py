@@ -13,7 +13,7 @@ from minerva.db.query import Column, As, Table, Call, Select, FromItem, \
     Eq, ands, And, Any, ArrayContains, Parenthesis
 
 
-class Tag():
+class Tag:
     def __init__(self, name):
         self.name = name
 
@@ -21,7 +21,7 @@ class Tag():
         return "Tag('{}')".format(self.name)
 
 
-class Alias():
+class Alias:
     def __init__(self, name):
         self.name = name
 
@@ -29,7 +29,7 @@ class Alias():
         return "Alias('{}')".format(self.name)
 
 
-class Context():
+class Context:
     def __init__(self, tags):
         self.tags = tags
 
@@ -40,7 +40,7 @@ class Context():
         return [t.name for t in self.tags]
 
 
-class Query():
+class Query:
     def __init__(self, parts):
         self.parts = parts
 

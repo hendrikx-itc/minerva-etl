@@ -1,4 +1,4 @@
-class ValueDescriptor():
+class ValueDescriptor:
     def __init__(
             self, name, data_type, parser_config=None, serializer_config=None):
         self.name = name

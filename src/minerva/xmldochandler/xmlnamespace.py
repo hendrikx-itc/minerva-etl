@@ -12,7 +12,7 @@ this software.
 """
 
 
-class ElementRelation():
+class ElementRelation:
     """Defines a relation between an element type and an element which can
     be resolved once all element types are defined."""
 
@@ -22,7 +22,7 @@ class ElementRelation():
         self.elementpath = elementpath
 
 
-class BaseTypeRelation():
+class BaseTypeRelation:
 
     def __init__(self, elementtype, namespace_uri, typename):
         self.elementtype = elementtype
@@ -30,7 +30,7 @@ class BaseTypeRelation():
         self.typename = typename
 
 
-class XmlNamespace():
+class XmlNamespace:
 
     def __init__(self, name):
         self.name = name

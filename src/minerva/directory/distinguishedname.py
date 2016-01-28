@@ -65,7 +65,7 @@ def entity_type_name_from_dn(dn):
     return explode(dn)[-1][0]
 
 
-class DistinguishedName():
+class DistinguishedName:
     def __init__(self, parts):
         self.parts = parts
 

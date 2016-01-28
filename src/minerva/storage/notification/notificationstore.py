@@ -15,13 +15,13 @@ from minerva.directory import DataSource
 from minerva.storage.notification.attribute import Attribute
 
 
-class NotificationStoreDescriptor():
+class NotificationStoreDescriptor:
     def __init__(self, data_source, attribute_descriptors):
         self.data_source = data_source
         self.attribute_descriptors = attribute_descriptors
 
 
-class NotificationStore():
+class NotificationStore:
     def __init__(self, id_, data_source, attributes):
         self.id = id_
         self.data_source = data_source

@@ -30,14 +30,14 @@ class NoSuchAttributeError(Exception):
     pass
 
 
-class AttributeStoreDescriptor():
+class AttributeStoreDescriptor:
     def __init__(self, data_source, entity_type, attribute_descriptors):
         self.data_source = data_source
         self.entity_type = entity_type
         self.attribute_descriptors = attribute_descriptors
 
 
-class AttributeStore():
+class AttributeStore:
 
     """
     Provides the main interface to the attribute storage facilities.
@@ -338,7 +338,7 @@ class AttributeStore():
         return f
 
 
-class Query():
+class Query:
 
     """Generic query wrapper."""
 

@@ -14,14 +14,14 @@ import json
 from minerva.system.struct import Struct
 
 
-class JobSourceDescriptor():
+class JobSourceDescriptor:
     def __init__(self, name, job_type, config):
         self.name = name
         self.job_type = job_type
         self.config = config
 
 
-class JobSource():
+class JobSource:
 
     """
     Encapsulates job source and provides loading and creating functionality.

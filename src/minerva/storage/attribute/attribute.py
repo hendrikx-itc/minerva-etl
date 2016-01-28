@@ -15,14 +15,14 @@ from psycopg2.extensions import adapt, register_adapter
 from minerva.storage import datatype
 
 
-class AttributeDescriptor():
+class AttributeDescriptor:
     def __init__(self, name, data_type, description):
         self.name = name
         self.data_type = data_type
         self.description = description
 
 
-class Attribute():
+class Attribute:
     """Describes one attribute of an attribute store."""
     def __init__(
             self, id_, name, data_type, attribute_store_id,

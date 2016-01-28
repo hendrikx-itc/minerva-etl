@@ -13,7 +13,7 @@ this software.
 from urllib.parse import urlsplit
 
 
-class SchemaElement():
+class SchemaElement:
 
     def __init__(self):
         # Reference to the parent element in the schema.

@@ -14,7 +14,7 @@ from minerva.directory.distinguishedname import entity_type_name_from_dn
 from minerva.directory import EntityType
 
 
-class EntityRef():
+class EntityRef:
     """
     The abstract base class for types representing a reference to a single
     entity.

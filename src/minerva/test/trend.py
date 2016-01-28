@@ -91,7 +91,7 @@ class TestSet1Large(TestSetQtr):
         self.trend_store.store_copy_from(data_package, self.modified)(cursor)
 
 
-class TestData():
+class TestData:
     def __init__(self):
         self.entity_type_name = "dummy_type"
         self.dns = [

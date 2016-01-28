@@ -25,7 +25,7 @@ class ParseError(Exception):
     pass
 
 
-class DataType():
+class DataType:
     @classmethod
     def string_parser_config(cls, config):
         raise NotImplementedError()
@@ -773,7 +773,7 @@ ORDERED_MATCH_FUNCS = [
 ]
 
 
-class ParserDescriptor():
+class ParserDescriptor:
     def __init__(self, data_type, parser_config):
         self.data_type = data_type
         self.parser_config = parser_config

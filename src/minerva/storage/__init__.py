@@ -14,7 +14,7 @@ this software.
 """
 
 
-class StoreCmd():
+class StoreCmd:
     def __call__(self, data_source):
         """
         Return function that actually stores the data using the information
@@ -26,7 +26,7 @@ class StoreCmd():
         raise NotImplementedError()
 
 
-class Engine():
+class Engine:
     """
     The Engine class provides an interface that separates the database-aware
     code from the database-unaware logic.

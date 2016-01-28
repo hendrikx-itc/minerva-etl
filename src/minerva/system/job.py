@@ -13,7 +13,7 @@ this software.
 import json
 
 
-class JobDescriptor():
+class JobDescriptor:
     def __init__(self, job_type, description, size, job_source_id):
         self.job_type = job_type
         self.description = description
@@ -21,7 +21,7 @@ class JobDescriptor():
         self.job_source_id = job_source_id
 
 
-class Job():
+class Job:
     """
     Represents a Minerva job for processing by a node.
     """

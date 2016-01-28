@@ -1,4 +1,4 @@
-class Entity():
+class Entity:
     """
     All data within the Minerva platform is linked to entities. Entities are
     very minimal objects with only very generic properties such as name,

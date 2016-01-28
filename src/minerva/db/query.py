@@ -46,7 +46,7 @@ def smart_quote(name):
         return quote(name)
 
 
-class Sql():
+class Sql:
     def curry(self, *args, **kwargs):
         get_name = attrgetter("name")
         sorted_arguments = sorted(self.arguments(), key=get_name)
@@ -120,7 +120,7 @@ class Schema(SchemaObject):
         return smart_quote(self.name)
 
 
-class Script():
+class Script:
     def __init__(self, statements):
         self.statements = statements
 
@@ -498,7 +498,7 @@ def ensure_sql_type(obj):
         return SqlType(obj)
 
 
-class Copy():
+class Copy:
     def __init__(self, table, columns=None):
         self.table = table
         self._columns = columns

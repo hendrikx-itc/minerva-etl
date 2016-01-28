@@ -1,4 +1,4 @@
-class DataSource():
+class DataSource:
     """
     A DataSource describes where a certain set of data comes from.
     """

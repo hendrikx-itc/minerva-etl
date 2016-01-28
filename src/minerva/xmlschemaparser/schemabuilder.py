@@ -21,7 +21,7 @@ import logging
 SCHEMA_NAMESPACE = u"http://www.w3.org/2001/XMLSchema"
 
 
-class SchemaBuilder():
+class SchemaBuilder:
 
     def __init__(self):
         # Create a logger for this class with its name
