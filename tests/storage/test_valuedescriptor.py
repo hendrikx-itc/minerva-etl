@@ -14,6 +14,8 @@ def test_constructor():
         {}
     )
 
+    assert value_descriptor is not None
+
 
 def test_parse_smallint():
     value_descriptor = ValueDescriptor('x', SmallInt)
