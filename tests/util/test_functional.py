@@ -10,7 +10,8 @@ the Free Software Foundation; either version 3, or (at your option) any later
 version.  The full license is in the file COPYING, distributed as part of
 this software.
 """
-from minerva.test import assert_equal
+from nose.tools import assert_equal
+
 from minerva.util import identity, compose, k, no_op, retry_while, zip_apply
 
 

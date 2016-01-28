@@ -1,5 +1,6 @@
 from datetime import datetime
-from nose.tools import assert_raises
+
+from nose.tools import assert_raises, assert_equal, assert_is
 
 from minerva.storage.valuedescriptor import ValueDescriptor
 from minerva.storage.datatype import SmallInt, Timestamp
