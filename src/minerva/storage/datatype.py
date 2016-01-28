@@ -2,16 +2,6 @@
 """
 Defines the data types recognized by Minerva.
 """
-__docformat__ = "restructuredtext en"
-
-__copyright__ = """
-Copyright (C) 2008-2015 Hendrikx-ITC B.V.
-
-Distributed under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 3, or (at your option) any later
-version.  The full license is in the file COPYING, distributed as part of
-this software.
-"""
 import re
 from datetime import datetime, tzinfo
 import decimal
@@ -767,12 +757,6 @@ def max_data_types(current_data_types, new_data_types):
     ]
 
 
-ORDERED_MATCH_FUNCS = [
-    (data_type, data_type.deduce_parser_config)
-    for data_type in TYPE_ORDER
-]
-
-
 class ParserDescriptor:
     def __init__(self, data_type, parser_config):
         self.data_type = data_type
@@ -783,8 +767,8 @@ class ParserDescriptor:
 
 
 def parser_descriptor_from_string(value):
-    for data_type, deduce_parse_config in ORDERED_MATCH_FUNCS:
-        parse_config = deduce_parse_config(value)
+    for data_type in TYPE_ORDER:
+        parse_config = data_type.deduce_parser_config(value)
 
         if parse_config is not None:
             return ParserDescriptor(data_type, parse_config)

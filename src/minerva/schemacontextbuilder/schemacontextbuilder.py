@@ -1,15 +1,4 @@
 # -*- coding: utf-8 -*-
-
-__docformat__ = "restructuredtext en"
-
-__copyright__ = """
-Copyright (C) 2008-2015 Hendrikx-ITC B.V.
-
-Distributed under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 3, or (at your option) any later
-version.  The full license is in the file COPYING, distributed as part of
-this software.
-"""
 from minerva.xmlschemaparser import schematypes
 from minerva.xmldochandler import schemacontext
 from minerva.xmldochandler.xmlelementtype import XmlElementType
@@ -108,7 +97,7 @@ class SchemaContextBuilder:
 
         self.schemacontext = schemacontext.SchemaContext()
 
-        for (name, namespace) in self.xsd_namespaces.iteritems():
+        for (name, namespace) in self.xsd_namespaces.items():
             if namespace.uri != u'http://www.w3.org/2001/XMLSchema':
                 self.current_xsd_namespace = namespace
                 self.xmlnamespace = self.schemacontext.get_namespace(
@@ -127,7 +116,7 @@ class SchemaContextBuilder:
         return self.schemacontext
 
     def create_named_types(self):
-        for (name, type) in self.current_xsd_namespace.types.iteritems():
+        for (name, type) in self.current_xsd_namespace.types.items():
             elementtype = None
 
             if isinstance(type, schematypes.SimpleType):

@@ -1,15 +1,5 @@
 # -*- coding: utf-8 -*-
 
-__docformat__ = "restructuredtext en"
-
-__copyright__ = """
-Copyright (C) 2008-2015 Hendrikx-ITC B.V.
-
-Distributed under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 3, or (at your option) any later
-version.  The full license is in the file COPYING, distributed as part of
-this software.
-"""
 from minerva.xmldochandler.xmlnamespace import XmlNamespace
 
 
@@ -111,7 +101,7 @@ class SchemaContext:
         """
         Link the element handlers to the types
         """
-        for (namespace_uri, namespace) in self.namespaces.iteritems():
+        for (namespace_uri, namespace) in self.namespaces.items():
             for elementrelation in namespace.elementrelations:
                 elementhandler = self.get_elementhandler_by_path(
                     elementrelation.namespaceuri, elementrelation.elementpath

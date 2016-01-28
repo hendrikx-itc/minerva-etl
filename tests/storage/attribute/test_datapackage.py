@@ -23,7 +23,7 @@ TIMESTAMP = pytz.utc.localize(datetime(2013, 8, 30, 15, 30))
 
 
 simple_package = DataPackage(
-    ["power", "height", "state", "freetext"],
+    ["power", "height", "state", "remark"],
     [
         (123001, TIMESTAMP, ("405", "0.0", "enabled", "")),
         (123003, TIMESTAMP, ("41033", "22.3", "enabled", "")),
