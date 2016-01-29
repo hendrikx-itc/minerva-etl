@@ -2,7 +2,6 @@ from contextlib import closing
 from operator import contains
 from functools import partial
 
-from minerva.error import ConfigurationError
 from minerva.util import k, identity
 from minerva.directory import EntityType
 from minerva.storage import Engine
@@ -51,8 +50,8 @@ class TrendEngine(Engine):
     @staticmethod
     def filter_existing_trends(trend_store):
         """
-        Return function that transforms a data package to only contain trends that
-        are defined by *trend_store*.
+        Return function that transforms a data package to only contain trends
+        that are defined by *trend_store*.
 
         :param trend_store: trend store with defined trends
         :return: (DataPackage) -> DataPackage
@@ -60,7 +59,9 @@ class TrendEngine(Engine):
         existing_trend_names = {trend.name for trend in trend_store.trends}
 
         def f(package):
-            return package.filter_trends(partial(contains, existing_trend_names))
+            return package.filter_trends(
+                partial(contains, existing_trend_names)
+            )
 
         return f
 
@@ -70,9 +71,7 @@ def trend_store_for_package(data_source, package):
         entity_type_name = package.entity_type_name()
 
         with closing(conn.cursor()) as cursor:
-            entity_type = EntityType.get_by_name(entity_type_name)(
-                cursor
-            )
+            entity_type = EntityType.get_by_name(entity_type_name)(cursor)
 
             if entity_type is None:
                 return None

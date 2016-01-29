@@ -104,7 +104,7 @@ class TableTrendStore(TrendStore):
         :return:
         """
         query = (
-            "SELECT trend_directory.assure_trends_exist("
+            "SELECT trend_directory.assure_table_trends_exist("
             "table_trend_store, %s::trend_directory.trend_descr[]"
             ") "
             "FROM trend_directory.table_trend_store "
@@ -147,13 +147,13 @@ class TableTrendStore(TrendStore):
                 descriptor.data_source.name,
                 descriptor.entity_type.name,
                 str(descriptor.granularity),
-                descriptor.trend_descriptors,
-                descriptor.partition_size
+                descriptor.partition_size,
+                descriptor.trend_descriptors
             )
 
             query = (
                 "SELECT * FROM trend_directory.create_table_trend_store("
-                "%s, %s, %s, %s::trend_directory.trend_descr[], %s"
+                "%s, %s, %s, %s, %s::trend_directory.trend_descr[]"
                 ")"
             )
 

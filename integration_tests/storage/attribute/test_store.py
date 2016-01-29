@@ -44,7 +44,7 @@ def test_simple(conn):
             data_source, entity_type, attribute_descriptors
         ))(cursor)
 
-        attribute_store.store_txn(data_package).run(conn)
+        attribute_store.store(data_package)(conn)
 
         query = (
             "SELECT attribute_directory.materialize_curr_ptr(attribute_store) "
@@ -87,7 +87,7 @@ def test_array(conn):
 
         conn.commit()
 
-        attribute_store.store_txn(data_package).run(conn)
+        attribute_store.store(data_package)(conn)
 
 
 @with_conn(clear_database)
@@ -127,12 +127,15 @@ def test_update_modified_column(conn):
         "WHERE entity_id = 10023"
     ).format(attribute_store.history_table.render()))
 
-    attribute_store.store_txn(data_package_a).run(conn)
+    attribute_store.store(data_package_a)(conn)
 
     with closing(conn.cursor()) as cursor:
         modified_a, hash_a = query.execute(cursor).fetchone()
 
-    attribute_store.store_txn(data_package_b).run(conn)
+    # Commit between store commands, because otherwise the 'modified' timestamp is the same
+    conn.commit()
+
+    attribute_store.store(data_package_b)(conn)
 
     with closing(conn.cursor()) as cursor:
         modified_b, hash_b = query.execute(cursor).fetchone()
@@ -160,25 +163,25 @@ def test_update(conn):
         time1 = pytz.utc.localize(datetime.utcnow())
 
         data_rows = [
-            (10023, time1, ('10023', 0.9919, 17)),
-            (10047, time1, ('10047', 0.9963, 18))
+            (33001, time1, ('10023', 0.9919, 17)),
+            (33002, time1, ('10047', 0.9963, 18))
         ]
         update_data_rows = [
-            (10023, time1, ('10023', 0.5555, 17))
+            (33001, time1, ('10023', 0.5555, 17))
         ]
-
-        data_package = DataPackage(attribute_names, data_rows)
 
         attribute_store = AttributeStore.create(AttributeStoreDescriptor(
             data_source, entity_type, attribute_descriptors
         ))(cursor)
 
-        attribute_store.store_txn(data_package).run(conn)
+        attribute_store.store(DataPackage(attribute_names, data_rows))(conn)
+
+        # Commit between store commands, because otherwise the 'modified' timestamp is the same
+        conn.commit()
 
         time.sleep(1)
 
-        data_package = DataPackage(attribute_names, update_data_rows)
-        attribute_store.store_txn(data_package).run(conn)
+        attribute_store.store(DataPackage(attribute_names, update_data_rows))(conn)
 
         conn.commit()
 
@@ -191,81 +194,3 @@ def test_update(conn):
         test_list = [(modified, ccr) for modified, ccr in cursor.fetchall()]
         assert_not_equal(test_list[0][0], test_list[1][0])
         assert_not_equal(test_list[0][1], test_list[1][1])
-
-
-@with_conn(clear_database)
-def test_extra_column(conn):
-    with closing(conn.cursor()) as cursor:
-        data_source = DataSource.from_name("storagetest")(cursor)
-        entity_type = EntityType.from_name("UtranCell")(cursor)
-        timestamp = pytz.utc.localize(datetime.utcnow())
-
-        data_package_a = DataPackage(
-            attribute_names=['test0', 'test1'],
-            rows=[
-                (10023, timestamp, ('10023', '0.9919'))
-            ]
-        )
-
-        data_package_b = DataPackage(
-            attribute_names=['test0', 'test1', "test2"],
-            rows=[
-                (10023, timestamp, ('10023', '0.9919', '17'))
-            ]
-        )
-
-        attributes = data_package_a.deduce_attributes()
-        attribute_store = AttributeStore.create(
-            AttributeStoreDescriptor(data_source, entity_type, attributes)
-        )(cursor)
-
-        conn.commit()
-
-        attribute_store.store_txn(data_package_a).run(conn)
-        attribute_store.store_txn(data_package_b).run(conn)
-
-        conn.commit()
-        column_names = get_column_names(
-            conn, 'attribute_history', attribute_store.table_name()
-        )
-        eq_(len(column_names), 8)
-
-
-@with_conn(clear_database)
-def test_changing_datatype(conn):
-    with closing(conn.cursor()) as cursor:
-        data_source = DataSource.from_name("storagetest")(cursor)
-        entity_type = EntityType.from_name("UtranCell")(cursor)
-        timestamp = pytz.utc.localize(datetime.utcnow())
-        attribute_names = ['site_nr', 'height']
-
-        data_package_a = DataPackage(
-            attribute_names=attribute_names,
-            rows=[
-                (10023, timestamp, ('10023', '15'))
-            ]
-        )
-
-        data_package_b = DataPackage(
-            attribute_names=attribute_names,
-            rows=[
-                (10023, timestamp, ('10023', '25.6'))
-            ]
-        )
-
-        attribute_descriptors = data_package_a.deduce_attributes()
-
-        attribute_store = AttributeStore.create(AttributeStoreDescriptor(
-            data_source, entity_type, attribute_descriptors
-        ))(cursor)
-
-        conn.commit()
-
-        attribute_store.store_txn(data_package_a).run(conn)
-        attribute_store.store_txn(data_package_b).run(conn)
-
-        conn.commit()
-        column_names = get_column_names(
-            conn, "attribute_history", attribute_store.table_name()
-        )
-        eq_(len(column_names), 7)

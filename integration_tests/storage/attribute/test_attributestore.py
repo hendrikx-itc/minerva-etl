@@ -151,7 +151,7 @@ def test_store_batch_simple(conn):
             data_source, entity_type, attribute_descriptors
         ))(cursor)
 
-        attribute_store.store_batch(cursor, data_package)
+        attribute_store.store(data_package)(conn)
         conn.commit()
 
         cursor.execute(
@@ -196,7 +196,7 @@ def test_store_batch_with_list_a(conn):
             data_source, entity_type, attribute_descriptors
         ))(cursor)
 
-        attribute_store.store_batch(cursor, data_package)
+        attribute_store.store(data_package)(conn)
         conn.commit()
 
         cursor.execute(
@@ -244,7 +244,7 @@ def test_store_batch_with_list_b(conn):
             data_source, entity_type, attribute_descriptors
         ))(cursor)
 
-        attribute_store.store_batch(cursor, data_package)
+        attribute_store.store(data_package)(conn)
         conn.commit()
 
 
@@ -274,7 +274,7 @@ def test_store_batch_with_list_c(conn):
 
         conn.commit()
 
-        attribute_store.store_batch(cursor, data_package)
+        attribute_store.store(data_package)(conn)
         conn.commit()
 
 
@@ -303,7 +303,7 @@ def test_store_txn_with_empty(conn):
         )(cursor)
         conn.commit()
 
-        attribute_store.store_txn(data_package).run(conn)
+        attribute_store.store(data_package)(conn)
 
 
 @with_conn(clear_database)
@@ -332,7 +332,7 @@ def test_store_batch_update(conn):
             data_source, entity_type, attributes
         ))(cursor)
 
-        attribute_store.store_batch(cursor, data_package)
+        attribute_store.store(data_package)(conn)
         conn.commit()
         modified_query = (
             'SELECT modified FROM {0} '
@@ -342,7 +342,7 @@ def test_store_batch_update(conn):
         cursor.execute(modified_query)
         modified_a, = cursor.fetchone()
 
-        attribute_store.store_batch(cursor, update_data_package)
+        attribute_store.store(update_data_package)(conn)
         conn.commit()
 
         cursor.execute(modified_query)
@@ -393,7 +393,7 @@ def test_store_empty_rows(conn):
 
         conn.commit()
 
-        attribute_store.store_txn(data_package).run(conn)
+        attribute_store.store(data_package)(conn)
         conn.commit()
 
 
@@ -418,7 +418,7 @@ def test_store_empty_attributes(conn):
 
         conn.commit()
 
-        attribute_store.store_txn(data_package).run(conn)
+        attribute_store.store(data_package)(conn)
 
 
 @with_conn(clear_database)
@@ -452,10 +452,10 @@ def test_compact(conn):
             data_source, entity_type, attributes
         ))(cursor)
 
-        attribute_store.store_batch(cursor, data_package_a)
+        attribute_store.store(data_package_a)(conn)
         conn.commit()
 
-        attribute_store.store_batch(cursor, data_package_b)
+        attribute_store.store(data_package_b)(conn)
         conn.commit()
 
         count_query = (

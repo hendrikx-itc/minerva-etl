@@ -243,6 +243,15 @@ class AttributeStore:
         args = self.id,
         cursor.execute(query, args)
 
+    def _stage_data(self, cursor, data_package):
+        value_descriptors = self.get_value_descriptors(
+            data_package.attribute_names
+        )
+
+        data_package.copy_expert(
+            self.staging_table, value_descriptors
+        )(cursor)
+
     @translate_postgresql_exceptions
     def store(self, data_package):
         """Write data in one batch using staging table."""
@@ -250,15 +259,8 @@ class AttributeStore:
             if data_package.is_empty():
                 return
 
-            value_descriptors = self.get_value_descriptors(
-                data_package.attribute_names
-            )
-
             with closing(conn.cursor()) as cursor:
-                data_package.copy_expert(
-                    self.staging_table, value_descriptors
-                )(cursor)
-
+                self._stage_data(cursor, data_package)
                 self._transfer_staged(cursor)
 
         return f

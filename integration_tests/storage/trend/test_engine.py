@@ -10,7 +10,7 @@ from minerva.storage.trend.trend import TrendDescriptor
 from minerva.storage import datatype
 from minerva.storage.trend.tabletrendstore import TableTrendStore, \
     TableTrendStoreDescriptor
-from minerva.storage.trend.engine import TrendEngine, filter_existing_trends
+from minerva.storage.trend.engine import TrendEngine
 from minerva.storage.trend.datapackage import \
     refined_package_type_for_entity_type
 
@@ -71,6 +71,9 @@ def test_store_matching(conn):
 
 @with_conn(clear_database)
 def test_store_ignore_extra(conn):
+    """
+    Test if extra trends are ignored when configured to ignore
+    """
     trend_descriptors = [
         TrendDescriptor('x', datatype.Integer, ''),
     ]
@@ -105,13 +108,12 @@ def test_store_ignore_extra(conn):
         conn.commit()
 
         store_cmd = TrendEngine.make_store_cmd(
-            filter_existing_trends
+            TrendEngine.filter_existing_trends
         )(
             refined_package_type_for_entity_type('test-type001')(
                 granularity, timestamp, trend_names, data_rows
             )
         )
-
 
         store_cmd(data_source)(conn)
 

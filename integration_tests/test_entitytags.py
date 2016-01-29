@@ -15,9 +15,9 @@ def test_create_alias(conn):
 
         query = (
             "INSERT INTO directory.entity "
-            "(id, created, \"name\", entity_type_id, dn, parent_id) "
+            "(id, created, \"name\", entity_type_id, dn) "
             "VALUES"
-            "(DEFAULT, now(), 'test_entity', 1, 'type=12345', DEFAULT)"
+            "(DEFAULT, now(), 'test_entity', 1, 'type=12345')"
         )
 
         cursor.execute(query)
@@ -36,9 +36,9 @@ def test_create_tag(conn):
 
         cursor.execute(
             "INSERT INTO directory.entity ("
-            "id, created, name, entity_type_id, dn, parent_id"
+            "id, created, name, entity_type_id, dn"
             ") VALUES ("
-            "DEFAULT, now(), 'test_entity', 1, 'type=12345', DEFAULT"
+            "DEFAULT, now(), 'test_entity', 1, 'type=12345'"
             ")"
         )
 
@@ -56,9 +56,9 @@ def test_create_entity_tag_link(conn):
 
         cursor.execute(
             "INSERT INTO directory.entity ("
-            "id, created, name, entity_type_id, dn, parent_id"
+            "id, created, name, entity_type_id, dn"
             ") "
-            "VALUES (DEFAULT, now(), 'test_entity', 1, 'type=12345', DEFAULT)"
+            "VALUES (DEFAULT, now(), 'test_entity', 1, 'type=12345')"
         )
 
         conn.commit()
