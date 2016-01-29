@@ -17,8 +17,7 @@ def test_entity_a():
         created=pytz.utc.localize(datetime.utcnow()),
         name="dummy1",
         entity_type_id=entity_type.id,
-        dn="element=dummy1",
-        parent_id=None
+        dn="element=dummy1"
     )
 
 
@@ -33,8 +32,7 @@ def test_entity_with_parent():
         created=pytz.utc.localize(datetime.utcnow()),
         name="dummy1",
         entity_type_id=entity_type_a.id,
-        dn="DummyTypeA=dummy1",
-        parent_id=None
+        dn="DummyTypeA=dummy1"
     )
 
     entity_type_b = EntityType(id_=69, name="DummyTypeB", description="")
@@ -44,6 +42,5 @@ def test_entity_with_parent():
         created=pytz.utc.localize(datetime.utcnow()),
         name="dummy2",
         entity_type_id=entity_type_b.id,
-        dn=entity_1.dn + ",DummyTypeB=dummy2",
-        parent_id=entity_1.id
+        dn=entity_1.dn + ",DummyTypeB=dummy2"
     )
