@@ -539,6 +539,10 @@ def test_store_copy_from(conn):
 
     trend_names = [t.name for t in trend_descriptors]
 
+    timestamp = pytz.utc.localize(
+        datetime(2013, 4, 25, 9, 45)
+    )
+
     with closing(conn.cursor()) as cursor:
         data_source = DataSource.create("test-source", '')(cursor)
         entity_type = EntityType.create("test_type", '')(cursor)
@@ -548,11 +552,9 @@ def test_store_copy_from(conn):
             trend_descriptors, partition_size
         ))(cursor)
 
-    conn.commit()
+        trend_store.partition(timestamp).create(cursor)
 
-    timestamp = pytz.utc.localize(
-        datetime(2013, 4, 25, 9, 45)
-    )
+    conn.commit()
 
     def make_row(index):
         return 1234 + index, [1, 2, 3 + index]
@@ -585,6 +587,10 @@ def test_store_copy_from_missing_column(conn):
 
     trend_names = [t.name for t in trend_descriptors]
 
+    timestamp = pytz.utc.localize(
+        datetime(2013, 4, 25, 9, 45)
+    )
+
     with closing(conn.cursor()) as cursor:
         data_source = DataSource.create("test-source", '')(cursor)
         entity_type = EntityType.create("test_type", '')(cursor)
@@ -594,11 +600,9 @@ def test_store_copy_from_missing_column(conn):
             trend_descriptors, partition_size
         ))(cursor)
 
-    conn.commit()
+        trend_store.partition(timestamp).create(cursor)
 
-    timestamp = pytz.utc.localize(
-        datetime(2013, 4, 25, 9, 45)
-    )
+    conn.commit()
 
     rows = [
         (1234 + index, [1, 2, 3 + index])
@@ -647,6 +651,10 @@ def test_store(conn):
 
     trend_names = [t.name for t in trend_descriptors]
 
+    timestamp = pytz.utc.localize(
+        datetime(2013, 4, 25, 9, 45)
+    )
+
     with closing(conn.cursor()) as cursor:
         data_source = DataSource.create("test-source", '')(cursor)
         entity_type = EntityType.create("test_type", '')(cursor)
@@ -656,11 +664,9 @@ def test_store(conn):
             trend_descriptors, partition_size
         ))(cursor)
 
-    conn.commit()
+        trend_store.partition(timestamp).create(cursor)
 
-    timestamp = pytz.utc.localize(
-        datetime(2013, 4, 25, 9, 45)
-    )
+    conn.commit()
 
     rows = [
         (1234, [1, 2, 3]),
@@ -678,7 +684,8 @@ def test_store(conn):
 
     condition = And(
         Eq(Column("entity_id"), 2345),
-        Eq(Column("timestamp"), timestamp))
+        Eq(Column("timestamp"), timestamp)
+    )
 
     query = table.select(Column("c")).where_(condition)
 
@@ -752,6 +759,10 @@ def test_store_add_column(conn):
 
     trend_names = [t.name for t in trend_descriptors]
 
+    timestamp = pytz.utc.localize(
+        datetime(2013, 4, 25, 10, 45)
+    )
+
     with closing(conn.cursor()) as cursor:
         data_source = DataSource.create("test-source", '')(cursor)
         entity_type = EntityType.create("test_type", '')(cursor)
@@ -761,11 +772,9 @@ def test_store_add_column(conn):
             trend_descriptors, partition_size
         ))(cursor)
 
-    conn.commit()
+        trend_store.partition(timestamp).create(cursor)
 
-    timestamp = pytz.utc.localize(
-        datetime(2013, 4, 25, 10, 45)
-    )
+    conn.commit()
 
     rows = [
         (1234, [1, 2, 3]),
@@ -828,6 +837,10 @@ def test_store_alter_column(conn):
 
     trend_names = [t.name for t in trend_descriptors]
 
+    timestamp = pytz.utc.localize(
+        datetime(2013, 4, 25, 11, 00)
+    )
+
     with closing(conn.cursor()) as cursor:
         data_source = DataSource.create("test-source", '')(cursor)
         entity_type = EntityType.create("test_type", '')(cursor)
@@ -837,11 +850,9 @@ def test_store_alter_column(conn):
             trend_descriptors, partition_size
         ))(cursor)
 
-    conn.commit()
+        trend_store.partition(timestamp).create(cursor)
 
-    timestamp = pytz.utc.localize(
-        datetime(2013, 4, 25, 11, 00)
-    )
+    conn.commit()
 
     rows = [
         (1234, [1, 2, 3]),
@@ -907,6 +918,10 @@ def test_store_ignore_column(conn):
         TrendDescriptor('y', datatype.SmallInt, ''),
     ]
 
+    timestamp = pytz.utc.localize(
+        datetime(2013, 4, 25, 10, 45)
+    )
+
     with closing(conn.cursor()) as cursor:
         data_source = DataSource.create("test-source", '')(cursor)
         entity_type = EntityType.create("test_type", '')(cursor)
@@ -917,13 +932,13 @@ def test_store_ignore_column(conn):
             trend_descriptors, partition_size
         ))(cursor)
 
+        trend_store.partition(timestamp).create(cursor)
+
     conn.commit()
 
     data_package = refined_package_type_for_entity_type('Node')(
         granularity,
-        pytz.utc.localize(
-            datetime(2013, 4, 25, 10, 45)
-        ),
+        timestamp,
         ['x', 'y', 'z'],
         [
             (1234, [1, 2, 3]),

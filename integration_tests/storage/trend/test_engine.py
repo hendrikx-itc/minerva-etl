@@ -45,9 +45,11 @@ def test_store_matching(conn):
         data_source = DataSource.from_name("test-src009")(cursor)
         entity_type = EntityType.from_name("test-type001")(cursor)
 
-        TableTrendStore.create(TableTrendStoreDescriptor(
+        trend_store = TableTrendStore.create(TableTrendStoreDescriptor(
             data_source, entity_type, granularity, trend_descriptors, 86400
         ))(cursor)
+
+        trend_store.partition(timestamp).create(cursor)
 
         conn.commit()
 
@@ -101,9 +103,11 @@ def test_store_ignore_extra(conn):
         data_source = DataSource.from_name("test-src009")(cursor)
         entity_type = EntityType.from_name("test-type001")(cursor)
 
-        TableTrendStore.create(TableTrendStoreDescriptor(
+        trend_store = TableTrendStore.create(TableTrendStoreDescriptor(
             data_source, entity_type, granularity, trend_descriptors, 86400
         ))(cursor)
+
+        trend_store.partition(timestamp).create(cursor)
 
         conn.commit()
 

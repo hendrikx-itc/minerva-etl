@@ -478,8 +478,6 @@ class CopyFrom(DbAction):
             )(cursor)
         except NoCopyInProgress:
             return no_op
-        except NoSuchTable:
-            return insert_before(CreatePartition())
         except UniqueViolation:
             return replace(Update())
 
@@ -491,31 +489,16 @@ class BatchInsert(DbAction):
                 state.data_package,
                 state.modified
             )(cursor)
-        except NoSuchTable:
-            return insert_before(CreatePartition())
         except UniqueViolation:
             return replace(Update())
 
 
 class Update(DbAction):
     def execute(self, cursor, state):
-        try:
-            state.trend_store.store_update(
-                state.data_package,
-                state.modified
-            )(cursor)
-        except NoSuchTable:
-            return insert_before(CreatePartition())
-
-
-class CreatePartition(DbAction):
-    def execute(self, cursor, state):
-        try:
-            state.trend_store.partition(
-                state.data_package.timestamp
-            ).create(cursor)
-        except DuplicateTable:
-            return drop_action()
+        state.trend_store.store_update(
+            state.data_package,
+            state.modified
+        )(cursor)
 
 
 def get_timestamp(cursor):

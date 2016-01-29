@@ -98,6 +98,8 @@ def test_store_concurrent(conn):
             86400
         ))(cursor)
 
+        trend_store.partition(timestamp).create(cursor)
+
     conn.commit()
 
     threads = [

@@ -41,6 +41,8 @@ class TrendEngine(Engine):
                             transform_package(trend_store)(package)
                         ).run(conn)
 
+                        conn.commit()
+
                 return execute
 
             return bind_data_source

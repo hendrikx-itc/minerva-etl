@@ -183,14 +183,14 @@ def test_check_column_types(conn):
 
 @with_conn(clear_database)
 def test_store_raw_qtr(conn):
+    timestamp = pytz.utc.localize(datetime.datetime.utcnow())
+
     with closing(conn.cursor()) as cursor:
         data_source = DataSource.create("test-source", '')(cursor)
         entity_type = EntityType.create("test_type", '')(cursor)
 
         trend_store = TableTrendStore.create(TableTrendStoreDescriptor(
-            data_source,
-            entity_type,
-            create_granularity("900"),
+            data_source, entity_type, create_granularity("900"),
             [
                 TrendDescriptor('counter1', datatype.Integer, ''),
                 TrendDescriptor('counter2', datatype.Text, '')
@@ -198,10 +198,11 @@ def test_store_raw_qtr(conn):
             3600
         ))(cursor)
 
+        trend_store.partition(timestamp).create(cursor)
+
     conn.commit()
 
     granularity = create_granularity('900')
-    timestamp = pytz.utc.localize(datetime.datetime.utcnow())
     trend_names = ['counter1', 'counter2']
     rows = [
         ('Network=G1,Node=001', ('42', 'foo'))
@@ -215,15 +216,14 @@ def test_store_raw_qtr(conn):
 @with_conn(clear_database)
 def test_store_raw_day(conn):
     granularity = create_granularity("1 day")
+    timestamp = pytz.utc.localize(datetime.datetime.utcnow())
 
     with closing(conn.cursor()) as cursor:
         data_source = DataSource.create("test-source", '')(cursor)
         entity_type = EntityType.create("test_type", '')(cursor)
 
         trend_store = TableTrendStore.create(TableTrendStoreDescriptor(
-            data_source,
-            entity_type,
-            granularity,
+            data_source, entity_type, granularity,
             [
                 TrendDescriptor('counter1', datatype.Integer, ''),
                 TrendDescriptor('counter2', datatype.Text, '')
@@ -231,9 +231,10 @@ def test_store_raw_day(conn):
             3600
         ))(cursor)
 
+        trend_store.partition(timestamp).create(cursor)
+
     conn.commit()
 
-    timestamp = pytz.utc.localize(datetime.datetime.utcnow())
     trend_names = ['counter1', 'counter2']
     rows = [
         ('Network=G1,Node=001', ('42', 'foo'))
@@ -247,15 +248,14 @@ def test_store_raw_day(conn):
 @with_conn(clear_database)
 def test_retrieve(conn):
     granularity = create_granularity("900 second")
+    timestamp = pytz.utc.localize(datetime.datetime(2015, 2, 24, 20, 0))
 
     with closing(conn.cursor()) as cursor:
         data_source = DataSource.create("test-source", '')(cursor)
         entity_type = EntityType.create("test_type", '')(cursor)
 
         trend_store = TableTrendStore.create(TableTrendStoreDescriptor(
-            data_source,
-            entity_type,
-            granularity,
+            data_source, entity_type, granularity,
             [
                 TrendDescriptor('counter1', datatype.Integer, ''),
                 TrendDescriptor('counter2', datatype.Text, '')
@@ -263,9 +263,10 @@ def test_retrieve(conn):
             3600
         ))(cursor)
 
+        trend_store.partition(timestamp).create(cursor)
+
     conn.commit()
 
-    timestamp = pytz.utc.localize(datetime.datetime(2015, 2, 24, 20, 0))
     trend_names = ['counter1', 'counter2']
     rows = [
         ('Network=G1,Node=001', ('42', 'foo'))
