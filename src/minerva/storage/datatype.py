@@ -834,19 +834,31 @@ def array_string_serializer(base_type):
     return class_method
 
 
+array_types = {}
+
+
 def array_of(data_type):
-    return type(
-        'Arr{}'.format(data_type.__name__),
-        (DataType,),
-        {
-            'name': '{}[]'.format(data_type.name),
-            'base_type': data_type,
-            '_string_parser_config': _array_string_parser_config(data_type),
-            'string_parser': array_string_parser(data_type),
-            '_string_serializer_config': _array_string_serializer_config(data_type),
-            'string_serializer': array_string_serializer(data_type)
-        }
-    )
+    type_name = 'Arr{}'.format(data_type.__name__)
+
+    if type_name in array_types:
+        return array_types[type_name]
+    else:
+        array_type = type(
+            type_name,
+            (DataType,),
+            {
+                'name': '{}[]'.format(data_type.name),
+                'base_type': data_type,
+                '_string_parser_config': _array_string_parser_config(data_type),
+                'string_parser': array_string_parser(data_type),
+                '_string_serializer_config': _array_string_serializer_config(data_type),
+                'string_serializer': array_string_serializer(data_type)
+            }
+        )
+
+        array_types[type_name] = array_type
+
+        return array_type
 
 
 # The set of types that are integer
