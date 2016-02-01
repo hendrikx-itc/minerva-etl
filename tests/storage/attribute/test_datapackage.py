@@ -256,7 +256,10 @@ def test_create_copy_from_lines():
 
     lines = data_package._create_copy_from_lines(value_descriptors)
 
-    assert_equal(lines[0], "123001\t2013-08-30 15:30:00+00:00\t{0,1,2,4,7,4,2,1,0}\n")
+    assert_equal(
+        lines[0],
+        "123001\t2013-08-30 15:30:00+00:00\t{0,1,2,4,7,4,2,1,0}\n"
+    )
 
     data_package = DataPackage(
         ["curve"],
