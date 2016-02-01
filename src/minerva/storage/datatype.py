@@ -406,14 +406,16 @@ class Integer(DataType):
     }
 
     @classmethod
-    def string_parser_config(cls, config=None):
+    def _string_parser_config(cls, config):
         if config is None:
             return cls.default_parser_config
         else:
             return merge_dicts(cls.default_parser_config, config)
 
     @classmethod
-    def string_parser(cls, config):
+    def string_parser(cls, config=None):
+        config = cls._string_parser_config(config)
+
         def parse(value):
             if value == config["null_value"]:
                 return None
@@ -472,14 +474,16 @@ class Bigint(DataType):
     }
 
     @classmethod
-    def string_parser_config(cls, config=None):
+    def _string_parser_config(cls, config):
         if config is None:
             return cls.default_parser_config
         else:
             return merge_dicts(cls.default_parser_config, config)
 
     @classmethod
-    def string_parser(cls, config):
+    def string_parser(cls, config=None):
+        config = cls._string_parser_config(config)
+
         null_value = config["null_value"]
 
         def parse(value):
@@ -532,14 +536,16 @@ class Real(DataType):
     }
 
     @classmethod
-    def string_parser_config(cls, config=None):
+    def _string_parser_config(cls, config):
         if config is None:
             return cls.default_parser_config
         else:
             return merge_dicts(cls.default_parser_config, config)
 
     @classmethod
-    def string_parser(cls, config):
+    def string_parser(cls, config=None):
+        config = cls._string_parser_config(config)
+
         def parse(value):
             """
             Parse value and return float value. If value is empty ('') or None,
@@ -585,16 +591,20 @@ class DoublePrecision(DataType):
     }
 
     @classmethod
-    def string_parser_config(cls, config=None):
+    def _string_parser_config(cls, config):
         if config is None:
             return cls.default_parser_config
         else:
             return merge_dicts(cls.default_parser_config, config)
 
     @classmethod
-    def string_parser(cls, config):
+    def string_parser(cls, config=None):
+        config = cls._string_parser_config(config)
+
+        null_value = config['null_value']
+
         def parse(value):
-            if value == config["null_value"]:
+            if value == null_value:
                 return None
             else:
                 return float(value)
@@ -631,14 +641,16 @@ class Numeric(DataType):
     }
 
     @classmethod
-    def string_parser_config(cls, config=None):
+    def _string_parser_config(cls, config=None):
         if config is None:
             return cls.default_parser_config
         else:
             return merge_dicts(cls.default_parser_config, config)
 
     @classmethod
-    def string_parser(cls, config):
+    def string_parser(cls, config=None):
+        config = cls._string_parser_config(config)
+
         is_null = partial(operator.eq, config["null_value"])
 
         def parse(value):
@@ -744,9 +756,7 @@ def _array_string_parser_config(base_type):
 
         return merge_dicts(
             default_array_string_parser_config,
-            {
-                'base_type_config': config.get('base_type_config')
-            }
+            config
         )
 
     return class_method

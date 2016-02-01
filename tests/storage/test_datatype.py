@@ -20,9 +20,7 @@ def test_matches_string():
 def test_parse_string():
     value = "Some string that\nshould be\naccepted."
 
-    assert datatype.Text.string_parser(
-        datatype.Text.string_parser_config({})
-    )(value) == value
+    assert datatype.Text.string_parser()(value) == value
 
 
 def test_matches_bigint():
@@ -54,9 +52,7 @@ def test_matches_bigint():
 def test_parse_bigint():
     max_bigint = pow(2, 63) - 1
 
-    parse_bigint = datatype.Bigint.string_parser(
-        datatype.Bigint.string_parser_config({})
-    )
+    parse_bigint = datatype.Bigint.string_parser()
 
     assert_raises(ValueError, parse_bigint, "abc")
     assert_raises(ValueError, parse_bigint, str(max_bigint + 1))
@@ -105,9 +101,7 @@ def test_matches_integer():
 def test_parse_integer():
     max_integer = pow(2, 31) - 1
 
-    parse_integer = datatype.Integer.string_parser(
-        datatype.Integer.string_parser_config({})
-    )
+    parse_integer = datatype.Integer.string_parser()
 
     assert_raises(ValueError, parse_integer, "abc")
     assert_raises(ValueError, parse_integer, str(max_integer + 1))
@@ -160,9 +154,7 @@ def test_matches_smallint():
 def test_parse_smallint():
     max_smallint = pow(2, 15) - 1
 
-    parse_smallint = datatype.SmallInt.string_parser(
-        datatype.SmallInt.string_parser_config({})
-    )
+    parse_smallint = datatype.SmallInt.string_parser({})
 
     assert_raises(ValueError, parse_smallint, "abc")
     assert_raises(ValueError, parse_smallint, str(max_smallint + 1))
@@ -199,12 +191,10 @@ def test_parse_boolean():
 
     assert_raises(datatype.ParseError, parse_boolean, "2")
 
-    parse_boolean = datatype.Boolean.string_parser(
-        datatype.Boolean.string_parser_config({
-            "true_value": ("1", "True", "true"),
-            "false_value": ("0", "False", "false")
-        })
-    )
+    parse_boolean = datatype.Boolean.string_parser({
+        "true_value": ("1", "True", "true"),
+        "false_value": ("0", "False", "false")
+    })
 
     assert parse_boolean("1")
     assert parse_boolean("True")
@@ -251,9 +241,7 @@ def test_matches_double_precision():
 
 
 def test_parse_double_precision():
-    parse_double_precision = datatype.DoublePrecision.string_parser(
-        datatype.DoublePrecision.string_parser_config({})
-    )
+    parse_double_precision = datatype.DoublePrecision.string_parser({})
 
     value = parse_double_precision("1.1")
 
@@ -289,9 +277,7 @@ def test_matches_timestamp():
 
 
 def test_parse_timestamp():
-    parse_timestamp = datatype.Timestamp.string_parser(
-        datatype.Timestamp.string_parser_config({})
-    )
+    parse_timestamp = datatype.Timestamp.string_parser()
 
     eq_(
         parse_timestamp("2009-05-10T11:00:00"),
@@ -328,9 +314,7 @@ def test_matches_numeric():
 
 
 def test_parse_numeric():
-    parse_numeric = datatype.Numeric.string_parser(
-        datatype.Numeric.string_parser_config({})
-    )
+    parse_numeric = datatype.Numeric.string_parser()
 
     assert_raises(datatype.ParseError, parse_numeric, "abc")
 
@@ -383,9 +367,7 @@ def test_max_data_types():
 def test_array_of_integer():
     arr_int = datatype.array_of(datatype.Integer)
 
-    parser_config = arr_int.string_parser_config({})
-
-    parser = arr_int.string_parser(parser_config)
+    parser = arr_int.string_parser()
 
     value = parser('[1,2,3]')
 
@@ -399,7 +381,7 @@ def test_array_of_integer():
 def test_array_of_text():
     arr_text = datatype.array_of(datatype.Text)
 
-    parser = arr_text.string_parser(arr_text.string_parser_config({}))
+    parser = arr_text.string_parser({})
 
     value = parser('[foo,bar,baz]')
 
