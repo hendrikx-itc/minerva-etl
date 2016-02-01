@@ -5,7 +5,9 @@ Unit tests for the core.datatype module
 import decimal
 from datetime import datetime
 
-from minerva.test import eq_, assert_raises, assert_is_not_none, assert_is_none
+from nose.tools import assert_equal, assert_is_not_none, assert_is_none, \
+    assert_raises, eq_
+
 from minerva.storage import datatype
 
 
@@ -412,3 +414,15 @@ def test_type_map():
     assert 'timestamp with time zone' in datatype.type_map
 
     assert 'timestamp with time zone[]' in datatype.type_map
+
+
+def test_deduce_data_types():
+    rows = [
+        ['10', 'x']
+    ]
+
+    data_types = datatype.deduce_data_types(rows)
+
+    assert_equal(data_types[0], datatype.SmallInt)
+
+    assert_equal(data_types[1], datatype.Text)

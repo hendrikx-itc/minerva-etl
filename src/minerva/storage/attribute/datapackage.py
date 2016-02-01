@@ -52,14 +52,14 @@ class DataPackage:
         if self.is_empty():
             if len(self.attribute_names):
                 return [
-                    ValueDescriptor(name, datatype.SmallInt, None, None)
+                    ValueDescriptor(name, datatype.SmallInt)
                     for name in self.attribute_names
                 ]
             else:
                 return []
         else:
             return [
-                ValueDescriptor(name, data_type, None, None)
+                ValueDescriptor(name, data_type)
                 for name, data_type in zip(self.attribute_names, datatype.deduce_data_types(
                     (values for dn, timestamp, values in self.rows)
                 ))
@@ -132,7 +132,7 @@ class DataPackage:
 
         return {
             "attribute_names": list(self.attribute_names),
-            "rows": map(render_row, self.rows)
+            "rows": list(map(render_row, self.rows))
         }
 
     @classmethod

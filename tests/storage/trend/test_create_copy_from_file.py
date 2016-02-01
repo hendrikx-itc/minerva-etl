@@ -6,7 +6,7 @@ import pytz
 from minerva.directory import DataSource
 from minerva.storage import datatype
 from minerva.storage.valuedescriptor import ValueDescriptor
-from minerva.storage.trend.trendstore import create_copy_from_file
+from minerva.storage.trend.tabletrendstore import create_copy_from_file
 
 
 DATA_SOURCE = DataSource(
@@ -65,7 +65,7 @@ def test_create_copy_from_file_int_array():
     value_descriptors = [
         ValueDescriptor('x', datatype.Text),
         ValueDescriptor('y', datatype.Text),
-        ValueDescriptor('z', datatype.SmallInt)  # should be array
+        ValueDescriptor('z', datatype.array_of(datatype.SmallInt))
     ]
 
     f = create_copy_from_file(timestamp, modified, rows, value_descriptors)
@@ -94,7 +94,7 @@ def test_create_copy_from_file_text_array():
     value_descriptors = [
         ValueDescriptor('x', datatype.Text),
         ValueDescriptor('y', datatype.SmallInt),
-        ValueDescriptor('z', datatype.Text)  # should be array
+        ValueDescriptor('z', datatype.array_of(datatype.Text))
     ]
 
     f = create_copy_from_file(timestamp, modified, rows, value_descriptors)

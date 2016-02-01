@@ -11,12 +11,16 @@ class ValueDescriptor:
         self.parser_config = parser_config
         self.serializer_config = serializer_config
 
-        self.parse_string = data_type.string_parser(
-            data_type.string_parser_config(parser_config)
-        )
+        self.parse_string = data_type.string_parser(parser_config)
 
         self.serialize_to_string = data_type.string_serializer(
             serializer_config
+        )
+
+    def __eq__(self, other):
+        return (
+            self.name == other.name and
+            self.data_type == other.data_type
         )
 
     def parse(self, value):

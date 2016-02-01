@@ -17,10 +17,6 @@ class ParseError(Exception):
 
 class DataType:
     @classmethod
-    def string_parser_config(cls, config):
-        raise NotImplementedError()
-
-    @classmethod
     def string_parser(cls, config):
         raise NotImplementedError()
 
@@ -67,14 +63,16 @@ class Boolean(DataType):
     }
 
     @classmethod
-    def string_parser_config(cls, config=None):
+    def string_parser_config(cls, config):
         if config is None:
             return cls.default_parser_config
         else:
             return merge_dicts(cls.default_parser_config, config)
 
     @classmethod
-    def string_parser(cls, config):
+    def string_parser(cls, config=None):
+        config = cls.string_parser_config(config)
+
         null_value = config["null_value"]
         true_value = config["true_value"]
         false_value = config["false_value"]
@@ -104,11 +102,15 @@ class Boolean(DataType):
         return parse
 
     @classmethod
-    def string_serializer(cls, config=None):
+    def string_serializer_config(cls, config):
         if config is not None:
-            config = merge_dicts(cls.default_serializer_config, config)
+            return merge_dicts(cls.default_serializer_config, config)
         else:
-            config = cls.default_serializer_config
+            return cls.default_serializer_config
+
+    @classmethod
+    def string_serializer(cls, config=None):
+        config = cls.string_serializer_config(config)
 
         def serialize(value):
             if value is None:
@@ -150,8 +152,13 @@ class TimestampWithTimeZone(DataType):
         "format": "%Y-%m-%dT%H:%M:%S"
     }
 
+    default_serializer_config = {
+        "null_value": "\\N",
+        "format": "%Y-%m-%dT%H:%M:%S"
+    }
+
     @classmethod
-    def string_parser_config(cls, config=None):
+    def string_parser_config(cls, config):
         if config is None:
             return cls.default_parser_config
         else:
@@ -167,6 +174,8 @@ class TimestampWithTimeZone(DataType):
         "format", <format_string>}
         :return: a function (str_value) -> value
         """
+        config = cls.string_parser_config(config)
+
         null_value = config["null_value"]
         tz = assure_tzinfo(config["timezone"])
         format_str = config["format"]
@@ -180,9 +189,22 @@ class TimestampWithTimeZone(DataType):
         return parse
 
     @classmethod
-    def string_serializer(cls, config):
+    def string_serializer_config(cls, config):
+        if config is None:
+            return cls.default_serializer_config
+
+    @classmethod
+    def string_serializer(cls, config=None):
+        config = cls.string_parser_config(config)
+
+        null_value = config['null_value']
+        format_str = config['format']
+
         def serialize(value):
-            return str(value)
+            if value is None:
+                return null_value
+            else:
+                return value.strftime(format_str)
 
         return serialize
 
@@ -201,6 +223,7 @@ class Timestamp(DataType):
     }
 
     default_serializer_config = {
+        "null_value": "\\N",
         "format": "%Y-%m-%dT%H:%M:%S"
     }
 
@@ -222,14 +245,16 @@ class Timestamp(DataType):
     ]
 
     @classmethod
-    def string_parser_config(cls, config=None):
+    def _string_parser_config(cls, config=None):
         if config is None:
             return cls.default_parser_config
         else:
             return merge_dicts(cls.default_parser_config, config)
 
     @classmethod
-    def string_parser(cls, config):
+    def string_parser(cls, config=None):
+        config = cls._string_parser_config(config)
+
         def parse(value):
             if value == config["null_value"]:
                 return None
@@ -239,11 +264,15 @@ class Timestamp(DataType):
         return parse
 
     @classmethod
-    def string_serializer(cls, config=None):
+    def _string_serializer_config(cls, config):
         if config is None:
-            config = cls.default_serializer_config
+            return cls.default_serializer_config
         else:
-            config = merge_dicts(cls.default_serializer_config, config)
+            return merge_dicts(cls.default_serializer_config, config)
+
+    @classmethod
+    def string_serializer(cls, config=None):
+        config = cls._string_serializer_config(config)
 
         datetime_format = config["format"]
 
@@ -277,15 +306,21 @@ class SmallInt(DataType):
         "null_value": "\\N"
     }
 
+    default_serializer_config = {
+        "null_value": "\\N"
+    }
+
     @classmethod
-    def string_parser_config(cls, config=None):
+    def _string_parser_config(cls, config):
         if config is None:
             return cls.default_parser_config
         else:
             return merge_dicts(cls.default_parser_config, config)
 
     @classmethod
-    def string_parser(cls, config):
+    def string_parser(cls, config=None):
+        config = cls._string_parser_config(config)
+
         null_value = config["null_value"]
 
         def parse(value):
@@ -323,9 +358,23 @@ class SmallInt(DataType):
                 return cls.default_parser_config
 
     @classmethod
-    def string_serializer(cls, config):
+    def _string_serializer_config(cls, config):
+        if config is None:
+            return cls.default_serializer_config
+        else:
+            return merge_dicts(cls.default_serializer_config, config)
+
+    @classmethod
+    def string_serializer(cls, config=None):
+        config = cls._string_serializer_config(config)
+
+        null_value = config['null_value']
+
         def serialize(value):
-            return str(value)
+            if value is None:
+                return null_value
+            else:
+                return str(value)
 
         return serialize
 
@@ -630,16 +679,22 @@ class Text(DataType):
     default_parser_config = {
         "null_value": "\\N"
     }
+    
+    default_serializer_config = {
+        "null_value": "\\N"
+    }
 
     @classmethod
-    def string_parser_config(cls, config=None):
+    def _string_parser_config(cls, config):
         if config is None:
             return cls.default_parser_config
         else:
             return merge_dicts(cls.default_parser_config, config)
 
     @classmethod
-    def string_parser(cls, config):
+    def string_parser(cls, config=None):
+        config = cls._string_parser_config(config)
+
         null_value = config["null_value"]
 
         def parse(value):
@@ -649,11 +704,25 @@ class Text(DataType):
                 return value
 
         return parse
+    
+    @classmethod
+    def _string_serializer_config(cls, config):
+        if config is None:
+            return cls.default_serializer_config
+        else:
+            return merge_dicts(cls.default_serializer_config, config)
 
     @classmethod
-    def string_serializer(cls, config):
+    def string_serializer(cls, config=None):
+        config = cls._string_serializer_config(config)
+
+        null_value = config['null_value']
+
         def serialize(value):
-            return str(value)
+            if value is None:
+                return null_value
+            else:
+                return str(value)
 
         return serialize
 
@@ -667,16 +736,38 @@ default_array_string_parser_config = {
 }
 
 
-def array_string_parser_config(base_type):
+def _array_string_parser_config(base_type):
     @classmethod
     def class_method(cls, config):
+        if config is None:
+            config = default_array_string_parser_config
+
         return merge_dicts(
             default_array_string_parser_config,
             {
-                'base_type_config': base_type.string_parser_config(
-                    config.get('base_type_config')
-                )
+                'base_type_config': config.get('base_type_config')
             }
+        )
+
+    return class_method
+
+
+default_array_string_serializer_config = {
+    'separator': ',',
+    'prefix': '[',
+    'postfix': ']'
+}
+
+
+def _array_string_serializer_config(base_type):
+    @classmethod
+    def class_method(cls, config):
+        if config is None:
+            config = default_array_string_serializer_config
+
+        return merge_dicts(
+            default_array_string_serializer_config,
+            config
         )
 
     return class_method
@@ -688,8 +779,12 @@ def strip_brackets(str_value):
 
 def array_string_parser(base_type):
     @classmethod
-    def class_method(cls, config):
-        base_type_parser = base_type.string_parser(config['base_type_config'])
+    def class_method(cls, config=None):
+        config = cls._string_parser_config(config)
+
+        base_type_parser = base_type.string_parser(
+            config.get('base_type_config')
+        )
         separator = config['separator']
 
         values_part = strip_brackets
@@ -705,14 +800,41 @@ def array_string_parser(base_type):
     return class_method
 
 
+def array_string_serializer(base_type):
+    @classmethod
+    def class_method(cls, config=None):
+        config = cls._string_serializer_config(config)
+
+        base_type_serializer = base_type.string_serializer(
+            config['base_type_config']
+        )
+        separator = config['separator']
+
+        prefix = config['prefix']
+
+        postfix = config['postfix']
+
+        def serialize(arr_value):
+            return prefix + separator.join(
+                base_type_serializer(part) for part in arr_value
+            ) + postfix
+
+        return serialize
+
+    return class_method
+
+
 def array_of(data_type):
     return type(
         'Arr{}'.format(data_type.__name__),
         (DataType,),
         {
             'name': '{}[]'.format(data_type.name),
-            'string_parser_config': array_string_parser_config(data_type),
-            'string_parser': array_string_parser(data_type)
+            'base_type': data_type,
+            '_string_parser_config': _array_string_parser_config(data_type),
+            'string_parser': array_string_parser(data_type),
+            '_string_serializer_config': _array_string_serializer_config(data_type),
+            'string_serializer': array_string_serializer(data_type)
         }
     )
 
@@ -835,7 +957,7 @@ def load_data_format(format_config):
         return data_type, data_type.string_parser(config)
 
 
-copy_from_serializer_config = {
+copy_from_serializer_base_type_config = {
     Bigint: {
         'null_value': '\\N'
     },
@@ -867,3 +989,15 @@ copy_from_serializer_config = {
         'null_value': '\\N'
     }
 }
+
+
+def copy_from_serializer_config(data_type):
+    if data_type.__name__.startswith('Arr'):
+        return {
+            'separator': ',',
+            'prefix': '{',
+            'postfix': '}',
+            'base_type_config': copy_from_serializer_base_type_config[data_type.base_type]
+        }
+    else:
+        return copy_from_serializer_base_type_config[data_type]
