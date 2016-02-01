@@ -408,3 +408,12 @@ def test_deduce_data_types():
     assert_equal(data_types[0], datatype.SmallInt)
 
     assert_equal(data_types[1], datatype.Text)
+
+
+def test_compare_data_types():
+    assert_equal(datatype.SmallInt, datatype.SmallInt)
+
+    assert_equal(
+        datatype.array_of(datatype.SmallInt),
+        datatype.array_of(datatype.SmallInt)
+    )
