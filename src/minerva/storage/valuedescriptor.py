@@ -1,7 +1,13 @@
+# -*- coding: utf-8 -*-
 from minerva.storage import datatype
 
 
 class ValueDescriptor:
+    """
+    A combination of value name, type, parsing and serialization information.
+    This is intended to be used for loading data from format a (some file) and
+    write it to format b (a database store command).
+    """
     def __init__(
             self, name, data_type, parser_config=None, serializer_config=None):
         self.name = name
