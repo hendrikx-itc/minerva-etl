@@ -36,7 +36,7 @@ class ValueDescriptor:
         }
 
     @staticmethod
-    def load_from_config(config):
+    def from_config(config):
         return ValueDescriptor(
             config['name'],
             datatype.registry[config['data_type']],

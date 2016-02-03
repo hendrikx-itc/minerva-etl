@@ -52,7 +52,7 @@ def test_load_from_config():
         'serializer_config': {
         }
     }
-    value_descriptor = ValueDescriptor.load_from_config(config)
+    value_descriptor = ValueDescriptor.from_config(config)
 
     assert_is(value_descriptor.data_type, datatype.registry['smallint'])
 
