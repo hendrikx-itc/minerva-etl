@@ -1,9 +1,7 @@
-from minerva.storage.datatype import all_data_types
+from minerva.storage import datatype
 
 
 class ValueDescriptor:
-    name_to_data_type = {d.name: d for d in all_data_types}
-
     def __init__(
             self, name, data_type, parser_config=None, serializer_config=None):
         self.name = name
@@ -41,7 +39,7 @@ class ValueDescriptor:
     def load_from_config(config):
         return ValueDescriptor(
             config['name'],
-            ValueDescriptor.name_to_data_type[config['data_type']],
+            datatype.registry[config['data_type']],
             config.get('parser_config'),
             config.get('serializer_config')
         )

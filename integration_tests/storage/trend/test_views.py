@@ -6,7 +6,6 @@ import pytz
 from minerva.test import with_conn, clear_database, eq_
 from minerva.test.trend import TestSet1Small
 from minerva.directory import DataSource
-from minerva.storage.trend.engine import TrendEngine
 from minerva.storage.trend.viewtrendstore import ViewTrendStore, ViewTrendStoreDescriptor
 
 

@@ -18,8 +18,8 @@ from minerva.storage.trend.datapackage import \
 @with_conn(clear_database)
 def test_store_matching(conn):
     trend_descriptors = [
-        TrendDescriptor('x', datatype.Integer, ''),
-        TrendDescriptor('y', datatype.Integer, ''),
+        TrendDescriptor('x', datatype.registry['integer'], ''),
+        TrendDescriptor('y', datatype.registry['integer'], ''),
     ]
 
     trend_names = [t.name for t in trend_descriptors]
@@ -77,7 +77,7 @@ def test_store_ignore_extra(conn):
     Test if extra trends are ignored when configured to ignore
     """
     trend_descriptors = [
-        TrendDescriptor('x', datatype.Integer, ''),
+        TrendDescriptor('x', datatype.registry['integer'], ''),
     ]
 
     data_rows = [

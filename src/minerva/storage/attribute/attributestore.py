@@ -65,8 +65,10 @@ class AttributeStore:
         return f
 
     @staticmethod
-    def get_attributes(attribute_store_id):
-        """Load associated attributes from database and return them."""
+    def get_attributes(attribute_store_id: int):
+        """Load associated attributes from database and return them.
+        :param attribute_store_id: Unique database ID of the attribute store
+        """
         def f(cursor):
             query = (
                 "SELECT id, name, data_type, attribute_store_id, description "
@@ -84,7 +86,7 @@ class AttributeStore:
                 ) = row
 
                 return Attribute(
-                    attribute_id, name, datatype.type_map[data_type],
+                    attribute_id, name, datatype.registry[data_type],
                     attribute_store_id, description
                 )
 
@@ -149,8 +151,10 @@ class AttributeStore:
         return f
 
     @staticmethod
-    def get(id_):
-        """Load and return attribute store by its Id."""
+    def get(id_: int):
+        """Load and return attribute store by its Id.
+        :param id_: Unique database ID of the attribute store
+        """
         def f(cursor):
             query = (
                 "SELECT data_source_id, entity_type_id "
@@ -188,7 +192,7 @@ class AttributeStore:
         return map(load, cursor.fetchall())
 
     @staticmethod
-    def load_attribute_store(id_, data_source_id, entity_type_id):
+    def load_attribute_store(id_: int, data_source_id: int, entity_type_id: int):
         def f(cursor):
             data_source = DataSource.get(data_source_id)(cursor)
             entity_type = EntityType.get(entity_type_id)(cursor)

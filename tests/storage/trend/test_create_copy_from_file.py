@@ -34,8 +34,8 @@ def test_create_copy_from_file_simple():
     ]
 
     value_descriptors = [
-        ValueDescriptor('x', datatype.Text),
-        ValueDescriptor('y', datatype.Text)
+        ValueDescriptor('x', datatype.registry['text']),
+        ValueDescriptor('y', datatype.registry['text'])
     ]
 
     f = create_copy_from_file(timestamp, modified, rows, value_descriptors)
@@ -63,9 +63,26 @@ def test_create_copy_from_file_int_array():
     ]
 
     value_descriptors = [
-        ValueDescriptor('x', datatype.Text),
-        ValueDescriptor('y', datatype.Text),
-        ValueDescriptor('z', datatype.array_of(datatype.SmallInt))
+        ValueDescriptor(
+            'x',
+            datatype.registry['text'],
+            {},
+            datatype.copy_from_serializer_config(datatype.registry['text'])
+        ),
+        ValueDescriptor(
+            'y',
+            datatype.registry['text'],
+            {},
+            datatype.copy_from_serializer_config(datatype.registry['text'])
+        ),
+        ValueDescriptor(
+            'z',
+            datatype.registry['smallint[]'],
+            {},
+            datatype.copy_from_serializer_config(
+                datatype.registry['smallint[]']
+            )
+        )
     ]
 
     f = create_copy_from_file(timestamp, modified, rows, value_descriptors)
@@ -73,7 +90,7 @@ def test_create_copy_from_file_int_array():
     text = f.read()
     expected = (
         "1\t'2008-12-03T00:15:00+00:00'\t'2008-12-03T00:15:00+00:00'\t"
-        "a\t23\t{\"1\",\"2\",\"3\"}\n"
+        "\"a\"\t\"23\"\t{1,2,3}\n"
     )
 
     assert text == expected, '\n{}\n!=\n{}'.format(text, expected)
@@ -92,9 +109,24 @@ def test_create_copy_from_file_text_array():
     ]
 
     value_descriptors = [
-        ValueDescriptor('x', datatype.Text),
-        ValueDescriptor('y', datatype.SmallInt),
-        ValueDescriptor('z', datatype.array_of(datatype.Text))
+        ValueDescriptor(
+            'x',
+            datatype.registry['text'],
+            {},
+            datatype.copy_from_serializer_config(datatype.registry['text'])
+        ),
+        ValueDescriptor(
+            'y',
+            datatype.registry['smallint'],
+            {},
+            datatype.copy_from_serializer_config(datatype.registry['smallint'])
+        ),
+        ValueDescriptor(
+            'z',
+            datatype.registry['text[]'],
+            {},
+            datatype.copy_from_serializer_config(datatype.registry['text[]'])
+        )
     ]
 
     f = create_copy_from_file(timestamp, modified, rows, value_descriptors)
@@ -103,7 +135,7 @@ def test_create_copy_from_file_text_array():
 
     expected = (
         "1\t'2008-12-03T00:15:00+00:00'\t'2008-12-03T00:15:00+00:00'\t"
-        "a\t23\t{\"a=b,c=d\",\"e=f,g=h\",\"i=j,k=l\"}\n"
+        "\"a\"\t23\t{\"a=b,c=d\",\"e=f,g=h\",\"i=j,k=l\"}\n"
     )
 
     assert text == expected, '\n{}\n!=\n{}'.format(text, expected)

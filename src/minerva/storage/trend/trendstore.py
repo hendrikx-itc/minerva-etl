@@ -131,7 +131,7 @@ class TrendStore:
 
         return [
             Trend(
-                id_, name, datatype.type_map[data_type], trend_store_id,
+                id_, name, datatype.registry[data_type], trend_store_id,
                 description
             )
             for id_, name, data_type, trend_store_id, description
@@ -149,7 +149,7 @@ class TrendStore:
             else:
                 data_type = trend.data_type
 
-                return data_type.string_parser(data_type.string_parser_config())
+                return data_type.string_parser()
 
         return [
             get_parser_by_trend_name(name)
@@ -167,9 +167,7 @@ class TrendStore:
             else:
                 data_type = trend.data_type
 
-                return ValueDescriptor(
-                    name, data_type, data_type.string_parser_config()
-                )
+                return ValueDescriptor(name, data_type)
 
         return [
             get_descriptor_by_trend_name(name)

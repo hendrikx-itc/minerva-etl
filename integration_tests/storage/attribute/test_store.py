@@ -122,7 +122,8 @@ def test_update_modified_column(conn):
     with closing(conn.cursor()) as cursor:
         modified_a, hash_a = query.execute(cursor).fetchone()
 
-    # Commit between store commands, because otherwise the 'modified' timestamp is the same
+    # Commit between store commands, because otherwise the 'modified' timestamp
+    # is the same
     conn.commit()
 
     attribute_store.store(data_package_b)(conn)
@@ -141,9 +142,9 @@ def test_update_modified_column(conn):
 def test_update(conn):
     with closing(conn.cursor()) as cursor:
         attribute_descriptors = [
-            AttributeDescriptor('CellID', datatype.Text, ''),
-            AttributeDescriptor('CCR', datatype.DoublePrecision, ''),
-            AttributeDescriptor('Drops', datatype.SmallInt, '')
+            AttributeDescriptor('CellID', datatype.registry['text'], ''),
+            AttributeDescriptor('CCR', datatype.registry['double precision'], ''),
+            AttributeDescriptor('Drops', datatype.registry['smallint'], '')
         ]
 
         attribute_names = [a.name for a in attribute_descriptors]

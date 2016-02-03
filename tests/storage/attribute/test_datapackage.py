@@ -84,19 +84,19 @@ def test_deduce_value_descriptors():
 
     assert_equal(
         value_descriptors[0],
-        ValueDescriptor("power", datatype.Integer)
+        ValueDescriptor("power", datatype.registry['integer'])
     )
     assert_equal(
         value_descriptors[1],
-        ValueDescriptor("height", datatype.Real)
+        ValueDescriptor("height", datatype.registry['real'])
     )
     assert_equal(
         value_descriptors[2],
-        ValueDescriptor("state", datatype.Text)
+        ValueDescriptor("state", datatype.registry['text'])
     )
     assert_equal(
         value_descriptors[3],
-        ValueDescriptor("remark", datatype.SmallInt)
+        ValueDescriptor("remark", datatype.registry['smallint'])
     )
 
 
@@ -118,7 +118,7 @@ def test_deduce_data_types_array():
 
     assert_equal(
         attr_type_dict["curve"],
-        ValueDescriptor('curve', datatype.Text)
+        ValueDescriptor('curve', datatype.registry['text'])
     )
 
 
@@ -131,7 +131,7 @@ def test_deduce_data_types_empty():
     value_descriptors = data_package.deduce_value_descriptors()
 
     assert_equal(
-        value_descriptors[0], ValueDescriptor('height', datatype.SmallInt)
+        value_descriptors[0], ValueDescriptor('height', datatype.registry['smallint'])
     )
 
 
@@ -181,9 +181,9 @@ def test_deduce_attributes():
         for attribute in attributes
     }
 
-    assert_equal(attr_dict["power"].data_type, datatype.Integer)
-    assert_equal(attr_dict["height"].data_type, datatype.Real)
-    assert_equal(attr_dict["state"].data_type, datatype.Text)
+    assert_equal(attr_dict["power"].data_type, datatype.registry['integer'])
+    assert_equal(attr_dict["height"].data_type, datatype.registry['real'])
+    assert_equal(attr_dict["state"].data_type, datatype.registry['text'])
 
 
 def test_create_copy_from_lines():
@@ -202,27 +202,27 @@ def test_create_copy_from_lines():
     value_descriptors = [
         ValueDescriptor(
             'power',
-            datatype.Integer,
+            datatype.registry['integer'],
             {},
-            datatype.copy_from_serializer_config(datatype.Integer)
+            datatype.copy_from_serializer_config(datatype.registry['integer'])
         ),
         ValueDescriptor(
             'height',
-            datatype.Real,
+            datatype.registry['real'],
             {},
-            datatype.copy_from_serializer_config(datatype.Integer)
+            datatype.copy_from_serializer_config(datatype.registry['real'])
         ),
         ValueDescriptor(
             'state',
-            datatype.Boolean,
+            datatype.registry['boolean'],
             {},
-            datatype.copy_from_serializer_config(datatype.Boolean)
+            datatype.copy_from_serializer_config(datatype.registry['boolean'])
         ),
         ValueDescriptor(
             'remark',
-            datatype.Text,
+            datatype.registry['text'],
             {},
-            datatype.copy_from_serializer_config(datatype.Text)
+            datatype.copy_from_serializer_config(datatype.registry['text'])
         )
     ]
 
@@ -230,7 +230,7 @@ def test_create_copy_from_lines():
 
     assert_equal(
         lines[0],
-        "123001\t2013-08-30 15:30:00+00:00\t405\t0.0\ttrue\t\n"
+        "123001\t2013-08-30 15:30:00+00:00\t405\t0.0\ttrue\t\"\"\n"
     )
 
     data_package = DataPackage(
@@ -246,10 +246,10 @@ def test_create_copy_from_lines():
     value_descriptors = [
         ValueDescriptor(
             data_package.attribute_names[0],
-            datatype.array_of(datatype.SmallInt),
+            datatype.registry['smallint[]'],
             {},
             datatype.copy_from_serializer_config(
-                datatype.array_of(datatype.SmallInt)
+                datatype.registry['smallint[]']
             )
         )
     ]
@@ -271,13 +271,13 @@ def test_create_copy_from_lines():
     )
 
     serializer_config = datatype.copy_from_serializer_config(
-        datatype.array_of(datatype.SmallInt)
+        datatype.registry['smallint[]']
     )
 
     value_descriptors = [
         ValueDescriptor(
             'curve',
-            datatype.array_of(datatype.SmallInt),
+            datatype.registry['smallint[]'],
             serializer_config=serializer_config
         )
     ]
@@ -298,10 +298,10 @@ def test_create_copy_from_lines():
     value_descriptors = [
         ValueDescriptor(
             'curve',
-            datatype.array_of(datatype.SmallInt),
+            datatype.registry['smallint[]'],
             {},
             datatype.copy_from_serializer_config(
-                datatype.array_of(datatype.SmallInt)
+                datatype.registry['smallint[]']
             )
         )
     ]

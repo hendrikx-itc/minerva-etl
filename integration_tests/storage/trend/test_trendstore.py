@@ -50,8 +50,8 @@ def test_create_trend_store_with_trends(conn):
         trend_store = TableTrendStore.create(TableTrendStoreDescriptor(
             data_source, entity_type, granularity,
             [
-                TrendDescriptor('x', datatype.Integer, ''),
-                TrendDescriptor('y', datatype.DoublePrecision, '')
+                TrendDescriptor('x', datatype.registry['integer'], ''),
+                TrendDescriptor('y', datatype.registry['double precision'], '')
             ], partition_size
         ))(cursor)
 
@@ -108,8 +108,8 @@ def test_get(conn):
         TableTrendStore.create(TableTrendStoreDescriptor(
             data_source, entity_type, granularity,
             [
-                TrendDescriptor('x', datatype.Integer, ''),
-                TrendDescriptor('y', datatype.DoublePrecision, '')
+                TrendDescriptor('x', datatype.registry['integer'], ''),
+                TrendDescriptor('y', datatype.registry['double precision'], '')
             ], partition_size
         ))(cursor)
 
@@ -154,8 +154,8 @@ def test_check_column_types(conn):
     partition_size = 3600
 
     trend_descriptors = [
-        TrendDescriptor("counter1", datatype.Integer, ''),
-        TrendDescriptor("counter2", datatype.Integer, '')
+        TrendDescriptor("counter1", datatype.registry['integer'], ''),
+        TrendDescriptor("counter2", datatype.registry['integer'], '')
     ]
 
     with closing(conn.cursor()) as cursor:
@@ -182,8 +182,8 @@ def test_store_raw_qtr(conn):
         trend_store = TableTrendStore.create(TableTrendStoreDescriptor(
             data_source, entity_type, create_granularity("900"),
             [
-                TrendDescriptor('counter1', datatype.Integer, ''),
-                TrendDescriptor('counter2', datatype.Text, '')
+                TrendDescriptor('counter1', datatype.registry['integer'], ''),
+                TrendDescriptor('counter2', datatype.registry['text'], '')
             ],
             3600
         ))(cursor)
@@ -215,8 +215,8 @@ def test_store_raw_day(conn):
         trend_store = TableTrendStore.create(TableTrendStoreDescriptor(
             data_source, entity_type, granularity,
             [
-                TrendDescriptor('counter1', datatype.Integer, ''),
-                TrendDescriptor('counter2', datatype.Text, '')
+                TrendDescriptor('counter1', datatype.registry['integer'], ''),
+                TrendDescriptor('counter2', datatype.registry['text'], '')
             ],
             3600
         ))(cursor)
@@ -247,8 +247,8 @@ def test_retrieve(conn):
         trend_store = TableTrendStore.create(TableTrendStoreDescriptor(
             data_source, entity_type, granularity,
             [
-                TrendDescriptor('counter1', datatype.Integer, ''),
-                TrendDescriptor('counter2', datatype.Text, '')
+                TrendDescriptor('counter1', datatype.registry['integer'], ''),
+                TrendDescriptor('counter2', datatype.registry['text'], '')
             ],
             3600
         ))(cursor)

@@ -23,10 +23,10 @@ def test_create(conn):
 
         attribute_descriptors = [
             AttributeDescriptor(
-                "cntr1", datatype.Integer, "description of cntr2"
+                "cntr1", datatype.registry['integer'], "description of cntr2"
             ),
             AttributeDescriptor(
-                "cntr2", datatype.Integer, "description of cntr1"
+                "cntr2", datatype.registry['integer'], "description of cntr1"
             )
         ]
 
@@ -86,11 +86,11 @@ def test_from_attributes(conn):
 
         attribute_descriptors = [
             AttributeDescriptor(
-                "cntr1", datatype.Integer,
+                "cntr1", datatype.registry['integer'],
                 "description for this attribute"
             ),
             AttributeDescriptor(
-                "cntr2", datatype.Integer,
+                "cntr2", datatype.registry['integer'],
                 "description for this attribute"
             )
         ]
@@ -242,8 +242,8 @@ def test_store_batch_with_list_b(conn):
 def test_store_batch_with_list_c(conn):
     """Test batch wise storing using staging table."""
     attribute_descriptors = [
-        AttributeDescriptor('height', datatype.DoublePrecision, ''),
-        AttributeDescriptor('refs', datatype.Text, '')
+        AttributeDescriptor('height', datatype.registry['double precision'], ''),
+        AttributeDescriptor('refs', datatype.registry['text'], '')
     ]
     attribute_names = [a.name for a in attribute_descriptors]
     timestamp = pytz.utc.localize(datetime.utcnow())
@@ -272,7 +272,7 @@ def test_store_batch_with_list_c(conn):
 def test_store_txn_with_empty(conn):
     """Test transactional storing with empty value."""
     attribute_descriptors = [
-        AttributeDescriptor('freeText', datatype.Text, '')
+        AttributeDescriptor('freeText', datatype.registry['text'], '')
     ]
 
     attribute_names = [a.name for a in attribute_descriptors]
