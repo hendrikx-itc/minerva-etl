@@ -51,7 +51,7 @@ def compile_sql(minerva_query, relation_group_name, entity_id_column=None):
             query_part, entity_id_column, eld_alias = make_any_c_from()
 
     query_parts.append(query_part)
-    args.append(map(str.lower, first_component['value']))
+    args.append([x.lower() for x in first_component['value']])
 
     last_type = first_component['type']
 
@@ -61,7 +61,7 @@ def compile_sql(minerva_query, relation_group_name, entity_id_column=None):
                 query_part = make_c_and(eld_alias)
 
                 query_parts.append(query_part)
-                args.append(map(str.lower, component['value']))
+                args.append([x.lower() for x in component['value']])
             else:
                 query_part, entity_id_column = make_relation_join(
                     index, entity_id_column, relation_group_name)
@@ -71,7 +71,7 @@ def compile_sql(minerva_query, relation_group_name, entity_id_column=None):
                 query_part, eld_alias = make_c_join(index, entity_id_column)
 
                 query_parts.append(query_part)
-                args.append(map(str.lower, component['value']))
+                args.append([x.lower() for x in component['value']])
 
         elif component['type'] == 'any C':
             query_part, entity_id_column = make_relation_join(
@@ -82,7 +82,7 @@ def compile_sql(minerva_query, relation_group_name, entity_id_column=None):
             query_part, eld_alias = make_any_c_join(index, entity_id_column)
 
             query_parts.append(query_part)
-            args.append(map(str.lower, component['value']))
+            args.append([x.lower() for x in component['value']])
 
         elif component['type'] == 'S':
             query_part = make_s_join(index, eld_alias)

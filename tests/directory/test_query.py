@@ -2,6 +2,8 @@
 """
 Unit tests for compiling Minerva Queries to SQL.
 """
+from nose.tools import assert_equal
+
 from minerva.test import eq_, raises
 from minerva.directory.query import compile_sql, QueryError
 
@@ -14,7 +16,7 @@ def test_simple():
 
     expected_sql = (
         ' FROM (VALUES(NULL)) dummy '
-        'JOIN directory.entity_link_denorm eld ON %s <@ eld.tags'
+        'JOIN directory.entity_tag_link_denorm eld ON %s <@ eld.tags'
     )
 
     expected_args = [[u"cell"]]
@@ -23,7 +25,7 @@ def test_simple():
 
     expected = (expected_sql, expected_args, expected_entity_id_column)
 
-    eq_(sql, expected)
+    assert_equal(sql, expected)
 
 
 @raises(QueryError)
