@@ -4,7 +4,6 @@ from itertools import chain
 from operator import itemgetter
 
 from minerva.db.util import quote_ident
-from minerva.storage.datatype import deduce_data_types
 from minerva.storage.trend import schema
 from minerva.util import grouped_by, zip_apply, identity, k
 from minerva.util.tabulate import render_table
@@ -46,9 +45,9 @@ class DataPackageBase:
             ','.join(self.trend_names),
         ]
 
-        lines.extend([','.join(values) for dn, values in self.rows])
+        lines.extend([','.join(values) for entity_ref, values in self.rows])
 
-        column_names = ["dn"] + list(self.trend_names)
+        column_names = ["entity"] + list(self.trend_names)
         column_align = ">" * len(column_names)
         column_sizes = ["max"] * len(column_names)
 
@@ -59,10 +58,6 @@ class DataPackageBase:
 
     @classmethod
     def entity_ref_type(cls):
-        raise NotImplementedError()
-
-    @staticmethod
-    def refine_values(value_parsers):
         raise NotImplementedError()
 
     def entity_type_name(self):
@@ -94,35 +89,24 @@ class DataPackageBase:
             ]
         )
 
-    def deduce_data_types(self):
-        """
-        Return a list of the minimal required data types to store the values in
-        this data package, in the same order as the values and thus matching the
-        order of attribute_names.
-        """
-        return deduce_data_types(values for entity_ref, values in self.rows)
-
     def get_key(self):
         return (
             self.__class__, self.timestamp,
             self.entity_type_name(), self.granularity
         )
 
-    def refined_rows(self, value_parsers):
-        def f(cursor):
-            entity_refs, value_rows = zip(*self.rows)
+    def refined_rows(self, cursor):
+        """
+        Map the entity reference to an entity ID in each row and return the
+        newly formed rows with IDs.
+        """
+        entity_refs, value_rows = zip(*self.rows)
 
-            entity_ids = self.entity_ref_type().map_to_entity_ids(
-                list(entity_refs)
-            )(cursor)
+        entity_ids = self.entity_ref_type().map_to_entity_ids(
+            list(entity_refs)
+        )(cursor)
 
-            refine_values = self.refine_values(value_parsers)
-
-            refined_value_rows = list(map(refine_values, value_rows))
-
-            return list(zip(entity_ids, refined_value_rows))
-
-        return f
+        return list(zip(entity_ids, value_rows))
 
     @staticmethod
     def merge_packages(packages):
