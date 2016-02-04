@@ -273,16 +273,12 @@ class TableTrendStore(TrendStore):
 
     def _store_copy_from(self, table, data_package, modified):
         def f(cursor):
-            value_parsers = self.get_string_parsers(data_package.trend_names)
-
-            value_descriptors = self.get_value_descriptors(
-                data_package.trend_names
-            )
+            serializers = self.get_copy_serializers(data_package.trend_names)
 
             copy_from_file = create_copy_from_file(
                 data_package.timestamp, modified,
-                data_package.refined_rows(value_parsers)(cursor),
-                value_descriptors
+                data_package.refined_rows(cursor),
+                serializers
             )
 
             copy_from_query = create_copy_from_query(
@@ -316,6 +312,10 @@ class TableTrendStore(TrendStore):
 
     def store_batch_insert(self, data_package, modified):
         def f(cursor):
+            value_descriptors = self.get_value_descriptors(
+                data_package.trend_names
+            )
+
             table = self.partition(data_package.timestamp).table()
 
             column_names = ["entity_id", "timestamp", "modified"]
@@ -332,12 +332,10 @@ class TableTrendStore(TrendStore):
                 "VALUES ({2})"
             ).format(table.render(), columns_part, parameters)
 
-            value_parsers = self.get_string_parsers(data_package.trend_names)
-
             rows = [
                 (entity_id, data_package.timestamp, modified) + tuple(values)
                 for entity_id, values
-                in data_package.refined_rows(value_parsers)(cursor)
+                in data_package.refined_rows(cursor)
             ]
 
             try:
@@ -517,13 +515,8 @@ def create_copy_from_query(table, trend_names):
     )
 
 
-def create_copy_from_lines(timestamp, modified, rows, value_descriptors):
-    value_mappers = [
-        value_descriptor.serialize_to_string
-        for value_descriptor in value_descriptors
-    ]
-
-    map_values = zip_apply(value_mappers)
+def create_copy_from_lines(timestamp, modified, rows, serializers):
+    map_values = zip_apply(serializers)
 
     return (
         u"{0:d}\t'{1!s}'\t'{2!s}'\t{3}\n".format(
