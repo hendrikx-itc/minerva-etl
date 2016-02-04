@@ -138,24 +138,6 @@ class TrendStore:
             in cursor.fetchall()
         ]
 
-    def get_string_parsers(self, trend_names):
-        trend_by_name = {t.name: t for t in self.trends}
-
-        def get_parser_by_trend_name(name):
-            try:
-                trend = trend_by_name[name]
-            except KeyError:
-                raise NoSuchTrendError('no trend with name {}'.format(name))
-            else:
-                data_type = trend.data_type
-
-                return data_type.string_parser()
-
-        return [
-            get_parser_by_trend_name(name)
-            for name in trend_names
-        ]
-
     def get_value_descriptors(self, trend_names):
         trend_by_name = {t.name: t for t in self.trends}
 
@@ -171,6 +153,24 @@ class TrendStore:
 
         return [
             get_descriptor_by_trend_name(name)
+            for name in trend_names
+        ]
+
+    def get_copy_serializers(self, trend_names):
+        trend_by_name = {t.name: t for t in self.trends}
+
+        def get_serializer_by_trend_name(name):
+            try:
+                trend = trend_by_name[name]
+            except KeyError:
+                raise NoSuchTrendError('no trend with name {}'.format(name))
+            else:
+                data_type = trend.data_type
+
+                return data_type.string_serializer()
+
+        return [
+            get_serializer_by_trend_name(name)
             for name in trend_names
         ]
 
