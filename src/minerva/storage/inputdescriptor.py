@@ -4,6 +4,9 @@ from minerva.storage import datatype
 
 
 class InputDescriptor:
+    """
+    Combines a value descriptor with configuration for parsing values.
+    """
     def __init__(
             self, value_descriptor: ValueDescriptor, parser_config: dict=None):
         self.value_descriptor = value_descriptor
