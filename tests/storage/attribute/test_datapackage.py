@@ -7,6 +7,7 @@ import pytz
 
 from minerva.storage import datatype
 from minerva.storage.valuedescriptor import ValueDescriptor
+from minerva.storage.outputdescriptor import OutputDescriptor
 from minerva.storage.attribute.datapackage import DataPackage
 
 TIMESTAMP = pytz.utc.localize(datetime(2013, 8, 30, 15, 30))
@@ -199,34 +200,26 @@ def test_create_copy_from_lines():
         ]
     )
 
-    value_descriptors = [
-        ValueDescriptor(
-            'power',
-            datatype.registry['integer'],
-            {},
+    output_descriptors = [
+        OutputDescriptor(
+            ValueDescriptor('power', datatype.registry['integer']),
             datatype.copy_from_serializer_config(datatype.registry['integer'])
         ),
-        ValueDescriptor(
-            'height',
-            datatype.registry['real'],
-            {},
+        OutputDescriptor(
+            ValueDescriptor('height', datatype.registry['real']),
             datatype.copy_from_serializer_config(datatype.registry['real'])
         ),
-        ValueDescriptor(
-            'state',
-            datatype.registry['boolean'],
-            {},
+        OutputDescriptor(
+            ValueDescriptor('state', datatype.registry['boolean']),
             datatype.copy_from_serializer_config(datatype.registry['boolean'])
         ),
-        ValueDescriptor(
-            'remark',
-            datatype.registry['text'],
-            {},
+        OutputDescriptor(
+            ValueDescriptor('remark', datatype.registry['text']),
             datatype.copy_from_serializer_config(datatype.registry['text'])
         )
     ]
 
-    lines = data_package._create_copy_from_lines(value_descriptors)
+    lines = data_package._create_copy_from_lines(output_descriptors)
 
     assert_equal(
         lines[0],
@@ -243,18 +236,19 @@ def test_create_copy_from_lines():
         ]
     )
 
-    value_descriptors = [
-        ValueDescriptor(
-            data_package.attribute_names[0],
-            datatype.registry['smallint[]'],
-            {},
+    output_descriptors = [
+        OutputDescriptor(
+            ValueDescriptor(
+                data_package.attribute_names[0],
+                datatype.registry['smallint[]'],
+            ),
             datatype.copy_from_serializer_config(
                 datatype.registry['smallint[]']
             )
         )
     ]
-
-    lines = data_package._create_copy_from_lines(value_descriptors)
+    
+    lines = data_package._create_copy_from_lines(output_descriptors)
 
     assert_equal(
         lines[0],
@@ -274,15 +268,14 @@ def test_create_copy_from_lines():
         datatype.registry['smallint[]']
     )
 
-    value_descriptors = [
-        ValueDescriptor(
-            'curve',
-            datatype.registry['smallint[]'],
-            serializer_config=serializer_config
+    output_descriptors = [
+        OutputDescriptor(
+            ValueDescriptor('curve', datatype.registry['smallint[]']),
+            serializer_config
         )
     ]
 
-    lines = data_package._create_copy_from_lines(value_descriptors)
+    lines = data_package._create_copy_from_lines(output_descriptors)
 
     assert_equal(lines[1], "123002\t2013-08-30 15:30:00+00:00\t{0,1,2}\n")
     assert_equal(lines[2], "123003\t2013-08-30 15:30:00+00:00\t{\\N,\\N,\\N}\n")
@@ -295,20 +288,18 @@ def test_create_copy_from_lines():
         ]
     )
 
-    value_descriptors = [
-        ValueDescriptor(
-            'curve',
-            datatype.registry['smallint[]'],
-            {},
+    output_descriptors = [
+        OutputDescriptor(
+            ValueDescriptor('curve', datatype.registry['smallint[]']),
             datatype.copy_from_serializer_config(
                 datatype.registry['smallint[]']
             )
         )
     ]
 
-    lines = data_package._create_copy_from_lines(value_descriptors)
+    lines = data_package._create_copy_from_lines(output_descriptors)
 
     assert_equal(lines[0], "123001\t2013-08-30 15:30:00+00:00\t{\\N,\\N}\n")
     assert_equal(lines[1], "123002\t2013-08-30 15:30:00+00:00\t{\\N,\\N}\n")
 
-    f = data_package._create_copy_from_file(value_descriptors)
+    f = data_package._create_copy_from_file(output_descriptors)

@@ -11,6 +11,7 @@ from minerva.directory import EntityType, DataSource
 from minerva.db.error import translate_postgresql_exception, \
     translate_postgresql_exceptions
 from minerva.storage.attribute.attribute import Attribute
+from minerva.storage.outputdescriptor import OutputDescriptor
 from minerva.storage.valuedescriptor import ValueDescriptor
 from minerva.storage import datatype
 
@@ -248,12 +249,12 @@ class AttributeStore:
         cursor.execute(query, args)
 
     def _stage_data(self, cursor, data_package):
-        value_descriptors = self.get_value_descriptors(
+        output_descriptors = self.get_output_descriptors(
             data_package.attribute_names
         )
 
         data_package.copy_expert(
-            self.staging_table, value_descriptors
+            self.staging_table, output_descriptors
         )(cursor)
 
     @translate_postgresql_exceptions
@@ -277,14 +278,19 @@ class AttributeStore:
             try:
                 return ValueDescriptor(
                     name,
-                    attributes_by_name[name].data_type,
-                    None,
-                    {'null_value': '\\N'}
+                    attributes_by_name[name].data_type
                 )
             except KeyError:
                 raise NoSuchAttributeError(name)
 
         return [name_to_value_descriptor(name) for name in attribute_names]
+
+    def get_output_descriptors(self, attribute_names):
+        """Return list of data types corresponding to the `attribute_names`."""
+        return [
+            OutputDescriptor(value_descriptor, None)
+            for value_descriptor in self.get_value_descriptors(attribute_names)
+        ]
 
     def _transfer_staged(self, cursor):
         """Transfer all records from staging to history table."""

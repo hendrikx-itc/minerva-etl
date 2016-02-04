@@ -74,7 +74,7 @@ class DataPackage:
             for value_descriptor in self.deduce_value_descriptors()
         ]
 
-    def copy_expert(self, table, value_descriptors):
+    def copy_expert(self, table, output_descriptors):
         """
         Return a function that can execute a COPY FROM query on a cursor.
 
@@ -84,7 +84,7 @@ class DataPackage:
         def fn(cursor):
             cursor.copy_expert(
                 self._create_copy_from_query(table),
-                self._create_copy_from_file(value_descriptors)
+                self._create_copy_from_file(output_descriptors)
             )
 
         return fn
@@ -97,7 +97,7 @@ class DataPackage:
             table.render(), ",".join(map(quote_ident, column_names))
         )
 
-    def _create_copy_from_file(self, value_descriptors):
+    def _create_copy_from_file(self, output_descriptors):
         """
         Return StringIO instance to use with COPY FROM command.
 
@@ -106,7 +106,7 @@ class DataPackage:
         """
         copy_from_file = StringIO()
 
-        lines = self._create_copy_from_lines(value_descriptors)
+        lines = self._create_copy_from_lines(output_descriptors)
 
         copy_from_file.writelines(lines)
 
@@ -114,10 +114,10 @@ class DataPackage:
 
         return copy_from_file
 
-    def _create_copy_from_lines(self, value_descriptors):
+    def _create_copy_from_lines(self, output_descriptors):
         value_mappers = [
-            value_descriptor.serialize_to_string
-            for value_descriptor in value_descriptors
+            output_descriptor.serialize
+            for output_descriptor in output_descriptors
         ]
 
         return [

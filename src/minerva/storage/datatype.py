@@ -10,6 +10,8 @@ import operator
 
 import pytz
 
+from minerva.util import merge_dicts
+
 
 class ParseError(Exception):
     pass
@@ -34,13 +36,6 @@ class DataType:
         :return: configuration dictionary
         """
         raise NotImplementedError()
-
-
-def merge_dicts(x, y):
-    z = x.copy()
-    z.update(y)
-
-    return z
 
 
 class Boolean(DataType):
@@ -793,6 +788,9 @@ class ArrayType(DataType):
             ) + postfix
 
         return serialize
+
+    def deduce_parser_config(self, value):
+        raise NotImplementedError
 
 
 def strip_brackets(str_value):

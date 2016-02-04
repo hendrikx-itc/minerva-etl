@@ -345,3 +345,15 @@ def show(value):
 
 def grouped_by(iterable, key):
     return groupby(sorted(iterable, key=key), key)
+
+
+def merge_dicts(x: dict, y: dict):
+    if x is None:
+        return y
+    elif y is None:
+        return x
+    else:
+        z = x.copy()
+        z.update(y)
+
+        return z

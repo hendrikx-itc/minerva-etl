@@ -9,6 +9,7 @@ from nose.tools import assert_equal
 import pytz
 
 from minerva.storage.valuedescriptor import ValueDescriptor
+from minerva.storage.inputdescriptor import InputDescriptor
 from minerva.test import with_conn, clear_database
 from minerva.directory import EntityType, DataSource
 from minerva.storage.trend.granularity import create_granularity
@@ -17,6 +18,7 @@ from minerva.storage.trend.tabletrendstore import TableTrendStore, \
 from minerva.storage.trend.trend import TrendDescriptor
 from minerva.storage.trend.datapackage import DefaultPackage
 from minerva.storage import datatype
+from minerva.util import merge_dicts
 
 
 @with_conn(clear_database)
@@ -41,15 +43,15 @@ def test_defaults(conn):
         ('n=004', ['', '234.33'])
     ]
 
-    value_descriptors = [
-        ValueDescriptor.from_config(d) for d in data_descr
+    input_descriptors = [
+        InputDescriptor.load(d) for d in data_descr
     ]
 
     parsed_data = [
         (dn, [
             descriptor.parse(raw_value)
             for raw_value, descriptor
-            in zip(values, value_descriptors)
+            in zip(values, input_descriptors)
         ])
         for dn, values in data
     ]
@@ -141,15 +143,18 @@ def test_nulls(conn):
         ('test_nulls=004', ['', 'NULL'])
     ]
 
-    value_descriptors = [
-        ValueDescriptor.from_config(d) for d in data_descr
+    input_descriptors = [
+        InputDescriptor.load(
+            merge_dicts(d, input_descr_lookup.get(d['name']))
+        )
+        for d in data_descr
     ]
 
     parsed_data = [
         (dn, [
             descriptor.parse(raw_value)
             for raw_value, descriptor
-            in zip(values, value_descriptors)
+            in zip(values, input_descriptors)
         ])
         for dn, values in data
     ]

@@ -6,6 +6,7 @@ import pytz
 from minerva.directory import DataSource
 from minerva.storage import datatype
 from minerva.storage.valuedescriptor import ValueDescriptor
+from minerva.storage.outputdescriptor import OutputDescriptor
 from minerva.storage.trend.tabletrendstore import create_copy_from_file
 
 
@@ -33,12 +34,17 @@ def test_create_copy_from_file_simple():
         (1, ('a', '23'))
     ]
 
-    value_descriptors = [
-        ValueDescriptor('x', datatype.registry['text']),
-        ValueDescriptor('y', datatype.registry['text'])
+    output_descriptors = [
+        OutputDescriptor(ValueDescriptor('x', datatype.registry['text'])),
+        OutputDescriptor(ValueDescriptor('y', datatype.registry['text']))
     ]
 
-    f = create_copy_from_file(timestamp, modified, rows, value_descriptors)
+    serializers = [
+        output_descriptor.serialize
+        for output_descriptor in output_descriptors
+    ]
+
+    f = create_copy_from_file(timestamp, modified, rows, serializers)
 
     text = f.read()
     expected = (
@@ -62,30 +68,29 @@ def test_create_copy_from_file_int_array():
         (1, ('a', '23', [1, 2, 3]))
     ]
 
-    value_descriptors = [
-        ValueDescriptor(
-            'x',
-            datatype.registry['text'],
-            {},
+    output_descriptors = [
+        OutputDescriptor(
+            ValueDescriptor('x', datatype.registry['text']),
             datatype.copy_from_serializer_config(datatype.registry['text'])
         ),
-        ValueDescriptor(
-            'y',
-            datatype.registry['text'],
-            {},
+        OutputDescriptor(
+            ValueDescriptor('y', datatype.registry['text']),
             datatype.copy_from_serializer_config(datatype.registry['text'])
         ),
-        ValueDescriptor(
-            'z',
-            datatype.registry['smallint[]'],
-            {},
+        OutputDescriptor(
+            ValueDescriptor('z', datatype.registry['smallint[]']),
             datatype.copy_from_serializer_config(
                 datatype.registry['smallint[]']
             )
         )
     ]
 
-    f = create_copy_from_file(timestamp, modified, rows, value_descriptors)
+    serializers = [
+        output_descriptor.serialize
+        for output_descriptor in output_descriptors
+    ]
+
+    f = create_copy_from_file(timestamp, modified, rows, serializers)
 
     text = f.read()
     expected = (
@@ -108,28 +113,27 @@ def test_create_copy_from_file_text_array():
         (1, ('a', '23', ["a=b,c=d", "e=f,g=h", "i=j,k=l"]))
     ]
 
-    value_descriptors = [
-        ValueDescriptor(
-            'x',
-            datatype.registry['text'],
-            {},
+    output_descriptors = [
+        OutputDescriptor(
+            ValueDescriptor('x', datatype.registry['text']),
             datatype.copy_from_serializer_config(datatype.registry['text'])
         ),
-        ValueDescriptor(
-            'y',
-            datatype.registry['smallint'],
-            {},
+        OutputDescriptor(
+            ValueDescriptor('y', datatype.registry['smallint']),
             datatype.copy_from_serializer_config(datatype.registry['smallint'])
         ),
-        ValueDescriptor(
-            'z',
-            datatype.registry['text[]'],
-            {},
+        OutputDescriptor(
+            ValueDescriptor('z', datatype.registry['text[]']),
             datatype.copy_from_serializer_config(datatype.registry['text[]'])
         )
     ]
 
-    f = create_copy_from_file(timestamp, modified, rows, value_descriptors)
+    serializers = [
+        output_descriptor.serialize
+        for output_descriptor in output_descriptors
+    ]
+
+    f = create_copy_from_file(timestamp, modified, rows, serializers)
 
     text = f.read()
 
