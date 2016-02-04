@@ -19,10 +19,10 @@ class DataType:
     def __init__(self, name):
         self.name = name
 
-    def string_parser(self, config):
+    def string_parser(self, config=None):
         raise NotImplementedError()
 
-    def string_serializer(self, config):
+    def string_serializer(self, config=None):
         raise NotImplementedError()
 
     def deduce_parser_config(self, value):
@@ -154,13 +154,13 @@ class TimestampWithTimeZone(DataType):
     def __init__(self):
         DataType.__init__(self, 'timestamp with time zone')
 
-    def string_parser_config(self, config):
+    def _string_parser_config(self, config):
         if config is None:
             return self.default_parser_config
         else:
             return merge_dicts(self.default_parser_config, config)
 
-    def string_parser(self, config):
+    def string_parser(self, config=None):
         """
         Return function that can parse a string representation of a
         TimestampWithTimeZone value.
@@ -169,7 +169,7 @@ class TimestampWithTimeZone(DataType):
         "format", <format_string>}
         :return: a function (str_value) -> value
         """
-        config = self.string_parser_config(config)
+        config = self._string_parser_config(config)
 
         null_value = config["null_value"]
         tz = assure_tzinfo(config["timezone"])
@@ -188,7 +188,7 @@ class TimestampWithTimeZone(DataType):
             return self.default_serializer_config
 
     def string_serializer(self, config=None):
-        config = self.string_parser_config(config)
+        config = self._string_parser_config(config)
 
         null_value = config['null_value']
         format_str = config['format']
@@ -406,7 +406,7 @@ class Integer(DataType):
 
         return parse
 
-    def string_serializer(self, config):
+    def string_serializer(self, config=None):
         def serialize(value):
             return str(value)
 
@@ -473,7 +473,7 @@ class Bigint(DataType):
 
         return parse
 
-    def string_serializer(self, config):
+    def string_serializer(self, config=None):
         def serialize(value):
             return str(value)
 
@@ -538,7 +538,7 @@ class Real(DataType):
 
         return parse
 
-    def string_serializer(self, config):
+    def string_serializer(self, config=None):
         def serialize(value):
             return str(value)
 
@@ -599,7 +599,7 @@ class DoublePrecision(DataType):
         else:
             return self.default_parser_config
 
-    def string_serializer(self, config):
+    def string_serializer(self, config=None):
         def serialize(value):
             return str(value)
 
@@ -637,7 +637,7 @@ class Numeric(DataType):
 
         return parse
 
-    def string_serializer(self, config):
+    def string_serializer(self, config=None):
         def serialize(value):
             return str(value)
 
