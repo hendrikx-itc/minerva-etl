@@ -914,7 +914,7 @@ def load_data_format(format_config):
     except KeyError:
         raise Exception("No such data type: {}".format(data_type_name))
     else:
-        config = data_type.string_parser_config(format_config["string_format"])
+        config = data_type._string_parser_config(format_config["string_format"])
 
         return data_type, data_type.string_parser(config)
 
