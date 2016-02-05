@@ -14,11 +14,10 @@ from minerva.storage.trend.tables import DATA_TABLE_POSTFIXES
 from minerva.storage.trend import schema
 from minerva.directory import DataSource, EntityType
 from minerva.storage.trend.granularity import create_granularity
-from minerva.db.error import NoCopyInProgress, NoSuchTable, \
-    UniqueViolation, DuplicateTable, \
+from minerva.db.error import NoCopyInProgress, UniqueViolation, \
     translate_postgresql_exception, translate_postgresql_exceptions
 from minerva.db.dbtransaction import DbTransaction, DbAction, \
-    insert_before, replace, drop_action
+    replace
 
 LARGE_BATCH_THRESHOLD = 10
 
