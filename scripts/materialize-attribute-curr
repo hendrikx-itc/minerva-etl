@@ -39,7 +39,6 @@ def main():
 
     with closing(minerva_instance.connect(user=args.user)) as conn:
         with closing(conn.cursor()) as cursor:
-            cursor.execute('set statement_timeout = 0')
             cursor.execute('set minerva.trigger_mark_modified = off')
 
             if args.all:

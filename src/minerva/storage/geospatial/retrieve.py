@@ -38,7 +38,7 @@ def get_entities_in_region(conn, database_srid, region, region_srid,
         "SELECT r.target_id "
         "FROM relation.\"{0}\" r "
         "JOIN relation.\"{1}\" site_rel on site_rel.source_id = r.source_id "
-        "JOIN gis.site site ON site.entity_id = site_rel.target_id "
+        "JOIN gis.site_curr site ON site.entity_id = site_rel.target_id "
         "AND site.position && {2}").format(
         relation_name, relation_site_cell_name, bbox2d)
 
@@ -63,7 +63,7 @@ def get_cells_in_region(conn, database_srid, region, region_srid):
     query = (
         "SELECT site_rel.source_id "
         "FROM relation.\"{0}\" site_rel on site_rel.source_id = r.source_id "
-        "JOIN gis.site site ON site.entity_id = site_rel.target_id "
+        "JOIN gis.site_curr site ON site.entity_id = site_rel.target_id "
         "AND site.position && {1}").format(
         relation_site_cell_name, bbox2d)
 
@@ -85,7 +85,7 @@ def get_sites_in_region(conn, database_srid, region, region_srid):
 
     query = (
         "SELECT site.entity_id "
-        "FROM gis.site site "
+        "FROM gis.site_curr site "
         "WHERE site.position && {}").format(bbox2d)
 
     with closing(conn.cursor()) as cursor:
@@ -125,7 +125,7 @@ def retrieve_trend(conn, database_srid, region, region_srid, datasource,
         "FROM {1} base_table "
         "JOIN relation.\"{2}\" site_rel "
         "ON site_rel.source_id = base_table.entity_id "
-        "JOIN gis.site site ON site.entity_id = site_rel.target_id "
+        "JOIN gis.site_curr site ON site.entity_id = site_rel.target_id "
         "AND site.position && {3} "
         "WHERE base_table.\"timestamp\" = %(timestamp)s").format(
         attribute_name, full_base_tbl_name, relation_name, bbox2d)
@@ -175,7 +175,7 @@ def retrieve_related_trend(conn, database_srid, region, region_srid,
         "FROM {1} base_table "
         "JOIN relation.\"{2}\" r ON r.target_id = base_table.entity_id "
         "JOIN relation.\"{3}\" site_rel on site_rel.source_id = r.source_id "
-        "JOIN gis.site site ON site.entity_id = site_rel.target_id "
+        "JOIN gis.site_curr site ON site.entity_id = site_rel.target_id "
         "AND site.position && {4} "
         "WHERE base_table.\"timestamp\" = %(timestamp)s").format(
         attribute_name, full_base_tbl_name, relation_name,
@@ -218,17 +218,15 @@ def retrieve_attribute(conn, database_srid, region, region_srid, datasource,
                             database_srid)
 
     query ="""
-SELECT public.first(entity_id) AS entity_id, min(timestamp) AS "timestamp", 
-\"{0}\" FROM ( SELECT entity_id, timestamp, \"{0}\", sum(change) OVER w2 AS run 
-FROM ( SELECT entity_id, timestamp, \"{0}\", 
-  CASE WHEN \"{0}\"  <> lag(\"{0}\" ) OVER w THEN 1 ELSE 0 END AS change
-  FROM ( SELECT base_table.entity_id, base_table.timestamp, base_table.\"{0}\" 
+SELECT entity_id, timestamp, \"{0}\"
+FROM (
+    SELECT
+        r.source_id as entity_id, r.target_id as related_id, base_table.timestamp, base_table.\"{0}\",
+        \"{0}\" <> lag(\"{0}\") OVER (PARTITION BY r.source_id ORDER BY base_table.timestamp asc) as change
     FROM {1} base_table
-    JOIN relation.\"{2}\" site_rel ON site_rel.source_id = base_table.entity_id 
-    JOIN gis.site site ON site.entity_id = site_rel.target_id AND 
-    site.position && {3} ) a WINDOW w AS (PARTITION BY entity_id ORDER BY 
-    timestamp asc)) t WINDOW w2 AS (PARTITION BY entity_id ORDER BY 
-    timestamp ASC)) runs GROUP BY entity_id, \"{0}\" , run""".format(
+    JOIN relation.\"{2}\" r ON r.source_id = base_table.entity_id
+    JOIN gis.site_curr site ON site.entity_id = r.target_id and site.position && {3}
+) t WHERE change is not false """.format(
         attribute_name, full_base_tbl_name, relation_name, bbox2d)
 
     with closing(conn.cursor()) as cursor:
@@ -264,19 +262,16 @@ def retrieve_related_attribute(conn, database_srid, region, region_srid,
                             database_srid)
 
     query ="""
-SELECT public.first(entity_id) AS entity_id, public.first(related_id) AS related_id, 
-min(timestamp) AS "timestamp", \"{0}\" FROM ( 
-SELECT entity_id, related_id, timestamp, \"{0}\", sum(change) OVER w2 AS run 
-FROM ( SELECT entity_id, related_id, timestamp, \"{0}\", 
-  CASE WHEN \"{0}\"  <> lag(\"{0}\" ) OVER w THEN 1 ELSE 0 END AS change
-  FROM ( SELECT r.source_id as entity_id,  r.target_id as related_id, 
-    base_table.timestamp, base_table.\"{0}\" FROM {1} base_table
-    JOIN relation.\"{2}\" r ON r.target_id = base_table.entity_id 
-    JOIN relation.\"{3}\" site_rel on site_rel.source_id = r.source_id 
-    JOIN gis.site site ON site.entity_id = site_rel.target_id AND 
-    site.position && {4} ) a WINDOW w AS (PARTITION BY entity_id ORDER BY 
-    timestamp asc)) t WINDOW w2 AS (PARTITION BY entity_id ORDER BY 
-    timestamp ASC)) runs GROUP BY entity_id, \"{0}\" , run""".format(
+SELECT entity_id, related_id, timestamp, \"{0}\"
+FROM (
+    SELECT
+        r.source_id as entity_id, r.target_id as related_id, base_table.timestamp, base_table.\"{0}\",
+        \"{0}\" <> lag(\"{0}\") OVER (PARTITION BY r.target_id ORDER BY base_table.timestamp asc) as change
+    FROM {1} base_table
+    JOIN relation.\"{2}\" r ON r.target_id = base_table.entity_id
+    JOIN relation.\"{3}\" site_rel on site_rel.source_id = r.source_id
+    JOIN gis.site_curr site ON site.entity_id = site_rel.target_id and site.position && {4}
+) t WHERE change is not false """.format(
         attribute_name, full_base_tbl_name, relation_name, 
         relation_cell_site_name, bbox2d)
 

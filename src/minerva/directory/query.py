@@ -208,19 +208,11 @@ def iter_cs(query):
 
 def make_relation_join(index, entity_id_column, relation_group_name):
     relation_alias = "r_{0}".format(index)
-    type_alias = "type_{0}".format(index)
-    group_alias = "g_{0}".format(index)
 
     query_part = (
         " JOIN relation.all_materialized {0} ON {0}.source_id = {1} "
-        " JOIN relation.type {2} ON {0}.type_id = {2}.id "
-        " JOIN relation.group {3} "
-        " ON {2}.group_id = {3}.id "
-        " AND {3}.name = '{4}'"
-    ).format(
-        relation_alias, entity_id_column, type_alias, group_alias,
-        relation_group_name
-    )
+    ).format(relation_alias, entity_id_column)
+
     entity_id_column = "{0}.target_id".format(relation_alias)
 
     return query_part, entity_id_column
