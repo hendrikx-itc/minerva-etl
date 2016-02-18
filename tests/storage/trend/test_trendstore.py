@@ -7,6 +7,7 @@ from minerva.storage.trend.trendstore import TrendStore
 def test_constructor():
     trend_store = TrendStore(
         id_=42,
+        name='test-trend-store',
         data_source=DataSource(1, 'test-source', 'description'),
         entity_type=EntityType(11, 'TestType', 'description'),
         granularity=create_granularity('1 day'),
@@ -19,10 +20,11 @@ def test_constructor():
 def test_base_table_name():
     trend_store = TrendStore(
         id_=42,
+        name='test-trend-store',
         data_source=DataSource(1, 'test-source', 'description'),
         entity_type=EntityType(11, 'TestType', 'description'),
         granularity=create_granularity('1 day'),
         trends=[]
     )
 
-    eq_(trend_store.table_name(), 'test-source_TestType_day')
+    eq_(trend_store.table_name(), 'test-trend-store')

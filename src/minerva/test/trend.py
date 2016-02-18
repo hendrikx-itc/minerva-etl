@@ -47,6 +47,7 @@ class TestSet1Small(TestSetQtr):
 
         if not self.trend_store:
             self.trend_store = TableTrendStore.create(TableTrendStoreDescriptor(
+                'test-set-1-small',
                 self.data_source, self.entity_type, self.granularity,
                 trend_descriptors, partition_size=86400
             ))(cursor)
@@ -120,6 +121,7 @@ class TestData:
         self.data_source_a = DataSource.from_name("test-source-a")(cursor)
 
         self.trend_store_a = TrendStore.create(TrendStoreDescriptor(
+            'test-data-a',
             self.data_source_a, self.entity_type, granularity,
             trend_descriptors, partition_size=86400
         ))(cursor)
@@ -134,6 +136,7 @@ class TestData:
 
         self.data_source_b = DataSource.from_name("test-source-b")(cursor)
         self.trend_store_b = TrendStore.create(TrendStoreDescriptor(
+            'test-data-b',
             self.data_source_b, self.entity_type, granularity,
             trend_descriptors, partition_size=86400
         ))(cursor)
@@ -144,6 +147,7 @@ class TestData:
 
         self.data_source_c = DataSource.from_name("test-source-c")(cursor)
         self.trend_store_c = TrendStore.create(TrendStoreDescriptor(
+            'test-data-c',
             self.data_source_c, self.entity_type, granularity, [],
             partition_size=86400
         ))(cursor)
@@ -159,6 +163,7 @@ class TestData:
 
         self.data_source_d = DataSource.from_name("test-source-d")(cursor)
         self.trend_store_d = TrendStore.create(TrendStoreDescriptor(
+            'test-data-d',
             self.data_source_d, self.entity_type, granularity, [],
             partition_size=86400
         ))(cursor)

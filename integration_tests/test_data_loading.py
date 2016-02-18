@@ -64,7 +64,7 @@ def test_defaults(conn):
         entity_type = EntityType.create("test_type", '')(cursor)
 
         trend_store = TableTrendStore.create(TableTrendStoreDescriptor(
-            data_source, entity_type, granularity,
+            'test-trend-store', data_source, entity_type, granularity,
             [
                 TrendDescriptor(
                     d['name'],
@@ -167,7 +167,7 @@ def test_nulls(conn):
         entity_type = EntityType.create("test_type", '')(cursor)
 
         trend_store = TableTrendStore.create(TableTrendStoreDescriptor(
-            data_source, entity_type, granularity,
+            'test-trend-store', data_source, entity_type, granularity,
             [
                 TrendDescriptor(
                     d['name'],

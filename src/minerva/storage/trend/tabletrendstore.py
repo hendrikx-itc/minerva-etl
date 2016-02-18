@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 import logging
 from itertools import chain
+from typing import List
+from datetime import datetime
 
 import psycopg2
 
@@ -8,6 +10,7 @@ from minerva.db.util import create_temp_table_from, quote_ident, create_file
 from minerva.util import first, no_op, zip_apply, compose
 from minerva.db.query import Table, Column, Eq, ands
 from minerva.storage.trend.trendstore import TrendStore
+from minerva.storage.trend.trend import TrendDescriptor
 from minerva.storage.trend.partition import Partition
 from minerva.storage.trend.partitioning import Partitioning
 from minerva.storage.trend.tables import DATA_TABLE_POSTFIXES
@@ -24,8 +27,10 @@ LARGE_BATCH_THRESHOLD = 10
 
 class TableTrendStoreDescriptor:
     def __init__(
-            self, data_source, entity_type, granularity, trend_descriptors,
+            self, name: str, data_source: DataSource, entity_type: EntityType,
+            granularity, trend_descriptors: List[TrendDescriptor],
             partition_size):
+        self.name = name
         self.data_source = data_source
         self.entity_type = entity_type
         self.granularity = granularity
@@ -35,7 +40,7 @@ class TableTrendStoreDescriptor:
 
 class TableTrendStore(TrendStore):
     column_names = [
-        "id", "entity_type_id", "data_source_id", "granularity",
+        "id", "name", "entity_type_id", "data_source_id", "granularity",
         "partition_size", "retention_period"
     ]
 
@@ -52,9 +57,11 @@ class TableTrendStore(TrendStore):
     ).where_(Eq(Column("id")))
 
     def __init__(
-            self, id_, data_source, entity_type, granularity, trends,
+            self, id_, name, data_source, entity_type, granularity, trends,
             partition_size, retention_period):
-        TrendStore.__init__(self, id_, data_source, entity_type, granularity, trends)
+        TrendStore.__init__(
+            self, id_, name, data_source, entity_type, granularity, trends
+        )
         self.partition_size = partition_size
         self.partitioning = Partitioning(partition_size)
         self.retention_period = retention_period
@@ -63,17 +70,21 @@ class TableTrendStore(TrendStore):
         return self.base_table_name()
 
     def base_table_name(self):
-        granularity_str = str(self.granularity)
+        """
+        Return the base/parent table name.
 
-        postfix = DATA_TABLE_POSTFIXES.get(
-            granularity_str, granularity_str
-        )
+        :return: table name
+        """
+        return self.name
 
-        return "{}_{}_{}".format(
-            self.data_source.name, self.entity_type.name, postfix
-        )
+    def partition_table_name(self, timestamp: datetime):
+        """
+        Return the name of the partition corresponding with the provided
+        timestamp.
 
-    def partition_table_name(self, timestamp):
+        :param timestamp:
+        :return: name of partition table
+        """
         return "{}_{}".format(
             self.base_table_name(),
             self.partitioning.index(timestamp)
@@ -82,21 +93,22 @@ class TableTrendStore(TrendStore):
     def base_table(self):
         return Table("trend", self.base_table_name())
 
-    def partition(self, timestamp):
+    def partition(self, timestamp: datetime):
         index = self.partitioning.index(timestamp)
 
         return Partition(index, self)
 
-    def index_to_interval(self, partition_index):
+    def index_to_interval(self, partition_index: int):
         return self.partitioning.index_to_interval(partition_index)
 
-    def check_trends_exist(self, trend_descriptors):
+    def check_trends_exist(self, trend_descriptors: List[TrendDescriptor]):
         """
         Returns function that creates missing trends as described by
         'trend_descriptors' and returns a new TableTrendStore.
 
-        :param trend_descriptors: list(TrendDescriptor)
-        :return: function(cursor) -> TableTrendStore
+        :param trend_descriptors: A list with trend descriptors indicating the
+        required trends and their data types.
+        :return: Callable[cursor] -> TableTrendStore
         """
         """
         :param trend_descriptors:
@@ -119,10 +131,13 @@ class TableTrendStore(TrendStore):
 
         return f
 
-    def ensure_data_types(self, trend_descriptors):
+    def ensure_data_types(self, trend_descriptors: List[TrendDescriptor]):
         """
         Check if database column types match trend data type and correct it if
         necessary.
+
+        :param trend_descriptors: A list with trend descriptors indicating the
+        required data type of the corresponding trends.
         """
         query = (
             "SELECT trend_directory.assure_data_types("
@@ -140,9 +155,10 @@ class TableTrendStore(TrendStore):
         return f
 
     @staticmethod
-    def create(descriptor):
+    def create(descriptor: TableTrendStoreDescriptor):
         def f(cursor):
             args = (
+                descriptor.name,
                 descriptor.data_source.name,
                 descriptor.entity_type.name,
                 str(descriptor.granularity),
@@ -152,7 +168,7 @@ class TableTrendStore(TrendStore):
 
             query = (
                 "SELECT * FROM trend_directory.create_table_trend_store("
-                "%s, %s, %s, %s, %s::trend_directory.trend_descr[]"
+                "%s, %s, %s, %s, %s, %s::trend_directory.trend_descr[]"
                 ")"
             )
 
@@ -172,8 +188,8 @@ class TableTrendStore(TrendStore):
         """
         def f(cursor):
             (
-                trend_store_id, entity_type_id, data_source_id, granularity_str,
-                partition_size, retention_period
+                trend_store_id, name, entity_type_id, data_source_id,
+                granularity_str, partition_size, retention_period
             ) = record
 
             entity_type = EntityType.get(entity_type_id)(cursor)
@@ -182,7 +198,7 @@ class TableTrendStore(TrendStore):
             trends = TableTrendStore.get_trends(cursor, trend_store_id)
 
             return TableTrendStore(
-                trend_store_id, data_source, entity_type,
+                trend_store_id, name, data_source, entity_type,
                 create_granularity(granularity_str), trends, partition_size,
                 retention_period
             )

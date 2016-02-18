@@ -26,6 +26,7 @@ def test_create_view(conn):
         )
 
         trend_store = ViewTrendStore.create(ViewTrendStoreDescriptor(
+            'test-view-trend-store',
             data_source, test_set_small.entity_type,
             test_set_small.granularity, view_query
         ))(cursor)

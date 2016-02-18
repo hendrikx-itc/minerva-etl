@@ -54,7 +54,8 @@ class TrendStoreQuery:
 
 class TrendStoreDescriptor:
     def __init__(
-            self, data_source, entity_type, granularity):
+            self, name, data_source, entity_type, granularity):
+        self.name = name
         self.data_source = data_source
         self.entity_type = entity_type
         self.granularity = granularity
@@ -82,23 +83,16 @@ class TrendStore:
     ).where_(Eq(Column("id")))
 
     def __init__(
-            self, id_, data_source, entity_type, granularity, trends):
+            self, id_, name, data_source, entity_type, granularity, trends):
         self.id = id_
+        self.name = name
         self.data_source = data_source
         self.entity_type = entity_type
         self.granularity = granularity
         self.trends = trends
 
     def table_name(self):
-        granularity_str = str(self.granularity)
-
-        postfix = DATA_TABLE_POSTFIXES.get(
-            granularity_str, granularity_str
-        )
-
-        return "{}_{}_{}".format(
-            self.data_source.name, self.entity_type.name, postfix
-        )
+        return self.name
 
     def table(self):
         return Table("trend", self.table_name())

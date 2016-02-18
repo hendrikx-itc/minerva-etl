@@ -5,13 +5,13 @@ import sys
 from setuptools import setup
 
 sys.path.insert(0, "src")
-from minerva import __version__
+import minerva
 
 setup(
     name="minerva",
     author="Hendrikx ITC",
     author_email="info@hendrikx-itc.nl",
-    version=__version__,
+    version=minerva.__version__,
     license="GPL",
     install_requires=[
         "pytz", "psycopg2>=2.2.1", "PyYAML", "configobj",

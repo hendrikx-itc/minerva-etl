@@ -890,6 +890,7 @@ def deduce_data_types(rows):
     Return a list of the minimal required data types to store the values, in the
     same order as the values and thus matching the order of attribute_names.
 
+    :param rows:
     :rtype: collections.iterable[DataType]
     """
     return reduce(
