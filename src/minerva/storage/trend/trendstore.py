@@ -130,6 +130,17 @@ class TrendStore(object):
                         "Column {0:s} requires change from type {1} to {2}".format(
                             column_name, current_data_type, required_data_type))
 
+            # Once modify_trendstore_columns is running, other node processes
+            # will block when inserting to the table being modified. For large
+            # tables, this will often take longer than statement_timeout, so
+            # modify_trendstore_columns will be canceled. However, the next
+            # node process will attempt the same operation, and will hit the
+            # same timeout. This essentially causes all data processing to halt.
+            #
+            # To resolve this situation without human intervention, allow
+            # modify_trendstore_columns to take a longer period of time.
+            cursor.execute("SET LOCAL statement_timeout TO '4h'")
+
             query = (
                 "SELECT trend.modify_trendstore_columns("
                 "%s, "
@@ -138,6 +149,11 @@ class TrendStore(object):
             args = self.id, changes
 
             cursor.execute(query, args)
+
+            # Reset statement_timeout, so that further statements within this
+            # transaction are still performed with the regular timeout safety
+            # in place.
+            cursor.execute("SET LOCAL statement_timeout TO DEFAULT")
 
         return f
 
