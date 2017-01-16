@@ -22,7 +22,24 @@ def compose_pair(fn_a, fn_b):
     feeding the result of `fn_b` as the argument to `fn_a`.
     """
     def composed(*args, **kwargs):
-        return fn_a(fn_b(*args, **kwargs))
+        try:
+            return fn_a(fn_b(*args, **kwargs))
+        except TypeError as e:
+            if type(fn_a) is partial:
+                fn_a_name = fn_a.func.__name__
+            elif type(fn_a) is itemgetter:
+                fn_a_name = "operator.itemgetter"
+            else:
+                fn_a_name = fn_a.__name__
+
+            if type(fn_b) is partial:
+                fn_b_name = fn_b.func.__name__
+            elif type(fn_b) is itemgetter:
+                fn_b_name = "operator.itemgetter"
+            else:
+                fn_b_name = fn_b.__name__
+
+            raise Exception("Exception: {}\na:{}\nb:{}".format(e.message, fn_a_name, fn_b_name ))
 
     return composed
 

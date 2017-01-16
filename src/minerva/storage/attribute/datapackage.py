@@ -40,6 +40,11 @@ class DataPackage(object):
         | 1234002 |    20.0  |     0  |     85  | "on"    |
         | 1234003 |    22.5  |     3  |     90  | "on"    |
         +---------+----------+--------+---------+---------+
+
+        attributenames: (name1, name2)
+        rows: (dn, timestamp, [value1, value2])
+
+
     """
     def __init__(self, attribute_names, rows):
         self.attribute_names = attribute_names
