@@ -26,7 +26,7 @@ setup(
     install_requires=[
         "configobj",
         "psycopg2>=2.2.1",
-        "pyparsing"
+        "pyparsing",
         "python-dateutil",
         "pytz",
         "PyYAML",
