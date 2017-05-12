@@ -10,7 +10,6 @@ version.  The full license is in the file COPYING, distributed as part of
 this software.
 """
 
-import psycopg2
 import urlparse
 
 
@@ -44,10 +43,24 @@ def connect(url, setsession=None):
     """
     Return connection to database specified by `url`.
     """
-    try:
-        conn = psycopg2.connect(url)
-    except psycopg2.OperationalError as exc:
-        raise OperationalError(str(exc))
+
+    scheme, username, password, hostname, port, database = parse_db_url(url)
+
+    if scheme == "mysql":
+        db_api2_mod = __import__("MySQLdb")
+
+        try:
+            conn = db_api2_mod.connect(db=database, user=username,
+                                       passwd=password, host=hostname, port=port)
+        except db_api2_mod.OperationalError as exc:
+            raise OperationalError(str(exc))
+    else:
+        psycopg2 = __import__("psycopg2")
+
+        try:
+            conn = psycopg2.connect(url)
+        except psycopg2.OperationalError as exc:
+            raise OperationalError(str(exc))
 
     if setsession:
         cursor = conn.cursor()
