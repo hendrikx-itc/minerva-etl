@@ -23,8 +23,14 @@ setup(
     author_email="info@hendrikx-itc.nl",
     version=__version__,
     license="GPL",
-    install_requires=["pytz", "psycopg2>=2.2.1", "DBUtils", "PyYAML",
-                      "configobj", "python-dateutil", "pyparsing"],
+    install_requires=[
+        "configobj",
+        "psycopg2>=2.2.1",
+        "pyparsing"
+        "python-dateutil",
+        "pytz",
+        "PyYAML",
+    ],
     test_suite="nose.collector",
     packages=[
         "minerva",

@@ -9,9 +9,9 @@ the Free Software Foundation; either version 3, or (at your option) any later
 version.  The full license is in the file COPYING, distributed as part of
 this software.
 """
-import urlparse
 
-from DBUtils import SteadyDB
+import psycopg2
+import urlparse
 
 
 class OperationalError(Exception):
@@ -44,39 +44,16 @@ def connect(url, setsession=None):
     """
     Return connection to database specified by `url`.
     """
-    scheme, username, password, hostname, port, database = parse_db_url(url)
+    try:
+        conn = psycopg2.connect(url)
+    except psycopg2.OperationalError as exc:
+        raise OperationalError(str(exc))
 
-    conn = None
-
-    if scheme == "postgresql":
-        psycopg2 = __import__("psycopg2")
-
-        expected_exceptions = (psycopg2.InterfaceError, psycopg2.InternalError,
-                               psycopg2.OperationalError)
-
-        try:
-            if database:
-                conn = SteadyDB.connect(psycopg2, setsession=setsession,
-                                        failures=expected_exceptions,
-                                        database=database, user=username,
-                                        password=password, host=hostname,
-                                        port=port)
-            else:
-                conn = SteadyDB.connect(psycopg2, setsession=setsession,
-                                        failures=expected_exceptions,
-                                        user=username, password=password,
-                                        host=hostname, port=port)
-        except psycopg2.OperationalError as exc:
-            raise OperationalError(str(exc))
-    elif scheme == "mysql":
-        db_api2_mod = __import__("MySQLdb")
-
-        try:
-            conn = SteadyDB.connect(db_api2_mod, setsession=setsession,
-                                    db=database, user=username,
-                                    passwd=password, host=hostname, port=port)
-        except db_api2_mod.OperationalError as exc:
-            raise OperationalError(str(exc))
+    if setsession:
+        cursor = conn.cursor()
+        for sql in setsession:
+            cursor.execute(sql)
+        cursor.close()
 
     return conn
 
