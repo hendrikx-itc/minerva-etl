@@ -1,16 +1,19 @@
 # -*- coding: utf-8 -*-
 from datetime import datetime
-from functools import partial
 
 import pytz
 
 from minerva.directory import DataSource, EntityType, Entity
-from minerva.storage import datatype
+from minerva.storage import datatype, store_data_package
 from minerva.storage.trend.test import DataSet
 from minerva.storage.trend.granularity import create_granularity
-from minerva.storage.trend.datapackage import refined_package_type_for_entity_type
+from minerva.storage.trend.datapackage import \
+    refined_package_type_for_entity_type
 from minerva.storage.trend.trend import TrendDescriptor
-from minerva.storage.trend.tabletrendstore import TableTrendStore, TableTrendStoreDescriptor
+from minerva.storage.trend.trendstore import TrendStore
+from minerva.storage.trend.tabletrendstore import TrendStoreDescriptor
+from minerva.storage.trend.tabletrendstore import TableTrendStore, \
+    TableTrendStoreDescriptor
 
 
 class TestSetQtr(DataSet):
@@ -46,11 +49,13 @@ class TestSet1Small(TestSetQtr):
         )(cursor)
 
         if not self.trend_store:
-            self.trend_store = TableTrendStore.create(TableTrendStoreDescriptor(
-                'test-set-1-small',
-                self.data_source, self.entity_type, self.granularity,
-                trend_descriptors, partition_size=86400
-            ))(cursor)
+            self.trend_store = TableTrendStore.create(
+                TableTrendStoreDescriptor(
+                    'test-set-1-small',
+                    self.data_source, self.entity_type, self.granularity,
+                    trend_descriptors, partition_size=86400
+                )
+            )(cursor)
 
         self.trend_store.partition(data_package.timestamp).create(cursor)
         self.trend_store.store_copy_from(data_package, self.modified)(cursor)
