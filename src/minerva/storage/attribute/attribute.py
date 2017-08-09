@@ -40,8 +40,8 @@ class Attribute:
             args = id_,
             cursor.execute(query, args)
 
-            name, data_type, attribute_store_id, description = cursor.fetchone()
-
+            name, data_type, attribute_store_id, description = cursor.fetchone(
+                    )
             return Attribute(
                 id, name, datatype.type_map[data_type], attribute_store_id,
                 description
