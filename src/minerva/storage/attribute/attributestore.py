@@ -100,8 +100,8 @@ class AttributeStore:
         """
         Return AttributeStore with specified attributes.
 
-        If an attribute store with specified data source and entity type exists,
-        it is loaded, or a new one is created if it doesn't.
+        If an attribute store with specified data source and entity type
+        exists, it is loaded, or a new one is created if it doesn't.
 
         """
         def f(cursor):
@@ -188,12 +188,14 @@ class AttributeStore:
 
         cursor.execute(query)
 
-        load = expand_args(partial(AttributeStore.load_attribute_store, cursor))
+        load = expand_args(partial(
+            AttributeStore.load_attribute_store, cursor))
 
         return map(load, cursor.fetchall())
 
     @staticmethod
-    def load_attribute_store(id_: int, data_source_id: int, entity_type_id: int):
+    def load_attribute_store(
+            id_: int, data_source_id: int, entity_type_id: int):
         def f(cursor):
             data_source = DataSource.get(data_source_id)(cursor)
             entity_type = EntityType.get(entity_type_id)(cursor)
