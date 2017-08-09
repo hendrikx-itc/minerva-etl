@@ -46,8 +46,8 @@ class DataPackage:
     def deduce_value_descriptors(self):
         """
         Return a list of the minimal required data types to store the values in
-        this data package, in the same order as the values and thus matching the
-        order of attribute_names.
+        this data package, in the same order as the values and thus matching
+        the order of attribute_names.
         """
         if self.is_empty():
             if len(self.attribute_names):
@@ -60,10 +60,11 @@ class DataPackage:
         else:
             return [
                 ValueDescriptor(name, data_type)
-                for name, data_type in zip(self.attribute_names, datatype.deduce_data_types(
-                    (values for dn, timestamp, values in self.rows)
-                ))
-            ]
+                for name, data_type in zip(
+                    self.attribute_names, datatype.deduce_data_types(
+                     (values for dn, timestamp, values in self.rows)
+                    ))
+                 ]
 
     def deduce_attributes(self):
         """Return list of attributes matching the data in this package."""
