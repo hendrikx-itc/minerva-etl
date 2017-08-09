@@ -655,7 +655,7 @@ class Text(DataType):
     default_parser_config = {
         "null_value": "\\N"
     }
-    
+
     default_serializer_config = {
         "null_value": "\\N",
         "prefix": "",
@@ -887,8 +887,9 @@ def parser_descriptor_from_string(value):
 
 def deduce_data_types(rows):
     """
-    Return a list of the minimal required data types to store the values, in the
-    same order as the values and thus matching the order of attribute_names.
+    Return a list of the minimal required data types to store the values, in
+    the same order as the values and thus matching the order of
+    attribute_names.
 
     :param rows:
     :rtype: collections.iterable[DataType]
@@ -913,7 +914,8 @@ def load_data_format(format_config):
     except KeyError:
         raise Exception("No such data type: {}".format(data_type_name))
     else:
-        config = data_type._string_parser_config(format_config["string_format"])
+        config = data_type._string_parser_config(
+            format_config["string_format"])
 
         return data_type, data_type.string_parser(config)
 
@@ -960,7 +962,8 @@ def copy_from_serializer_config(data_type):
             'separator': ',',
             'prefix': '{',
             'postfix': '}',
-            'base_type_config': copy_from_serializer_base_type_config[data_type.base_type]
+            'base_type_config': copy_from_serializer_base_type_config[
+                data_type.base_type]
         }
     else:
         return copy_from_serializer_base_type_config[data_type]
