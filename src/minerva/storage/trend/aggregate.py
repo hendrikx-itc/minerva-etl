@@ -25,7 +25,8 @@ def get_aggregate_shard(
     start, end = shard_interval(granularity, shard_index)
 
     return get_aggregate_data(
-        conn, entities_sql, entity_type_id, granularity, formula_str, start, end
+        conn, entities_sql, entity_type_id, granularity,
+        formula_str, start, end
     )
 
 
@@ -214,12 +215,13 @@ def eval_brackets(tokens):
 
 integer = Word(nums)
 real = (
-    Combine(Word(nums) + Optional("." + Word(nums))
-    + oneOf("E e") + Optional(oneOf('+ -')) + Word(nums))
-    | Combine(Word(nums) + "." + Word(nums))
-)
+        Combine(Word(nums) + Optional("." + Word(nums)) + oneOf(
+            "E e") + Optional(oneOf('+ -')) + Word(nums)) | Combine(Word(
+                nums) + "." + Word(nums))
+    )
 
-identifier_part = Word(alphanums + '_') | QuotedString('"', unquoteResults=True)
+identifier_part = Word(alphanums + '_') | QuotedString(
+        '"', unquoteResults=True)
 
 identifier = Optional(
     identifier_part + Suppress(".")
