@@ -4,7 +4,10 @@ from minerva.xmldochandler import schemacontext
 from minerva.xmldochandler.xmlelementtype import XmlElementType
 from minerva.xmldochandler.xmlelementtype import XmlElementTypeRef
 from minerva.xmldochandler.xmlelementhandler import XmlElementHandlerRef
+from minerva.xmldochandler.xmlnamespace import BaseTypeRelation
 from minerva.xmldochandler.xmlschema import xmlschema_string
+from urllib.parse import urlsplit
+import os
 
 
 class SchemaBuilderError(Exception):
@@ -85,14 +88,15 @@ class SchemaContextBuilder:
         for schema in self.schemas:
             namespace = self.xsd_namespaces.get(schema.targetnamespace, None)
 
-            if not schema.targetnamespace in self.xsd_namespaces:
+            if schema.targetnamespace not in self.xsd_namespaces:
                 namespace = Namespace(schema.targetnamespace)
                 self.xsd_namespaces[namespace.uri] = namespace
 
             for (element, depth) in walk(schema):
                 if isinstance(element, schematypes.Element):
                     namespace.add_element(element)
-                elif element.__class__ in set([schematypes.ComplexType]) and element.name:
+                elif element.__class__ in set(
+                        [schematypes.ComplexType]) and element.name:
                     namespace.types[element.name] = element
 
         self.schemacontext = schemacontext.SchemaContext()
@@ -149,17 +153,19 @@ class SchemaContextBuilder:
         if xsdtype.simplecontent and xsdtype.simplecontent.extension:
             basetype = xsdtype.simplecontent.extension.basetypereference.type
 
-            if basetype.schema.target_namespace.uri == "http://www.w3.org/2001/XMLSchema":
+            if basetype.schema.target_namespace.uri == \
+                    "http://www.w3.org/2001/XMLSchema":
                 if basetype.name == "string":
                     elementtype = xmlschema_string.XmlSchema_string()
                 if basetype.name == "date":
                     elementtype = xmlschema_string.XmlSchema_string()
         else:
-            if xsdtype.name != None:
+            if xsdtype.name is not None:
                 elementtype = XmlElementType(xsdtype.name, None)
             else:
                 elementtype = XmlElementType(None, None)
-                self.complextypes[container_element.build_fullname()] = elementtype
+                self.complextypes[container_element.build_fullname(
+                    )] = elementtype
 
         if xsdtype.complexcontent:
             if xsdtype.complexcontent.extension:
@@ -169,7 +175,7 @@ class SchemaContextBuilder:
                 elementtype.base = basetypereference
                 self.schemacontext.basetypereferences.append(basetypereference)
 
-        if xsdtype.basetyperef != None:
+        if xsdtype.basetyperef is not None:
             basetyperelation = BaseTypeRelation(
                 elementtype, str(xsdtype.basetyperef.type.namespace.uri),
                 str(xsdtype.basetyperef.type.name)
@@ -199,13 +205,15 @@ class SchemaContextBuilder:
         return elementtype
 
     def build_elementhandler(self, element):
-        if element.typename != None:
+        if element.typename is not None:
             if element.typename.localname == 'string':
                 elementtype = xmlschema_string.XmlSchema_string()
-                elementhandler = elementtype.create_elementhandler(element.name)
+                elementhandler = elementtype.create_elementhandler(
+                        element.name)
             elif element.typename.localname == 'date':
                 elementtype = xmlschema_string.XmlSchema_string()
-                elementhandler = elementtype.create_elementhandler(element.name)
+                elementhandler = elementtype.create_elementhandler(
+                        element.name)
             else:
                 elementtype = self.schemacontext.get_elementtype(
                     element.typename.namespacename, element.typename.localname
@@ -213,24 +221,29 @@ class SchemaContextBuilder:
 
                 if not elementtype:
                     raise SchemaBuilderError(
-                        "No type found with name {0:s}".format(element.typename)
+                        "No type found with name {0:s}".format(
+                            element.typename)
                     )
 
-                elementhandler = elementtype.create_elementhandler(element.name)
+                elementhandler = elementtype.create_elementhandler(
+                        element.name)
         else:
             children = element.get_children()
 
-            if len(children) and isinstance(children[0], schematypes.ComplexType):
+            if len(children) and isinstance(
+                    children[0], schematypes.ComplexType):
                 elementtype = self.build_complextype(children[0], element)
-                elementhandler = elementtype.create_elementhandler(element.name)
+                elementhandler = elementtype.create_elementhandler(
+                        element.name)
 
-            elif element.ref != None:
+            elif element.ref is not None:
                 elementhandler = XmlElementHandlerRef(element.ref)
 
                 self.schemacontext.elementreferences.append(elementhandler)
             else:
                 elementtype = xmlschema_string.XmlSchema_string()
-                elementhandler = elementtype.create_elementhandler(element.name)
+                elementhandler = elementtype.create_elementhandler(
+                        element.name)
 
         if element.substitutiongroup:
             elementhandler.substitutiongroup = element.substitutiongroup
@@ -253,6 +266,9 @@ class SchemaContextBuilder:
         )
 
         for elementhandler in root_elementhandler_generator:
-            self.xmlnamespace.root_elementhandlers[elementhandler.name] = elementhandler
-            namespace = self.schemacontext.namespaces[self.current_xsd_namespace.uri]
-            namespace.root_elementhandlers[elementhandler.name] = elementhandler
+            self.xmlnamespace.root_elementhandlers[
+                    elementhandler.name] = elementhandler
+            namespace = self.schemacontext.namespaces[
+                    self.current_xsd_namespace.uri]
+            namespace.root_elementhandlers[
+                    elementhandler.name] = elementhandler
