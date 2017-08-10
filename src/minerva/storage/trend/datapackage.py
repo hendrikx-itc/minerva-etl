@@ -201,7 +201,8 @@ def data_package_type(name, entity_ref_type, entity_type_name, refine_values):
 
     @type entity_ref_type: EntityRef
     @type entity_type_name: function(DataPackage) -> str
-    @type refine_values: function(parsers) -> function(values) -> refined_values
+    @type refine_values: function(parsers) -> function(values)
+    -> refined_values
     """
     return type(name, (DataPackageBase,), {
         'entity_ref_type': classmethod(lambda cls: entity_ref_type),
