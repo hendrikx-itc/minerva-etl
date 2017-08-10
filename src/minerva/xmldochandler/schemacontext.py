@@ -92,7 +92,8 @@ class SchemaContext:
         """
         for substitution in self.substitutions:
             for element_type in self.all_types:
-                if substitution.substitutiongroup.localname in element_type.child_elementhandlers():
+                if substitution.substitutiongroup.localname in \
+                        element_type.child_elementhandlers():
                     element_type.add_child_elementhandlers(
                         substitution.elementhandler
                     )
@@ -113,7 +114,8 @@ class SchemaContext:
                         "path [{0}]".format(elementrelation.elementpath)
                     )
 
-                elementrelation.elementtype.child_elementhandlers[elementhandler.name] = elementhandler
+                elementrelation.elementtype.child_elementhandlers[
+                        elementhandler.name] = elementhandler
 
     def link_elementreferences(self):
         for elementreference in self.elementreferences:
