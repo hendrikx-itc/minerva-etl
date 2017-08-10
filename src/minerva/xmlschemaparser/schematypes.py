@@ -304,7 +304,8 @@ class Element(SchemaElement):
 
             current_element = current_element.parent
 
-            while current_element and not (isinstance(current_element, Element)):
+            while current_element and not (
+                    isinstance(current_element, Element)):
                 current_element = current_element.parent
 
         return stack
@@ -385,10 +386,10 @@ class Schema(SchemaElement):
         return "schema({0:s})".format(self.filename)
 
     def set_targetnamespace(self, uri):
-        if self.namespaces.has_key(uri):
+        if self.namespaces in uri:
             self.targetnamespace = self.namespaces[uri]
         else:
-            self.targetnamespace = Namespace(uri)
+            self.targetnamespace = self.Namespace(uri)
             self.namespaces[uri] = self.targetnamespace
 
         urlelements = urlsplit(uri)
@@ -420,7 +421,8 @@ class Schema(SchemaElement):
             namespace = self.defaultnamespace
 
         if namespace is not None:
-            substitutiongroup = namespace.get_substitutiongroup(qname.localname)
+            substitutiongroup = namespace.get_substitutiongroup(
+                    qname.localname)
         else:
             substitutiongroup = SubstitutionGroup(qname.localname)
 
