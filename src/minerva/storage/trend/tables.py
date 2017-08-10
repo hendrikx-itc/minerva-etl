@@ -38,8 +38,8 @@ def offset_hack(ref):
 
 def create_temp_table_from(conn, schema, table):
     """
-    Create a temporary table that inherits from `table` and return the temporary
-    table name.
+    Create a temporary table that inherits from `table` and
+    return the temporary table name.
     """
     if isinstance(table, str):
         table = Table(schema, table)
