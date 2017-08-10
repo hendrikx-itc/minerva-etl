@@ -35,7 +35,8 @@ class ViewTrendStore(TrendStore):
             cursor.execute(query, args)
 
             (
-                trend_store_id, name, entity_type_id, data_source_id, granularity_str
+                trend_store_id, name, entity_type_id, data_source_id,
+                granularity_str
             ) = cursor.fetchone()
 
             entity_type = EntityType.get(entity_type_id)(cursor)
