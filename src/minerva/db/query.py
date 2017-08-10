@@ -325,13 +325,13 @@ class Operator(Sql):
 
 
 class BinaryOperator(Operator):
-    def __init__(self, l=None, r=None):
-        if l is None:
+    def __init__(self, _l=None, r=None):
+        if _l is None:
             self.r = Argument()
-        elif isinstance(l, Sql):
-            self.l = l
+        elif isinstance(_l, Sql):
+            self.l_ = _l
         else:
-            self.l = Value(l)
+            self.l_ = Value(_l)
 
         if r is None:
             self.r = Argument()
@@ -341,10 +341,10 @@ class BinaryOperator(Operator):
             self.r = Value(r)
 
     def references(self):
-        return chain(self.l.references(), self.r.references())
+        return chain(self.l_.references(), self.r.references())
 
     def arguments(self):
-        return chain(self.l.arguments(), self.r.arguments())
+        return chain(self.l_.arguments(), self.r.arguments())
 
 
 class UnaryOperator(Operator):
