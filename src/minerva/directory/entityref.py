@@ -60,7 +60,8 @@ class EntityDnRef(EntityRef):
         return "(directory.dn_to_entity(%s)).id", self.dn
 
     def get_entity_type(self, cursor):
-        return EntityType.get_by_name(entity_type_name_from_dn(self.dn))(cursor)
+        return EntityType.get_by_name(
+            entity_type_name_from_dn(self.dn))(cursor)
 
     @classmethod
     def map_to_entity_ids(cls, entity_refs):
