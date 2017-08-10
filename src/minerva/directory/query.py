@@ -91,7 +91,8 @@ def compile_sql(minerva_query, relation_group_name, entity_id_column=None):
             args.append(component['value'].lower())
 
         else:
-            raise QueryError('query contains unknown type ' + component['type'])
+            raise QueryError(
+                'query contains unknown type ' + component['type'])
 
         last_type = component['type']
 
