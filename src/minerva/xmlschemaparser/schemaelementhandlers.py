@@ -2,7 +2,8 @@
 
 from minerva.xmldochandler.qname import QName
 
-from minerva.xmlschemaparser.schematypes import Include, Import, Element, ComplexType, SimpleType, \
+from minerva.xmlschemaparser.schematypes import Include, Import, Element, \
+    ComplexType, SimpleType, \
     Enumeration, Restriction, Attribute, Choice, SimpleContent, Extension, \
     ComplexContent, Sequence, Union, MaxInclusive, MinInclusive, \
     FractionDigits, MaxLength, All, List, Schema
