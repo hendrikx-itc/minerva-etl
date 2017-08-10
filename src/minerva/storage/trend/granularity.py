@@ -108,8 +108,10 @@ class Granularity():
         if days:
             parts.append(days)
 
-        if not parts or (self.delta.hours or self.delta.minutes or self.delta.seconds):
-            parts.append(time_to_str(self.delta.hours, self.delta.minutes, self.delta.seconds))
+        if not parts or (
+                self.delta.hours or self.delta.minutes or self.delta.seconds):
+            parts.append(time_to_str(
+                self.delta.hours, self.delta.minutes, self.delta.seconds))
 
         return " ".join(parts)
 
