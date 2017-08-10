@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 
-
 class QName:
     """
     A qualified name that contains a namespace name or prefix and a local name.
