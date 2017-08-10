@@ -34,7 +34,8 @@ class Engine:
 
         cmd(data_source)(conn)
 
-        :param package: :class:`DataPackageBase <minerva.storage.trend.datapackage.DataPackageBase>` sub-class instance
+        :param package: :class:`DataPackageBase
+        <minerva.storage.trend.datapackage.DataPackageBase>` sub-class instance
         :return: :class:`StoreCmd`-like object
         """
         raise NotImplementedError()
