@@ -17,7 +17,7 @@ def parse_loglevel(level_str):
         "CRITICAL": logging.CRITICAL}
 
     level_str = level_str.strip().upper()
-    if not level_str in level_map.keys():
+    if level_str not in level_map.keys():
         return logging.INFO
     else:
         return level_map[level_str]
