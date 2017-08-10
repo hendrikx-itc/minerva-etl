@@ -61,7 +61,8 @@ class XmlElementType:
         for arg in args:
             if hasattr(arg, '__iter__'):
                 for elementhandler in arg:
-                    self._child_elementhandlers[elementhandler.name] = elementhandler
+                    self._child_elementhandlers[elementhandler.name] = \
+                        elementhandler
             else:
                 self._child_elementhandlers[arg.name] = arg
 
