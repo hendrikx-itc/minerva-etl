@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 
-
 class ElementRelation:
     """Defines a relation between an element type and an element which can
     be resolved once all element types are defined."""
@@ -43,6 +42,6 @@ class XmlNamespace:
 
         while current_handler and len(path) > 0:
             handler_name = path.pop(0)
-            current_handler = current_handler.elementtype.get_child_elementhandler(handler_name)
-
+            current_handler = current_handler.elementtype.\
+                get_child_elementhandler(handler_name)
         return current_handler
