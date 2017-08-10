@@ -210,7 +210,8 @@ def k(x):
     return fn
 
 
-identity = lambda x: x
+def identity(x):
+    return x
 
 
 def no_op(*args, **kwargs):
