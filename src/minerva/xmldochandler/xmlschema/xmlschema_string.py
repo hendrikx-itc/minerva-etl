@@ -1,12 +1,10 @@
 # -*- coding: utf-8 -*-
-
 import os.path
 import sys
+from xmlelementtype import XmlElementType
 
 parentPath = os.path.join(os.path.dirname(__file__), '..')
 sys.path.append(parentPath)
-
-from xmlelementtype import XmlElementType
 
 
 class XmlSchema_string(XmlElementType):
