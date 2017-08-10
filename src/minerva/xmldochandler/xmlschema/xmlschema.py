@@ -3,12 +3,12 @@
 import os.path
 import sys
 
-parentPath = os.path.join(os.path.dirname(__file__), '..')
-sys.path.append(parentPath)
-
 from xmlnamespace import XmlNamespace
 
 from xmlschema_string import XmlSchema_string
+
+parentPath = os.path.join(os.path.dirname(__file__), '..')
+sys.path.append(parentPath)
 
 
 class XmlSchema(XmlNamespace):
