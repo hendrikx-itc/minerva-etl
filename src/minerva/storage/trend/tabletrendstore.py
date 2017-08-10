@@ -13,7 +13,7 @@ from minerva.storage.trend.trendstore import TrendStore
 from minerva.storage.trend.trend import TrendDescriptor
 from minerva.storage.trend.partition import Partition
 from minerva.storage.trend.partitioning import Partitioning
-from minerva.storage.trend.tables import DATA_TABLE_POSTFIXES
+
 from minerva.storage.trend import schema
 from minerva.directory import DataSource, EntityType
 from minerva.storage.trend.granularity import create_granularity
@@ -305,7 +305,8 @@ class TableTrendStore(TrendStore):
             try:
                 cursor.copy_expert(copy_from_query, copy_from_file)
             except psycopg2.DatabaseError as exc:
-                if exc.pgcode is None and str(exc).find("no COPY in progress") != -1:
+                if exc.pgcode is None and str(exc).find(
+                        "no COPY in progress") != -1:
                     # Might happen after database connection loss
                     raise NoCopyInProgress()
                 else:
@@ -327,9 +328,6 @@ class TableTrendStore(TrendStore):
 
     def store_batch_insert(self, data_package, modified):
         def f(cursor):
-            value_descriptors = self.get_value_descriptors(
-                data_package.trend_names
-            )
 
             table = self.partition(data_package.timestamp).table()
 
