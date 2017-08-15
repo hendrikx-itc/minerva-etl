@@ -11,6 +11,7 @@ def test_constructor():
 
     assert len(xmldochandler._stack) == 0
 
+
 def test_startElementNS_handlerootelement():
     schemacontext = SchemaContext()
 
@@ -25,6 +26,7 @@ def test_startElementNS_handlerootelement():
     xmldochandler.schemacontext = schemacontext
 
     xmldochandler.startElementNS(("somename.org", "directory"), None, None)
+
 
 def test_prefixmapping():
     """

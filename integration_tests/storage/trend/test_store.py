@@ -59,7 +59,8 @@ def test_store_copy_from_1(conn):
         entity_type = EntityType.from_name("test-type001")(cursor)
 
         trend_store = TableTrendStore.create(TableTrendStoreDescriptor(
-            'test-trend-store', data_source, entity_type, granularity, trend_descriptors, 86400
+            'test-trend-store', data_source, entity_type, granularity,
+            trend_descriptors, 86400
         ))(cursor)
 
         partition = trend_store.partition(timestamp)
@@ -87,9 +88,12 @@ def test_store_copy_from_1(conn):
 @with_conn(clear_database)
 def test_store_copy_from_2(conn):
     trend_descriptors = [
-        TrendDescriptor('CCR', datatype.registry['integer'], ''),
-        TrendDescriptor('CCRatts', datatype.registry['smallint'], ''),
-        TrendDescriptor('Drops', datatype.registry['smallint'], '')
+        TrendDescriptor(
+            'CCR', datatype.registry['integer'], ''),
+        TrendDescriptor(
+            'CCRatts', datatype.registry['smallint'], ''),
+        TrendDescriptor(
+            'Drops', datatype.registry['smallint'], '')
     ]
 
     trend_names = [t.name for t in trend_descriptors]
@@ -107,7 +111,8 @@ def test_store_copy_from_2(conn):
         entity_type = EntityType.from_name("test-type002")(cursor)
 
         trend_store = TableTrendStore.create(TableTrendStoreDescriptor(
-            'test-trend-store', data_source, entity_type, granularity, trend_descriptors, 86400
+            'test-trend-store', data_source, entity_type,
+            granularity, trend_descriptors, 86400
         ))(cursor)
         partition = trend_store.partition(timestamp)
         partition.create(cursor)
@@ -152,7 +157,8 @@ def test_store_using_tmp(conn):
         entity_type = EntityType.from_name("test-type001")(cursor)
 
         trend_store = TableTrendStore.create(TableTrendStoreDescriptor(
-            'test-trend-store', data_source, entity_type, granularity, trend_descriptors, 86400
+            'test-trend-store', data_source, entity_type, granularity,
+            trend_descriptors, 86400
         ))(cursor)
 
         conn.commit()
@@ -212,9 +218,11 @@ def test_store_insert_rows(conn):
         data_source = DataSource.from_name("test-src009")(cursor)
         entity_type = EntityType.from_name("test-type001")(cursor)
 
-        trend_store = TableTrendStore.create(TableTrendStoreDescriptor(
-            'test-trend-store', data_source, entity_type, granularity, trend_descriptors, 86400 * 7
-        ))(cursor)
+        trend_store = TableTrendStore.create(
+                TableTrendStoreDescriptor(
+                    'test-trend-store', data_source, entity_type, granularity,
+                    trend_descriptors, 86400 * 7
+                    ))(cursor)
 
         partition = trend_store.partition(time1)
 
@@ -280,7 +288,8 @@ def test_update_modified_column(conn):
         entity_type = EntityType.from_name("test-type001")(cursor)
 
         trend_store = TableTrendStore.create(TableTrendStoreDescriptor(
-            'test-trend-store', data_source, entity_type, granularity, trend_descriptors, 86400
+            'test-trend-store', data_source, entity_type,
+            granularity, trend_descriptors, 86400
         ))(cursor)
 
         conn.commit()
@@ -352,8 +361,9 @@ def test_update(conn):
         entity_type = EntityType.from_name("test-type001")(cursor)
 
         trend_store = TableTrendStore.create(TableTrendStoreDescriptor(
-            'test-trend-store', data_source, entity_type, granularity, trend_descriptors, 86400
-        ))(cursor)
+            'test-trend-store', data_source, entity_type, granularity,
+            trend_descriptors, 86400
+            ))(cursor)
 
         partition = trend_store.partition(timestamp)
         partition.create(cursor)
@@ -414,7 +424,8 @@ def test_update_and_modify_columns_fractured(conn):
         entity_type = EntityType.from_name("test-type001")(cursor)
 
         trend_store = TableTrendStore.create(TableTrendStoreDescriptor(
-            'test-trend-store', data_source, entity_type, granularity, trend_descriptors, 86400
+            'test-trend-store', data_source, entity_type, granularity,
+            trend_descriptors, 86400
         ))(cursor)
 
         partition = trend_store.partition(timestamp)

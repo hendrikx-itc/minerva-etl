@@ -36,4 +36,3 @@ def with_data(test_set):
         "setup": setup,
         "teardown": teardown
     })
-

@@ -63,7 +63,8 @@ def test_create(conn):
 
         table_exists, = cursor.fetchone()
 
-        assert table_exists, 'table {} should exist'.format(expected_table_name)
+        assert table_exists, 'table {} should exist'.format(
+                expected_table_name)
 
         cursor.execute(
             "SELECT public.column_names('attribute_base', %s)",
@@ -242,7 +243,8 @@ def test_store_batch_with_list_b(conn):
 def test_store_batch_with_list_c(conn):
     """Test batch wise storing using staging table."""
     attribute_descriptors = [
-        AttributeDescriptor('height', datatype.registry['double precision'], ''),
+        AttributeDescriptor('height', datatype.registry[
+            'double precision'], ''),
         AttributeDescriptor('refs', datatype.registry['text'], '')
     ]
     attribute_names = [a.name for a in attribute_descriptors]

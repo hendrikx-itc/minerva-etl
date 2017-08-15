@@ -120,9 +120,9 @@ def test_elementreference():
 
     # The referenced child element 'ManagedElement'
     # should be turned into a concrete handler
-    managedelementhandler = \
+    managedelementhandler = (
             subnetworkhandler.elementtype.get_child_elementhandler(
-                    "ManagedElement")
+                    "ManagedElement"))
 
     assert managedelementhandler != None
 
@@ -162,11 +162,11 @@ def test_extension():
 
     gsmrelationhandler = namespace.get_elementhandler("/GsmRelation")
 
-    userlabelelementhandler = \
-            gsmrelationhandler.elementtype.get_child_elementhandler(
-                    "userLabel")
+    userlabelelementhandler = (
+        gsmrelationhandler.elementtype.get_child_elementhandler(
+                    "userLabel"))
 
-    # Type of GsmRelation should have child handler for 'userLabel'       
+    # Type of GsmRelation should have child handler for 'userLabel'
     assert userlabelelementhandler != None
 
     assert_equal(userlabelelementhandler.elementtype.name, "string")

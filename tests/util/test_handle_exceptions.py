@@ -1,4 +1,5 @@
-from nose.tools import assert_raises, assert_true, assert_false, assert_equal, raises
+from nose.tools import assert_raises, assert_true, \
+        assert_false, assert_equal, raises
 
 from minerva.util import compose, handle_exceptions, dict_to_handler
 
@@ -48,4 +49,3 @@ def test_reraise_unhandled_exceptions():
     handle = dict_to_handler(handler_map)
 
     handle_exceptions(handle, fn)()
-

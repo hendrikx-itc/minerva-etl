@@ -46,7 +46,8 @@ def test_store_matching(conn):
         entity_type = EntityType.from_name("test-type001")(cursor)
 
         trend_store = TableTrendStore.create(TableTrendStoreDescriptor(
-            'test-trend-store', data_source, entity_type, granularity, trend_descriptors, 86400
+            'test-trend-store', data_source, entity_type, granularity,
+            trend_descriptors, 86400
         ))(cursor)
 
         trend_store.partition(timestamp).create(cursor)
@@ -104,7 +105,8 @@ def test_store_ignore_extra(conn):
         entity_type = EntityType.from_name("test-type001")(cursor)
 
         trend_store = TableTrendStore.create(TableTrendStoreDescriptor(
-            'test-trend-store', data_source, entity_type, granularity, trend_descriptors, 86400
+            'test-trend-store', data_source, entity_type, granularity,
+            trend_descriptors, 86400
         ))(cursor)
 
         trend_store.partition(timestamp).create(cursor)

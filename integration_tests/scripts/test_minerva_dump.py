@@ -15,7 +15,8 @@ class MinervaDump(unittest.TestCase):
         with closing(connect()) as conn:
             with closing(conn.cursor()) as cursor:
                 cursor.execute("DELETE FROM trend_directory.trend_store")
-                cursor.execute("DELETE FROM attribute_directory.attribute_store")
+                cursor.execute(
+                        "DELETE FROM attribute_directory.attribute_store")
                 cursor.execute(
                     "SELECT trend_directory.create_table_trend_store("
                     "    'test-data-source',"
@@ -32,7 +33,8 @@ class MinervaDump(unittest.TestCase):
                     "    'test-data-source',"
                     "    'test-entity-type',"
                     "    ARRAY["
-                    "       ('height', 'double precision', 'fictive attribute'),"
+                    "       ('height', 'double precision',"
+                    "           'fictive attribute'),"
                     "       ('power', 'integer', 'another fictive attribute')"
                     "    ]::attribute_directory.attribute_descr[]"
                     ")"

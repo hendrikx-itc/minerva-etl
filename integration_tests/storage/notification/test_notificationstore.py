@@ -5,7 +5,7 @@ from contextlib import closing
 from minerva.directory import DataSource
 from minerva.directory.entityref import EntityIdRef
 from minerva.storage import datatype
-from minerva.storage.notification import NotificationStore, Attribute, \
+from minerva.storage.notification import NotificationStore, \
     Record, NotificationStoreDescriptor, AttributeDescriptor
 from minerva.test import with_conn, clear_database, eq_
 
@@ -50,8 +50,10 @@ def test_store(conn):
         data_source = DataSource.from_name("test-source-002")(cursor)
 
         attribute_descriptors = [
-            AttributeDescriptor("a", datatype.registry['integer'], "a attribute"),
-            AttributeDescriptor("b", datatype.registry['integer'], "b attribute")
+            AttributeDescriptor("a", datatype.registry[
+                'integer'], "a attribute"),
+            AttributeDescriptor("b", datatype.registry[
+                'integer'], "b attribute")
         ]
 
         notification_store = NotificationStore.create(

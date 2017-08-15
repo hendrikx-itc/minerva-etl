@@ -6,7 +6,7 @@ from datetime import datetime
 import pytz
 
 from minerva.directory import DataSource, EntityType
-from minerva.db.util import get_column_names
+
 from minerva.test import with_conn, clear_database, assert_not_equal, eq_, ok_
 from minerva.storage import datatype
 from minerva.storage.attribute.attribute import AttributeDescriptor
@@ -143,7 +143,8 @@ def test_update(conn):
     with closing(conn.cursor()) as cursor:
         attribute_descriptors = [
             AttributeDescriptor('CellID', datatype.registry['text'], ''),
-            AttributeDescriptor('CCR', datatype.registry['double precision'], ''),
+            AttributeDescriptor('CCR', datatype.registry[
+                'double precision'], ''),
             AttributeDescriptor('Drops', datatype.registry['smallint'], '')
         ]
 
@@ -167,12 +168,14 @@ def test_update(conn):
 
         attribute_store.store(DataPackage(attribute_names, data_rows))(conn)
 
-        # Commit between store commands, because otherwise the 'modified' timestamp is the same
+        # Commit between store commands, because otherwise the 'modified'
+        # timestamp is the same
         conn.commit()
 
         time.sleep(1)
 
-        attribute_store.store(DataPackage(attribute_names, update_data_rows))(conn)
+        attribute_store.store(DataPackage(attribute_names, update_data_rows))(
+                conn)
 
         conn.commit()
 
