@@ -94,4 +94,5 @@ def test_parser_advanced_b():
 
     r = formula(context)
 
-    assert r == "SUM(t1.\"CCR\" * t2.\"Traffic-Full\") / SUM(t3.\"Traffic-full\")"
+    assert r == "SUM(t1.\"CCR\" * t2.\"Traffic-Full\")" \
+                "/ SUM(t3.\"Traffic-full\")"

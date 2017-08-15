@@ -26,10 +26,10 @@ simple_package = DataPackage(
 array_package = DataPackage(
     ["curve"],
     [
-        (123001, TIMESTAMP, ([0,1,2,4,7,4,2,1,0],)),
-        (123002, TIMESTAMP, ([0,1,2,5,8,4,2,1,0],)),
-        (123003, TIMESTAMP, ([0,1,3,5,7,4,3,1,0],)),
-        (123004, TIMESTAMP, ([0,1,2,4,9,4,2,1,0],))
+        (123001, TIMESTAMP, ([0, 1, 2, 4, 7, 4, 2, 1, 0],)),
+        (123002, TIMESTAMP, ([0, 1, 2, 5, 8, 4, 2, 1, 0],)),
+        (123003, TIMESTAMP, ([0, 1, 3, 5, 7, 4, 3, 1, 0],)),
+        (123004, TIMESTAMP, ([0, 1, 2, 4, 9, 4, 2, 1, 0],))
     ]
 )
 
@@ -132,7 +132,8 @@ def test_deduce_data_types_empty():
     value_descriptors = data_package.deduce_value_descriptors()
 
     assert_equal(
-        value_descriptors[0], ValueDescriptor('height', datatype.registry['smallint'])
+        value_descriptors[0], ValueDescriptor('height', datatype.registry[
+            'smallint'])
     )
 
 
@@ -229,10 +230,10 @@ def test_create_copy_from_lines():
     data_package = DataPackage(
         ["curve"],
         [
-            (123001, TIMESTAMP, ([0,1,2,4,7,4,2,1,0],)),
-            (123002, TIMESTAMP, ([0,1,2,5,8,4,2,1,0],)),
-            (123003, TIMESTAMP, ([0,1,3,5,7,4,3,1,0],)),
-            (123004, TIMESTAMP, ([0,1,2,4,9,4,2,1,0],))
+            (123001, TIMESTAMP, ([0, 1, 2, 4, 7, 4, 2, 1, 0],)),
+            (123002, TIMESTAMP, ([0, 1, 2, 5, 8, 4, 2, 1, 0],)),
+            (123003, TIMESTAMP, ([0, 1, 3, 5, 7, 4, 3, 1, 0],)),
+            (123004, TIMESTAMP, ([0, 1, 2, 4, 9, 4, 2, 1, 0],))
         ]
     )
 
@@ -247,7 +248,6 @@ def test_create_copy_from_lines():
             )
         )
     ]
-    
     lines = data_package._create_copy_from_lines(output_descriptors)
 
     assert_equal(
@@ -278,7 +278,8 @@ def test_create_copy_from_lines():
     lines = data_package._create_copy_from_lines(output_descriptors)
 
     assert_equal(lines[1], "123002\t2013-08-30 15:30:00+00:00\t{0,1,2}\n")
-    assert_equal(lines[2], "123003\t2013-08-30 15:30:00+00:00\t{\\N,\\N,\\N}\n")
+    assert_equal(lines[2], "123003\t2013-08-30"
+                           "15:30:00+00:00\t{\\N,\\N,\\N}\n")
 
     data_package = DataPackage(
         ["curve"],
@@ -301,5 +302,3 @@ def test_create_copy_from_lines():
 
     assert_equal(lines[0], "123001\t2013-08-30 15:30:00+00:00\t{\\N,\\N}\n")
     assert_equal(lines[1], "123002\t2013-08-30 15:30:00+00:00\t{\\N,\\N}\n")
-
-    f = data_package._create_copy_from_file(output_descriptors)

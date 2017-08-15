@@ -181,7 +181,8 @@ def test_select_with_where():
         Column("id"),
         Column("name")]
 
-    query = Select(columns, from_=[dummy_table], where_=Eq(Column("id"), Value(25)))
+    query = Select(columns, from_=[dummy_table], where_=Eq(Column(
+        "id"), Value(25)))
 
     sql = query.render()
 
@@ -195,7 +196,8 @@ def test_select_with_where_arg():
         Column("id"),
         Column("name")]
 
-    query = Select(columns, from_=[dummy_table], where_=Eq(Column("id"), Argument()))
+    query = Select(columns, from_=[dummy_table], where_=Eq(Column(
+        "id"), Argument()))
 
     sql = query.render()
 
@@ -212,7 +214,8 @@ def test_select_with_group_by():
         col_id,
         col_name]
 
-    query = Select(columns, from_=[dummy_table], where_=Eq(col_name, Argument()), group_by_=[col_name])
+    query = Select(columns, from_=[dummy_table], where_=Eq(
+        col_name, Argument()), group_by_=[col_name])
 
     sql = query.render()
 
@@ -229,7 +232,8 @@ def test_select_chained():
         col_id,
         col_name]
 
-    query = Select(columns).from_([dummy_table]).where_(Eq(col_name, Argument())).group_by_([col_name])
+    query = Select(columns).from_([dummy_table]).where_(Eq(
+        col_name, Argument())).group_by_([col_name])
 
     sql = query.render()
 
@@ -238,13 +242,9 @@ def test_select_chained():
 
 def test_select_with_join():
     dummy_table_a = Table("dummy_a")
-
     col_id_a = Column(dummy_table_a, "id")
     col_name = Column(dummy_table_a, "name")
-    col_ref = Column(dummy_table_a, "ref_b")
-
     dummy_table_b = Table("dummy_b")
-
     col_id_b = Column(dummy_table_b, "id")
     col_amount = Column(dummy_table_b, "amount")
 
@@ -256,30 +256,28 @@ def test_select_with_join():
 
     sql = query.render()
 
-    eq_(sql, 'SELECT dummy_a.name, dummy_b.amount FROM dummy_a JOIN dummy_b ON dummy_a.id = dummy_b.id')
+    eq_(sql, 'SELECT dummy_a.name, dummy_b.amount FROM \
+            dummy_a JOIN dummy_b ON dummy_a.id = dummy_b.id')
 
 
 def test_select_with_left_join():
     dummy_table_a = Table("dummy_a")
-
     col_id_a = Column(dummy_table_a, "id")
     col_name = Column(dummy_table_a, "name")
-    col_ref = Column(dummy_table_a, "ref_b")
-
     dummy_table_b = Table("dummy_b")
-
     col_id_b = Column(dummy_table_b, "id")
     col_amount = Column(dummy_table_b, "amount")
-
     columns = [col_name, col_amount]
 
-    from_part = FromItem(dummy_table_a).left_join(dummy_table_b, Eq(col_id_a, col_id_b))
+    from_part = FromItem(dummy_table_a).left_join(
+            dummy_table_b, Eq(col_id_a, col_id_b))
 
     query = Select(columns).from_(from_part)
 
     sql = query.render()
 
-    eq_(sql, 'SELECT dummy_a.name, dummy_b.amount FROM dummy_a LEFT JOIN dummy_b ON dummy_a.id = dummy_b.id')
+    eq_(sql, 'SELECT dummy_a.name, dummy_b.amount FROM \
+            dummy_a LEFT JOIN dummy_b ON dummy_a.id = dummy_b.id')
 
 
 def test_extract_references():
@@ -311,7 +309,8 @@ def test_filter_tables():
         col_id,
         col_name]
 
-    query = Select(columns).from_([dummy_table]).where_(Eq(col_name, Argument())).group_by_([col_name])
+    query = Select(columns).from_([dummy_table]).where_(Eq(
+        col_name, Argument())).group_by_([col_name])
 
     tables = filter_tables(query.references())
 
@@ -347,7 +346,8 @@ def test_arguments():
         col_id,
         col_name]
 
-    query = Select(columns).from_([dummy_table]).where_(Eq(col_name, Argument())).group_by_([col_name])
+    query = Select(columns).from_([dummy_table]).where_(Eq(
+        col_name, Argument())).group_by_([col_name])
 
     arguments = query.arguments()
 

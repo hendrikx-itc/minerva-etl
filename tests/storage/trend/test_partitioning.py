@@ -71,4 +71,3 @@ def test_index_to_interval():
         print(t)
         ok_(expected_start <= t)
         ok_(t <= expected_end)
-

@@ -8,7 +8,8 @@ from nose.tools import assert_raises, assert_true, assert_false, assert_equal
 import minerva
 from minerva.xmldochandler.qname import QName
 from minerva.xmlschemaparser.schematypes import *
-from minerva.schemacontextbuilder.schemacontextbuilder import SchemaContextBuilder
+from minerva.schemacontextbuilder.schemacontextbuilder import \
+        SchemaContextBuilder
 
 
 def test_emptyschemawithtargetnamespace():
@@ -27,6 +28,7 @@ def test_emptyschemawithtargetnamespace():
     assert namespace != None
 
     assert_equal(namespace.name, namespacename)
+
 
 def testsimpleelement():
     namespacename = "testnamespace.org"
@@ -48,7 +50,11 @@ def testsimpleelement():
 
     assert_equal(elementhandler.name, "book")
 
-    assert_equal(elementhandler.elementtype.__class__, minerva.xmldochandler.xmlschema.xmlschema_string.XmlSchema_string)
+    assert_equal(
+            elementhandler.elementtype.__class__,
+            minerva.xmldochandler.xmlschema.xmlschema_string.XmlSchema_string
+            )
+
 
 def test_complexelement():
     namespacename = "testnamespace.org"
@@ -84,6 +90,7 @@ def test_complexelement():
     secondHandler = namespace.get_elementhandler("/book/Second")
     assert secondHandler != None
 
+
 def test_elementreference():
     namespacename = "testnamespace.org"
 
@@ -111,12 +118,16 @@ def test_elementreference():
 
     subnetworkhandler = namespace.get_elementhandler("/SubNetwork")
 
-    # The referenced child element 'ManagedElement' should be turned into a concrete handler
-    managedelementhandler = subnetworkhandler.elementtype.get_child_elementhandler("ManagedElement")
+    # The referenced child element 'ManagedElement'
+    # should be turned into a concrete handler
+    managedelementhandler = \
+            subnetworkhandler.elementtype.get_child_elementhandler(
+                    "ManagedElement")
 
     assert managedelementhandler != None
 
     assert_equal(managedelementhandler.elementtype.name, "string")
+
 
 def test_extension():
     namespacename = "testnamespace.org"
@@ -151,8 +162,11 @@ def test_extension():
 
     gsmrelationhandler = namespace.get_elementhandler("/GsmRelation")
 
-    userlabelelementhandler = gsmrelationhandler.elementtype.get_child_elementhandler("userLabel")
+    userlabelelementhandler = \
+            gsmrelationhandler.elementtype.get_child_elementhandler(
+                    "userLabel")
 
-    assert userlabelelementhandler != None # Type of GsmRelation should have child handler for 'userLabel'
+    # Type of GsmRelation should have child handler for 'userLabel'       
+    assert userlabelelementhandler != None
 
     assert_equal(userlabelelementhandler.elementtype.name, "string")

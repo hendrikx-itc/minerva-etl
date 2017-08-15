@@ -38,12 +38,15 @@ def test_matches_bigint():
 
     assert_is_none(datatype.registry['bigint'].deduce_parser_config(None))
     assert not datatype.registry['bigint'].deduce_parser_config("abc")
-    assert not datatype.registry['bigint'].deduce_parser_config(str(max_bigint + 1))
-    assert not datatype.registry['bigint'].deduce_parser_config(str(min_bigint - 1))
+    assert not datatype.registry['bigint'].deduce_parser_config(str(
+        max_bigint + 1))
+    assert not datatype.registry['bigint'].deduce_parser_config(str(
+        min_bigint - 1))
 
     # Checking for a match with any other type than a string shouldn't
     # result in a TypeError exception, but just return False.
-    assert not datatype.registry['bigint'].deduce_parser_config(("41", "42", "43"))
+    assert not datatype.registry['bigint'].deduce_parser_config((
+        "41", "42", "43"))
     assert not datatype.registry['bigint'].deduce_parser_config(
         decimal.Decimal('528676.842519685039')
     )
@@ -81,17 +84,20 @@ def test_matches_integer():
         "Integer shouldn't accept alphabetic characters"
     )
     assert_is_none(
-        datatype.registry['integer'].deduce_parser_config(str(max_integer + 1)),
+        datatype.registry['integer'].deduce_parser_config(str(
+            max_integer + 1)),
         "Int32 shouldn't accept a value greater than %d" % max_integer
     )
     assert_is_none(
-        datatype.registry['integer'].deduce_parser_config(str(min_integer - 1)),
+        datatype.registry['integer'].deduce_parser_config(str(
+            min_integer - 1)),
         "Int32 shouldn't accept a value smaller than %d" % min_integer
     )
 
     # Checking for a match with any other type than a string shouldn't
     # result in a TypeError exception, but just return None.
-    assert not datatype.registry['integer'].deduce_parser_config(("41", "42", "43"))
+    assert not datatype.registry['integer'].deduce_parser_config((
+        "41", "42", "43"))
 
     assert not datatype.registry['integer'].deduce_parser_config(
         decimal.Decimal('528676.842519685039')
@@ -174,7 +180,8 @@ def test_matches_boolean():
 
     # Checking for a match with any other type than a string shouldn't
     # result in an exception, but just return None.
-    assert not datatype.registry['boolean'].deduce_parser_config(("0", "1", "0"))
+    assert not datatype.registry['boolean'].deduce_parser_config((
+        "0", "1", "0"))
     assert not datatype.registry['boolean'].deduce_parser_config(None)
 
 
@@ -218,15 +225,18 @@ def test_serialize_boolean():
 
 
 def test_matches_double_precision():
-    assert not datatype.registry['double precision'].deduce_parser_config("abc")
+    assert not datatype.registry[
+            'double precision'].deduce_parser_config("abc")
 
     assert datatype.registry['double precision'].deduce_parser_config("0.0")
     assert datatype.registry['double precision'].deduce_parser_config("42")
     assert datatype.registry['double precision'].deduce_parser_config("042")
     assert datatype.registry['double precision'].deduce_parser_config("42.42")
     assert datatype.registry['double precision'].deduce_parser_config("42e10")
-    assert datatype.registry['double precision'].deduce_parser_config("42.42e10")
-    assert datatype.registry['double precision'].deduce_parser_config("42.42e-10")
+    assert datatype.registry['double precision'].deduce_parser_config(
+            "42.42e10")
+    assert datatype.registry['double precision'].deduce_parser_config(
+            "42.42e-10")
 
     # Checking for a match with any other type than a string
     # shouldn't result in a TypeError exception, but just return False.
@@ -239,7 +249,8 @@ def test_matches_double_precision():
 
 
 def test_parse_double_precision():
-    parse_double_precision = datatype.registry['double precision'].string_parser({})
+    parse_double_precision = datatype.registry[
+            'double precision'].string_parser({})
 
     value = parse_double_precision("1.1")
 
@@ -352,7 +363,8 @@ def test_max_data_types():
         datatype.registry['integer']
     ]
 
-    max_data_types = datatype.max_data_types(current_data_types, new_data_types)
+    max_data_types = datatype.max_data_types(
+            current_data_types, new_data_types)
 
     eq_(
         max_data_types, [

@@ -35,7 +35,8 @@ def test_load_from_config():
     }
     output_descriptor = OutputDescriptor.load(config)
 
-    assert_is(output_descriptor.value_descriptor.data_type, datatype.registry['smallint'])
+    assert_is(output_descriptor.value_descriptor.data_type, datatype.registry[
+        'smallint'])
 
     assert_equal(output_descriptor.value_descriptor.name, 'x')
 

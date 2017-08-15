@@ -3,7 +3,7 @@
 import StringIO
 
 from minerva.xmlschemaparser.schemabuilder import SchemaBuilder
-#from minerva.xmlschemaparser.schematypes import *
+# from minerva.xmlschemaparser.schematypes import *
 from minerva.xmlschemaparser.schematypes import Element, ComplexType, \
     Sequence, SimpleType, Attribute
 
@@ -31,10 +31,12 @@ def test_simpleelement():
     minoccurs = "1"
     maxoccurs = "unbounded"
 
-    xsd = """<?xml version="1.0" encoding="utf-8"?>
-<schema targetNamespace="oneelement.org" xmlns="http://www.w3.org/2001/XMLSchema">
-<element name="%s" type="%s" minOccurs="%s" maxOccurs="%s"/>
-</schema>""" % (elementname, elementtype, minoccurs, maxoccurs)
+    xsd = """
+    <?xml version="1.0" encoding="utf-8"?>
+    <schema targetNamespace="oneelement.org""
+    "xmlns="http://www.w3.org/2001/XMLSchema">
+    <element name="%s" type="%s" minOccurs="%s" maxOccurs="%s"/>
+    </schema>""" % (elementname, elementtype, minoccurs, maxoccurs)
 
     stream = StringIO.StringIO(xsd)
 
@@ -65,20 +67,22 @@ def test_complexelement():
 
     elementname = "SomeComplexElement"
 
-    xsd = """<?xml version="1.0" encoding="utf-8"?>
-<schema targetNamespace="complexelement.org" xmlns="http://www.w3.org/2001/XMLSchema">
-<element name="%s">
+    xsd = """
+    <?xml version="1.0" encoding="utf-8"?>
+    <schema targetNamespace="complexelement.org""
+    "xmlns="http://www.w3.org/2001/XMLSchema">
+    <element name="%s">
     <complexType>
     <sequence>
-        <element name="First" type="string" minOccurs="0" />
-        <element name="Second" type="string" minOccurs="0" />
-        <element name="Third" type="string" minOccurs="0" />
-        <element name="Fourth" type="string" minOccurs="0" />
-        <element name="Fifth" type="string" minOccurs="0" />
+    <element name="First" type="string" minOccurs="0" />
+    <element name="Second" type="string" minOccurs="0" />
+    <element name="Third" type="string" minOccurs="0" />
+    <element name="Fourth" type="string" minOccurs="0" />
+    <element name="Fifth" type="string" minOccurs="0" />
     </sequence>
     </complexType>
-</element>
-</schema>""" % elementname
+    </element>
+    </schema>""" % elementname
 
     stream = StringIO.StringIO(xsd)
     schema = schemabuilder.build_schema(stream)
@@ -110,9 +114,11 @@ def test_named_simpletype():
 
     typename = "FirstSimpleType"
 
-    xsd = """<schema targetNamespace="oneelement.org" xmlns="http://www.w3.org/2001/XMLSchema">
-<simpleType name="%s"/>
-</schema>""" % typename
+    xsd = """
+    <schema targetNamespace="oneelement.org""
+    "xmlns="http://www.w3.org/2001/XMLSchema">
+    <simpleType name="%s"/>
+    </schema>""" % typename
 
     stream = StringIO.StringIO(xsd)
 
@@ -136,31 +142,37 @@ def test_elementref_prefix_translation():
 
     schemabuilder = SchemaBuilder()
 
-    xsd = """<?xml version="1.0" encoding="utf-8"?>
-<schema targetNamespace="%(NamespaceName)s" xmlns="http://www.w3.org/2001/XMLSchema" xmlns:%(NamespacePrefix)s="%(NamespaceName)s">
-<element name="object">
+    xsd = """
+    <?xml version="1.0" encoding="utf-8"?>
+    <schema targetNamespace="%(NamespaceName)s""
+    "xmlns="http://www.w3.org/2001/XMLSchema""
+    "xmlns:%(NamespacePrefix)s="%(NamespaceName)s">
+    <element name="object">
     <complexType>
-        <sequence>
-            <element name="name" type="string" />
-            <element name="id" type="string" />
-        </sequence>
+    <sequence>
+    <element name="name" type="string" />
+    <element name="id" type="string" />
+    </sequence>
     </complexType>
-</element>
-<element name="encapsulate">
+    </element>
+    <element name="encapsulate">
     <complexType>
-        <sequence>
-            <element ref="tn:object" />
-        </sequence>
+    <sequence>
+    <element ref="tn:object" />
+    </sequence>
     </complexType>
-</element>
-</schema>""" % {"NamespaceName": namespace_name, "NamespacePrefix": namespace_prefix}
+    </element>
+    </schema>""" % {
+            "NamespaceName": namespace_name,
+            "NamespacePrefix": namespace_prefix}
 
     stream = StringIO.StringIO(xsd)
 
     schema = schemabuilder.build_schema(stream)
 
     # Get the element we need for the test
-    elementreference = schema.get_children()[1].complextype.get_children()[0].get_children()[0]
+    elementreference = schema.get_children(
+            )[1].complextype.get_children()[0].get_children()[0]
 
     # Check if the reference prefix has been translated to a full namespace URI
     assert elementreference.ref.namespacename == namespace_name
@@ -175,12 +187,14 @@ def test_named_complextype():
     attributetype = "string"
     attributeuse = "required"
 
-    xsd = """<?xml version="1.0" encoding="utf-8"?>
-<schema targetNamespace="oneelement.org" xmlns="http://www.w3.org/2001/XMLSchema">
-<complexType name="%s">
+    xsd = """
+    <?xml version="1.0" encoding="utf-8"?>
+    <schema targetNamespace="oneelement.org""
+    "xmlns="http://www.w3.org/2001/XMLSchema">
+    <complexType name="%s">
     <attribute name="%s" type="%s" use="%s"/>
-</complexType>
-</schema>""" % (typename, attributename, attributetype, attributeuse)
+    </complexType>
+    </schema>""" % (typename, attributename, attributetype, attributeuse)
 
     stream = StringIO.StringIO(xsd)
 
@@ -223,38 +237,39 @@ def test_real_world_snippet():
     schemabuilder = SchemaBuilder()
 
     xsd = """<?xml version="1.0" encoding="utf-8"?>
-<schema targetNamespace="oneelement.org" xmlns="http://www.w3.org/2001/XMLSchema">
-<complexType name="NrmClassXmlType" abstract="true">
+    <schema targetNamespace="oneelement.org""
+    "xmlns="http://www.w3.org/2001/XMLSchema">
+    <complexType name="NrmClassXmlType" abstract="true">
     <attribute name="id" type="string" use="required"/>
     <attribute name="modifier" use="optional">
-        <simpleType>
-            <restriction base="string">
-                <enumeration value="create"/>
-                <enumeration value="delete"/>
-                <enumeration value="update"/>
-            </restriction>
-        </simpleType>
+    <simpleType>
+    <restriction base="string">
+    <enumeration value="create"/>
+    <enumeration value="delete"/>
+    <enumeration value="update"/>
+    </restriction>
+    </simpleType>
     </attribute>
-</complexType>
-<element name="ExternalGsmCell">
-    <complexType>
-        <complexContent>
-            <extension base="oneelement.org:NrmClassXmlType">
-                <sequence>
-                    <element name="attributes" minOccurs="0">
-                        <complexType>
-                            <all>
-                                <element name="userLabel" minOccurs="0"/>
-                                <element name="cellIdentity" minOccurs="0"/>
-                            </all>
-                        </complexType>
-                    </element>
-                </sequence>
-            </extension>
-        </complexContent>
     </complexType>
-</element>
-</schema>"""
+    <element name="ExternalGsmCell">
+    <complexType>
+    <complexContent>
+    <extension base="oneelement.org:NrmClassXmlType">
+    <sequence>
+    <element name="attributes" minOccurs="0">
+    <complexType>
+    <all>
+    <element name="userLabel" minOccurs="0"/>
+    <element name="cellIdentity" minOccurs="0"/>
+    </all>
+    </complexType>
+    </element>
+    </sequence>
+    </extension>
+    </complexContent>
+    </complexType>
+    /element>
+    /schema>"""
 
     stream = StringIO.StringIO(xsd)
 
@@ -262,6 +277,8 @@ def test_real_world_snippet():
 
     externalgsmcell = schema.get_children()[1]
 
-    userlabel_element = externalgsmcell.get_children()[0].get_children()[0].get_children()[0].get_children()[0].get_children()[0].get_children()[0].get_children()[0].get_children()[0]
+    userlabel_element = externalgsmcell.get_children()[0].get_children()[
+            0].get_children()[0].get_children()[0].get_children()[
+                    0].get_children()[0].get_children()[0].get_children()[0]
 
     assert userlabel_element.name == "userLabel"
