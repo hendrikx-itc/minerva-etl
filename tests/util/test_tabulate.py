@@ -19,4 +19,3 @@ def test_render_table():
     """
     Check for correct table rendering
     """
-

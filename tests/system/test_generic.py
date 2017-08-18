@@ -15,4 +15,3 @@ from contextlib import closing
 
 import pytz
 from nose.tools import with_setup
-

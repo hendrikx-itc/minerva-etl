@@ -21,8 +21,9 @@ from minerva.storage.trend.partition import Partition
 
 def partition_getter(datasource_name, entitytype_name, granularity, timestamp):
     def f(cursor):
-        return get_partition(cursor, datasource_name, entitytype_name,
-                granularity, timestamp)
+        return get_partition(
+            cursor, datasource_name, entitytype_name,
+            granularity, timestamp)
 
     return f
 
@@ -61,8 +62,8 @@ def get_partition_by_name(cursor, name):
         return None
 
 
-def get_partition(cursor, datasource_name, entitytype_name, granularity,
-        timestamp):
+def get_partition(
+        cursor, datasource_name, entitytype_name, granularity, timestamp):
     datasource = get_datasource(cursor, datasource_name)
     entitytype = get_entitytype(cursor, entitytype_name)
     granularity = create_granularity(granularity)
@@ -74,7 +75,8 @@ def get_partition(cursor, datasource_name, entitytype_name, granularity,
 
 def link_trend(cursor, table_name, trend_id):
     query = (
-        "INSERT INTO trend.trend_partition_link (trend_id, partition_table_name) "
+        "INSERT INTO trend.trend_partition_link"
+        "(trend_id, partition_table_name) "
         "VALUES (%s, %s)")
 
     args = trend_id, table_name
@@ -86,9 +88,9 @@ def partition_has_trend(cursor, table_name, trend_name):
     query = (
         "SELECT 1 FROM trend.partition p "
         "JOIN trend.trend_partition_link tpl "
-            "ON tpl.partition_table_name = p.table_name "
+        "ON tpl.partition_table_name = p.table_name "
         "JOIN trend.trend t "
-            "ON t.id = tpl.trend_id "
+        "ON t.id = tpl.trend_id "
         "WHERE p.table_name = %s AND t.name = %s")
 
     args = table_name, trend_name
@@ -105,10 +107,10 @@ def find_trend(cursor, entitytype, datasource, granularity, name):
         "JOIN trend.trend_partition_link tpl ON tpl.trend_id = t.id "
         "JOIN trend.partition p ON p.table_name = tpl.partition_table_name "
         "WHERE "
-            "p.entitytype_id = %s AND "
-            "p.datasource_id = %s AND "
-            "p.granularity = %s AND "
-            "t.name = %s")
+        "p.entitytype_id = %s AND "
+        "p.datasource_id = %s AND "
+        "p.granularity = %s AND "
+        "t.name = %s")
 
     args = entitytype.id, datasource.id, granularity.name, name
 

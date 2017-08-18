@@ -16,6 +16,7 @@ import mock
 
 from minerva.system.jobqueue import enqueue_job, finish_job
 
+
 def test_add_job():
     """
     Test if jobs are successfully created in the database.
@@ -28,8 +29,8 @@ def test_add_job():
     mock_cursor.fetchone.return_value = (42, )
     mock_conn.cursor.return_value = mock_cursor
 
-    enqueue_job(mock_conn, "/share/file.xml", 23675, datasource_id,
-            dispatcher_id)
+    enqueue_job(
+        mock_conn, "/share/file.xml", 23675, datasource_id, dispatcher_id)
 
 
 def test_finish_job():
@@ -43,4 +44,3 @@ def test_finish_job():
     mock_conn.cursor.return_value = mock_cursor
 
     finish_job(mock_conn, job_id)
-
