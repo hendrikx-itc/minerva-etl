@@ -25,7 +25,7 @@ def test_emptyschemawithtargetnamespace():
 
     namespace = schemacontext.namespaces.get(namespacename, None)
 
-    assert namespace != None
+    assert namespace is not None
 
     assert_equal(namespace.name, namespacename)
 
@@ -86,9 +86,9 @@ def test_complexelement():
     assert book_handler.elementtype.get_child_elementhandler("First")
 
     first_handler = namespace.get_elementhandler("/book/First")
-    assert first_handler != None
+    assert first_handler is not None
     secondHandler = namespace.get_elementhandler("/book/Second")
-    assert secondHandler != None
+    assert secondHandler is not None
 
 
 def test_elementreference():
@@ -124,7 +124,7 @@ def test_elementreference():
             subnetworkhandler.elementtype.get_child_elementhandler(
                     "ManagedElement"))
 
-    assert managedelementhandler != None
+    assert managedelementhandler is not None
 
     assert_equal(managedelementhandler.elementtype.name, "string")
 
@@ -167,6 +167,6 @@ def test_extension():
                     "userLabel"))
 
     # Type of GsmRelation should have child handler for 'userLabel'
-    assert userlabelelementhandler != None
+    assert userlabelelementhandler is not None
 
     assert_equal(userlabelelementhandler.elementtype.name, "string")

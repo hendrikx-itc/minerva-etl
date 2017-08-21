@@ -54,7 +54,7 @@ def log_call_on_exception(log_fn=logging.debug):
                 "args({}): {}".format(len(args), ", ".join(map(str, args)))]
             try:
                 result = fn(*args, **kwargs)
-            except:
+            except Exception:
                 map(log_fn, lines)
 
                 raise
