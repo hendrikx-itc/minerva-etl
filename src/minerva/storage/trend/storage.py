@@ -618,7 +618,8 @@ def store_copy_from(conn, schema, table, trend_names, timestamp, modified,
     :param trend_names: The trend names in the same order as the values in \
         `data_rows`.
     :param data_rows: A sequence of 2-tuples like (entity_id, values), \
-        where values is a sequence of values in the same order as `trend_names`.
+        where values is a sequence of values
+        in the same order as `trend_names`.
     """
     copy_from_file = create_copy_from_file(timestamp, modified, data_rows)
 
@@ -636,7 +637,8 @@ def store_copy_from(conn, schema, table, trend_names, timestamp, modified,
                 raise NoSuchColumnError()
             elif exc.pgcode == psycopg2.errorcodes.UNDEFINED_TABLE:
                 raise NoSuchTable()
-            elif exc.pgcode is None and str(exc).find("no COPY in progress") != -1:
+            elif exc.pgcode is None and str(exc).find(
+                    "no COPY in progress") != -1:
                 # Might happen after database connection loss
                 raise RecoverableError(str(exc), no_op)
             elif exc.pgcode == psycopg2.errorcodes.DEADLOCK_DETECTED:
@@ -669,8 +671,9 @@ def create_copy_from_line(timestamp, modified, data_row):
 
     trend_value_part = "\t".join(format_value(value) for value in values)
 
-    return u"{0:d}\t'{1!s}'\t'{2!s}'\t{3}\n".format(entity_id,
-            timestamp.isoformat(), modified.isoformat(), trend_value_part)
+    return u"{0:d}\t'{1!s}'\t'{2!s}'\t{3}\n".format(
+        entity_id,timestamp.isoformat(), modified.isoformat(),
+        trend_value_part)
 
 
 def create_copy_from_query(schema, table, trend_names):
@@ -679,8 +682,10 @@ def create_copy_from_query(schema, table, trend_names):
 
     full_table_name = create_full_table_name(schema, table)
 
-    return "COPY {0}({1}) FROM STDIN".format(full_table_name,
-        ",".join('"{0}"'.format(column_name) for column_name in column_names))
+    return "COPY {0}({1}) FROM STDIN".format(
+        full_table_name, ",".join(
+            '"{0}"'.format(
+                column_name) for column_name in column_names))
 
 
 def store_using_update(conn, schema, table, trend_names, timestamp, modified,

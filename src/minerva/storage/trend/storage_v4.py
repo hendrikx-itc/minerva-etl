@@ -44,7 +44,8 @@ def table_or_view_exists(cursor, table):
     return cursor.rowcount > 0
 
 
-def retrieve_aggregated(cursor, trendstore, column_identifiers, interval,
+def retrieve_aggregated(
+        cursor, trendstore, column_identifiers, interval,
         group_by=[], subquery_filter=None, relation_table_name=None):
     """
     Return aggregated data
@@ -70,7 +71,8 @@ def retrieve_aggregated(cursor, trendstore, column_identifiers, interval,
             else:
                 return [a.name for a in column_identifier.args]
         else:
-            trend_names_part = re.match(r".*\(([\w, ]+)\)", column_identifier).group(1)
+            trend_names_part = re.match(
+                r".*\(([\w, ]+)\)", column_identifier).group(1)
 
             return map(str.strip, trend_names_part.split(","))
 
@@ -78,7 +80,7 @@ def retrieve_aggregated(cursor, trendstore, column_identifiers, interval,
 
     args = {"start": start, "end": end}
 
-    #Deal with 'samples' column
+    # Deal with 'samples' column
     if column_exists(cursor, source_tables[-1], "samples"):
         select_samples_part = "SUM(samples)"
         select_samples_column = "samples,"
@@ -86,8 +88,9 @@ def retrieve_aggregated(cursor, trendstore, column_identifiers, interval,
         select_samples_part = "COUNT(*)"
         select_samples_column = ""
 
-    existing_tables = [table for table in source_tables
-            if table_or_view_exists(cursor, table)]
+    existing_tables = [
+        table for table in source_tables
+        if table_or_view_exists(cursor, table)]
 
     if not existing_tables:
         return []
@@ -140,8 +143,9 @@ def retrieve_aggregated(cursor, trendstore, column_identifiers, interval,
     try:
         cursor.execute(query, args)
     except psycopg2.ProgrammingError as exc:
-        raise AggregationError("{} with query: {}".format(str(exc),
-                cursor.mogrify(query, args)))
+        raise AggregationError(
+            "{} with query: {}".format(str(exc),
+                                       cursor.mogrify(query, args)))
     else:
         return cursor.fetchall()
 
@@ -164,8 +168,10 @@ def ensure_column(c):
         return c
 
 
-def retrieve(cursor, tables, columns, entities, start, end,
-        subquery_filter=None, relation_table_name=None, limit=None, entitytype=None):
+def retrieve(
+        cursor, tables, columns, entities, start, end,
+        subquery_filter=None, relation_table_name=None,
+        limit=None, entitytype=None):
     """
     Retrieve data.
 
@@ -177,7 +183,8 @@ def retrieve(cursor, tables, columns, entities, start, end,
     :param end: The end timestamp of the range of trend values
     :param subquery_filter: optional subquery for additional filtering
         by JOINing on field 'id' = entity_id
-    :param relation_table_name: optional relation table name for converting entity
+    :param relation_table_name: optional relation table name
+    for converting entity
         ids to related ones
     """
     all_rows = []
@@ -201,9 +208,9 @@ def retrieve(cursor, tables, columns, entities, start, end,
             cols = [As(Argument(), "timestamp"), Column("dn"),
                     As(Column("id"), "entity_id")]
 
-            q = Select(cols,
-                    from_=Table("directory", "entity"),
-                    where_=Eq(Column("entitytype_id"), Value(entitytype.id)))
+            q = Select(
+                cols, from_=Table("directory", "entity"),
+                where_=Eq(Column("entitytype_id"), Value(entitytype.id)))
 
             with_query = WithQuery("t", query=q)
             params.append(start)
@@ -225,23 +232,30 @@ def retrieve(cursor, tables, columns, entities, start, end,
             data_tables = tables[1:]
 
         for tbl in data_tables:
-            timestamp_comparison = Eq(Column(tbl, "timestamp"), base_timestamp_column)
-            entity_id_comparison = Eq(Column(tbl, "entity_id"), base_entity_id_column)
-            join_condition = And(timestamp_comparison, entity_id_comparison)
+            timestamp_comparison = Eq(
+                Column(tbl, "timestamp"), base_timestamp_column)
+            entity_id_comparison = Eq(
+                Column(tbl, "entity_id"), base_entity_id_column)
+            join_condition = And(
+                timestamp_comparison, entity_id_comparison)
 
-            from_item = from_item.join(tbl, on=join_condition, join_type="LEFT")
+            from_item = from_item.join(
+                tbl, on=join_condition, join_type="LEFT")
 
         if subquery_filter:
             filter_tbl = Literal("({0}) AS filter".format(subquery_filter))
-            from_item = from_item.join(filter_tbl,
-                    on=Eq(Column("filter", "id"), base_entity_id_column))
+            from_item = from_item.join(
+                filter_tbl, on=Eq(Column(
+                    "filter", "id"), base_entity_id_column))
 
         if relation_table_name:
             relation_table = Table("relation", relation_table_name)
 
-            join_condition = Eq(Column("r", "source_id"), base_entity_id_column)
+            join_condition = Eq(Column("r", "source_id"),
+                                base_entity_id_column)
 
-            from_item = from_item.left_join(As(relation_table, "r"), on=join_condition)
+            from_item = from_item.left_join(As(relation_table, "r"),
+                                            on=join_condition)
 
             entity_id_column = Column("r", "target_id")
         else:
@@ -257,19 +271,21 @@ def retrieve(cursor, tables, columns, entities, start, end,
                 where_parts.append(condition)
                 params.append(start)
             else:
-                if not start is None:
+                if start is not None:
                     condition = Gt(base_timestamp_column, Argument())
                     where_parts.append(condition)
                     params.append(start)
 
-                if not end is None:
+                if end is not None:
                     condition = LtEq(base_timestamp_column, Argument())
                     where_parts.append(condition)
                     params.append(end)
 
-        if not entities is None:
-            condition = Literal("{0} IN ({1:s})".format(base_entity_id_column.render(),
-                ",".join(str(entity_id) for entity_id in entities)))
+        if entities is not None:
+            condition = Literal(
+                "{0} IN ({1:s})".format(
+                    base_entity_id_column.render(), ",".join(
+                        str(entity_id) for entity_id in entities)))
             where_parts.append(condition)
 
         if where_parts:
@@ -277,8 +293,9 @@ def retrieve(cursor, tables, columns, entities, start, end,
         else:
             where_clause = None
 
-        select = Select(partition_columns, with_query=with_query, from_=from_item,
-                where_=where_clause, limit=limit)
+        select = Select(
+            partition_columns, with_query=with_query, from_=from_item,
+            where_=where_clause, limit=limit)
 
         query = select.render()
 
@@ -293,7 +310,8 @@ def retrieve(cursor, tables, columns, entities, start, end,
     return all_rows
 
 
-def retrieve_related(conn, schema, relation_table_name, table_names,
+def retrieve_related(
+        conn, schema, relation_table_name, table_names,
         trend_names, start, end, subquery_filter=None, limit=None):
     """
     Retrieve data for entities of another entity type of trend data. Related
@@ -305,7 +323,9 @@ def retrieve_related(conn, schema, relation_table_name, table_names,
     :param conn: Minerva database connection
     :param datasource: A DataSource object
     :param granularity_period: The granularity period in seconds
-    :param trend_names: A list of trend names (possibly for different datasources)
+
+    :param trend_names: A list of trend names
+    (possibly for different datasources)
     :param start: The start timestamp of the range of trend values
     :param end: The end timestamp of the range of trend values
     :param subquery_filter: optional subquery for additional filtering
@@ -315,11 +335,13 @@ def retrieve_related(conn, schema, relation_table_name, table_names,
     where_parts = []
     all_rows = []
 
-    #group tables by partition size signature to be able to JOIN them later
+    # group tables by partition size signature to
+    # be able to JOIN them later
     tables_by_partition_signature = {}
     for table_name in table_names:
         signature = table_name.split("_")[-1]
-        tables_by_partition_signature.setdefault(signature, []).append(table_name)
+        tables_by_partition_signature.setdefault(
+            signature, []).append(table_name)
 
     for table_names in tables_by_partition_signature.values():
         full_base_tbl_name = "{0}.\"{1}\"".format(schema, table_names[0])
@@ -353,21 +375,24 @@ def retrieve_related(conn, schema, relation_table_name, table_names,
 
         params = []
         if start == end and start is not None:
-            where_parts.append("{0}.\"timestamp\" = %s".format(full_base_tbl_name))
+            where_parts.append(
+                "{0}.\"timestamp\" = %s".format(full_base_tbl_name))
             params = [start]
         else:
-            if not start is None:
-                where_parts.append("{0}.\"timestamp\" > %s".format(full_base_tbl_name))
+            if start is not None:
+                where_parts.append(
+                    "{0}.\"timestamp\" > %s".format(full_base_tbl_name))
                 params.append(start)
 
-            if not end is None:
-                where_parts.append("{0}.\"timestamp\" <= %s".format(full_base_tbl_name))
+            if end is not None:
+                where_parts.append(
+                    "{0}.\"timestamp\" <= %s".format(full_base_tbl_name))
                 params.append(end)
 
         if where_parts:
             query += " WHERE " + " AND ".join(where_parts)
 
-        if not limit is None:
+        if limit is not None:
             query += " LIMIT {0:d}".format(limit)
 
         with closing(conn.cursor()) as cursor:

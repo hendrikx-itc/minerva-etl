@@ -79,7 +79,8 @@ def flush_tag_links(conn, tag_name):
     query = (
         "DELETE FROM {0}.trend_tag_link ttl "
         "USING directory.tag tag "
-        "WHERE tag.id = ttl.tag_id AND lower(tag.name) = lower(%s)").format(schema.name)
+        "WHERE tag.id = ttl.tag_id AND lower(tag.name)"
+        " = lower(%s)").format(schema.name)
 
     args = (tag_name, )
 
