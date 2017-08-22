@@ -53,7 +53,7 @@ def test_store_copy_from_1(conn):
         entitytype = name_to_entitytype(cursor, "test-type001")
 
         trendstore = TrendStore(
-                datasource, entitytype,
+            datasource, entitytype,
                 granularity, 86400, "table").create(cursor)
         partition = trendstore.partition(timestamp)
 
@@ -64,7 +64,7 @@ def test_store_copy_from_1(conn):
         partition.check_columns_exist(trend_names, data_types)(cursor)
 
         store_copy_from(
-                conn, SCHEMA, table.name, trend_names,
+            conn, SCHEMA, table.name, trend_names,
                 timestamp, modified, data_rows)
 
         conn.commit()
@@ -97,7 +97,7 @@ def test_store_copy_from_2(conn):
         datasource = name_to_datasource(cursor, "test-src010")
         entitytype = name_to_entitytype(cursor, "test-type002")
         trendstore = TrendStore(
-                datasource, entitytype,
+            datasource, entitytype,
                 granularity, 86400, "table").create(cursor)
         partition = trendstore.partition(timestamp)
         partition.create(cursor)
@@ -105,7 +105,7 @@ def test_store_copy_from_2(conn):
         table = partition.table()
 
         store_copy_from(
-                conn, SCHEMA, table.name, trend_names,
+            conn, SCHEMA, table.name, trend_names,
                 timestamp, modified, data_rows)
 
         conn.commit()
@@ -148,7 +148,7 @@ def test_store_using_tmp(conn):
         timestamp = curr_timezone.localize(datetime(2013, 1, 2, 10, 45, 0))
         modified = curr_timezone.localize(datetime.now())
         store_using_tmp(
-                conn, SCHEMA, table.name, trend_names,
+            conn, SCHEMA, table.name, trend_names,
                 timestamp, modified, data_rows)
 
         conn.commit()
@@ -183,21 +183,21 @@ def test_store_insert_rows(conn):
         create_trend_table(conn, SCHEMA, table.name, trend_names, data_types)
 
         store_insert_rows(
-                conn, SCHEMA, table.name, trend_names, time1, modified,
+            conn, SCHEMA, table.name, trend_names, time1, modified,
                 data_rows)
         conn.commit()
 
         eq_(row_count(cursor, table), 2)
 
         store_insert_rows(
-                conn, SCHEMA, table.name, trend_names, time2, modified,
+            conn, SCHEMA, table.name, trend_names, time2, modified,
                 data_rows)
         conn.commit()
 
         eq_(row_count(cursor, table), 4)
 
         store_insert_rows(
-                conn, SCHEMA, table.name, trend_names, time1, modified,
+            conn, SCHEMA, table.name, trend_names, time1, modified,
                 data_rows)
         conn.commit()
 
@@ -230,7 +230,7 @@ def test_update_modified_column(conn):
         entitytype = name_to_entitytype(cursor, "test-type001")
 
         trendstore = TrendStore(
-                datasource, entitytype,
+            datasource, entitytype,
                 granularity, 86400, "table").create(cursor)
         partition = trendstore.partition(timestamp)
 
@@ -243,7 +243,7 @@ def test_update_modified_column(conn):
         store(conn, SCHEMA, table.name, trend_names, timestamp, data_rows)
         time.sleep(1)
         store(
-                conn, SCHEMA, table.name, trend_names,
+            conn, SCHEMA, table.name, trend_names,
                 timestamp, update_data_rows)
         conn.commit()
 
@@ -258,7 +258,7 @@ def test_update_modified_column(conn):
         max_modified = first(cursor.fetchone())
 
         modified_table.select(Column("end")).where_(
-                Eq(Column("table_name"), table.name)).execute(cursor)
+            Eq(Column("table_name"), table.name)).execute(cursor)
 
         end = first(cursor.fetchone())
 
@@ -282,7 +282,7 @@ def test_update(conn):
         entitytype = name_to_entitytype(cursor, "test-type001")
 
         trendstore = TrendStore(
-                datasource, entitytype,
+            datasource, entitytype,
                 granularity, 86400, "table").create(cursor)
         partition = trendstore.partition(timestamp)
 
@@ -341,7 +341,7 @@ def test_update_and_modify_columns_fractured(conn):
         entitytype = name_to_entitytype(cursor, "test-type001")
 
         trendstore = TrendStore(
-                datasource, entitytype,
+            datasource, entitytype,
                 granularity, 86400, "table").create(cursor)
         partition = trendstore.partition(timestamp)
 

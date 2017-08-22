@@ -7,7 +7,7 @@ from minerva.test import with_conn, clear_database, eq_
 from minerva.test.trend import TestSet1Small
 from minerva.directory import DataSource
 from minerva.storage.trend.viewtrendstore import \
-        ViewTrendStore, ViewTrendStoreDescriptor
+    ViewTrendStore, ViewTrendStoreDescriptor
 
 
 @with_conn(clear_database)
@@ -33,7 +33,7 @@ def test_create_view(conn):
         ))(cursor)
 
         start = pytz.utc.localize(
-                datetime.datetime(2013, 8, 26, 13, 0, 0))
+            datetime.datetime(2013, 8, 26, 13, 0, 0))
         end = start
 
         trend_store.retrieve(["CntrA"]).execute(cursor)

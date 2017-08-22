@@ -65,6 +65,7 @@ def store_raw_batch(conn, datasource, raw_datapackage):
 
 
 class TestData(DataSet):
+
     def __init__(self):
         self.granularity = create_granularity("900")
 
@@ -85,11 +86,11 @@ def test_store_concurrent(conn, dataset):
     rows = [("Cell={}".format(i), ("1", "2", "3")) for i in range(100)]
 
     raw_datapackage = RawDataPackage(
-            dataset.granularity, timestamp, trend_names, rows)
+        dataset.granularity, timestamp, trend_names, rows)
 
     threads = [
-            Thread(target=partial(
-                store_raw_batch, dataset.datasource, raw_datapackage)),
+        Thread(target=partial(
+               store_raw_batch, dataset.datasource, raw_datapackage)),
             Thread(target=partial(
                 store_raw_batch, dataset.datasource, raw_datapackage)),
             Thread(target=partial(

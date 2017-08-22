@@ -28,6 +28,7 @@ this software.
 
 
 class TestData(DataSet):
+
     def __init__(self):
         self.granularity = create_granularity("900")
 
@@ -42,7 +43,7 @@ def test_create_trendstore(conn, dataset):
     partition_size = 3600
 
     trendstore = TrendStore(
-            dataset.datasource, dataset.entitytype, dataset.granularity,
+        dataset.datasource, dataset.entitytype, dataset.granularity,
             partition_size, "table")
 
     with closing(conn.cursor()) as cursor:
@@ -59,7 +60,7 @@ def test_create_trendstore_with_children(conn, dataset):
     partition_size = 3600
 
     trendstore = TrendStore(
-            dataset.datasource, dataset.entitytype, dataset.granularity,
+        dataset.datasource, dataset.entitytype, dataset.granularity,
             partition_size, "table")
 
     with closing(conn.cursor()) as cursor:
@@ -68,7 +69,7 @@ def test_create_trendstore_with_children(conn, dataset):
         assert trendstore.id is not None
 
         timestamp = dataset.datasource.tzinfo.localize(
-                datetime.datetime(2013, 5, 6, 14, 45))
+            datetime.datetime(2013, 5, 6, 14, 45))
 
         partition = trendstore.partition(timestamp)
 
@@ -82,11 +83,11 @@ def test_get_trendstore(conn, dataset):
 
     with closing(conn.cursor()) as cursor:
         TrendStore(
-                dataset.datasource, dataset.entitytype, dataset.granularity,
+            dataset.datasource, dataset.entitytype, dataset.granularity,
                 partition_size, "table").create(cursor)
 
         trendstore = TrendStore.get(
-                cursor, dataset.datasource,
+            cursor, dataset.datasource,
                 dataset.entitytype,
                 dataset.granularity)
 
@@ -103,13 +104,13 @@ def test_store_copy_from(conn, dataset):
 
     with closing(conn.cursor()) as cursor:
         trendstore = TrendStore(
-                dataset.datasource, dataset.entitytype, dataset.granularity,
+            dataset.datasource, dataset.entitytype, dataset.granularity,
                 partition_size, "table").create(cursor)
 
     conn.commit()
 
     timestamp = dataset.datasource.tzinfo.localize(
-            datetime.datetime(2013, 4, 25, 9, 45))
+        datetime.datetime(2013, 4, 25, 9, 45))
 
     trends = ["a", "b", "c"]
 
@@ -132,7 +133,7 @@ def test_store_copy_from(conn, dataset):
 def test_store_copy_from_missing_column(conn, dataset):
     partition_size = 86400
     trendstore = TrendStore(
-            dataset.datasource, dataset.entitytype, dataset.granularity,
+        dataset.datasource, dataset.entitytype, dataset.granularity,
             partition_size, "table")
 
     with closing(conn.cursor()) as cursor:
@@ -141,7 +142,7 @@ def test_store_copy_from_missing_column(conn, dataset):
     conn.commit()
 
     timestamp = dataset.datasource.tzinfo.localize(
-            datetime.datetime(2013, 4, 25, 9, 45))
+        datetime.datetime(2013, 4, 25, 9, 45))
 
     trends = ["a", "b", "c"]
 
@@ -158,7 +159,7 @@ def test_store_copy_from_missing_column(conn, dataset):
     # Store second part with one column extra
 
     timestamp = dataset.datasource.tzinfo.localize(
-            datetime.datetime(2013, 4, 25, 10, 00))
+        datetime.datetime(2013, 4, 25, 10, 00))
 
     trends = ["a", "b", "c", "d"]
 
@@ -178,7 +179,7 @@ def test_store_copy_from_missing_column(conn, dataset):
 def test_store(conn, dataset):
     partition_size = 86400
     trendstore = TrendStore(
-            dataset.datasource, dataset.entitytype, dataset.granularity,
+        dataset.datasource, dataset.entitytype, dataset.granularity,
             partition_size, "table")
 
     with closing(conn.cursor()) as cursor:
@@ -187,7 +188,7 @@ def test_store(conn, dataset):
     conn.commit()
 
     timestamp = dataset.datasource.tzinfo.localize(
-            datetime.datetime(2013, 4, 25, 9, 45))
+        datetime.datetime(2013, 4, 25, 9, 45))
 
     trends = ["a", "b", "c"]
 
@@ -238,9 +239,9 @@ def test_generate_index(conn, dataset):
     partition_size = 86400
 
     start = dataset.datasource.tzinfo.localize(
-            datetime.datetime(2013, 4, 25, 9, 45))
+        datetime.datetime(2013, 4, 25, 9, 45))
     end = dataset.datasource.tzinfo.localize(
-            datetime.datetime(2013, 4, 27, 9, 45))
+        datetime.datetime(2013, 4, 27, 9, 45))
 
     partitioning = Partitioning(partition_size)
 
@@ -262,7 +263,7 @@ def test_generate_index(conn, dataset):
 def test_store_add_column(conn, dataset):
     partition_size = 86400
     trendstore = TrendStore(
-            dataset.datasource, dataset.entitytype, dataset.granularity,
+        dataset.datasource, dataset.entitytype, dataset.granularity,
             partition_size, "table")
 
     with closing(conn.cursor()) as cursor:
@@ -271,7 +272,7 @@ def test_store_add_column(conn, dataset):
     conn.commit()
 
     timestamp = dataset.datasource.tzinfo.localize(
-            datetime.datetime(2013, 4, 25, 10, 45))
+        datetime.datetime(2013, 4, 25, 10, 45))
 
     trends = ["a", "b", "c"]
 
@@ -322,7 +323,7 @@ def test_store_add_column(conn, dataset):
 def test_store_alter_column(conn, dataset):
     partition_size = 86400
     trendstore = TrendStore(
-            dataset.datasource, dataset.entitytype, dataset.granularity,
+        dataset.datasource, dataset.entitytype, dataset.granularity,
             partition_size, "table")
 
     with closing(conn.cursor()) as cursor:
@@ -331,7 +332,7 @@ def test_store_alter_column(conn, dataset):
     conn.commit()
 
     timestamp = dataset.datasource.tzinfo.localize(
-            datetime.datetime(2013, 4, 25, 11, 00))
+        datetime.datetime(2013, 4, 25, 11, 00))
 
     trends = ["a", "b", "c"]
 
