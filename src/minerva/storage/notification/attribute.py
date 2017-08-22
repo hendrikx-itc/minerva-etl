@@ -2,6 +2,7 @@ from psycopg2.extensions import adapt, register_adapter
 
 
 class AttributeDescriptor:
+
     def __init__(self, name, data_type, description):
         self.name = name
         self.data_type = data_type
@@ -9,6 +10,7 @@ class AttributeDescriptor:
 
 
 class Attribute:
+
     """Describes the attribute of a specific NotificationStore."""
 
     def __init__(

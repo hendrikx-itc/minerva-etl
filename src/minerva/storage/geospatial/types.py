@@ -12,6 +12,7 @@ this software.
 
 
 class Point(object):
+
     def __init__(self, x, y, srid=None):
         self.x = x
         self.y = y
@@ -27,12 +28,14 @@ class Point(object):
 
 
 class Site(object):
+
     def __init__(self, entity_id, position):
         self.entity_id = entity_id
         self.position = position
 
 
 class Cell(object):
+
     def __init__(self, entity_id, azimuth, type):
         self.entity_id = entity_id
         self.azimuth = azimuth
