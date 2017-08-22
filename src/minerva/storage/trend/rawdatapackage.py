@@ -16,6 +16,7 @@ from minerva.util import grouped_by
 
 
 class RawDataPackage(DataPackage):
+
     def __init__(self, granularity, timestamp, trend_names, rows):
         self.granularity = granularity
         self.timestamp = timestamp
