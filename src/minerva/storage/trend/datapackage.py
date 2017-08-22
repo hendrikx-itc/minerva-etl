@@ -12,6 +12,7 @@ from minerva.directory.distinguishedname import entity_type_name_from_dn
 
 
 class DataPackageBase:
+
     """
     A DataPackage represents a batch of trend records for the same EntityType
     granularity and timestamp. The EntityType is implicitly determined by the
@@ -31,6 +32,7 @@ class DataPackageBase:
         | 1234003 |    22.5  |     3   |     90  | "on"     |
         +---------+----------+---------+---------+----------+
     """
+
     def __init__(
             self, granularity, timestamp, trend_names, rows):
         self.granularity = granularity

@@ -215,13 +215,13 @@ def eval_brackets(tokens):
 
 integer = Word(nums)
 real = (
-        Combine(Word(nums) + Optional("." + Word(nums)) + oneOf(
+    Combine(Word(nums) + Optional("." + Word(nums)) + oneOf(
             "E e") + Optional(oneOf('+ -')) + Word(nums)) | Combine(Word(
                 nums) + "." + Word(nums))
-    )
+)
 
 identifier_part = Word(alphanums + '_') | QuotedString(
-        '"', unquoteResults=True)
+    '"', unquoteResults=True)
 
 identifier = Optional(
     identifier_part + Suppress(".")
@@ -257,6 +257,7 @@ arith_expr << operatorPrecedence(operand, [
 
 
 class Context:
+
     def __init__(self, get_trend_meta):
         self.trends = set()
         self.tables = set()

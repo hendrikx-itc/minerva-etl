@@ -92,6 +92,7 @@ def fn_range(incr, start, end):
 
 
 class Granularity():
+
     def __init__(self, delta):
         self.delta = delta
 

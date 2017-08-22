@@ -15,6 +15,7 @@ this software.
 
 
 class Trend(object):
+
     def __init__(
             self, id, name, description,
             datasource_id, entitytype_id, granularity):
@@ -27,7 +28,7 @@ class Trend(object):
 
     def __repr__(self):
         return "<Trend({0}/{1}/{2}/{3})>".format(
-                self.name, self.datasource_id,
+            self.name, self.datasource_id,
                 self.entitytype_id, self.granularity)
 
     def __str__(self):
@@ -35,6 +36,7 @@ class Trend(object):
 
 
 class TrendTag(object):
+
     def __init__(self, id, name):
         self.id = id
         self.name = name
