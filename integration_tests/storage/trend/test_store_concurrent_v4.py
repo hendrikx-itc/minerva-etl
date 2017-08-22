@@ -1,14 +1,4 @@
 # -*- coding: utf-8 -*-
-__docformat__ = "restructuredtext en"
-
-__copyright__ = """
-Copyright (C) 2012-2013 Hendrikx-ITC B.V.
-
-Distributed under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 3, or (at your option) any later
-version.  The full license is in the file COPYING, distributed as part of
-this software.
-"""
 from contextlib import closing
 from time import sleep
 from threading import Thread
@@ -23,6 +13,16 @@ from minerva.storage.trend.rawdatapackage import RawDataPackage
 from minerva.storage.trend.trendstore import store_raw
 
 from minerva_db import clear_database
+
+__docformat__ = "restructuredtext en"
+
+__copyright__ = """
+Copyright (C) 2012-2017 Hendrikx-ITC B.V.
+Distributed under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 3, or (at your option) any later
+version.  The full license is in the file COPYING, distributed as part of
+this software.
+"""
 
 
 def query(sql):
@@ -84,13 +84,18 @@ def test_store_concurrent(conn, dataset):
     trend_names = ["c1", "c2", "c3"]
     rows = [("Cell={}".format(i), ("1", "2", "3")) for i in range(100)]
 
-    raw_datapackage = RawDataPackage(dataset.granularity, timestamp, trend_names, rows)
+    raw_datapackage = RawDataPackage(
+            dataset.granularity, timestamp, trend_names, rows)
 
     threads = [
-            Thread(target=partial(store_raw_batch, dataset.datasource, raw_datapackage)),
-            Thread(target=partial(store_raw_batch, dataset.datasource, raw_datapackage)),
-            Thread(target=partial(store_raw_batch, dataset.datasource, raw_datapackage)),
-            Thread(target=partial(store_raw_batch, dataset.datasource, raw_datapackage))]
+            Thread(target=partial(
+                store_raw_batch, dataset.datasource, raw_datapackage)),
+            Thread(target=partial(
+                store_raw_batch, dataset.datasource, raw_datapackage)),
+            Thread(target=partial(
+                store_raw_batch, dataset.datasource, raw_datapackage)),
+            Thread(target=partial(
+                store_raw_batch, dataset.datasource, raw_datapackage))]
 
     for thread in threads:
         thread.start()

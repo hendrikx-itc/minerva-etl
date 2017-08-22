@@ -56,8 +56,9 @@ def test_get_trendstore(conn):
         datasource = name_to_datasource(cursor, "test-src")
         entitytype = name_to_entitytype(cursor, "test-type")
 
-        instance.TrendStore(datasource, entitytype, granularity, 86400,
-                "table").create(cursor)
+        instance.TrendStore(
+                datasource, entitytype,
+                granularity, 86400, "table").create(cursor)
 
     trendstore = instance.get_trendstore(datasource, entitytype, granularity)
 
@@ -74,7 +75,8 @@ def test_create_datapackage():
     trend_names = ["a", "b", "c"]
     rows = [(123, [1, 2, 3])]
 
-    datapackage = instance.DataPackage(granularity, timestamp, trend_names, rows)
+    datapackage = instance.DataPackage(
+            granularity, timestamp, trend_names, rows)
 
     assert datapackage is not None
 
@@ -126,8 +128,8 @@ def test_store_raw_fractured_small(conn):
         ("Network=dummy,Subnetwork=test,Element=1", ("1", "2", "3"))
     ]
 
-    raw_datapackage_1 = DataPackage(granularity, timestamp, trend_names_part_1,
-            raw_data_rows)
+    raw_datapackage_1 = DataPackage(
+            granularity, timestamp, trend_names_part_1, raw_data_rows)
 
     plugin.store_raw(datasource, raw_datapackage_1)
 
@@ -137,8 +139,8 @@ def test_store_raw_fractured_small(conn):
         ("Network=dummy,Subnetwork=test,Element=1", ("4", "5", "6"))
     ]
 
-    raw_datapackage_2 = DataPackage(granularity, timestamp, trend_names_part_2,
-            raw_data_rows)
+    raw_datapackage_2 = DataPackage(
+            granularity, timestamp, trend_names_part_2, raw_data_rows)
 
     plugin.store_raw(datasource, raw_datapackage_2)
 
@@ -166,8 +168,8 @@ def test_store_raw_fractured_large(conn):
         (dn_template.format(i), ("1", "2", "3"))
         for i in range(100)]
 
-    raw_datapackage_1 = DataPackage(granularity, timestamp, trend_names_part_1,
-            raw_data_rows_part_1)
+    raw_datapackage_1 = DataPackage(
+            granularity, timestamp, trend_names_part_1, raw_data_rows_part_1)
 
     plugin.store_raw(datasource, raw_datapackage_1)
 
@@ -177,8 +179,8 @@ def test_store_raw_fractured_large(conn):
         (dn_template.format(i), ("4", "5", "6"))
         for i in range(100)]
 
-    raw_datapackage_2 = DataPackage(granularity, timestamp, trend_names_part_2,
-            raw_data_rows_part_2)
+    raw_datapackage_2 = DataPackage(
+            granularity, timestamp, trend_names_part_2, raw_data_rows_part_2)
 
     plugin.store_raw(datasource, raw_datapackage_2)
 
@@ -206,4 +208,3 @@ class EntitySelection(object):
         cursor.execute(tmp_table_query)
 
         self.fill_temp_table(cursor, name)
-
