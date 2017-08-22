@@ -234,8 +234,9 @@ def store_site(cursor, target_srid, timestamp, site):
             # This should not happen too much (maybe in a data recovering
             # scenario), we're dealing with attribute data that's older than
             # the attribute data in curr table
-            archived_timestamps_and_hashes = get_archived_timestamps_and_hashes(cursor,
-                    SITE_TABLENAME, site.entity_id)
+            archived_timestamps_and_hashes = get_archived_timestamps_and_hashes(
+                cursor,
+                                                                               SITE_TABLENAME, site.entity_id)
             archived_timestamps = map(head, archived_timestamps_and_hashes)
 
             if timestamp > max(archived_timestamps):
@@ -261,17 +262,22 @@ def store_site(cursor, target_srid, timestamp, site):
                                        values_hash)
             else:
                 archived_timestamps_and_hashes.sort()
-                archived_timestamps_and_hashes.reverse()  # Order from new to old
+                archived_timestamps_and_hashes.reverse(
+                )  # Order from new to old
 
-                #Determine where old attribute data should be placed in archive table
+                # Determine where old attribute data should be placed in
+                # archive table
                 for index, (ts, h) in enumerate(archived_timestamps_and_hashes):
                     if timestamp > ts:
-                        archived_timestamp, archived_hash = archived_timestamps_and_hashes[index - 1]
+                        archived_timestamp, archived_hash = archived_timestamps_and_hashes[
+                            index - 1]
                         break
 
                 if values_hash == archived_hash:
-                    remove_from_archive(cursor, SITE_TABLENAME, archived_timestamp, site.entity_id)
-                    insert_site_in_archive(cursor, target_srid, timestamp, site, values_hash)
+                    remove_from_archive(
+                        cursor, SITE_TABLENAME, archived_timestamp, site.entity_id)
+                    insert_site_in_archive(
+                        cursor, target_srid, timestamp, site, values_hash)
 
 
 def store_cell(cursor, timestamp, cell):
@@ -296,7 +302,8 @@ def store_cell(cursor, timestamp, cell):
             # This should not happen too much (maybe in a data recovering
             # scenario), we're dealing with attribute data that's older than
             # the attribute data in curr table
-            archived_timestamps_and_hashes = get_archived_timestamps_and_hashes(cursor, CELL_TABLENAME, cell.entity_id)
+            archived_timestamps_and_hashes = get_archived_timestamps_and_hashes(
+                cursor, CELL_TABLENAME, cell.entity_id)
             archived_timestamps = [
                 ts for (ts, h) in archived_timestamps_and_hashes]
 
@@ -321,13 +328,15 @@ def store_cell(cursor, timestamp, cell):
                 insert_cell_in_archive(cursor, timestamp, values_hash, cell)
             else:
                 archived_timestamps_and_hashes.sort()
-                archived_timestamps_and_hashes.reverse() # Order from new to old
+                archived_timestamps_and_hashes.reverse(
+                )  # Order from new to old
 
                 # Determine where old attribute data should be placed in
                 # archive table
                 for index, (ts, h) in enumerate(archived_timestamps_and_hashes):
                     if timestamp > ts:
-                        (archived_timestamp, archived_hash) = archived_timestamps_and_hashes[index - 1]
+                        (archived_timestamp, archived_hash) = archived_timestamps_and_hashes[
+                            index - 1]
                         break
 
                 if values_hash == archived_hash:

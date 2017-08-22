@@ -23,5 +23,6 @@ def create(conn, api_version=3):
 
 
 class GeospatialPluginV4(object):
+
     def __init__(self, conn):
         raise NotImplementedError()

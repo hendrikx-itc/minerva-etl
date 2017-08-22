@@ -209,7 +209,8 @@ def retrieve_related_trend(conn, database_srid, region, region_srid,
 def retrieve_attribute(conn, database_srid, region, region_srid, datasource,
                        entitytype, attribute_name, srid, limit=None):
     with closing(conn.cursor()) as cursor:
-        attributestore = AttributeStore.get_by_attributes(cursor, datasource, entitytype)
+        attributestore = AttributeStore.get_by_attributes(
+            cursor, datasource, entitytype)
     full_base_tbl_name = attributestore.history_table.render()
 
     relation_name = get_relation_name(conn, "Cell", "Site")
@@ -217,7 +218,7 @@ def retrieve_attribute(conn, database_srid, region, region_srid, datasource,
     bbox2d = transform_srid(set_srid(make_box_2d(region), region_srid),
                             database_srid)
 
-    query ="""
+    query = """
 SELECT entity_id, timestamp, \"{0}\"
 FROM (
     SELECT
@@ -252,7 +253,8 @@ def retrieve_related_attribute(conn, database_srid, region, region_srid,
                                datasource, entitytype, attribute_name, limit):
 
     with closing(conn.cursor()) as cursor:
-        attributestore = AttributeStore.get_by_attributes(cursor, datasource, entitytype)
+        attributestore = AttributeStore.get_by_attributes(
+            cursor, datasource, entitytype)
     full_base_tbl_name = attributestore.history_table.render()
 
     relation_name = get_relation_name(conn, "Cell", entitytype.name)
@@ -261,7 +263,7 @@ def retrieve_related_attribute(conn, database_srid, region, region_srid,
     bbox2d = transform_srid(set_srid(make_box_2d(region), region_srid),
                             database_srid)
 
-    query ="""
+    query = """
 SELECT entity_id, related_id, timestamp, \"{0}\"
 FROM (
     SELECT
@@ -272,7 +274,7 @@ FROM (
     JOIN relation.\"{3}\" site_rel on site_rel.source_id = r.source_id
     JOIN gis.site_curr site ON site.entity_id = site_rel.target_id and site.position && {4}
 ) t WHERE change is not false """.format(
-        attribute_name, full_base_tbl_name, relation_name, 
+        attribute_name, full_base_tbl_name, relation_name,
         relation_cell_site_name, bbox2d)
 
     with closing(conn.cursor()) as cursor:

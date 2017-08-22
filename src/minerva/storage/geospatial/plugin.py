@@ -25,6 +25,7 @@ from minerva.storage.geospatial.retrieve import retrieve_attribute, \
 
 
 class GeospatialPlugin(object):
+
     def __init__(self, conn):
         self.conn = conn
 
