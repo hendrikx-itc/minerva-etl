@@ -17,7 +17,7 @@ GP_DAY = 86400
 
 def create_datasource(timezone):
     return DataSource(
-            1, name="DummySource",
+        1, name="DummySource",
             description="Dummy data source",
             timezone=timezone)
 
@@ -28,11 +28,11 @@ DATASOURCE = create_datasource("Europe/Amsterdam")
 
 def main():
     timestamp = DATASOURCE.tzinfo.localize(
-            datetime.datetime(2008, 12, 3, 1, 0, 0))
+        datetime.datetime(2008, 12, 3, 1, 0, 0))
 
     timestamps = [
-            timestamp + i * datetime.timedelta(
-                0, GP_HR) for i in range(7 * 24)]
+        timestamp + i * datetime.timedelta(
+            0, GP_HR) for i in range(7 * 24)]
 
     column_names = ["timestamp", "table_name"]
     alignments = ["<", "<"]

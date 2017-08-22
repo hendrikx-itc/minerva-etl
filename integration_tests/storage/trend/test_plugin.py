@@ -86,7 +86,7 @@ def test_retrieve_from_v4_trendstore(conn):
     granularity = 900
 
     r = plugin_obj.retrieve(
-            datasources, granularity, entitytype, column_names, entities,
+        datasources, granularity, entitytype, column_names, entities,
             start, end)
 
     eq_(len(r), 1)
@@ -121,7 +121,7 @@ def test_store_raw1(conn):
     ]
 
     plugin.store_raw(
-            datasource, granularity, timestamp, trend_names,
+        datasource, granularity, timestamp, trend_names,
             rows)
 
 
@@ -147,7 +147,7 @@ def test_store_raw_fractured_small(conn):
     ]
 
     plugin.store_raw(
-            datasource, granularity, timestamp,
+        datasource, granularity, timestamp,
             trend_names_part_1, raw_data_rows)
 
     trend_names_part_2 = ["PART2_COUNTER1", "PART2_COUNTER2", "PART2_COUNTER3"]
@@ -157,7 +157,7 @@ def test_store_raw_fractured_small(conn):
     ]
 
     plugin.store_raw(
-            datasource, granularity, timestamp, trend_names_part_2,
+        datasource, granularity, timestamp, trend_names_part_2,
             raw_data_rows)
 
 
@@ -181,21 +181,21 @@ def test_store_raw_fractured_large(conn):
     dn_template = "Network=dummy,Subnetwork=test,Element={}"
 
     raw_data_rows_part_1 = [
-            (
-                dn_template.format(i), ("1", "2", "3")) for i in range(100)]
+        (
+            dn_template.format(i), ("1", "2", "3")) for i in range(100)]
 
     plugin.store_raw(
-            datasource, granularity, timestamp,
+        datasource, granularity, timestamp,
             trend_names_part_1, raw_data_rows_part_1)
 
     trend_names_part_2 = ["PART2_COUNTER1", "PART2_COUNTER2", "PART2_COUNTER3"]
 
     raw_data_rows_part_2 = [
-            (
-                dn_template.format(i), ("4", "5", "6")) for i in range(100)]
+        (
+            dn_template.format(i), ("4", "5", "6")) for i in range(100)]
 
     plugin.store_raw(
-            datasource, granularity, timestamp,
+        datasource, granularity, timestamp,
             trend_names_part_2, raw_data_rows_part_2)
 
 
@@ -285,7 +285,7 @@ def test_most_recent_timestamp():
 
     assert_equal(plugin_v3.get_most_recent_timestamp(
         ts_utc, granularity, minerva_tz=tz),
-            most_recent_timestamp)
+        most_recent_timestamp)
 
     # DST switch on oct 28th
     ts_utc = pytz.utc.localize(datetime(2012, 10, 28, 16, 42, 0))
@@ -294,4 +294,4 @@ def test_most_recent_timestamp():
 
     assert_equal(plugin_v3.get_most_recent_timestamp(
         ts_utc, granularity, minerva_tz=tz),
-            most_recent_timestamp)
+        most_recent_timestamp)
