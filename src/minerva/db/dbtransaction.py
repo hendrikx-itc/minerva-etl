@@ -11,10 +11,12 @@ class MaxRetriesError(Exception):
 
 
 class DbTransaction:
+
     """
     A list of actions on a database that can be executed in sequence and will
     either succeed or fail completely.
     """
+
     def __init__(self, state, actions):
         self.state = state
         self.actions = actions
@@ -91,6 +93,7 @@ class DbTransaction:
 
 
 class DbAction:
+
     def execute(self, cursor, state):
         """
         Override in subclass. Should return a Fix if it fails, or None

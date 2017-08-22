@@ -10,6 +10,7 @@ class NoSuchTable(Exception):
 
 
 class UniqueViolation(Exception):
+
     """
     Used to raise database independent exceptions for uniqueness constraint
     violations.

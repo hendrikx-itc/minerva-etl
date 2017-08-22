@@ -37,6 +37,7 @@ def smart_quote(name):
 
 
 class Sql:
+
     def curry(self, *args, **kwargs):
         get_name = attrgetter("name")
         sorted_arguments = sorted(self.arguments(), key=get_name)
@@ -83,6 +84,7 @@ class Sql:
 
 
 class Call(Sql):
+
     def __init__(self, function, *args):
         if isinstance(function, Function):
             self.function = function
@@ -98,11 +100,13 @@ class Call(Sql):
 
 
 class SchemaObject(Sql):
+
     def references(self):
         return self,
 
 
 class Schema(SchemaObject):
+
     def __init__(self, name):
         self.name = name
 
@@ -111,6 +115,7 @@ class Schema(SchemaObject):
 
 
 class Script:
+
     def __init__(self, statements):
         self.statements = statements
 
@@ -120,6 +125,7 @@ class Script:
 
 
 class Function(SchemaObject):
+
     def __init__(self, *args, **kwargs):
         self.arguments = kwargs.get("arguments", [])
         self.name = args[-1]
@@ -147,6 +153,7 @@ class Function(SchemaObject):
 
 
 class Table(SchemaObject):
+
     def __init__(self, *args, **kwargs):
         self.columns = kwargs.get("columns", [])
         self.name = args[-1]
@@ -189,6 +196,7 @@ class Table(SchemaObject):
 
 
 class SqlType(Sql):
+
     def __init__(self, name):
         self.name = name
 
@@ -197,6 +205,7 @@ class SqlType(Sql):
 
 
 class Column(SchemaObject):
+
     def __init__(self, *args, **kwargs):
         self.name = args[-1]
 
@@ -251,6 +260,7 @@ class Column(SchemaObject):
 
 
 class FormattedValue(Sql):
+
     def __init__(self, formatter, value):
         self.formatter = formatter
         self.value = value
@@ -271,6 +281,7 @@ def format_datetime(dt):
 
 
 class Value(FormattedValue):
+
     def __init__(self, value):
         if isinstance(value, bool):
             formatter = format_bool
@@ -285,6 +296,7 @@ class Value(FormattedValue):
 
 
 class Literal(Sql):
+
     def __init__(self, value):
         self._value = value
 
@@ -293,6 +305,7 @@ class Literal(Sql):
 
 
 class Argument(Sql):
+
     def __init__(self, name=None, value=None):
         self.name = name
         self.value = value
@@ -320,11 +333,13 @@ class Argument(Sql):
 
 
 class Operator(Sql):
+
     def _render(self):
         raise Exception("not implemented")
 
 
 class BinaryOperator(Operator):
+
     def __init__(self, _l=None, r=None):
         if _l is None:
             self.r = Argument()
@@ -348,6 +363,7 @@ class BinaryOperator(Operator):
 
 
 class UnaryOperator(Operator):
+
     def __init__(self, x=None):
         if x is None:
             self.x = Argument()
@@ -358,6 +374,7 @@ class UnaryOperator(Operator):
 
 
 class Any(UnaryOperator):
+
     def _render(self):
         return "ANY({})".format(self.x.render())
 
@@ -367,6 +384,7 @@ def is_unset_argument(x):
 
 
 class Parenthesis(Sql):
+
     def __init__(self, expression):
         self.expression = expression
 
@@ -375,6 +393,7 @@ class Parenthesis(Sql):
 
 
 class And(BinaryOperator):
+
     def _render(self):
         return "{} AND {}".format(self.l.render(), self.r.render())
 
@@ -383,6 +402,7 @@ ands = partial(reduce, And)
 
 
 class Or(BinaryOperator):
+
     def _render(self):
         return "{} OR {}".format(self.l.render(), self.r.render())
 
@@ -391,46 +411,55 @@ ors = partial(reduce, Or)
 
 
 class Eq(BinaryOperator):
+
     def _render(self):
         return "{} = {}".format(self.l.render(), self.r.render())
 
 
 class Lt(BinaryOperator):
+
     def _render(self):
         return "{} < {}".format(self.l.render(), self.r.render())
 
 
 class Gt(BinaryOperator):
+
     def _render(self):
         return "{} > {}".format(self.l.render(), self.r.render())
 
 
 class LtEq(BinaryOperator):
+
     def _render(self):
         return "{} <= {}".format(self.l.render(), self.r.render())
 
 
 class GtEq(BinaryOperator):
+
     def _render(self):
         return "{} >= {}".format(self.l.render(), self.r.render())
 
 
 class ArrayContains(BinaryOperator):
+
     def _render(self):
         return "{} @> {}".format(self.l.render(), self.r.render())
 
 
 class ArrayIsContainedBy(BinaryOperator):
+
     def _render(self):
         return "{} <@ {}".format(self.l.render(), self.r.render())
 
 
 class In(BinaryOperator):
+
     def _render(self):
         return "{} IN {}".format(self.l.render(), self.r.render())
 
 
 class As(Sql):
+
     def __init__(self, source, alias):
         self.source = source
         self.alias = alias
@@ -446,6 +475,7 @@ class As(Sql):
 
 
 class SqlQuery(Sql):
+
     def _render(self):
         raise NotImplementedError()
 
@@ -456,6 +486,7 @@ class SqlQuery(Sql):
 
 
 class LiteralQuery(SqlQuery):
+
     def __init__(self, query):
         self.query = query
 
@@ -489,6 +520,7 @@ def ensure_sql_type(obj):
 
 
 class Copy:
+
     def __init__(self, table, columns=None):
         self.table = table
         self._columns = columns
@@ -529,6 +561,7 @@ class Copy:
 
 
 class FromItem(Sql):
+
     def __init__(self, table):
         self.table = table
 
@@ -553,6 +586,7 @@ class FromItem(Sql):
 
 
 class Join(FromItem):
+
     def __init__(self, left, right, on=None, join_type=None):
         self.left = ensure_from(left)
         self.right = ensure_from(right)
@@ -586,6 +620,7 @@ def ensure_from(obj):
 
 
 class WithQuery(SqlQuery):
+
     def __init__(self, name, columns=[], query=None):
         self.name = name
         self.columns = ensure_iterable(columns)
@@ -600,6 +635,7 @@ class WithQuery(SqlQuery):
 
 
 class Select(SqlQuery):
+
     def __init__(self, expressions, with_query=None, from_=None, where_=None,
                  group_by_=None, limit=None):
         self.expressions = list(map(ensure_sql, ensure_iterable(expressions)))
@@ -703,6 +739,7 @@ class Select(SqlQuery):
 
 
 class Insert(SqlQuery):
+
     def __init__(self, into=None, columns=[]):
         self.into = into
         self._returning = None
@@ -734,6 +771,7 @@ class Insert(SqlQuery):
 
 
 class Truncate(SqlQuery):
+
     def __init__(self, table, cascade=False):
         self.table = table
         self._cascade = cascade
@@ -753,6 +791,7 @@ class Truncate(SqlQuery):
 
 
 class Drop(SqlQuery):
+
     def __init__(self, schema_obj, if_exists=False):
         self.schema_obj = schema_obj
         self._if_exists = if_exists
