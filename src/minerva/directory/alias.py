@@ -7,6 +7,7 @@ from contextlib import closing
 
 
 class NoSuchAliasType(Exception):
+
     """
     Exception raised when no matching alias type is found
     """

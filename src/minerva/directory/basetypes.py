@@ -16,6 +16,7 @@ import pytz
 
 
 class EntityType(object):
+
     def __init__(self, id, name, description):
         self.id = id
         self.name = name
@@ -85,11 +86,13 @@ class EntityType(object):
 
 
 class Entity(object):
+
     """
     All data within the Minerva platform is linked to entities. Entities are
     very minimal objects with only very generic properties such as name,
     parent, type and a few more.
     """
+
     def __init__(self, id, name, entitytype_id, dn, parent_id):
         self.id = id
         self.first_appearance = pytz.utc.localize(datetime.datetime.utcnow())
@@ -138,7 +141,8 @@ class Entity(object):
         cursor.callproc("directory.getentitybydn", args)
 
         if cursor.rowcount == 1:
-            (entity_id, entitytype_id, entity_name, parent_id) = cursor.fetchone()
+            (entity_id, entitytype_id, entity_name,
+             parent_id) = cursor.fetchone()
 
             return Entity(entity_id, entity_name, entitytype_id, dn, parent_id)
 
@@ -154,9 +158,11 @@ class Entity(object):
 
 
 class DataSource(object):
+
     """
     A DataSource describes where a certain set of data comes from.
     """
+
     def __init__(self, id, name, description="", timezone="UTC"):
         self.id = id
         self.name = name
@@ -234,6 +240,7 @@ class DataSource(object):
 
 
 class TagGroup(object):
+
     def __init__(self, id, name, complementary):
         self.id = id
         self.name = name
@@ -241,6 +248,7 @@ class TagGroup(object):
 
 
 class Tag(object):
+
     def __init__(self, id, name, group_id, description=""):
         self.id = id
         self.name = name

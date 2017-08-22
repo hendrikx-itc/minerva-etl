@@ -56,6 +56,7 @@ def entity_type_name_from_dn(dn):
 
 
 class DistinguishedName:
+
     def __init__(self, parts):
         self.parts = parts
 
