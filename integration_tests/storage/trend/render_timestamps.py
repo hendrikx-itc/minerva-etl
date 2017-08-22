@@ -18,8 +18,8 @@ GP_DAY = 86400
 def create_datasource(timezone):
     return DataSource(
         1, name="DummySource",
-            description="Dummy data source",
-            timezone=timezone)
+        description="Dummy data source",
+        timezone=timezone)
 
 
 ENTITYTYPE_NAME = "DummyType"

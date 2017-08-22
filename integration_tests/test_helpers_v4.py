@@ -95,9 +95,9 @@ def test_create_datasource(conn):
     with closing(conn.cursor()) as cursor:
         datasource = helpers_v4.create_datasource(
             cursor,
-                "test-create-datasource",
-                "short description",
-                "Europe/Amsterdam")
+            "test-create-datasource",
+            "short description",
+            "Europe/Amsterdam")
 
     assert datasource.id is not None
 
@@ -116,8 +116,8 @@ def test_create_entitytype(conn):
     with closing(conn.cursor()) as cursor:
         entitytype = helpers_v4.create_entitytype(
             cursor,
-                "test_create_entitytype",
-                "short description of type")
+            "test_create_entitytype",
+            "short description of type")
 
     assert entitytype.id is not None
     assert entitytype.name == "test_create_entitytype"
@@ -128,8 +128,8 @@ def test_get_entitytype_by_id(conn):
     with closing(conn.cursor()) as cursor:
         new_entitytype = helpers_v4.create_entitytype(
             cursor,
-                "test_get_entitytype_by_id",
-                "short description of type")
+            "test_get_entitytype_by_id",
+            "short description of type")
 
         entitytype = helpers_v4.get_entitytype_by_id(cursor, new_entitytype.id)
 
@@ -142,8 +142,8 @@ def test_get_entitytype(conn):
     with closing(conn.cursor()) as cursor:
         new_entitytype = helpers_v4.create_entitytype(
             cursor,
-                "test_get_entitytype",
-                "short description of type")
+            "test_get_entitytype",
+            "short description of type")
 
         entitytype = helpers_v4.get_entitytype(cursor, "test_get_entitytype")
 
@@ -156,7 +156,7 @@ def test_name_to_entitytype(conn):
     with closing(conn.cursor()) as cursor:
         entitytype = helpers_v4.name_to_entitytype(
             cursor,
-                "test_name_to_entitytype")
+            "test_name_to_entitytype")
 
     assert entitytype is not None
     assert entitytype.name == "test_name_to_entitytype"

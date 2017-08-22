@@ -1,14 +1,4 @@
 # -*- coding: utf-8 -*-
-__docformat__ = "restructuredtext en"
-
-__copyright__ = """
-Copyright (C) 2008-2011 Hendrikx-ITC B.V.
-
-Distributed under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 3, or (at your option) any later
-version.  The full license is in the file COPYING, distributed as part of
-this software.
-"""
 import hashlib
 from functools import partial
 import logging
@@ -21,6 +11,15 @@ from minerva.storage.generic import RecoverableError, NonRecoverableError
 
 from minerva.storage.geospatial.types import transform_srid
 
+__docformat__ = "restructuredtext en"
+
+__copyright__ = """
+Copyright (C) 2008-2017 Hendrikx-ITC B.V.
+Distributed under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 3, or (at your option) any later
+version.  The full license is in the file COPYING, distributed as part of
+this software.
+"""
 
 SCHEMA = "gis"
 CELL_TABLENAME = "cell"
@@ -234,9 +233,9 @@ def store_site(cursor, target_srid, timestamp, site):
             # This should not happen too much (maybe in a data recovering
             # scenario), we're dealing with attribute data that's older than
             # the attribute data in curr table
-            archived_timestamps_and_hashes = get_archived_timestamps_and_hashes(
-                cursor,
-                                                                               SITE_TABLENAME, site.entity_id)
+            archived_timestamps_and_hashes = \
+                    get_archived_timestamps_and_hashes(
+                        cursor, SITE_TABLENAME, site.entity_id)
             archived_timestamps = map(head, archived_timestamps_and_hashes)
 
             if timestamp > max(archived_timestamps):
@@ -267,15 +266,18 @@ def store_site(cursor, target_srid, timestamp, site):
 
                 # Determine where old attribute data should be placed in
                 # archive table
-                for index, (ts, h) in enumerate(archived_timestamps_and_hashes):
+                for index, (ts, h) in enumerate(
+                        archived_timestamps_and_hashes):
                     if timestamp > ts:
-                        archived_timestamp, archived_hash = archived_timestamps_and_hashes[
-                            index - 1]
+                        archived_timestamp, archived_hash = \
+                                archived_timestamps_and_hashes[
+                                        index - 1]
                         break
 
                 if values_hash == archived_hash:
                     remove_from_archive(
-                        cursor, SITE_TABLENAME, archived_timestamp, site.entity_id)
+                        cursor, SITE_TABLENAME, archived_timestamp,
+                        site.entity_id)
                     insert_site_in_archive(
                         cursor, target_srid, timestamp, site, values_hash)
 
@@ -302,8 +304,9 @@ def store_cell(cursor, timestamp, cell):
             # This should not happen too much (maybe in a data recovering
             # scenario), we're dealing with attribute data that's older than
             # the attribute data in curr table
-            archived_timestamps_and_hashes = get_archived_timestamps_and_hashes(
-                cursor, CELL_TABLENAME, cell.entity_id)
+            archived_timestamps_and_hashes = \
+                    get_archived_timestamps_and_hashes(
+                            cursor, CELL_TABLENAME, cell.entity_id)
             archived_timestamps = [
                 ts for (ts, h) in archived_timestamps_and_hashes]
 
@@ -333,9 +336,11 @@ def store_cell(cursor, timestamp, cell):
 
                 # Determine where old attribute data should be placed in
                 # archive table
-                for index, (ts, h) in enumerate(archived_timestamps_and_hashes):
+                for index, (ts, h) in enumerate(
+                        archived_timestamps_and_hashes):
                     if timestamp > ts:
-                        (archived_timestamp, archived_hash) = archived_timestamps_and_hashes[
+                        (archived_timestamp, archived_hash) = \
+                                archived_timestamps_and_hashes[
                             index - 1]
                         break
 

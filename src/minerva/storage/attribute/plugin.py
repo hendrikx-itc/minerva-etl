@@ -48,7 +48,7 @@ class AttributePlugin(object):
 
         return retrieve(
             self.conn, attributestore.history_table, attribute_names,
-                entities, timestamp)
+            entities, timestamp)
 
     def retrieve_current(self, datasource, entitytype, attribute_names,
                          entities, limit=None):
