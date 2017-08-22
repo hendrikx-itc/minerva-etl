@@ -7,6 +7,7 @@ from minerva.storage.attribute.attributestore import AttributeStore
 
 
 class AttributeEngine(Engine):
+
     @staticmethod
     def store_cmd(package):
         def bind_data_source(data_source):

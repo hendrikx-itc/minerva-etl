@@ -17,6 +17,7 @@ SYSTEM_COLUMNS = "entity_id", "timestamp"
 
 
 class DataPackage:
+
     """
     A DataPackage represents a batch of attribute records for the same
     EntityType. The EntityType is implicitly determined by the
@@ -32,6 +33,7 @@ class DataPackage:
         | 1234003 |    22.5  |     3  |     90  | "on"    |
         +---------+----------+--------+---------+---------+
     """
+
     def __init__(self, attribute_names, rows):
         self.attribute_names = attribute_names
         self.rows = rows
@@ -62,9 +64,9 @@ class DataPackage:
                 ValueDescriptor(name, data_type)
                 for name, data_type in zip(
                     self.attribute_names, datatype.deduce_data_types(
-                     (values for dn, timestamp, values in self.rows)
+                        (values for dn, timestamp, values in self.rows)
                     ))
-                 ]
+            ]
 
     def deduce_attributes(self):
         """Return list of attributes matching the data in this package."""
