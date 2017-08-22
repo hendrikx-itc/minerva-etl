@@ -63,7 +63,7 @@ def get_previous_timestamp(timestamp, granularity):
     """
     previous = (
         timestamp.astimezone(pytz.utc) -
-            timedelta(0, granularity)).astimezone(timestamp.tzinfo)
+        timedelta(0, granularity)).astimezone(timestamp.tzinfo)
     utc_offset_delta = timestamp.utcoffset() - previous.utcoffset()
     return previous + utc_offset_delta
 

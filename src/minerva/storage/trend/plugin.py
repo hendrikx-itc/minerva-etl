@@ -41,7 +41,7 @@ class TrendPlugin(object):
         with closing(self.conn.cursor()) as cursor:
             trendstore = get_or_create_trendstore(
                 cursor, datasource, entitytype,
-                    granularity)
+                granularity)
 
         self.conn.commit()
 
@@ -51,7 +51,8 @@ class TrendPlugin(object):
         transaction.run(self.conn)
 
     def retrieve(self, datasources, gp, entitytype, trend_names, entities,
-                 start, end, subquery_filter=None, relation_table_name=None, limit=None):
+                 start, end, subquery_filter=None,
+                 relation_table_name=None, limit=None):
 
         with closing(self.conn.cursor()) as cursor:
             if isinstance(entitytype, str):
@@ -59,7 +60,7 @@ class TrendPlugin(object):
 
             table_names = get_table_names_v4(
                 cursor, datasources, gp, entitytype,
-                    start, end)
+                start, end)
 
         return retrieve(
             self.conn, schema.name, table_names, trend_names, entities,
@@ -75,13 +76,15 @@ class TrendPlugin(object):
 
             table_names = get_table_names_v4(
                 cursor, datasources, gp, entitytype,
-                    start, end)
+                start, end)
 
         return retrieve_orderedby_time(self.conn, schema.name, table_names,
-                                       trend_names, entities, start, end, limit)
+                                       trend_names, entities, start,
+                                       end, limit)
 
     def retrieve_aggregated(self, datasource, granularity, entitytype,
-                            column_identifiers, interval, group_by, subquery_filter=None,
+                            column_identifiers, interval, group_by,
+                            subquery_filter=None,
                             relation_table_name=None):
 
         return retrieve_aggregated(
@@ -90,7 +93,8 @@ class TrendPlugin(object):
             relation_table_name)
 
     def retrieve_related(self, datasources, gp, source_entitytype,
-                         target_entitytype, trend_names, start, end, subquery_filter=None,
+                         target_entitytype, trend_names, start, end,
+                         subquery_filter=None,
                          limit=None):
 
         with closing(self.conn.cursor()) as cursor:
@@ -107,11 +111,13 @@ class TrendPlugin(object):
                 source_entitytype.name, target_entitytype.name)
 
         return retrieve_related(self.conn, schema.name, relation_table_name,
-                                table_names, trend_names, start, end, subquery_filter, limit)
+                                table_names, trend_names, start, end,
+                                subquery_filter, limit)
 
     def count(self, datasource, gp, entitytype_name, interval, filter=None):
         """
-        Returns row count for specified datasource, gp, entity type and interval
+        Returns row count for specified datasource, gp, entity type and
+        interval
         """
         (start, end) = interval
 
@@ -120,7 +126,7 @@ class TrendPlugin(object):
 
             table_names = get_table_names_v4(
                 cursor, [datasource], gp, entitytype,
-                    start, end)
+                start, end)
 
         query = (
             "SELECT COUNT(*) FROM \"{0}\".\"{1}\" "
@@ -167,7 +173,7 @@ class TrendPlugin(object):
             entitytype = get_entitytype(cursor, entitytype_name)
             table_names = get_table_names_v4(
                 cursor, [datasource], granularity, entitytype,
-                    start, end)
+                start, end)
 
         if subquery_filter:
             query = ("SELECT MAX(t.modified) FROM \"{0}\".\"{1}\" AS t "
@@ -271,10 +277,13 @@ class TrendPlugin(object):
 
     def aggregate(self, source, target, trend_names, timestamp):
         """
-        :param source: tuple (datasource, gp, entitytype_name) specifying source
-        :param target: tuple (datasource, gp, entitytype_name) specifying target
+        :param source: tuple (datasource, gp, entitytype_name) specifying
+        source
+        :param target: tuple (datasource, gp, entitytype_name) specifying
+        target
         :param trend_names: trends to aggregate
-        :param timestamp: non-naive timestamp specifying end of interval to aggregate
+        :param timestamp: non-naive timestamp specifying end of interval
+        to aggregate
         """
         aggregate(self.conn, schema.name,
                   source, target, trend_names, timestamp)

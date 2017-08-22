@@ -29,7 +29,7 @@ class Trend(object):
     def __repr__(self):
         return "<Trend({0}/{1}/{2}/{3})>".format(
             self.name, self.datasource_id,
-                self.entitytype_id, self.granularity)
+            self.entitytype_id, self.granularity)
 
     def __str__(self):
         return self.name

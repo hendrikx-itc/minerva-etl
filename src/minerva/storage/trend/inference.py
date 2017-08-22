@@ -29,14 +29,14 @@ def partition_record_exists(cursor, partition):
 def get_tables(cursor, schema):
     query = (
         "SELECT relname, "
-            "CASE relkind "
-            "WHEN 'r' THEN 'table'::trend.storetype "
-            "WHEN 'v' THEN 'view'::trend.storetype "
-            "ELSE NULL "
-            "END "
-            "FROM pg_class "
-            "JOIN pg_namespace ON pg_class.relnamespace = pg_namespace.oid "
-            "WHERE nspname = 'trend' AND (relkind = 'r' OR relkind = 'v')")
+        "CASE relkind "
+        "WHEN 'r' THEN 'table'::trend.storetype "
+        "WHEN 'v' THEN 'view'::trend.storetype "
+        "ELSE NULL "
+        "END "
+        "FROM pg_class "
+        "JOIN pg_namespace ON pg_class.relnamespace = pg_namespace.oid "
+        "WHERE nspname = 'trend' AND (relkind = 'r' OR relkind = 'v')")
 
     args = tuple()
 
