@@ -1,4 +1,8 @@
 # -*- coding: utf-8 -*-
+from contectlib import closing
+from minerva.util import first
+from minerva.storage.attribute import schema
+
 __docformat__ = "restructuredtext en"
 
 __copyright__ = """
@@ -9,11 +13,6 @@ the Free Software Foundation; either version 3, or (at your option) any later
 version.  The full license is in the file COPYING, distributed as part of
 this software.
 """
-from contextlib import closing
-
-from minerva.util import first
-
-from minerva.storage.attribute import schema
 
 
 def clear_database(conn):
@@ -26,7 +25,7 @@ def clear_database(conn):
 
         all_tables = get_tables(cursor)
 
-        attribute_tables = [t for t in all_tables if not t in system_tables]
+        attribute_tables = [t for t in all_tables if t not in system_tables]
 
         for table_name in attribute_tables:
             drop_table(cursor, schema.name, table_name)

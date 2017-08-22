@@ -1,4 +1,9 @@
 # -*- coding: utf-8 -*-
+
+from nose.tools import eq_
+from minerva.test import with_conn
+from minerva.storage import get_plugin
+
 __docformat__ = "restructuredtext en"
 
 __copyright__ = """
@@ -9,11 +14,6 @@ the Free Software Foundation; either version 3, or (at your option) any later
 version.  The full license is in the file COPYING, distributed as part of
 this software.
 """
-from nose.tools import eq_
-
-from minerva.test import with_conn
-
-from minerva.storage import get_plugin
 
 
 def test_get_plugin():
@@ -26,4 +26,4 @@ def test_get_plugin():
 def test_load_plugin(conn):
     plugin = get_plugin("attribute")(conn)
 
-    assert not plugin is None
+    assert plugin is not None
