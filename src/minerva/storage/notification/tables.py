@@ -1,28 +1,22 @@
-import re
-from datetime import datetime
 from contextlib import closing
-
 import psycopg2
-
-from minerva.db.postgresql import grant, column_exists
 from minerva.storage.generic import create_column, RecoverableError, \
     NonRecoverableError, NoOpFix, create_full_table_name
-
 from generic import do_nothing
+
 
 def create_parent_notification_table(conn, datasource, attributes):
     """
     Create parent notification table.
     Table name:
-    Assumption: number of attributes is static, i.e. doesn't change for a notification type
+    Assumption: number of attributes is static, i.e. doesn't
+    change for a notification type
     """
 
 
 def check_columns_exist(conn, schema, table, column_names):
     for column_name in column_names:
         create_column(conn, schema, table, column_name, "smallint")
-
-
 
 
 def create_parent_data_table(conn, datasource_name, attributes, data_types):
@@ -33,16 +27,17 @@ def create_parent_data_table(conn, datasource_name, attributes, data_types):
         ["\"{0}\" {1}, ".format(name, type) for
             (name, type) in zip(attributes, data_types)])
 
-    query = ("CREATE TABLE {0}.\"{1}\" ("
-        "id integer NOT NULL, "
-        "\"timestamp\" timestamp with time zone NOT NULL, "
-        "\"modified\" timestamp with time zone NOT NULL, "
-        "entity_id integer NOT NULL, "
-        "{2}"
-        ")".format(SCHEMA, datasource_name, columns_part))
-
+    query = (
+            "CREATE TABLE {0}.\"{1}\" ("
+            "id integer NOT NULL, "
+            "\"timestamp\" timestamp with time zone NOT NULL, "
+            "\"modified\" timestamp with time zone NOT NULL, "
+            "entity_id integer NOT NULL, "
+            "{2}"
+            ")".format(SCHEMA, datasource_name, columns_part))
 
     # Add PROCEDURE for inserting data in right child table
+
 
 def create_data_table(conn, table_name, column_names, data_types):
     """
@@ -83,7 +78,8 @@ def create_data_table(conn, table_name, column_names, data_types):
         "ON {0} FOR EACH ROW EXECUTE PROCEDURE "
         "directory.update_modified_column()".format(full_table_name))
 
-    owner_query = "ALTER TABLE {} OWNER TO minerva_writer".format(full_table_name)
+    owner_query = "ALTER TABLE {} OWNER TO minerva_writer".format(
+            full_table_name)
 
     with closing(conn.cursor()) as cursor:
         try:
@@ -99,8 +95,9 @@ def create_data_table(conn, table_name, column_names, data_types):
             if exc.pgcode == psycopg2.errorcodes.DUPLICATE_TABLE:
                 raise RecoverableError(str(exc), NoOpFix)
             else:
-                raise NonRecoverableError(\
-                    "ProgrammingError({0}): {1}".format(exc.pgcode, exc.pgerror))
+                raise NonRecoverableError(
+                        "ProgrammingError({0}): {1}".format(
+                            exc.pgcode, exc.pgerror))
         else:
             grant(conn, "TABLE", "SELECT", full_table_name, "minerva")
             conn.commit()
@@ -108,7 +105,8 @@ def create_data_table(conn, table_name, column_names, data_types):
 
 def create_temp_table_from(conn, schema, table):
     """
-    Create a temporary table that inherits from `table` and return the temporary
+    Create a temporary table that inherits from
+    `table` and return the temporary
     table name.
     """
     tmp_table_name = "tmp_{0}".format(table)

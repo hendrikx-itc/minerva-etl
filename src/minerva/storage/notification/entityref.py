@@ -1,4 +1,7 @@
 # -*- coding: utf-8 -*-
+from minerva.directory.distinguishedname import entitytype_name_from_dn
+from minerva.directory.basetypes import EntityType
+
 __docformat__ = "restructuredtext en"
 
 __copyright__ = """
@@ -9,8 +12,6 @@ the Free Software Foundation; either version 3, or (at your option) any later
 version.  The full license is in the file COPYING, distributed as part of
 this software.
 """
-from minerva.directory.distinguishedname import entitytype_name_from_dn
-from minerva.directory.basetypes import EntityType
 
 
 class EntityRef(object):
@@ -41,14 +42,17 @@ class EntityIdRef(EntityRef):
         return "%s", self.entity_id
 
     def get_entitytype(self, cursor):
-        cursor.execute("SELECT entitytype_id FROM directory.entity WHERE id = %s", (self.entity_id,))
+        cursor.execute(
+                "SELECT entitytype_id FROM directory.entity WHERE id = %s", (
+                    self.entity_id,))
 
         if cursor.rowcount > 0:
             entitytype_id, = cursor.fetchone()
 
             return EntityType.get(cursor, entitytype_id)
         else:
-            raise Exception("no entity found with id {}".format(self.entity_id))
+            raise Exception(
+                    "no entity found with id {}".format(self.entity_id))
 
 
 class EntityDnRef(EntityRef):

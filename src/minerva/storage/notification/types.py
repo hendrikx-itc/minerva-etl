@@ -1,4 +1,9 @@
 # -*- coding: utf-8 -*-
+from minerva.util import first
+from minerva.db.query import Table, smart_quote
+from minerva.db.error import translate_postgresql_exceptions
+
+
 __docformat__ = "restructuredtext en"
 
 __copyright__ = """
@@ -9,9 +14,6 @@ the Free Software Foundation; either version 3, or (at your option) any later
 version.  The full license is in the file COPYING, distributed as part of
 this software.
 """
-from minerva.util import first
-from minerva.db.query import Table, smart_quote
-from minerva.db.error import translate_postgresql_exceptions
 
 
 class Record(object):
@@ -81,7 +83,8 @@ class NotificationStore(object):
 
             cursor.execute(query, args)
 
-            for attribute_id, name, data_type, description in cursor.fetchall():
+            for attribute_id, name, data_type, description in \
+                    cursor.fetchall():
                 attribute = Attribute(name, data_type, description)
                 attribute.id = attribute_id
                 notificationstore.attributes.append(attribute)
