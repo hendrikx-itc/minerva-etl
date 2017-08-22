@@ -50,7 +50,7 @@ def test_previous_timestamp():
     granularity = 86400
     ts = get_most_recent_timestamp(tz.localize(datetime(
         2013, 4, 2, 10, 13, 0)),
-            granularity)
+        granularity)
     previous_timestamp = tz.localize(datetime(2013, 4, 1, 0, 0, 0))
     assert_equal(get_previous_timestamp(ts, granularity), previous_timestamp)
 

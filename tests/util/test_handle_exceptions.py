@@ -1,5 +1,5 @@
 from nose.tools import assert_raises, assert_true, \
-        assert_false, assert_equal, raises
+    assert_false, assert_equal, raises
 
 from minerva.util import compose, handle_exceptions, dict_to_handler
 

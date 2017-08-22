@@ -44,7 +44,7 @@ def test_merge_packages():
             "42", "8.5", "206441"))]
 
     raw_datapackage_1 = RawDataPackage(
-            granularity, timestamp, trend_names, rows)
+        granularity, timestamp, trend_names, rows)
 
     trend_names = ["counter_d", "counter_e"]
     rows = [
@@ -52,7 +52,7 @@ def test_merge_packages():
         ("Network=SouthPole,Rnc=SP1,Rbs=AdmundsenScott2", ("0", "0.090"))]
 
     raw_datapackage_2 = RawDataPackage(
-            granularity, timestamp, trend_names, rows)
+        granularity, timestamp, trend_names, rows)
 
     packages = [raw_datapackage_1, raw_datapackage_2]
 
