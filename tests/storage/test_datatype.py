@@ -226,7 +226,7 @@ def test_serialize_boolean():
 
 def test_matches_double_precision():
     assert not datatype.registry[
-            'double precision'].deduce_parser_config("abc")
+        'double precision'].deduce_parser_config("abc")
 
     assert datatype.registry['double precision'].deduce_parser_config("0.0")
     assert datatype.registry['double precision'].deduce_parser_config("42")
@@ -234,9 +234,9 @@ def test_matches_double_precision():
     assert datatype.registry['double precision'].deduce_parser_config("42.42")
     assert datatype.registry['double precision'].deduce_parser_config("42e10")
     assert datatype.registry['double precision'].deduce_parser_config(
-            "42.42e10")
+        "42.42e10")
     assert datatype.registry['double precision'].deduce_parser_config(
-            "42.42e-10")
+        "42.42e-10")
 
     # Checking for a match with any other type than a string
     # shouldn't result in a TypeError exception, but just return False.
@@ -250,7 +250,7 @@ def test_matches_double_precision():
 
 def test_parse_double_precision():
     parse_double_precision = datatype.registry[
-            'double precision'].string_parser({})
+        'double precision'].string_parser({})
 
     value = parse_double_precision("1.1")
 
@@ -364,7 +364,7 @@ def test_max_data_types():
     ]
 
     max_data_types = datatype.max_data_types(
-            current_data_types, new_data_types)
+        current_data_types, new_data_types)
 
     eq_(
         max_data_types, [

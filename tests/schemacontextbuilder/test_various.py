@@ -9,7 +9,7 @@ import minerva
 from minerva.xmldochandler.qname import QName
 from minerva.xmlschemaparser.schematypes import *
 from minerva.schemacontextbuilder.schemacontextbuilder import \
-        SchemaContextBuilder
+    SchemaContextBuilder
 
 
 def test_emptyschemawithtargetnamespace():
@@ -51,9 +51,9 @@ def testsimpleelement():
     assert_equal(elementhandler.name, "book")
 
     assert_equal(
-            elementhandler.elementtype.__class__,
+        elementhandler.elementtype.__class__,
             minerva.xmldochandler.xmlschema.xmlschema_string.XmlSchema_string
-            )
+    )
 
 
 def test_complexelement():
@@ -121,8 +121,8 @@ def test_elementreference():
     # The referenced child element 'ManagedElement'
     # should be turned into a concrete handler
     managedelementhandler = (
-            subnetworkhandler.elementtype.get_child_elementhandler(
-                    "ManagedElement"))
+        subnetworkhandler.elementtype.get_child_elementhandler(
+            "ManagedElement"))
 
     assert managedelementhandler is not None
 
@@ -164,7 +164,7 @@ def test_extension():
 
     userlabelelementhandler = (
         gsmrelationhandler.elementtype.get_child_elementhandler(
-                    "userLabel"))
+            "userLabel"))
 
     # Type of GsmRelation should have child handler for 'userLabel'
     assert userlabelelementhandler is not None

@@ -13,6 +13,7 @@ def setup_module():
 
 
 class Context():
+
     def __init__(self):
         self.trends_meta_by_timestamp = {}
         self.tables_by_timestamp_trend = {}
