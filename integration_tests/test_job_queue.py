@@ -1,14 +1,4 @@
 # -*- coding: utf-8 -*-
-__docformat__ = "restructuredtext en"
-
-__copyright__ = """
-Copyright (C) 2008-2013 Hendrikx-ITC B.V.
-
-Distributed under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 3, or (at your option) any later
-version.  The full license is in the file COPYING, distributed as part of
-this software.
-"""
 from contextlib import closing
 import json
 from threading import Thread
@@ -20,7 +10,18 @@ import psycopg2
 from minerva.test import with_conn, connect
 from minerva.system.jobqueue import enqueue_job, get_job
 from minerva.system.helpers import add_job_source, get_job_source
-from minerva.directory.helpers_v4 import name_to_datasource
+# from minerva.directory.helpers_v4 import name_to_datasource
+
+__docformat__ = "restructuredtext en"
+
+__copyright__ = """
+Copyright (C) 2008-2017 Hendrikx-ITC B.V.
+
+Distributed under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 3, or (at your option) any later
+version.  The full license is in the file COPYING, distributed as part of
+this software.
+"""
 
 
 def clear(conn):
@@ -146,12 +147,13 @@ def test_waiting_locks(conn):
     description_json = '{{"uri": "{}"}}'.format(path)
 
     with closing(conn.cursor()) as cursor:
-        datasource = name_to_datasource(cursor, "dummy-src")
+        # datasource = name_to_datasource(cursor, "dummy-src")
 
         job_source_id = get_job_source(cursor, job_source_name)
 
         if not job_source_id:
-            job_source_id = add_job_source(cursor, job_source_name, "dummy", '{}')
+            job_source_id = add_job_source(
+                    cursor, job_source_name, "dummy", '{}')
 
     enqueue_job(conn, job_type, description_json, filesize, job_source_id)
 
@@ -163,11 +165,11 @@ def test_waiting_locks(conn):
     conn.commit()
 
     with closing(conn.cursor()) as cursor:
-        cursor.execute("select relation::regclass, * FROM pg_locks WHERE NOT GRANTED")
+        cursor.execute(
+                "select relation::regclass, * FROM pg_locks WHERE NOT GRANTED")
 
-        rows = cursor.fetchall()
+        # rows = cursor.fetchall()
 
     job_id, job_type, description, size, parser_config = job
 
     eq_(path, json.loads(description)["uri"])
-

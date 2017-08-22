@@ -1,25 +1,25 @@
 # -*- coding: utf-8 -*-
+import random
+from contextlib import closing
+from functools import partial
+from minerva.util import each, expand_args
+from minerva.test import connect
+from minerva.system.jobqueue import enqueue_job
+from minerva.system.helpers import add_job_source, get_job_source
+
 """
 Generates jobs in the test database.
 """
 __docformat__ = "restructuredtext en"
 
 __copyright__ = """
-Copyright (C) 2011-2013 Hendrikx-ITC B.V.
+Copyright (C) 2011-2017 Hendrikx-ITC B.V.
 
 Distributed under the terms of the GNU General Public License as published by
 the Free Software Foundation; either version 3, or (at your option) any later
 version.  The full license is in the file COPYING, distributed as part of
 this software.
 """
-import random
-from contextlib import closing
-from functools import partial
-
-from minerva.util import each, expand_args
-from minerva.test import connect
-from minerva.system.jobqueue import enqueue_job
-from minerva.system.helpers import add_job_source, get_job_source
 
 
 def main():
