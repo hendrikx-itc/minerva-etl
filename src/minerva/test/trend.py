@@ -17,6 +17,7 @@ from minerva.storage.trend.tabletrendstore import TableTrendStore, \
 
 
 class TestSetQtr(DataSet):
+
     def __init__(self):
         self.data_source = None
         self.entity_type = None
@@ -33,6 +34,7 @@ class TestSetQtr(DataSet):
 
 
 class TestSet1Small(TestSetQtr):
+
     def load(self, cursor):
         self.data_source = DataSource.from_name("testset1")(cursor)
 
@@ -62,6 +64,7 @@ class TestSet1Small(TestSetQtr):
 
 
 class TestSet1Large(TestSetQtr):
+
     def load(self, cursor):
         self.data_source = DataSource.from_name(cursor, "testset1")
 
@@ -88,6 +91,7 @@ class TestSet1Large(TestSetQtr):
 
 
 class TestData:
+
     def __init__(self):
         self.entity_type_name = "dummy_type"
         self.dns = [

@@ -8,6 +8,7 @@ from configobj import ConfigObj
 
 
 class ConfigError(Exception):
+
     """
     Base class for any configuration loading related exceptions.
     """

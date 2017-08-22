@@ -3,9 +3,11 @@ from minerva.storage.datatype import DataType
 
 
 class ValueDescriptor:
+
     """
     A combination of value name and type.
     """
+
     def __init__(
             self, name: str, data_type: DataType):
         self.name = name

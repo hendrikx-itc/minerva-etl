@@ -16,9 +16,11 @@ from minerva.system.jobqueue import enqueue_job
 
 
 class Job(object):
+
     """
     Represents a Minerva job for processing by a node.
     """
+
     def __init__(self, id, job_source_id, type, description, size=0,
                  created=None, started=None, finished=None, state=None):
         self.id = id
