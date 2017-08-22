@@ -16,6 +16,7 @@ from data import TestData
 
 
 class TestRetrieve(with_data(TestData)):
+
     def test_retrieve(self):
         table_a = self.data.partition_a.table()
 
@@ -48,7 +49,7 @@ class TestRetrieve(with_data(TestData)):
 
     def test_retrieve_multi_table_time(self):
         tables = [
-                self.data.partition_d_1.table(),
+            self.data.partition_d_1.table(),
                 self.data.partition_d_2.table()]
         start = self.data.timestamp_1 - timedelta(seconds=60)
         end = self.data.timestamp_2
@@ -74,19 +75,20 @@ class TestRetrieve(with_data(TestData)):
 
 
 class TestRetrieveAggregate(with_data(TestData)):
+
     def test_retrieve_aggregate(self):
         column_expressions = [Call("sum", Column("Drops"))]
 
         start = self.data.datasource_a.tzinfo.localize(
-                datetime(2012, 12, 6, 14, 15))
+            datetime(2012, 12, 6, 14, 15))
         end = self.data.datasource_a.tzinfo.localize(
-                datetime(2012, 12, 6, 14, 15))
+            datetime(2012, 12, 6, 14, 15))
 
         interval = start, end
 
         with closing(self.conn.cursor()) as cursor:
             result = retrieve_aggregated(
-                    cursor, self.data.trendstore_a,
+                cursor, self.data.trendstore_a,
                     column_expressions,
                     interval, group_by=["entity_id"])
 
@@ -94,6 +96,7 @@ class TestRetrieveAggregate(with_data(TestData)):
 
 
 class TestRetrieveMultiSource(with_data(TestData)):
+
     def test_retrieve(self):
         table_a = self.data.partition_a.table()
         table_b = self.data.partition_b.table()
@@ -132,7 +135,7 @@ class TestRetrieveMultiSource(with_data(TestData)):
             logging.debug(unlines(render_result(cursor)))
 
             r = retrieve(
-                    cursor, tables, columns, None, start, end,
+                cursor, tables, columns, None, start, end,
                     entitytype=self.data.entitytype)
 
         data = [["entity_id", "timestamp"] + [c.name for c in columns]] + r

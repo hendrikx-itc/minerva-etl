@@ -219,10 +219,10 @@ def test_store_insert_rows(conn):
         entity_type = EntityType.from_name("test-type001")(cursor)
 
         trend_store = TableTrendStore.create(
-                TableTrendStoreDescriptor(
-                    'test-trend-store', data_source, entity_type, granularity,
+            TableTrendStoreDescriptor(
+                'test-trend-store', data_source, entity_type, granularity,
                     trend_descriptors, 86400 * 7
-                    ))(cursor)
+            ))(cursor)
 
         partition = trend_store.partition(time1)
 
@@ -363,7 +363,7 @@ def test_update(conn):
         trend_store = TableTrendStore.create(TableTrendStoreDescriptor(
             'test-trend-store', data_source, entity_type, granularity,
             trend_descriptors, 86400
-            ))(cursor)
+        ))(cursor)
 
         partition = trend_store.partition(timestamp)
         partition.create(cursor)
