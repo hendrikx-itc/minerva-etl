@@ -28,7 +28,7 @@ def partition_record_exists(cursor, partition):
 
 def get_tables(cursor, schema):
     query = (
-            "SELECT relname, "
+        "SELECT relname, "
             "CASE relkind "
             "WHEN 'r' THEN 'table'::trend.storetype "
             "WHEN 'v' THEN 'view'::trend.storetype "

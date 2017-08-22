@@ -23,6 +23,7 @@ this software.
 
 
 class NoSuchTrendError(Exception):
+
     """
     Exception raised when no matching Trend is found.
     """
@@ -61,7 +62,7 @@ def get_previous_timestamp(timestamp, granularity):
     :param granularity: granularity in seconds to subtract from timestamp
     """
     previous = (
-            timestamp.astimezone(pytz.utc) -
+        timestamp.astimezone(pytz.utc) -
             timedelta(0, granularity)).astimezone(timestamp.tzinfo)
     utc_offset_delta = timestamp.utcoffset() - previous.utcoffset()
     return previous + utc_offset_delta
@@ -158,7 +159,7 @@ def get_relation_name(conn, source_entitytype_name, target_entitytype_name):
     relation_name = None
 
     relationtype_name = "{}->{}".format(
-           source_entitytype_name, target_entitytype_name)
+        source_entitytype_name, target_entitytype_name)
     query = "SELECT name FROM relation.type WHERE lower(name) = lower(%s)"
 
     with closing(conn.cursor()) as cursor:

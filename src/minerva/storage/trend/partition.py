@@ -6,9 +6,11 @@ from minerva.db.query import Table
 
 
 class Partition:
+
     """
     A partition of a trend store.
     """
+
     def __init__(self, index, trend_store):
         self.index = index
         self.trend_store = trend_store
