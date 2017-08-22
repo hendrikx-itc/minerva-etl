@@ -127,7 +127,7 @@ def test_get(conn):
 @with_conn(clear_database)
 def test_get_by_id(conn):
     granularity = create_granularity("900")
-    partition_size = 3600
+    # partition_size = 3600
     timestamp = pytz.utc.localize(datetime.datetime(2015, 1, 10, 12, 0))
 
     with closing(conn.cursor()) as cursor:

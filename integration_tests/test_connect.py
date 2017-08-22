@@ -28,7 +28,8 @@ def test_connect_without_database():
 
     assert port > 0
 
-    db_url_without_database = "{}://{}:{}@{}".format(scheme, user, password, host)
+    db_url_without_database = "{}://{}:{}@{}".format(
+            scheme, user, password, host)
 
     print(db_url_without_database)
 
