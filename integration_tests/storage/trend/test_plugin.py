@@ -85,8 +85,9 @@ def test_retrieve_from_v4_trendstore(conn):
     entitytype = data.entitytype
     granularity = 900
 
-    r = plugin_obj.retrieve(datasources, granularity, entitytype,
-            column_names, entities, start, end)
+    r = plugin_obj.retrieve(
+            datasources, granularity, entitytype, column_names, entities,
+            start, end)
 
     eq_(len(r), 1)
 
@@ -119,7 +120,8 @@ def test_store_raw1(conn):
         ("Network=dummy,Subnetwork=test,Element=1", ("1", "2", "3"))
     ]
 
-    plugin.store_raw(datasource, granularity, timestamp, trend_names,
+    plugin.store_raw(
+            datasource, granularity, timestamp, trend_names,
             rows)
 
 
@@ -144,7 +146,8 @@ def test_store_raw_fractured_small(conn):
         ("Network=dummy,Subnetwork=test,Element=1", ("1", "2", "3"))
     ]
 
-    plugin.store_raw(datasource, granularity, timestamp,
+    plugin.store_raw(
+            datasource, granularity, timestamp,
             trend_names_part_1, raw_data_rows)
 
     trend_names_part_2 = ["PART2_COUNTER1", "PART2_COUNTER2", "PART2_COUNTER3"]
@@ -153,8 +156,9 @@ def test_store_raw_fractured_small(conn):
         ("Network=dummy,Subnetwork=test,Element=1", ("4", "5", "6"))
     ]
 
-    plugin.store_raw(datasource, granularity, timestamp,
-            trend_names_part_2, raw_data_rows)
+    plugin.store_raw(
+            datasource, granularity, timestamp, trend_names_part_2,
+            raw_data_rows)
 
 
 @with_conn
@@ -176,18 +180,22 @@ def test_store_raw_fractured_large(conn):
 
     dn_template = "Network=dummy,Subnetwork=test,Element={}"
 
-    raw_data_rows_part_1 = [(dn_template.format(i), ("1", "2", "3"))
-            for i in range(100)]
+    raw_data_rows_part_1 = [
+            (
+                dn_template.format(i), ("1", "2", "3")) for i in range(100)]
 
-    plugin.store_raw(datasource, granularity, timestamp,
+    plugin.store_raw(
+            datasource, granularity, timestamp,
             trend_names_part_1, raw_data_rows_part_1)
 
     trend_names_part_2 = ["PART2_COUNTER1", "PART2_COUNTER2", "PART2_COUNTER3"]
 
-    raw_data_rows_part_2 = [(dn_template.format(i), ("4", "5", "6"))
-            for i in range(100)]
+    raw_data_rows_part_2 = [
+            (
+                dn_template.format(i), ("4", "5", "6")) for i in range(100)]
 
-    plugin.store_raw(datasource, granularity, timestamp,
+    plugin.store_raw(
+            datasource, granularity, timestamp,
             trend_names_part_2, raw_data_rows_part_2)
 
 
@@ -202,78 +210,81 @@ def test_most_recent_timestamp():
     most_recent_timestamp = tz.localize(datetime(2012, 10, 8, 2, 0, 0))
     granularity = 3600
 
-    assert_equal(plugin_v3.get_most_recent_timestamp(ts, granularity),
-            most_recent_timestamp)
+    assert_equal(plugin_v3.get_most_recent_timestamp(
+        ts, granularity), most_recent_timestamp)
 
     ts = tz.localize(datetime(2012, 10, 8, 2, 42, 0))
     most_recent_timestamp = tz.localize(datetime(2012, 10, 8, 2, 0, 0))
     granularity = 3600
 
-    assert_equal(plugin_v3.get_most_recent_timestamp(ts, granularity),
-            most_recent_timestamp)
+    assert_equal(plugin_v3.get_most_recent_timestamp(
+        ts, granularity), most_recent_timestamp)
 
     ts = tz.localize(datetime(2012, 10, 29, 0, 0, 0))
     most_recent_timestamp = tz.localize(datetime(2012, 10, 29, 0, 0, 0))
     granularity = 604800
 
-    assert_equal(plugin_v3.get_most_recent_timestamp(ts, granularity),
-            most_recent_timestamp)
+    assert_equal(plugin_v3.get_most_recent_timestamp(
+        ts, granularity), most_recent_timestamp)
 
     ts = tz.localize(datetime(2012, 10, 28, 23, 59, 59))
     most_recent_timestamp = tz.localize(datetime(2012, 10, 22, 0, 0, 0))
     granularity = 604800
 
-    assert_equal(plugin_v3.get_most_recent_timestamp(ts, granularity),
-            most_recent_timestamp)
+    assert_equal(plugin_v3.get_most_recent_timestamp(
+        ts, granularity), most_recent_timestamp)
 
     ts = tz.localize(datetime(2012, 10, 8, 0, 0, 0)) - timedelta(0, 1)
     most_recent_timestamp = tz.localize(datetime(2012, 10, 1, 0, 0, 0))
     granularity = 604800
 
-    assert_equal(plugin_v3.get_most_recent_timestamp(ts, granularity),
-            most_recent_timestamp)
+    assert_equal(plugin_v3.get_most_recent_timestamp(
+        ts, granularity), most_recent_timestamp)
 
     ts = tz.localize(datetime(2012, 10, 9, 2, 30, 0))
     most_recent_timestamp = tz.localize(datetime(2012, 10, 9, 0, 0, 0))
     granularity = 86400
 
-    assert_equal(plugin_v3.get_most_recent_timestamp(ts, granularity),
-            most_recent_timestamp)
+    assert_equal(plugin_v3.get_most_recent_timestamp(
+        ts, granularity), most_recent_timestamp)
 
     ts = tz.localize(datetime(2012, 10, 29, 0, 0, 0))
     most_recent_timestamp = tz.localize(datetime(2012, 10, 29, 0, 0, 0))
 
     for granularity in [900, 3600, 86400, 604800]:
-        assert_equal(plugin_v3.get_most_recent_timestamp(ts, granularity),
-                most_recent_timestamp)
+        assert_equal(plugin_v3.get_most_recent_timestamp(
+            ts, granularity), most_recent_timestamp)
 
     ts = pytz.utc.localize(datetime(2012, 10, 9, 0, 14, 0))
     loc_ts = ts.astimezone(tz)
     timestamp = tz.localize(datetime(2012, 10, 9, 2, 0, 0))
     granularity = 86400
 
-    assert_false(timestamp <= plugin_v3.get_most_recent_timestamp(loc_ts, granularity))
+    assert_false(timestamp <= plugin_v3.get_most_recent_timestamp(
+        loc_ts, granularity))
 
     ts = pytz.utc.localize(datetime(2012, 10, 9, 9, 14, 0))
     loc_ts = ts.astimezone(tz)
     timestamp = tz.localize(datetime(2012, 10, 9, 11, 0, 0))
     granularity = 3600
 
-    assert_true(timestamp <= plugin_v3.get_most_recent_timestamp(loc_ts, granularity))
+    assert_true(timestamp <= plugin_v3.get_most_recent_timestamp(
+        loc_ts, granularity))
 
     # DST switch on oct 28th
     ts = tz.localize(datetime(2012, 10, 28, 17, 42, 0))
     most_recent_timestamp = tz.localize(datetime(2012, 10, 28, 0, 0, 0))
     granularity = 86400
 
-    assert_equal(plugin_v3.get_most_recent_timestamp(ts, granularity),
-            most_recent_timestamp)
+    assert_equal(plugin_v3.get_most_recent_timestamp(
+        ts, granularity), most_recent_timestamp)
 
     ts_utc = pytz.utc.localize(datetime(2013, 2, 25, 23, 0, 0))
     most_recent_timestamp = tz.localize(datetime(2013, 2, 26, 0, 0, 0))
     granularity = 86400
 
-    assert_equal(plugin_v3.get_most_recent_timestamp(ts_utc, granularity, minerva_tz=tz),
+    assert_equal(plugin_v3.get_most_recent_timestamp(
+        ts_utc, granularity, minerva_tz=tz),
             most_recent_timestamp)
 
     # DST switch on oct 28th
@@ -281,5 +292,6 @@ def test_most_recent_timestamp():
     most_recent_timestamp = tz.localize(datetime(2012, 10, 28, 0, 0, 0))
     granularity = 86400
 
-    assert_equal(plugin_v3.get_most_recent_timestamp(ts_utc, granularity, minerva_tz=tz),
+    assert_equal(plugin_v3.get_most_recent_timestamp(
+        ts_utc, granularity, minerva_tz=tz),
             most_recent_timestamp)

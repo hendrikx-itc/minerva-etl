@@ -1,14 +1,4 @@
 # -*- coding: utf-8 -*-
-__docformat__ = "restructuredtext en"
-
-__copyright__ = """
-Copyright (C) 2012-2013 Hendrikx-ITC B.V.
-
-Distributed under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 3, or (at your option) any later
-version.  The full license is in the file COPYING, distributed as part of
-this software.
-"""
 from contextlib import closing
 import datetime
 
@@ -25,6 +15,17 @@ from minerva.storage.trend.granularity import create_granularity
 
 from minerva_db import clear_database
 
+__docformat__ = "restructuredtext en"
+
+__copyright__ = """
+Copyright (C) 2012-2017 Hendrikx-ITC B.V.
+
+Distributed under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 3, or (at your option) any later
+version.  The full license is in the file COPYING, distributed as part of
+this software.
+"""
+
 
 class TestData(DataSet):
     def __init__(self):
@@ -40,8 +41,9 @@ class TestData(DataSet):
 def test_create_trendstore(conn, dataset):
     partition_size = 3600
 
-    trendstore = TrendStore(dataset.datasource, dataset.entitytype,
-            dataset.granularity, partition_size, "table")
+    trendstore = TrendStore(
+            dataset.datasource, dataset.entitytype, dataset.granularity,
+            partition_size, "table")
 
     with closing(conn.cursor()) as cursor:
         trendstore.create(cursor)
@@ -56,8 +58,9 @@ def test_create_trendstore(conn, dataset):
 def test_create_trendstore_with_children(conn, dataset):
     partition_size = 3600
 
-    trendstore = TrendStore(dataset.datasource, dataset.entitytype,
-            dataset.granularity, partition_size, "table")
+    trendstore = TrendStore(
+            dataset.datasource, dataset.entitytype, dataset.granularity,
+            partition_size, "table")
 
     with closing(conn.cursor()) as cursor:
         trendstore.create(cursor)
@@ -78,10 +81,13 @@ def test_get_trendstore(conn, dataset):
     partition_size = 3600
 
     with closing(conn.cursor()) as cursor:
-        TrendStore(dataset.datasource, dataset.entitytype, dataset.granularity,
+        TrendStore(
+                dataset.datasource, dataset.entitytype, dataset.granularity,
                 partition_size, "table").create(cursor)
 
-        trendstore = TrendStore.get(cursor, dataset.datasource, dataset.entitytype,
+        trendstore = TrendStore.get(
+                cursor, dataset.datasource,
+                dataset.entitytype,
                 dataset.granularity)
 
         eq_(trendstore.datasource.id, dataset.datasource.id)
@@ -96,8 +102,9 @@ def test_store_copy_from(conn, dataset):
     partition_size = 86400
 
     with closing(conn.cursor()) as cursor:
-        trendstore = TrendStore(dataset.datasource, dataset.entitytype,
-                dataset.granularity, partition_size, "table").create(cursor)
+        trendstore = TrendStore(
+                dataset.datasource, dataset.entitytype, dataset.granularity,
+                partition_size, "table").create(cursor)
 
     conn.commit()
 
@@ -124,7 +131,8 @@ def test_store_copy_from(conn, dataset):
 @with_dataset(TestData)
 def test_store_copy_from_missing_column(conn, dataset):
     partition_size = 86400
-    trendstore = TrendStore(dataset.datasource, dataset.entitytype, dataset.granularity,
+    trendstore = TrendStore(
+            dataset.datasource, dataset.entitytype, dataset.granularity,
             partition_size, "table")
 
     with closing(conn.cursor()) as cursor:
@@ -169,7 +177,8 @@ def test_store_copy_from_missing_column(conn, dataset):
 @with_dataset(TestData)
 def test_store(conn, dataset):
     partition_size = 86400
-    trendstore = TrendStore(dataset.datasource, dataset.entitytype, dataset.granularity,
+    trendstore = TrendStore(
+            dataset.datasource, dataset.entitytype, dataset.granularity,
             partition_size, "table")
 
     with closing(conn.cursor()) as cursor:
@@ -252,7 +261,8 @@ def test_generate_index(conn, dataset):
 @with_dataset(TestData)
 def test_store_add_column(conn, dataset):
     partition_size = 86400
-    trendstore = TrendStore(dataset.datasource, dataset.entitytype, dataset.granularity,
+    trendstore = TrendStore(
+            dataset.datasource, dataset.entitytype, dataset.granularity,
             partition_size, "table")
 
     with closing(conn.cursor()) as cursor:
@@ -311,7 +321,8 @@ def test_store_add_column(conn, dataset):
 @with_dataset(TestData)
 def test_store_alter_column(conn, dataset):
     partition_size = 86400
-    trendstore = TrendStore(dataset.datasource, dataset.entitytype, dataset.granularity,
+    trendstore = TrendStore(
+            dataset.datasource, dataset.entitytype, dataset.granularity,
             partition_size, "table")
 
     with closing(conn.cursor()) as cursor:

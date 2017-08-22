@@ -1,4 +1,7 @@
 # -*- coding: utf-8 -*-
+
+from contextlib import closing
+
 __docformat__ = "restructuredtext en"
 
 __copyright__ = """
@@ -9,7 +12,6 @@ the Free Software Foundation; either version 3, or (at your option) any later
 version.  The full license is in the file COPYING, distributed as part of
 this software.
 """
-from contextlib import closing
 
 
 def clear_database(conn):
