@@ -2,7 +2,7 @@
 
 from contextlib import closing
 from minerva.db.util import create_temp_table, drop_table, \
-        create_copy_from_file
+    create_copy_from_file
 
 __docformat__ = "restructuredtext en"
 

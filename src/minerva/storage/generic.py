@@ -22,6 +22,7 @@ def NoOpFix():
 
 
 class RecoverableError(Exception):
+
     def __init__(self, msg, fix):
         Exception.__init__(self, msg)
         self.fix = fix

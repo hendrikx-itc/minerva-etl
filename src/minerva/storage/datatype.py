@@ -18,6 +18,7 @@ class ParseError(Exception):
 
 
 class DataType:
+
     def __init__(self, name):
         self.name = name
 
@@ -867,6 +868,7 @@ def max_data_types(current_data_types, new_data_types):
 
 
 class ParserDescriptor:
+
     def __init__(self, data_type, parser_config):
         self.data_type = data_type
         self.parser_config = parser_config
