@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from contextlib import closing
 from minerva.db.util import create_temp_table, drop_table, \
-        create_copy_from_file
+    create_copy_from_file
 from minerva.storage.trend import schema
 
 __docformat__ = "restructuredtext en"

@@ -10,7 +10,7 @@ import psycopg2.errorcodes
 from minerva.util import first
 from minerva.db.util import enquote_column_name
 from minerva.db.query import Sql, Table, And, Or, Eq, Column, FromItem, \
-        Argument, Literal, LtEq, Gt, ands, Select, WithQuery, As, Value, \
+    Argument, Literal, LtEq, Gt, ands, Select, WithQuery, As, Value, \
         Parenthesis, column_exists
 from minerva.db.error import AggregationError
 

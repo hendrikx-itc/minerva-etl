@@ -26,6 +26,7 @@ LARGE_BATCH_THRESHOLD = 10
 
 
 class TableTrendStoreDescriptor:
+
     def __init__(
             self, name: str, data_source: DataSource, entity_type: EntityType,
             granularity, trend_descriptors: List[TrendDescriptor],
@@ -458,6 +459,7 @@ class TableTrendStore(TrendStore):
 
 
 class StoreState:
+
     def __init__(self, trend_store, data_package):
         self.trend_store = trend_store
         self.data_package = data_package
@@ -465,11 +467,13 @@ class StoreState:
 
 
 class SetModified(DbAction):
+
     def execute(self, cursor, state):
         state.modified = get_timestamp(cursor)
 
 
 class MarkModified(DbAction):
+
     def execute(self, cursor, state):
         try:
             state.trend_store.mark_modified(
@@ -481,6 +485,7 @@ class MarkModified(DbAction):
 
 
 class CopyFrom(DbAction):
+
     def execute(self, cursor, state):
         try:
             state.trend_store.store_copy_from(
@@ -494,6 +499,7 @@ class CopyFrom(DbAction):
 
 
 class BatchInsert(DbAction):
+
     def execute(self, cursor, state):
         try:
             state.trend_store.store_batch_insert(
@@ -505,6 +511,7 @@ class BatchInsert(DbAction):
 
 
 class Update(DbAction):
+
     def execute(self, cursor, state):
         state.trend_store.store_update(
             state.data_package,
