@@ -5,7 +5,6 @@ from minerva.storage.trend import schema
 from minerva.storage.trend.trend import Trend
 from minerva.storage import datatype
 from minerva.storage.valuedescriptor import ValueDescriptor
-from minerva.storage.trend.tables import DATA_TABLE_POSTFIXES
 
 
 class NoSuchTrendError(Exception):
