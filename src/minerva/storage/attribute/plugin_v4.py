@@ -1,15 +1,4 @@
 # -* -coding: utf - 8 -* -
-"""Provides the AttributePlugin class."""
-__docformat__ = "restructuredtext en"
-
-__copyright__ = """
-Copyright (C) 2008-2013 Hendrikx-ITC B.V.
-
-Distributed under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 3, or (at your option) any later
-version.  The full license is in the file COPYING, distributed as part of
-this software.
-"""
 import json
 from contextlib import closing
 
@@ -20,6 +9,16 @@ from minerva.storage.attribute.datapackage import DataPackage
 from minerva.storage.attribute.rawdatapackage import RawDataPackage
 from minerva.storage.attribute.retrieve import retrieve, retrieve_current, \
     retrieve_attributes_for_entity
+
+"""Provides the AttributePlugin class."""
+__docformat__ = "restructuredtext en"
+__copyright__ = """
+Copyright (C) 2008-2017 Hendrikx-ITC B.V.
+Distributed under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 3, or (at your option) any later
+version.  The full license is in the file COPYING, distributed as part of
+this software.
+"""
 
 
 class AttributePlugin(object):
