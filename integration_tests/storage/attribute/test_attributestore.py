@@ -64,7 +64,7 @@ def test_create(conn):
         table_exists, = cursor.fetchone()
 
         assert table_exists, 'table {} should exist'.format(
-                expected_table_name)
+            expected_table_name)
 
         cursor.execute(
             "SELECT public.column_names('attribute_base', %s)",

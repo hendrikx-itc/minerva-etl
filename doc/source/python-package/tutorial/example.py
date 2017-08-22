@@ -17,7 +17,7 @@ TIMESTAMP = "2010-02-15 13:00:00"
 def main():
     with closing(connect(DB_URI)) as conn:
         datasource = add_datasource(
-                conn, "example", "", "Europe/Amsterdam", "trend")
+            conn, "example", "", "Europe/Amsterdam", "trend")
 
 
 if __name__ == "__main__":

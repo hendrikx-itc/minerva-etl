@@ -175,7 +175,7 @@ def test_update(conn):
         time.sleep(1)
 
         attribute_store.store(DataPackage(attribute_names, update_data_rows))(
-                conn)
+            conn)
 
         conn.commit()
 
