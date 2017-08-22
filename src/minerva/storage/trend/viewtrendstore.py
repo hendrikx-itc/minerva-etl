@@ -5,6 +5,7 @@ from minerva.storage.trend.granularity import create_granularity
 
 
 class ViewTrendStoreDescriptor:
+
     def __init__(
             self, name, data_source, entity_type, granularity, query):
         self.name = name
@@ -15,6 +16,7 @@ class ViewTrendStoreDescriptor:
 
 
 class ViewTrendStore(TrendStore):
+
     @staticmethod
     def create(descriptor):
         def f(cursor):

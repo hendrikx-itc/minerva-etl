@@ -48,7 +48,7 @@ def get_partition_by_name(cursor, name):
 
     if cursor.rowcount > 0:
         name, datasource_id, entitytype_id, granularity_str, data_start, \
-                data_end = cursor.fetchone()
+            data_end = cursor.fetchone()
 
         granularity = create_granularity(str(granularity_str))
         datasource = get_datasource_by_id(cursor, datasource_id)
@@ -120,6 +120,7 @@ def find_trend(cursor, entitytype, datasource, granularity, name):
 
 
 class View(object):
+
     def __init__(self, id, description, sql, trendstore_id):
         self.id = id
         self.description = description

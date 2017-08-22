@@ -12,6 +12,7 @@ this software.
 
 
 class View(object):
+
     def __init__(self, trendstore, sql):
         self.id = None
         self.trendstore = trendstore
