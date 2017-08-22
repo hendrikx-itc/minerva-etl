@@ -1,20 +1,19 @@
 # -*- coding: utf-8 -*-
+from contextlib import closing
+from minerva.db.util import create_temp_table, drop_table, \
+        create_copy_from_file
+from minerva.storage.trend import schema
+
 __docformat__ = "restructuredtext en"
 
 __copyright__ = """
-Copyright (C) 2012-2013 Hendrikx-ITC B.V.
+Copyright (C) 2012-2017 Hendrikx-ITC B.V.
 
 Distributed under the terms of the GNU General Public License as published by
 the Free Software Foundation; either version 3, or (at your option) any later
 version.  The full license is in the file COPYING, distributed as part of
 this software.
 """
-from contextlib import closing
-
-from minerva.db.util import create_temp_table, drop_table, \
-    create_copy_from_file
-
-from minerva.storage.trend import schema
 
 
 def tag_trends(conn, tag_links):

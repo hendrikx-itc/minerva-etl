@@ -1,17 +1,4 @@
 # -*- coding: utf-8 -*-
-"""
-Provides PostgreSQL specific storage functionality using arrays.
-"""
-__docformat__ = "restructuredtext en"
-
-__copyright__ = """
-Copyright (C) 2008-2013 Hendrikx-ITC B.V.
-
-Distributed under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 3, or (at your option) any later
-version.  The full license is in the file COPYING, distributed as part of
-this software.
-"""
 from contextlib import closing
 import logging
 from itertools import chain
@@ -26,6 +13,18 @@ from minerva.db.query import Sql, Table, And, Or, Eq, Column, FromItem, \
         Argument, Literal, LtEq, Gt, ands, Select, WithQuery, As, Value, \
         Parenthesis, column_exists
 from minerva.db.error import AggregationError
+
+"""
+Provides PostgreSQL specific storage functionality using arrays.
+"""
+__docformat__ = "restructuredtext en"
+__copyright__ = """
+Copyright (C) 2008-2017 Hendrikx-ITC B.V.
+Distributed under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 3, or (at your option) any later
+version.  The full license is in the file COPYING, distributed as part of
+this software.
+"""
 
 
 def table_or_view_exists(cursor, table):
