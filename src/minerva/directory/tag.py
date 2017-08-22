@@ -11,6 +11,7 @@ SCHEMA = "directory"
 
 
 class NoSuchTagError(Exception):
+
     """
     Exception raised when no matching Tag is found.
     """
@@ -18,6 +19,7 @@ class NoSuchTagError(Exception):
 
 
 class NoSuchTagGroupError(Exception):
+
     """
     Exception raised when no matching TagGroup is found.
     """
@@ -36,7 +38,7 @@ def tag_entities(conn, tag_links):
     tag_links_with_group_id = [
         (entity_id, tag_name, group_id)
         for entity_id, tag_name in tag_links
-        ]
+    ]
 
     store_in_staging_table(conn, tag_links_with_group_id)
 
@@ -49,7 +51,7 @@ def tag_entities(conn, tag_links):
 def get_tag_group_id(conn, name):
     with closing(conn.cursor()) as cursor:
         cursor.execute(
-                "SELECT id FROM directory.tag_group WHERE name = %s",
+            "SELECT id FROM directory.tag_group WHERE name = %s",
                 (name,)
         )
 
@@ -193,7 +195,7 @@ def get_tag_group(conn, name):
             return TagGroup(id, name, complementary)
         else:
             raise NoSuchTagGroupError(
-                    "No tag group with name {0}".format(name)
+                "No tag group with name {0}".format(name)
             )
 
 
@@ -217,12 +219,13 @@ def get_tags_for_entity_id(conn, entity_id):
             return [
                 Tag(id, name, group_id, description)
                 for id, name, group_id, description in cursor.fetchall()
-                ]
+            ]
         else:
             return []
 
 
 class Tag:
+
     def __init__(self, id, name, group_id, description):
         self.id = id
         self.name = name

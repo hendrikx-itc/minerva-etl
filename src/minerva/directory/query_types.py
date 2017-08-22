@@ -4,6 +4,7 @@ from minerva.db.query import Column, As, Table, Call, Select, FromItem, \
 
 
 class Tag:
+
     def __init__(self, name):
         self.name = name
 
@@ -12,6 +13,7 @@ class Tag:
 
 
 class Alias:
+
     def __init__(self, name):
         self.name = name
 
@@ -20,6 +22,7 @@ class Alias:
 
 
 class Context:
+
     def __init__(self, tags):
         self.tags = tags
 
@@ -31,6 +34,7 @@ class Context:
 
 
 class Query:
+
     def __init__(self, parts):
         self.parts = parts
 

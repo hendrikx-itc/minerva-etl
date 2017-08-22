@@ -23,7 +23,7 @@ def get_relation_name(conn, source_entitytype_name, target_entitytype_name):
     relation_name = None
 
     if source_entitytype_name is None or target_entitytype_name is None:
-        return None 
+        return None
 
     relationtype_name = "{}->{}".format(source_entitytype_name,
                                         target_entitytype_name)
@@ -35,7 +35,7 @@ def get_relation_name(conn, source_entitytype_name, target_entitytype_name):
             relation_name, = cursor.fetchone()
         else:
             relation_name = None
-            
+
     return relation_name
 
 
