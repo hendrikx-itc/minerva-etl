@@ -1,6 +1,6 @@
 import datetime
 from functools import partial
-
+from functools import reduce
 from minerva.directory.basetypes import DataSource
 from minerva.storage.trend.tables import make_table_name
 
@@ -16,7 +16,9 @@ GP_DAY = 86400
 
 
 def create_datasource(timezone):
-    return DataSource(1, name="DummySource", description="Dummy data source",
+    return DataSource(
+            1, name="DummySource",
+            description="Dummy data source",
             timezone=timezone)
 
 
@@ -28,15 +30,16 @@ def main():
     timestamp = DATASOURCE.tzinfo.localize(
             datetime.datetime(2008, 12, 3, 1, 0, 0))
 
-    timestamps = [timestamp + i * datetime.timedelta(0, GP_HR)
-            for i in range(7 * 24)]
+    timestamps = [
+            timestamp + i * datetime.timedelta(
+                0, GP_HR) for i in range(7 * 24)]
 
     column_names = ["timestamp", "table_name"]
     alignments = ["<", "<"]
     widths = ["max", "max"]
 
-    table_names = map(partial(make_table_name, DATASOURCE, GP_HR,
-        ENTITYTYPE_NAME), timestamps)
+    table_names = map(partial(
+        make_table_name, DATASOURCE, GP_HR, ENTITYTYPE_NAME), timestamps)
 
     rows = zip(timestamps, table_names)
 
@@ -53,7 +56,8 @@ def render_table(column_names, column_align, column_sizes, rows):
 
     header = render_line(col_sep, column_names, col_widths, ">" * col_count)
     horizontal_sep = render_horizontal_sep("-+-", "-", col_widths)
-    body = [render_line(col_sep, row, col_widths, column_align) for row in rows]
+    body = [render_line(
+        col_sep, row, col_widths, column_align) for row in rows]
 
     return [header, horizontal_sep] + body
 
@@ -71,12 +75,14 @@ def calc_column_widths(column_names, rows, column_sizes):
 
 
 def reduce_row(accumulators, row1, row2):
-    return [acc(val1, val2) for acc, val1, val2 in zip(accumulators, row1, row2)]
+    return [acc(val1, val2) for acc, val1, val2 in zip(
+        accumulators, row1, row2)]
 
 
 def render_line(col_sep, values, widths, alignments):
-    return col_sep.join(render_column(value, width, alignment)
-            for value, width, alignment in zip(values, widths, alignments))
+    return col_sep.join(render_column(
+        value, width, alignment) for value, width, alignment in zip(
+            values, widths, alignments))
 
 
 def render_horizontal_sep(col_sep, hor_sep, widths):

@@ -33,8 +33,7 @@ def test_create_view(conn):
         ))(cursor)
 
         start = pytz.utc.localize(
-            datetime.datetime(2013, 8, 26, 13, 0, 0)
-        )
+                datetime.datetime(2013, 8, 26, 13, 0, 0))
         end = start
 
         trend_store.retrieve(["CntrA"]).execute(cursor)

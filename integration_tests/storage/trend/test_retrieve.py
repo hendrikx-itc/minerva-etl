@@ -41,7 +41,8 @@ class TestRetrieve(with_data(TestData)):
 
         columns = map(create_column, column_names)
 
-        r = retrieve(self.conn, SCHEMA, table_names, columns, entities, start, end)
+        r = retrieve(
+                self.conn, SCHEMA, table_names, columns, entities, start, end)
 
         eq_(len(r), 1)
 
@@ -69,7 +70,8 @@ class TestRetrieve(with_data(TestData)):
 
         columns = map(create_column, column_names)
 
-        r = retrieve(self.conn, SCHEMA, table_names, columns, entities, start, end)
+        r = retrieve(
+                self.conn, SCHEMA, table_names, columns, entities, start, end)
 
         eq_(len(r), 1)
 
@@ -98,8 +100,8 @@ class TestRetrieve(with_data(TestData)):
             Column(table_a, "CCRatts"),
             Column(table_a, "Drops")]
 
-        r = retrieve_orderedby_time(self.conn, SCHEMA, table_names, columns,
-                entities, start, end)
+        r = retrieve_orderedby_time(
+                self.conn, SCHEMA, table_names, columns, entities, start, end)
 
         eq_(len(r), 1)
 
@@ -124,7 +126,8 @@ class TestRetrieve(with_data(TestData)):
 
         columns = map(Column, column_names)
 
-        r = retrieve(self.conn, SCHEMA, table_names, columns, entities, start, end)
+        r = retrieve(
+                self.conn, SCHEMA, table_names, columns, entities, start, end)
 
         eq_(len(r), 2)
 
@@ -153,8 +156,9 @@ class TestRetrieveAggregate(object):
             datasource = name_to_datasource(cursor, "test")
             entitytype = name_to_entitytype(cursor, "Cell")
 
-            TrendStore(datasource, entitytype, granularity, 86400,
-                    "table").create(cursor)
+            TrendStore(
+                    datasource, entitytype,
+                    granularity, 86400, "table").create(cursor)
 
         column_expressions = ["COUNT(entity_id)"]
 
@@ -163,8 +167,9 @@ class TestRetrieveAggregate(object):
 
         interval = start, end
 
-        retrieve_aggregated(self.conn, datasource, granularity, entitytype,
-            column_expressions, interval, group_by="entity_id")
+        retrieve_aggregated(
+                self.conn, datasource, granularity, entitytype,
+                column_expressions, interval, group_by="entity_id")
 
 
 class TestRetrieveMultiSource(with_data(TestData)):
@@ -208,7 +213,8 @@ class TestRetrieveMultiSource(with_data(TestData)):
             table_c.select(system_columns + table_c_cols).execute(cursor)
             logging.debug(unlines(render_result(cursor)))
 
-        r = retrieve(self.conn, SCHEMA, table_names, columns, None, start, end,
+        r = retrieve(
+                self.conn, SCHEMA, table_names, columns, None, start, end,
                 entitytype=self.data.entitytype)
 
         data = [["entity_id", "timestamp"] + [c.name for c in columns]] + r
