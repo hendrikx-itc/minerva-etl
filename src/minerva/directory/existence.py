@@ -4,6 +4,7 @@ from minerva.db.util import create_copy_from_file, create_copy_from_query
 
 
 class Existence:
+
     def __init__(self, conn):
         self.conn = conn
         self.dns = []

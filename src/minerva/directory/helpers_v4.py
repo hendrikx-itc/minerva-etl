@@ -28,6 +28,7 @@ MATCH_ALL = re.compile(".*")
 
 
 class InvalidNameError(Exception):
+
     """
     Exception raised in case of invalid name.
     """
@@ -35,6 +36,7 @@ class InvalidNameError(Exception):
 
 
 class NoSuchRelationTypeError(Exception):
+
     """
     Exception raised when no matching relation type is found.
     """

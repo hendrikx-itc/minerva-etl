@@ -1,9 +1,11 @@
 class Entity:
+
     """
     All data within the Minerva platform is linked to entities. Entities are
     very minimal objects with only very generic properties such as name,
     parent, type and a few more.
     """
+
     def __init__(self, id_, created, name, entity_type_id, dn):
         self.id = id_
         self.created = created

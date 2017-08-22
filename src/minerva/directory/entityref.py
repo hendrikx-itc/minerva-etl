@@ -5,10 +5,12 @@ from minerva.directory import EntityType
 
 
 class EntityRef:
+
     """
     The abstract base class for types representing a reference to a single
     entity.
     """
+
     def to_argument(self):
         """
         Return a tuple (placeholder, value) that can be used in queries:
@@ -29,9 +31,11 @@ class EntityRef:
 
 
 class EntityIdRef(EntityRef):
+
     """
     A reference to an entity by its Id.
     """
+
     def __init__(self, entity_id):
         self.entity_id = entity_id
 
@@ -50,9 +54,11 @@ class EntityIdRef(EntityRef):
 
 
 class EntityDnRef(EntityRef):
+
     """
     A reference to an entity by its distinguished name.
     """
+
     def __init__(self, dn):
         self.dn = dn
 
