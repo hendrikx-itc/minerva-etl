@@ -1,17 +1,19 @@
 # -*- coding: utf-8 -*-
+from nose.tools import assert_true, eq_
+
+from minerva.storage.trend.granularity import create_granularity
+from minerva.storage.trend.rawdatapackage import RawDataPackage
+
 __docformat__ = "restructuredtext en"
 __copyright__ = """
-Copyright (C) 2013 Hendrikx-ITC B.V.
+Copyright (C) 2013 - 2017 Hendrikx-ITC B.V.
 
 Distributed under the terms of the GNU General Public License as published by
 the Free Software Foundation; either version 3, or (at your option) any later
 version.  The full license is in the file COPYING, distributed as part of
 this software.
 """
-from nose.tools import assert_true, eq_
 
-from minerva.storage.trend.granularity import create_granularity
-from minerva.storage.trend.rawdatapackage import RawDataPackage
 
 TIMEZONE = "Europe/Amsterdam"
 

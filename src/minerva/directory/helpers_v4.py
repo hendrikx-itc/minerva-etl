@@ -1,4 +1,15 @@
 # -*- coding: utf-8 -*-
+from contextlib import closing
+import re
+import StringIO
+
+import itertools
+
+from minerva.util import identity, k, head
+from minerva.directory.basetypes import DataSource, Entity, EntityType
+from minerva.db.query import Table, Column
+from minerva.db.error import translate_postgresql_exceptions
+
 """
 Helper functions for the directory schema.
 """
@@ -12,16 +23,6 @@ the Free Software Foundation; either version 3, or (at your option) any later
 version.  The full license is in the file COPYING, distributed as part of
 this software.
 """
-from contextlib import closing
-import re
-import StringIO
-
-import itertools
-
-from minerva.util import identity, k, head
-from minerva.directory.basetypes import DataSource, Entity, EntityType
-from minerva.db.query import Table, Column
-from minerva.db.error import translate_postgresql_exceptions
 
 
 MATCH_ALL = re.compile(".*")

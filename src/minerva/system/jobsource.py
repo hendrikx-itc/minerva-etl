@@ -1,17 +1,18 @@
 # -*- coding: utf-8 -*-
+import json
+
+from minerva.system.struct import Struct
+
 """Provides the JobSource class."""
 __docformat__ = "restructuredtext en"
 __copyright__ = """
-Copyright (C) 2008-2013 Hendrikx-ITC B.V.
+Copyright (C) 2008-2017 Hendrikx-ITC B.V.
 
 Distributed under the terms of the GNU General Public License as published by
 the Free Software Foundation; either version 3, or (at your option) any later
 version.  The full license is in the file COPYING, distributed as part of
 this software.
 """
-import json
-
-from minerva.system.struct import Struct
 
 
 class JobSource(object):

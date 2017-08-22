@@ -1,17 +1,4 @@
 # -* -coding: utf - 8 -* -
-"""
-Provides GIS storage functionality using delta-like-tables.
-"""
-__docformat__ = "restructuredtext en"
-
-__copyright__ = """
-Copyright (C) 2008-2013 Hendrikx-ITC B.V.
-
-Distributed under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 3, or (at your option) any later
-version.  The full license is in the file COPYING, distributed as part of
-this software.
-"""
 from contextlib import closing
 
 from minerva.directory import helpers
@@ -22,6 +9,18 @@ from minerva.storage.geospatial.storage import store_cells, store_sites
 from minerva.storage.geospatial.retrieve import retrieve_attribute, \
     retrieve_related_attribute, retrieve_trend, retrieve_related_trend, \
     get_cells_in_region, get_sites_in_region, get_entities_in_region
+
+"""
+Provides GIS storage functionality using delta-like-tables.
+"""
+__docformat__ = "restructuredtext en"
+__copyright__ = """
+Copyright (C) 2008-2013 Hendrikx-ITC B.V.
+Distributed under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 3, or (at your option) any later
+version.  The full license is in the file COPYING, distributed as part of
+this software.
+"""
 
 
 class GeospatialPlugin(object):

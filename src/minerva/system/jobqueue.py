@@ -1,4 +1,7 @@
 # -*- coding: utf-8 -*-
+from functools import partial
+from minerva.db.util import stored_procedure
+
 """
 Provides helper functions for interacting with the job queue in the database.
 """
@@ -12,9 +15,6 @@ the Free Software Foundation; either version 3, or (at your option) any later
 version.  The full license is in the file COPYING, distributed as part of
 this software.
 """
-from functools import partial
-
-from minerva.db.util import stored_procedure
 
 
 class NoJobAvailable(Exception):

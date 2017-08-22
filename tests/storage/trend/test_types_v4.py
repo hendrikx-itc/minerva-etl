@@ -24,10 +24,10 @@ TIMEZONE = "Europe/Amsterdam"
 def test_trendstore():
     datasource = DataSource(
         id=10, name="test-src",
-            description="this is just a test datasource", timezone=TIMEZONE)
+        description="this is just a test datasource", timezone=TIMEZONE)
     entitytype = EntityType(
         id=20, name="test_type",
-            description="this is just a test entitytype")
+        description="this is just a test entitytype")
     granularity = create_granularity("900")
     partition_size = 3600
 

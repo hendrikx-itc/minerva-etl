@@ -1,14 +1,4 @@
 # -*- coding: utf-8 -*-
-__docformat__ = "restructuredtext en"
-
-__copyright__ = """
-Copyright (C) 2008-2013 Hendrikx-ITC B.V.
-
-Distributed under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 3, or (at your option) any later
-version.  The full license is in the file COPYING, distributed as part of
-this software.
-"""
 import StringIO
 from contextlib import closing
 from functools import partial
@@ -17,6 +7,15 @@ from minerva.directory.helpers import get_relationtype_id, \
     NoSuchRelationTypeError
 from minerva.util import swap
 from minerva.db.util import is_unique
+
+__docformat__ = "restructuredtext en"
+__copyright__ = """
+Copyright (C) 2008-2017 Hendrikx-ITC B.V.
+Distributed under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 3, or (at your option) any later
+version.  The full license is in the file COPYING, distributed as part of
+this software.
+"""
 
 
 def get_relation_name(conn, source_entitytype_name, target_entitytype_name):

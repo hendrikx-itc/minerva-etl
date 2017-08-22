@@ -1,20 +1,19 @@
 # -*- coding: utf-8 -*-
-__docformat__ = "restructuredtext en"
-
-__copyright__ = """
-Copyright (C) 2008-2013 Hendrikx-ITC B.V.
-
-Distributed under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 3, or (at your option) any later
-version.  The full license is in the file COPYING, distributed as part of
-this software.
-"""
 import logging
 from contextlib import closing
 
 import psycopg2
 
 from minerva.storage import datatype
+
+__docformat__ = "restructuredtext en"
+__copyright__ = """
+Copyright (C) 2008-2017 Hendrikx-ITC B.V.
+Distributed under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 3, or (at your option) any later
+version.  The full license is in the file COPYING, distributed as part of
+this software.
+"""
 
 
 def NoOpFix():
@@ -63,7 +62,8 @@ def escape_value(value):
     if value == u"\\N":
         return value
     else:
-        return value.replace('\\', '\\\\').replace('\r', '\\r').replace('\n', '\\n')
+        return value.replace(
+                '\\', '\\\\').replace('\r', '\\r').replace('\n', '\\n')
 
 
 def create_column(conn, schema, table, column_name, data_type):

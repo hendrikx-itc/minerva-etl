@@ -52,7 +52,7 @@ def testsimpleelement():
 
     assert_equal(
         elementhandler.elementtype.__class__,
-            minerva.xmldochandler.xmlschema.xmlschema_string.XmlSchema_string
+        minerva.xmldochandler.xmlschema.xmlschema_string.XmlSchema_string
     )
 
 

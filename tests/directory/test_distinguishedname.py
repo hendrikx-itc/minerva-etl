@@ -13,7 +13,7 @@ def test_splitparts():
     """
     dn_parts = split_parts(
         "SubNetwork=NL1_R,SubNetwork=AHPTUR1,"
-            "MeContext=AHPTUR1,ManagedElement=1,RncFunction=1,UeRc=9")
+        "MeContext=AHPTUR1,ManagedElement=1,RncFunction=1,UeRc=9")
     assert_equal(dn_parts[0], "SubNetwork=NL1_R")
     assert_equal(len(dn_parts), 6)
     assert_equal(dn_parts[5], "UeRc=9")

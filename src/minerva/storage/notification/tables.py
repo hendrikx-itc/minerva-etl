@@ -29,12 +29,12 @@ def create_parent_data_table(conn, datasource_name, attributes, data_types):
 
     query = (
         "CREATE TABLE {0}.\"{1}\" ("
-            "id integer NOT NULL, "
-            "\"timestamp\" timestamp with time zone NOT NULL, "
-            "\"modified\" timestamp with time zone NOT NULL, "
-            "entity_id integer NOT NULL, "
-            "{2}"
-            ")".format(SCHEMA, datasource_name, columns_part))
+        "id integer NOT NULL, "
+        "\"timestamp\" timestamp with time zone NOT NULL, "
+        "\"modified\" timestamp with time zone NOT NULL, "
+        "entity_id integer NOT NULL, "
+        "{2}"
+        ")".format(SCHEMA, datasource_name, columns_part))
 
     # Add PROCEDURE for inserting data in right child table
 

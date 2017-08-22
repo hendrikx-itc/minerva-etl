@@ -1,4 +1,7 @@
 # -*- coding: utf-8 -*-
+import datetime
+import pytz
+
 """Provides classes for base types like EntityType and DataSource."""
 __docformat__ = "restructuredtext en"
 
@@ -10,9 +13,6 @@ the Free Software Foundation; either version 3, or (at your option) any later
 version.  The full license is in the file COPYING, distributed as part of
 this software.
 """
-import datetime
-
-import pytz
 
 
 class EntityType(object):

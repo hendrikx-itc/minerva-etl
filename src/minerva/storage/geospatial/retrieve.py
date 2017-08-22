@@ -1,16 +1,4 @@
 # -*- coding: utf-8 -*-
-"""
-"""
-__docformat__ = "restructuredtext en"
-
-__copyright__ = """
-Copyright (C) 2008-2012 Hendrikx-ITC B.V.
-
-Distributed under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 3, or (at your option) any later
-version.  The full license is in the file COPYING, distributed as part of
-this software.
-"""
 from contextlib import closing
 
 import psycopg2
@@ -23,6 +11,17 @@ from minerva.storage.attribute.attributestore import AttributeStore
 
 from minerva.storage.geospatial.tables import make_box_2d
 from minerva.storage.geospatial.types import set_srid, transform_srid
+
+"""
+"""
+__docformat__ = "restructuredtext en"
+__copyright__ = """
+Copyright (C) 2008-2017 Hendrikx-ITC B.V.
+Distributed under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 3, or (at your option) any later
+version.  The full license is in the file COPYING, distributed as part of
+this software.
+"""
 
 
 def get_entities_in_region(conn, database_srid, region, region_srid,
@@ -222,11 +221,14 @@ def retrieve_attribute(conn, database_srid, region, region_srid, datasource,
 SELECT entity_id, timestamp, \"{0}\"
 FROM (
     SELECT
-        r.source_id as entity_id, r.target_id as related_id, base_table.timestamp, base_table.\"{0}\",
-        \"{0}\" <> lag(\"{0}\") OVER (PARTITION BY r.source_id ORDER BY base_table.timestamp asc) as change
+        r.source_id as entity_id, r.target_id as related_id,
+        base_table.timestamp, base_table.\"{0}\",
+        \"{0}\" <> lag(\"{0}\") OVER (PARTITION BY r.source_id ORDER BY
+        base_table.timestamp asc) as change
     FROM {1} base_table
     JOIN relation.\"{2}\" r ON r.source_id = base_table.entity_id
-    JOIN gis.site_curr site ON site.entity_id = r.target_id and site.position && {3}
+    JOIN gis.site_curr site ON site.entity_id =
+    r.target_id and site.position && {3}
 ) t WHERE change is not false """.format(
         attribute_name, full_base_tbl_name, relation_name, bbox2d)
 
@@ -241,7 +243,7 @@ FROM (
 
     result = {}
     for entity_id, timestamp, value in rows:
-        if not value is None:
+        if value is not None:
             if entity_id not in result:
                 result[entity_id] = []
             result[entity_id].append((timestamp, value))
@@ -267,12 +269,15 @@ def retrieve_related_attribute(conn, database_srid, region, region_srid,
 SELECT entity_id, related_id, timestamp, \"{0}\"
 FROM (
     SELECT
-        r.source_id as entity_id, r.target_id as related_id, base_table.timestamp, base_table.\"{0}\",
-        \"{0}\" <> lag(\"{0}\") OVER (PARTITION BY r.target_id ORDER BY base_table.timestamp asc) as change
+        r.source_id as entity_id, r.target_id as related_id,
+        base_table.timestamp, base_table.\"{0}\",
+        \"{0}\" <> lag(\"{0}\") OVER (PARTITION BYi
+        r.target_id ORDER BY base_table.timestamp asc) as change
     FROM {1} base_table
     JOIN relation.\"{2}\" r ON r.target_id = base_table.entity_id
     JOIN relation.\"{3}\" site_rel on site_rel.source_id = r.source_id
-    JOIN gis.site_curr site ON site.entity_id = site_rel.target_id and site.position && {4}
+    JOIN gis.site_curr site ON site.entity_id =
+    site_rel.target_id and site.position && {4}
 ) t WHERE change is not false """.format(
         attribute_name, full_base_tbl_name, relation_name,
         relation_cell_site_name, bbox2d)
@@ -288,7 +293,7 @@ FROM (
 
     result = {}
     for entity_id, related_id, timestamp, value in rows:
-        if not value is None:
+        if value is not None:
             if entity_id not in result:
                 result[entity_id] = {}
             if related_id not in result[entity_id]:

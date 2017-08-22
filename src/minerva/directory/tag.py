@@ -2,10 +2,9 @@
 from contextlib import closing
 import psycopg2.errorcodes
 
-from minerva.directory.basetypes import Tag, TagGroup
+from minerva.directory.basetypes import TagGroup
 
-from minerva.db.util import create_temp_table, drop_table, \
-    create_copy_from_file
+from minerva.db.util import create_copy_from_file
 
 SCHEMA = "directory"
 
@@ -52,7 +51,7 @@ def get_tag_group_id(conn, name):
     with closing(conn.cursor()) as cursor:
         cursor.execute(
             "SELECT id FROM directory.tag_group WHERE name = %s",
-                (name,)
+            (name,)
         )
 
         group_id, = cursor.fetchone()
