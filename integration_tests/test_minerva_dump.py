@@ -8,18 +8,20 @@ from minerva.test import connect
 
 
 class MinervaDump(unittest.TestCase):
+
     """
     Use standard Python unittest TestCase here
     because of the assertMultiLineEqual
     function.
     """
+
     def test_run(self):
         self.maxDiff = None
         with closing(connect()) as conn:
             with closing(conn.cursor()) as cursor:
                 cursor.execute("DELETE FROM trend.trendstore")
                 cursor.execute(
-                        "DELETE FROM attribute_directory.attributestore")
+                    "DELETE FROM attribute_directory.attributestore")
                 cursor.execute(
                     "SELECT trend.create_trendstore("
                     "    'test-datasource',"

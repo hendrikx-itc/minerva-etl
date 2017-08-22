@@ -153,7 +153,7 @@ def test_waiting_locks(conn):
 
         if not job_source_id:
             job_source_id = add_job_source(
-                    cursor, job_source_name, "dummy", '{}')
+                cursor, job_source_name, "dummy", '{}')
 
     enqueue_job(conn, job_type, description_json, filesize, job_source_id)
 
@@ -166,7 +166,7 @@ def test_waiting_locks(conn):
 
     with closing(conn.cursor()) as cursor:
         cursor.execute(
-                "select relation::regclass, * FROM pg_locks WHERE NOT GRANTED")
+            "select relation::regclass, * FROM pg_locks WHERE NOT GRANTED")
 
         # rows = cursor.fetchall()
 

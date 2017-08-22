@@ -94,7 +94,7 @@ def test_create_entity(conn):
 def test_create_datasource(conn):
     with closing(conn.cursor()) as cursor:
         datasource = helpers_v4.create_datasource(
-                cursor,
+            cursor,
                 "test-create-datasource",
                 "short description",
                 "Europe/Amsterdam")
@@ -106,7 +106,7 @@ def test_create_datasource(conn):
 def test_name_to_datasource(conn):
     with closing(conn.cursor()) as cursor:
         datasource = helpers_v4.name_to_datasource(
-                cursor, "test_name_to_datasource")
+            cursor, "test_name_to_datasource")
 
     assert datasource.id is not None
 
@@ -115,7 +115,7 @@ def test_name_to_datasource(conn):
 def test_create_entitytype(conn):
     with closing(conn.cursor()) as cursor:
         entitytype = helpers_v4.create_entitytype(
-                cursor,
+            cursor,
                 "test_create_entitytype",
                 "short description of type")
 
@@ -127,7 +127,7 @@ def test_create_entitytype(conn):
 def test_get_entitytype_by_id(conn):
     with closing(conn.cursor()) as cursor:
         new_entitytype = helpers_v4.create_entitytype(
-                cursor,
+            cursor,
                 "test_get_entitytype_by_id",
                 "short description of type")
 
@@ -141,7 +141,7 @@ def test_get_entitytype_by_id(conn):
 def test_get_entitytype(conn):
     with closing(conn.cursor()) as cursor:
         new_entitytype = helpers_v4.create_entitytype(
-                cursor,
+            cursor,
                 "test_get_entitytype",
                 "short description of type")
 
@@ -155,7 +155,7 @@ def test_get_entitytype(conn):
 def test_name_to_entitytype(conn):
     with closing(conn.cursor()) as cursor:
         entitytype = helpers_v4.name_to_entitytype(
-                cursor,
+            cursor,
                 "test_name_to_entitytype")
 
     assert entitytype is not None
