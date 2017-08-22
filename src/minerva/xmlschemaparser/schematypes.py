@@ -169,6 +169,7 @@ class ComplexContent(SchemaElement):
 
 
 class TypeReference():
+
     """ A container to hold a reference to a type. This can first be just
     the qname and later also a reference to the real type."""
 
@@ -422,7 +423,7 @@ class Schema(SchemaElement):
 
         if namespace is not None:
             substitutiongroup = namespace.get_substitutiongroup(
-                    qname.localname)
+                qname.localname)
         else:
             substitutiongroup = SubstitutionGroup(qname.localname)
 

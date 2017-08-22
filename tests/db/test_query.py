@@ -270,7 +270,7 @@ def test_select_with_left_join():
     columns = [col_name, col_amount]
 
     from_part = FromItem(dummy_table_a).left_join(
-            dummy_table_b, Eq(col_id_a, col_id_b))
+        dummy_table_b, Eq(col_id_a, col_id_b))
 
     query = Select(columns).from_(from_part)
 

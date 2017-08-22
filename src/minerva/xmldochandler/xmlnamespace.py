@@ -2,6 +2,7 @@
 
 
 class ElementRelation:
+
     """Defines a relation between an element type and an element which can
     be resolved once all element types are defined."""
 
