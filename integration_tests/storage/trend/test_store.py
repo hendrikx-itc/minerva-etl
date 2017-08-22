@@ -221,7 +221,7 @@ def test_store_insert_rows(conn):
         trend_store = TableTrendStore.create(
             TableTrendStoreDescriptor(
                 'test-trend-store', data_source, entity_type, granularity,
-                    trend_descriptors, 86400 * 7
+                trend_descriptors, 86400 * 7
             ))(cursor)
 
         partition = trend_store.partition(time1)

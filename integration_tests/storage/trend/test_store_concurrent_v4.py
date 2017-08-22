@@ -91,11 +91,11 @@ def test_store_concurrent(conn, dataset):
     threads = [
         Thread(target=partial(
                store_raw_batch, dataset.datasource, raw_datapackage)),
-            Thread(target=partial(
+        Thread(target=partial(
                 store_raw_batch, dataset.datasource, raw_datapackage)),
-            Thread(target=partial(
+        Thread(target=partial(
                 store_raw_batch, dataset.datasource, raw_datapackage)),
-            Thread(target=partial(
+        Thread(target=partial(
                 store_raw_batch, dataset.datasource, raw_datapackage))]
 
     for thread in threads:
