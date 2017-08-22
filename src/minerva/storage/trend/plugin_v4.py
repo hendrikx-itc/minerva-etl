@@ -76,13 +76,13 @@ class TrendPlugin(object):
 
         tables = map(
             partial(Table, "trend"),
-                get_table_names_v4(trendstores, start, end))
+            get_table_names_v4(trendstores, start, end))
 
         with closing(self.conn.cursor()) as cursor:
             return retrieve(
                 cursor, tables, trend_names, entities, start, end,
-                    subquery_filter, relation_table_name, limit,
-                    entitytype=entitytype)
+                subquery_filter, relation_table_name, limit,
+                entitytype=entitytype)
 
     def retrieve_orderedby_time(
             self, datasources, gp, entitytype, trend_names, entities,
@@ -93,7 +93,7 @@ class TrendPlugin(object):
 
         return retrieve_orderedby_time(
             self.conn, schema.name, table_names, trend_names,
-                entities, start, end, limit)
+            entities, start, end, limit)
 
     def retrieve_aggregated(
             self, trendstore, column_identifiers, interval, group_by,
@@ -102,7 +102,7 @@ class TrendPlugin(object):
         with closing(self.conn.cursor()) as cursor:
             return retrieve_aggregated(
                 cursor, trendstore, column_identifiers, interval,
-                    group_by, subquery_filter, relation_table_name)
+                group_by, subquery_filter, relation_table_name)
 
     def retrieve_related(
             self, datasources, granularity, source_entitytype,
@@ -111,7 +111,7 @@ class TrendPlugin(object):
 
         table_names = get_table_names_v4(
             datasources, granularity, target_entitytype,
-                start, end)
+            start, end)
 
         if source_entitytype.name == target_entitytype.name:
             relation_table_name = "self"
@@ -121,7 +121,7 @@ class TrendPlugin(object):
 
         return retrieve_related(
             self.conn, schema.name, relation_table_name, table_names,
-                trend_names, start, end, subquery_filter, limit)
+            trend_names, start, end, subquery_filter, limit)
 
     def count(self, trendstore, interval, filter=None):
         """

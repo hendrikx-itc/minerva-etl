@@ -1,4 +1,8 @@
 # -*- coding: utf-8 -*-
+from minerva.storage.trend.datapackage import DataPackage
+from minerva.directory.distinguishedname import explode
+from minerva.util import grouped_by
+
 __docformat__ = "restructuredtext en"
 
 __copyright__ = """
@@ -9,10 +13,6 @@ the Free Software Foundation; either version 3, or (at your option) any later
 version.  The full license is in the file COPYING, distributed as part of
 this software.
 """
-from minerva.storage.trend.datapackage import DataPackage
-
-from minerva.directory.distinguishedname import explode
-from minerva.util import grouped_by
 
 
 class RawDataPackage(DataPackage):

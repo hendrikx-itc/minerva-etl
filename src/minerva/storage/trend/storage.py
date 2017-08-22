@@ -112,7 +112,7 @@ def retrieve_aggregated(
     with closing(conn.cursor()) as cursor:
         source_table_names = get_table_names_v4(
             cursor, [datasource], granularity,
-                entitytype, start, end)
+            entitytype, start, end)
 
     def get_trend_names(column_identifier):
         if isinstance(column_identifier, Sql):
@@ -170,7 +170,7 @@ def retrieve_aggregated(
 
     query = (
         "SELECT entity_id, %(end)s, {0}, {1} FROM( {2} ) "
-            "AS sources GROUP BY {3}").format(
+        "AS sources GROUP BY {3}").format(
         select_samples_part,
             ",".join(map(quote_ident, column_identifiers)),
             " UNION ALL ".join(select_parts),
@@ -197,7 +197,7 @@ def retrieve_orderedby_time(
 
     all_rows = retrieve(
         conn, schema, table_names, columns, entities,
-            start, end, limit=None)
+        start, end, limit=None)
 
     all_rows.sort(key=itemgetter(1))
 
@@ -306,7 +306,7 @@ def retrieve(
 
             q = Select(
                 cols, from_=Table("directory", "entity"),
-                    where_=Eq(Column("entitytype_id"), Value(entitytype.id)))
+                where_=Eq(Column("entitytype_id"), Value(entitytype.id)))
 
             with_query = WithQuery("t", query=q)
             params.append(start)
@@ -392,7 +392,7 @@ def retrieve(
 
         select = Select(
             partition_columns, with_query=with_query,
-                from_=from_item, where_=where_clause, limit=limit)
+            from_=from_item, where_=where_clause, limit=limit)
 
         query = select.render()
 
@@ -538,12 +538,12 @@ def store(
                         data_types = extract_data_types(data_rows)
                         fix = partial(
                             create_trend_table, conn, schema, table_name,
-                                trend_names, data_types)
+                            trend_names, data_types)
                         raise RecoverableError(str(exc), fix)
 
             store_fn(
                 conn, schema, table_name, trend_names, timestamp, modified,
-                    data_rows)
+                data_rows)
 
             with closing(conn.cursor()) as cursor:
                 mark_modified(cursor, schema, table_name, timestamp, modified)
@@ -592,22 +592,22 @@ def store_insert(
         if len(data_rows) <= LARGE_BATCH_THRESHOLD:
             store_batch_insert(
                 conn, schema, table_name, trend_names, timestamp,
-                    modified, data_rows)
+                modified, data_rows)
         else:
             store_copy_from(
                 conn, schema, table_name, trend_names, timestamp,
-                    modified, data_rows)
+                modified, data_rows)
     except DataTypeMismatch as exc:
         data_types = extract_data_types(data_rows)
         fix = partial(
             check_column_types, conn, schema, table_name, trend_names,
-                data_types)
+            data_types)
         raise RecoverableError(str(exc), fix)
     except NoSuchTable as exc:
         data_types = extract_data_types(data_rows)
         fix = partial(
             create_trend_table, conn, schema, table_name, trend_names,
-                data_types)
+            data_types)
         raise RecoverableError(str(exc), fix)
     except NoSuchColumnError as exc:
         fix = partial(
@@ -627,16 +627,16 @@ def store_insert_tmp(
         if len(data_rows) <= LARGE_BATCH_THRESHOLD:
             store_batch_insert(
                 conn, None, tmp_table_name, trend_names, timestamp,
-                    modified, data_rows)
+                modified, data_rows)
         else:
             store_copy_from(
                 conn, None, tmp_table_name, trend_names, timestamp,
-                    modified, data_rows)
+                modified, data_rows)
     except DataTypeMismatch as exc:
         data_types = extract_data_types(data_rows)
         fix = partial(
             check_column_types, conn, SCHEMA, table_name, trend_names,
-                data_types)
+            data_types)
         raise RecoverableError(str(exc), fix)
     except NoSuchColumnError as exc:
         fix = partial(
@@ -649,10 +649,10 @@ def store_update(
         data_rows):
     store_using_tmp(
         conn, schema, table_name, trend_names, timestamp, modified,
-            data_rows)
+        data_rows)
     store_using_update(
         conn, schema, table_name, trend_names, timestamp, modified,
-            data_rows)
+        data_rows)
 
 
 def store_copy_from(
@@ -778,7 +778,7 @@ def store_using_tmp(
 
     store_insert_tmp(
         conn, tmp_table_name, trend_names, timestamp, modified,
-            data_rows)
+        data_rows)
 
     column_names = ['entity_id', 'timestamp']
     column_names.extend(trend_names)
@@ -810,7 +810,7 @@ def store_using_tmp(
                 conn.rollback()
                 store_insert_rows(
                     conn, schema, table, trend_names, timestamp, modified,
-                        data_rows)
+                    data_rows)
             else:
                 raise NonRecoverableError(str(exc))
 
@@ -1001,10 +1001,9 @@ def aggregate(conn, schema, source, target, trend_names, timestamp):
                     ).format(
                         ",".join(["MAX(\"{0}\")".format(
                                   tn) for tn in trend_names]),
-                            ",".join(["SUM(\"{0}\") AS \"{0}\"".format(
+                        ",".join(["SUM(\"{0}\") AS \"{0}\"".format(
                                 tn) for tn in trend_names]),
-                            schema,
-                            source_table_name)
+                        schema, source_table_name)
 
                     with closing(conn.cursor()) as cursor:
                         cursor.execute(query_max_values, interval)
@@ -1014,7 +1013,7 @@ def aggregate(conn, schema, source, target, trend_names, timestamp):
                     max, zip(*max_values))]
                 check_column_types(
                     conn, schema, target_table_name, trend_names,
-                        data_types)
+                    data_types)
 
                 retry = True
             elif exc.pgcode == psycopg2.errorcodes.UNIQUE_VIOLATION:
@@ -1032,7 +1031,7 @@ def aggregate(conn, schema, source, target, trend_names, timestamp):
                 column_names, data_types = zip(*columns)
                 create_trend_table(
                     conn, schema, target_table_name, column_names,
-                        data_types)
+                    data_types)
                 retry = True
             else:
                 raise NonRecoverableError("{0}, {1!s} in query '{2}'".format(
