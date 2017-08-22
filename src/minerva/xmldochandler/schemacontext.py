@@ -115,7 +115,7 @@ class SchemaContext:
                     )
 
                 elementrelation.elementtype.child_elementhandlers[
-                        elementhandler.name] = elementhandler
+                    elementhandler.name] = elementhandler
 
     def link_elementreferences(self):
         for elementreference in self.elementreferences:

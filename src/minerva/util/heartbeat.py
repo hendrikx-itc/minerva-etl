@@ -5,10 +5,12 @@ import logging
 
 
 class VitalFunction:
+
     """
     Base class for vital function checks. Override the check method in the
     child class data_provider
     """
+
     def __init__(self, name):
         self.name = name
 
@@ -21,9 +23,11 @@ class VitalFunction:
 
 
 class ThreadFunction(VitalFunction):
+
     """
     Checks if the provided thread is still alive using is_alive
     """
+
     def __init__(self, name, thread):
         VitalFunction.__init__(self, name)
 
@@ -34,6 +38,7 @@ class ThreadFunction(VitalFunction):
 
 
 class Heartbeat(threading.Thread):
+
     """
     Provides a heartbeat
 
@@ -42,6 +47,7 @@ class Heartbeat(threading.Thread):
     :param interval: Interval in seconds at which the beat_func is called
     :param vital_functions: The VitalFunction objects that will be checked
     """
+
     def __init__(self, beat_func, interval=60.0, vital_functions=tuple()):
         threading.Thread.__init__(self, name="Heartbeat")
 

@@ -2,6 +2,7 @@
 
 
 class QName:
+
     """
     A qualified name that contains a namespace name or prefix and a local name.
     """
@@ -19,7 +20,7 @@ class QName:
         colon_index = fullname.find(u':')
 
         if colon_index >= 0:
-            return fullname[:colon_index], fullname[colon_index+1:]
+            return fullname[:colon_index], fullname[colon_index + 1:]
         else:
             return None, fullname
 
