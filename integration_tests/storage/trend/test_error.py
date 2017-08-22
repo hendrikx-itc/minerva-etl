@@ -7,7 +7,7 @@ from nose.tools import raises
 from minerva.test import connect
 from minerva.db.error import NoSuchTable, \
     NoSuchColumnError, DuplicateTable, DataTypeMismatch, \
-        translate_postgresql_exception, translate_postgresql_exceptions
+    translate_postgresql_exception, translate_postgresql_exceptions
 
 
 @raises(NoSuchTable)

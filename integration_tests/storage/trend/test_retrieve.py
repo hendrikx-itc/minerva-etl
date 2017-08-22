@@ -160,7 +160,7 @@ class TestRetrieveAggregate(object):
 
             TrendStore(
                 datasource, entitytype,
-                    granularity, 86400, "table").create(cursor)
+                granularity, 86400, "table").create(cursor)
 
         column_expressions = ["COUNT(entity_id)"]
 
@@ -171,7 +171,7 @@ class TestRetrieveAggregate(object):
 
         retrieve_aggregated(
             self.conn, datasource, granularity, entitytype,
-                column_expressions, interval, group_by="entity_id")
+            column_expressions, interval, group_by="entity_id")
 
 
 class TestRetrieveMultiSource(with_data(TestData)):
@@ -218,7 +218,7 @@ class TestRetrieveMultiSource(with_data(TestData)):
 
         r = retrieve(
             self.conn, SCHEMA, table_names, columns, None, start, end,
-                entitytype=self.data.entitytype)
+            entitytype=self.data.entitytype)
 
         data = [["entity_id", "timestamp"] + [c.name for c in columns]] + r
 

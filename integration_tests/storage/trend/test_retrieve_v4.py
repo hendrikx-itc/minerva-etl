@@ -50,7 +50,7 @@ class TestRetrieve(with_data(TestData)):
     def test_retrieve_multi_table_time(self):
         tables = [
             self.data.partition_d_1.table(),
-                self.data.partition_d_2.table()]
+            self.data.partition_d_2.table()]
         start = self.data.timestamp_1 - timedelta(seconds=60)
         end = self.data.timestamp_2
         entity = self.data.entities[1]
@@ -89,8 +89,8 @@ class TestRetrieveAggregate(with_data(TestData)):
         with closing(self.conn.cursor()) as cursor:
             result = retrieve_aggregated(
                 cursor, self.data.trendstore_a,
-                    column_expressions,
-                    interval, group_by=["entity_id"])
+                column_expressions,
+                interval, group_by=["entity_id"])
 
         assert result is not None
 
@@ -136,7 +136,7 @@ class TestRetrieveMultiSource(with_data(TestData)):
 
             r = retrieve(
                 cursor, tables, columns, None, start, end,
-                    entitytype=self.data.entitytype)
+                entitytype=self.data.entitytype)
 
         data = [["entity_id", "timestamp"] + [c.name for c in columns]] + r
 

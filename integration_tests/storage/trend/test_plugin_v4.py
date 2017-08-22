@@ -58,7 +58,7 @@ def test_get_trendstore(conn):
 
         instance.TrendStore(
             datasource, entitytype,
-                granularity, 86400, "table").create(cursor)
+            granularity, 86400, "table").create(cursor)
 
     trendstore = instance.get_trendstore(datasource, entitytype, granularity)
 

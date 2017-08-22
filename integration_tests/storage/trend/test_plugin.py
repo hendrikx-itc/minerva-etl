@@ -87,7 +87,7 @@ def test_retrieve_from_v4_trendstore(conn):
 
     r = plugin_obj.retrieve(
         datasources, granularity, entitytype, column_names, entities,
-            start, end)
+        start, end)
 
     eq_(len(r), 1)
 
@@ -122,7 +122,7 @@ def test_store_raw1(conn):
 
     plugin.store_raw(
         datasource, granularity, timestamp, trend_names,
-            rows)
+        rows)
 
 
 @with_conn
@@ -148,7 +148,7 @@ def test_store_raw_fractured_small(conn):
 
     plugin.store_raw(
         datasource, granularity, timestamp,
-            trend_names_part_1, raw_data_rows)
+        trend_names_part_1, raw_data_rows)
 
     trend_names_part_2 = ["PART2_COUNTER1", "PART2_COUNTER2", "PART2_COUNTER3"]
 
@@ -158,7 +158,7 @@ def test_store_raw_fractured_small(conn):
 
     plugin.store_raw(
         datasource, granularity, timestamp, trend_names_part_2,
-            raw_data_rows)
+        raw_data_rows)
 
 
 @with_conn
@@ -186,7 +186,7 @@ def test_store_raw_fractured_large(conn):
 
     plugin.store_raw(
         datasource, granularity, timestamp,
-            trend_names_part_1, raw_data_rows_part_1)
+        trend_names_part_1, raw_data_rows_part_1)
 
     trend_names_part_2 = ["PART2_COUNTER1", "PART2_COUNTER2", "PART2_COUNTER3"]
 
@@ -196,7 +196,7 @@ def test_store_raw_fractured_large(conn):
 
     plugin.store_raw(
         datasource, granularity, timestamp,
-            trend_names_part_2, raw_data_rows_part_2)
+        trend_names_part_2, raw_data_rows_part_2)
 
 
 def test_most_recent_timestamp():
