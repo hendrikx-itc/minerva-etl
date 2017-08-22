@@ -21,4 +21,3 @@ class AttributeTag(object):
 
     def __str__(self):
         return self.name
-

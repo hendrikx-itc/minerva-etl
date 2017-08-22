@@ -1,4 +1,9 @@
 # -*- coding: utf-8 -*-
+
+from contextlib import closing
+from minerva.db.util import create_temp_table, drop_table, \
+        create_copy_from_file
+
 __docformat__ = "restructuredtext en"
 
 __copyright__ = """
@@ -9,10 +14,6 @@ the Free Software Foundation; either version 3, or (at your option) any later
 version.  The full license is in the file COPYING, distributed as part of
 this software.
 """
-from contextlib import closing
-
-from minerva.db.util import create_temp_table, drop_table, \
-    create_copy_from_file
 
 
 def tag_attributes(conn, tag_links):
@@ -26,7 +27,7 @@ def tag_attributes(conn, tag_links):
 
     query = (
         "INSERT INTO attribute_directory.attribute_tag_link "
-            "(attribute_id, tag_id) "
+        "(attribute_id, tag_id) "
         "(SELECT tmp.attribute_id, tag.id "
         "FROM {} tmp "
         "JOIN directory.tag tag ON lower(tag.name) = lower(tmp.tag) "

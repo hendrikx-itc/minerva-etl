@@ -1,4 +1,13 @@
 # -*- coding: utf-8 -*-
+from contextlib import closing
+from decimal import Decimal
+from itertools import groupby
+from operator import itemgetter
+from minerva.util.timestamp import to_unix_timestamp
+from minerva.directory import helpers
+from minerva.directory.helpers import get_entitytype_by_id
+
+
 __docformat__ = "restructuredtext en"
 
 __copyright__ = """
@@ -9,15 +18,6 @@ the Free Software Foundation; either version 3, or (at your option) any later
 version.  The full license is in the file COPYING, distributed as part of
 this software.
 """
-from contextlib import closing
-from decimal import Decimal
-
-from itertools import groupby
-from operator import itemgetter
-
-from minerva.util.timestamp import to_unix_timestamp
-from minerva.directory import helpers
-from minerva.directory.helpers import get_entitytype_by_id
 
 
 def enquote_ident(ident):
@@ -149,7 +149,7 @@ def retrieve_related(conn, table_name, attribute_names, entities,
 
     query = query + " ORDER BY \"timestamp\""
 
-    if not limit is None:
+    if limit is not None:
         query = query + " LIMIT {0:d}".format(limit)
 
     with closing(conn.cursor()) as cursor:
@@ -161,9 +161,10 @@ def retrieve_related(conn, table_name, attribute_names, entities,
 def retrieve_attributes_for_entity(conn, entity_id, attribute_ids):
     query = (
         "SELECT a.id, a.name, attribute_directory.to_table_name(astore) "
-            "as table_name, et.name as entitytype_name "
+        "as table_name, et.name as entitytype_name "
         "FROM attribute_directory.attribute a "
-        "JOIN attribute_directory.attributestore astore on a.attributestore_id = astore.id " 
+        "JOIN attribute_directory.attributestore astore on a.attributestore_id"
+        "= astore.id "
         "JOIN directory.entitytype et ON et.id = astore.entitytype_id "
         "WHERE a.id IN ({}) "
         "ORDER BY table_name").format(",".join(map(str, attribute_ids)))
@@ -173,8 +174,8 @@ def retrieve_attributes_for_entity(conn, entity_id, attribute_ids):
     result = {}
 
     def prepare_value(value):
-        if not value is None:
-            #if trendvalue is Decimal(Numeric) json cannot serialize it.
+        if value is not None:
+            # if trendvalue is Decimal(Numeric) json cannot serialize it.
             if isinstance(value, Decimal):
                 value = float(value)
         return value
