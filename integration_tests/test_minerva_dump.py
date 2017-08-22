@@ -9,7 +9,8 @@ from minerva.test import connect
 
 class MinervaDump(unittest.TestCase):
     """
-    Use standard Python unittest TestCase here because of the assertMultiLineEqual
+    Use standard Python unittest TestCase here
+    because of the assertMultiLineEqual
     function.
     """
     def test_run(self):
@@ -17,7 +18,8 @@ class MinervaDump(unittest.TestCase):
         with closing(connect()) as conn:
             with closing(conn.cursor()) as cursor:
                 cursor.execute("DELETE FROM trend.trendstore")
-                cursor.execute("DELETE FROM attribute_directory.attributestore")
+                cursor.execute(
+                        "DELETE FROM attribute_directory.attributestore")
                 cursor.execute(
                     "SELECT trend.create_trendstore("
                     "    'test-datasource',"
@@ -34,8 +36,8 @@ class MinervaDump(unittest.TestCase):
                     "    'test-datasource',"
                     "    'test-entitytype',"
                     "    ARRAY["
-                    "       ('height', 'double precision', 'fictive attribute'),"
-                    "       ('power', 'integer', 'another fictive attribute')"
+                    "      ('height','double precision', 'fictive attribute'),"
+                    "      ('power', 'integer', 'another fictive attribute')"
                     "    ]::attribute_directory.attribute_descr[]"
                     ")"
                 )

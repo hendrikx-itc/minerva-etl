@@ -26,7 +26,7 @@ TIMEZONE = timezone("Europe/Amsterdam")
 def test_existence_simple(conn):
     dn = "network=1,cell=1"
 
-    dt = TIMEZONE.localize(datetime(2014, 01, 01, 14, 0, 0))
+    dt = TIMEZONE.localize(datetime(2014, 1, 1, 14, 0, 0))
 
     directory.create_entity(conn, dn)
 
@@ -42,8 +42,8 @@ def test_existence_onoff(conn):
     dn1 = "network=1,cell=1"
     dn2 = "network=1,cell=2"
 
-    dt1 = TIMEZONE.localize(datetime(2014, 01, 01, 14, 0, 0))
-    dt2 = TIMEZONE.localize(datetime(2014, 02, 01, 14, 0, 0))
+    dt1 = TIMEZONE.localize(datetime(2014, 1, 1, 14, 0, 0))
+    dt2 = TIMEZONE.localize(datetime(2014, 2, 1, 14, 0, 0))
 
     directory.create_entity(conn, dn1)
     directory.create_entity(conn, dn2)
@@ -69,8 +69,8 @@ def test_existence_history_on(conn):
     dn1 = "network=1,cell=1"
     dn2 = "network=1,cell=2"
 
-    dt1 = TIMEZONE.localize(datetime(2014, 01, 01, 14, 0, 0))
-    dt2 = TIMEZONE.localize(datetime(2014, 02, 01, 14, 0, 0))
+    dt1 = TIMEZONE.localize(datetime(2014, 1, 1, 14, 0, 0))
+    dt2 = TIMEZONE.localize(datetime(2014, 2, 1, 14, 0, 0))
 
     ex = existence.Existence(conn)
 
@@ -95,9 +95,9 @@ def test_existence_history_off(conn):
     dn1 = "network=1,cell=1"
     dn2 = "network=1,cell=2"
 
-    dt1 = TIMEZONE.localize(datetime(2014, 01, 01, 14, 0, 0))
-    dt2 = TIMEZONE.localize(datetime(2014, 02, 01, 14, 0, 0))
-    dt3 = TIMEZONE.localize(datetime(2014, 03, 01, 14, 0, 0))
+    dt1 = TIMEZONE.localize(datetime(2014, 1, 1, 14, 0, 0))
+    dt2 = TIMEZONE.localize(datetime(2014, 2, 1, 14, 0, 0))
+    dt3 = TIMEZONE.localize(datetime(2014, 3, 1, 14, 0, 0))
 
     ex = existence.Existence(conn)
 
@@ -125,7 +125,7 @@ def test_existence_history_off(conn):
 @with_conn(prepare_datebase)
 def test_existence_duplicate(conn):
     dn = "network=1,cell=1"
-    dt = TIMEZONE.localize(datetime(2014, 01, 01, 14, 0, 0))
+    dt = TIMEZONE.localize(datetime(2014, 1, 1, 14, 0, 0))
 
     directory.create_entity(conn, dn)
     ex = existence.Existence(conn)
@@ -142,8 +142,8 @@ def test_existence_duplicate(conn):
 @with_conn(prepare_datebase)
 def test_existence_still_on(conn):
     dn = "network=1,cell=1"
-    dt1 = TIMEZONE.localize(datetime(2014, 01, 01, 14, 0, 0))
-    dt2 = TIMEZONE.localize(datetime(2014, 02, 01, 14, 0, 0))
+    dt1 = TIMEZONE.localize(datetime(2014, 1, 1, 14, 0, 0))
+    dt2 = TIMEZONE.localize(datetime(2014, 2, 1, 14, 0, 0))
 
     directory.create_entity(conn, dn)
     ex = existence.Existence(conn)
@@ -163,11 +163,11 @@ def test_duplicate(conn):
     dn2 = "network=1,cell=2"
     dn3 = "network=1,cell=3"
 
-    dt1 = TIMEZONE.localize(datetime(2014, 01, 01, 14, 0, 0))
-    dt2 = TIMEZONE.localize(datetime(2014, 02, 01, 14, 0, 0))
-    dt3 = TIMEZONE.localize(datetime(2014, 03, 01, 14, 0, 0))
-    dt4 = TIMEZONE.localize(datetime(2014, 04, 01, 14, 0, 0))
-    dt5 = TIMEZONE.localize(datetime(2014, 05, 01, 14, 0, 0))
+    dt1 = TIMEZONE.localize(datetime(2014, 1, 1, 14, 0, 0))
+    dt2 = TIMEZONE.localize(datetime(2014, 2, 1, 14, 0, 0))
+    dt3 = TIMEZONE.localize(datetime(2014, 3, 1, 14, 0, 0))
+    dt4 = TIMEZONE.localize(datetime(2014, 4, 1, 14, 0, 0))
+    dt5 = TIMEZONE.localize(datetime(2014, 5, 1, 14, 0, 0))
 
     ex = existence.Existence(conn)
 

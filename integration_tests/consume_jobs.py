@@ -1,8 +1,16 @@
 # -*- coding: utf-8 -*-
+from __future__ import print_function
+from contextlib import closing
+from time import sleep
+
+from minerva.util import each
+from minerva.test import connect
+from minerva.system.jobqueue import get_job
 """
 Consumes all jobs in the test database.
 """
-from __future__ import print_function
+
+
 __docformat__ = "restructuredtext en"
 
 __copyright__ = """
@@ -13,12 +21,6 @@ the Free Software Foundation; either version 3, or (at your option) any later
 version.  The full license is in the file COPYING, distributed as part of
 this software.
 """
-from contextlib import closing
-from time import sleep
-
-from minerva.util import each
-from minerva.test import connect
-from minerva.system.jobqueue import get_job
 
 
 TIMEOUT = 1.0
