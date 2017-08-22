@@ -37,6 +37,7 @@ def test_prefixmapping():
     prefix = "ns"
 
     class MappingHandler:
+
         def __init__(self):
             self.prefixmappings = {}
 

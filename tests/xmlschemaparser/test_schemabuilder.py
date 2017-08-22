@@ -163,7 +163,7 @@ def test_elementref_prefix_translation():
     </complexType>
     </element>
     </schema>""" % {
-            "NamespaceName": namespace_name,
+        "NamespaceName": namespace_name,
             "NamespacePrefix": namespace_prefix}
 
     stream = StringIO.StringIO(xsd)
@@ -172,7 +172,7 @@ def test_elementref_prefix_translation():
 
     # Get the element we need for the test
     elementreference = schema.get_children(
-            )[1].complextype.get_children()[0].get_children()[0]
+    )[1].complextype.get_children()[0].get_children()[0]
 
     # Check if the reference prefix has been translated to a full namespace URI
     assert elementreference.ref.namespacename == namespace_name
@@ -278,7 +278,7 @@ def test_real_world_snippet():
     externalgsmcell = schema.get_children()[1]
 
     userlabel_element = externalgsmcell.get_children()[0].get_children()[
-            0].get_children()[0].get_children()[0].get_children()[
-                    0].get_children()[0].get_children()[0].get_children()[0]
+        0].get_children()[0].get_children()[0].get_children()[
+        0].get_children()[0].get_children()[0].get_children()[0]
 
     assert userlabel_element.name == "userLabel"
