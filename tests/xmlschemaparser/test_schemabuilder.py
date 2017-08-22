@@ -164,7 +164,7 @@ def test_elementref_prefix_translation():
     </element>
     </schema>""" % {
         "NamespaceName": namespace_name,
-            "NamespacePrefix": namespace_prefix}
+        "NamespacePrefix": namespace_prefix}
 
     stream = StringIO.StringIO(xsd)
 
