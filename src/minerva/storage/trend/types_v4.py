@@ -1,14 +1,4 @@
 # -*- coding: utf-8 -*-
-__docformat__ = "restructuredtext en"
-
-__copyright__ = """
-Copyright (C) 2012-2013 Hendrikx-ITC B.V.
-
-Distributed under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 3, or (at your option) any later
-version.  The full license is in the file COPYING, distributed as part of
-this software.
-"""
 from minerva.util import head
 from minerva.db.query import Column, Eq
 from minerva.directory.helpers_v4 import get_datasource_by_id, \
@@ -17,6 +7,15 @@ from minerva.storage.trend import schema
 from minerva.storage.trend.granularity import create_granularity
 from minerva.storage.trend.trendstore import TrendStore
 from minerva.storage.trend.partition import Partition
+
+__docformat__ = "restructuredtext en"
+__copyright__ = """
+Copyright (C) 2012-2017 Hendrikx-ITC B.V.
+Distributed under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 3, or (at your option) any later
+version.  The full license is in the file COPYING, distributed as part of
+this software.
+"""
 
 
 def partition_getter(datasource_name, entitytype_name, granularity, timestamp):

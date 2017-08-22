@@ -1,29 +1,25 @@
 # -*- coding: utf-8 -*-
-"""
-Helper functions for the trend schema.
-"""
-__docformat__ = "restructuredtext en"
-
-__copyright__ = """
-Copyright (C) 2012-2013 Hendrikx-ITC B.V.
-
-Distributed under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 3, or (at your option) any later
-version.  The full license is in the file COPYING, distributed as part of
-this software.
-"""
 from datetime import datetime, timedelta, time
 from contextlib import closing
 import logging
 from itertools import chain
 
 import pytz
-
-from minerva.directory.helpers_v4 import get_datasource_by_id, \
-    get_entitytype_by_id
 from minerva.storage.trend.basetypes import Trend
 from minerva.storage.trend.trendstore import TrendStore
 from minerva.storage.trend.granularity import create_granularity
+
+"""
+Helper functions for the trend schema.
+"""
+__docformat__ = "restructuredtext en"
+__copyright__ = """
+Copyright (C) 2012-2017 Hendrikx-ITC B.V.
+Distributed under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 3, or (at your option) any later
+version.  The full license is in the file COPYING, distributed as part of
+this software.
+"""
 
 
 class NoSuchTrendError(Exception):
@@ -38,8 +34,9 @@ def get_trend_by_id(conn, trend_id):
     Return trend with specified id.
     """
     query = (
-        "SELECT t.id, t.name, t.description, ts.datasource_id, ts.entitytype_id, "
-            "ts.granularity "
+        "SELECT t.id, t.name, t.description,"
+        "ts.datasource_id, ts.entitytype_id, "
+        "ts.granularity "
         "FROM trend.trend t "
         "JOIN trend.trendstore_trend_link ttl on ttl.trend_id = t.id "
         "JOIN trend.trendstore ts on ts.id = ttl.trendstore_id "
@@ -63,8 +60,9 @@ def get_previous_timestamp(timestamp, granularity):
     :param timestamp: non-naive timestamp
     :param granularity: granularity in seconds to subtract from timestamp
     """
-    previous = (timestamp.astimezone(pytz.utc) -
-        timedelta(0, granularity)).astimezone(timestamp.tzinfo)
+    previous = (
+            timestamp.astimezone(pytz.utc) -
+            timedelta(0, granularity)).astimezone(timestamp.tzinfo)
     utc_offset_delta = timestamp.utcoffset() - previous.utcoffset()
     return previous + utc_offset_delta
 
@@ -77,7 +75,7 @@ def get_next_timestamp(timestamp, granularity):
     :param granularity: granularity in seconds to subtract from timestamp
     """
     next = (timestamp.astimezone(pytz.utc) +
-        timedelta(0, granularity)).astimezone(timestamp.tzinfo)
+            timedelta(0, granularity)).astimezone(timestamp.tzinfo)
     utc_offset_delta = timestamp.utcoffset() - next.utcoffset()
     return next + utc_offset_delta
 
@@ -123,31 +121,34 @@ def get_most_recent_timestamp(ts, granularity, minerva_tz=None):
             return tz.localize(most_recent)
     except AttributeError:
         if minerva_tz:
-            _most_recent = datetime.combine(most_recent, time(most_recent.hour,
-                most_recent.minute, most_recent.second, tzinfo=minerva_tz))
+            _most_recent = datetime.combine(most_recent, time(
+                most_recent.hour, most_recent.minute, most_recent.second,
+                tzinfo=minerva_tz))
             return _most_recent.astimezone(tz)
         else:
-            return datetime.combine(most_recent, time(most_recent.hour,
-                most_recent.minute, most_recent.second, tzinfo=tz))
+            return datetime.combine(most_recent, time(
+                most_recent.hour, most_recent.minute,
+                most_recent.second, tzinfo=tz))
 
 
 def get_table_names(trendstores, start, end):
     """
     Returns table names containing trend data corresponding to specification.
     """
-    return list(set(chain(*[trendstore.table_names(start, end)
-            for trendstore in trendstores])))
+    return list(set(chain(
+        *[trendstore.table_names(start, end) for trendstore in trendstores])))
 
 
-def get_table_names_v4(cursor, datasources, granularity, entitytype, start,
-        end):
+def get_table_names_v4(
+        cursor, datasources, granularity, entitytype, start, end):
     """
     A get_table_names like function that supports both v3 and v4 trendstores.
     """
     if isinstance(granularity, int):
         granularity = create_granularity(granularity)
 
-    trendstores = [TrendStore.get(cursor, datasource, entitytype,
+    trendstores = [TrendStore.get(
+        cursor, datasource, entitytype,
         granularity) for datasource in datasources]
 
     return get_table_names(trendstores, start, end)
@@ -156,7 +157,8 @@ def get_table_names_v4(cursor, datasources, granularity, entitytype, start,
 def get_relation_name(conn, source_entitytype_name, target_entitytype_name):
     relation_name = None
 
-    relationtype_name = "{}->{}".format(source_entitytype_name, target_entitytype_name)
+    relationtype_name = "{}->{}".format(
+           source_entitytype_name, target_entitytype_name)
     query = "SELECT name FROM relation.type WHERE lower(name) = lower(%s)"
 
     with closing(conn.cursor()) as cursor:
