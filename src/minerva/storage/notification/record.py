@@ -1,6 +1,7 @@
 
 
 class Record:
+
     """Wraps all data for one notification."""
 
     def __init__(self, entity_ref, timestamp, attribute_names, values):

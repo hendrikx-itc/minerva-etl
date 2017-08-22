@@ -28,7 +28,7 @@ def create_parent_data_table(conn, datasource_name, attributes, data_types):
             (name, type) in zip(attributes, data_types)])
 
     query = (
-            "CREATE TABLE {0}.\"{1}\" ("
+        "CREATE TABLE {0}.\"{1}\" ("
             "id integer NOT NULL, "
             "\"timestamp\" timestamp with time zone NOT NULL, "
             "\"modified\" timestamp with time zone NOT NULL, "
@@ -79,7 +79,7 @@ def create_data_table(conn, table_name, column_names, data_types):
         "directory.update_modified_column()".format(full_table_name))
 
     owner_query = "ALTER TABLE {} OWNER TO minerva_writer".format(
-            full_table_name)
+        full_table_name)
 
     with closing(conn.cursor()) as cursor:
         try:
@@ -96,8 +96,8 @@ def create_data_table(conn, table_name, column_names, data_types):
                 raise RecoverableError(str(exc), NoOpFix)
             else:
                 raise NonRecoverableError(
-                        "ProgrammingError({0}): {1}".format(
-                            exc.pgcode, exc.pgerror))
+                    "ProgrammingError({0}): {1}".format(
+                        exc.pgcode, exc.pgerror))
         else:
             grant(conn, "TABLE", "SELECT", full_table_name, "minerva")
             conn.commit()

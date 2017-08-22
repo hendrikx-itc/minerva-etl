@@ -4,9 +4,11 @@ from minerva.storage import datatype
 
 
 class OutputDescriptor:
+
     """
     Combines a value descriptor with configuration for serializing values.
     """
+
     def __init__(
             self, value_descriptor: ValueDescriptor,
             serializer_config: dict=None):

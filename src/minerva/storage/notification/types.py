@@ -17,6 +17,7 @@ this software.
 
 
 class Record(object):
+
     """Wraps all data for one notification."""
 
     def __init__(self, entity_ref, timestamp, attribute_names, values):
@@ -27,12 +28,14 @@ class Record(object):
 
 
 class Package(object):
+
     def __init__(self, attribute_names, rows):
         self.attribute_names = attribute_names
         self.rows = rows
 
 
 class Attribute(object):
+
     """Describes the attribute of a specific NotificationStore."""
 
     def __init__(self, name, data_type, description):
@@ -47,6 +50,7 @@ class Attribute(object):
 
 
 class NotificationStore(object):
+
     def __init__(self, datasource, attributes):
         self.id = None
         self.version = 1
