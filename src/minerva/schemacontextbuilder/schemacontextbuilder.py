@@ -72,6 +72,7 @@ def walk(element, depth=0):
 
 
 class SchemaContextBuilder:
+
     """
     Takes a set of namespaces built by a SchemaBuilder and turns them into an
     XML SchemaContext that can be used for parsing XML documents
@@ -165,7 +166,7 @@ class SchemaContextBuilder:
             else:
                 elementtype = XmlElementType(None, None)
                 self.complextypes[container_element.build_fullname(
-                    )] = elementtype
+                )] = elementtype
 
         if xsdtype.complexcontent:
             if xsdtype.complexcontent.extension:
@@ -209,11 +210,11 @@ class SchemaContextBuilder:
             if element.typename.localname == 'string':
                 elementtype = xmlschema_string.XmlSchema_string()
                 elementhandler = elementtype.create_elementhandler(
-                        element.name)
+                    element.name)
             elif element.typename.localname == 'date':
                 elementtype = xmlschema_string.XmlSchema_string()
                 elementhandler = elementtype.create_elementhandler(
-                        element.name)
+                    element.name)
             else:
                 elementtype = self.schemacontext.get_elementtype(
                     element.typename.namespacename, element.typename.localname
@@ -226,7 +227,7 @@ class SchemaContextBuilder:
                     )
 
                 elementhandler = elementtype.create_elementhandler(
-                        element.name)
+                    element.name)
         else:
             children = element.get_children()
 
@@ -234,7 +235,7 @@ class SchemaContextBuilder:
                     children[0], schematypes.ComplexType):
                 elementtype = self.build_complextype(children[0], element)
                 elementhandler = elementtype.create_elementhandler(
-                        element.name)
+                    element.name)
 
             elif element.ref is not None:
                 elementhandler = XmlElementHandlerRef(element.ref)
@@ -243,7 +244,7 @@ class SchemaContextBuilder:
             else:
                 elementtype = xmlschema_string.XmlSchema_string()
                 elementhandler = elementtype.create_elementhandler(
-                        element.name)
+                    element.name)
 
         if element.substitutiongroup:
             elementhandler.substitutiongroup = element.substitutiongroup
@@ -267,8 +268,8 @@ class SchemaContextBuilder:
 
         for elementhandler in root_elementhandler_generator:
             self.xmlnamespace.root_elementhandlers[
-                    elementhandler.name] = elementhandler
+                elementhandler.name] = elementhandler
             namespace = self.schemacontext.namespaces[
-                    self.current_xsd_namespace.uri]
+                self.current_xsd_namespace.uri]
             namespace.root_elementhandlers[
-                    elementhandler.name] = elementhandler
+                elementhandler.name] = elementhandler

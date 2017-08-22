@@ -6,6 +6,7 @@ from minerva.storage import datatype
 
 
 class AttributeDescriptor:
+
     def __init__(self, name, data_type, description):
         self.name = name
         self.data_type = data_type
@@ -13,7 +14,9 @@ class AttributeDescriptor:
 
 
 class Attribute:
+
     """Describes one attribute of an attribute store."""
+
     def __init__(
             self, id_, name, data_type, attribute_store_id,
             description):
@@ -41,7 +44,7 @@ class Attribute:
             cursor.execute(query, args)
 
             name, data_type, attribute_store_id, description = cursor.fetchone(
-                    )
+            )
             return Attribute(
                 id, name, datatype.type_map[data_type], attribute_store_id,
                 description

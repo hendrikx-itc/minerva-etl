@@ -5,6 +5,7 @@ Provides access and a location for storage class logic like 'trend',
 
 
 class StoreCmd:
+
     def __call__(self, data_source):
         """
         Return function that actually stores the data using the information
@@ -17,6 +18,7 @@ class StoreCmd:
 
 
 class Engine:
+
     """
     The Engine class provides an interface that separates the database-aware
     code from the database-unaware logic.

@@ -17,11 +17,13 @@ from minerva.storage import datatype
 
 
 class NoSuchAttributeError(Exception):
+
     """Exception type indicating an unknown attribute."""
     pass
 
 
 class AttributeStoreDescriptor:
+
     def __init__(self, data_source, entity_type, attribute_descriptors):
         self.data_source = data_source
         self.entity_type = entity_type
