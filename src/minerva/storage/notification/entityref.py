@@ -15,10 +15,12 @@ this software.
 
 
 class EntityRef(object):
+
     """
     The abstract base class for types representing a reference to a single
     entity.
     """
+
     def to_argument(self):
         """
         Return a tuple (placeholder, value) that can be used in queries:
@@ -35,6 +37,7 @@ class EntityRef(object):
 
 
 class EntityIdRef(EntityRef):
+
     def __init__(self, entity_id):
         self.entity_id = entity_id
 
@@ -43,8 +46,8 @@ class EntityIdRef(EntityRef):
 
     def get_entitytype(self, cursor):
         cursor.execute(
-                "SELECT entitytype_id FROM directory.entity WHERE id = %s", (
-                    self.entity_id,))
+            "SELECT entitytype_id FROM directory.entity WHERE id = %s", (
+                self.entity_id,))
 
         if cursor.rowcount > 0:
             entitytype_id, = cursor.fetchone()
@@ -52,10 +55,11 @@ class EntityIdRef(EntityRef):
             return EntityType.get(cursor, entitytype_id)
         else:
             raise Exception(
-                    "no entity found with id {}".format(self.entity_id))
+                "no entity found with id {}".format(self.entity_id))
 
 
 class EntityDnRef(EntityRef):
+
     def __init__(self, dn):
         self.dn = dn
 

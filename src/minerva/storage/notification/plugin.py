@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from minerva.storage.notification.types import NotificationStore, \
-        Record, Attribute
+    Record, Attribute
 
 __docformat__ = "restructuredtext en"
 
