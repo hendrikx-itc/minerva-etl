@@ -1,4 +1,4 @@
 # -*- coding: utf-8 -*-
 
 
-from minerva.xmlschemaparser.schemabuilder import SchemaBuilder
+# from minerva.xmlschemaparser.schemabuilder import SchemaBuilder

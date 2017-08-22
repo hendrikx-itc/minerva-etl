@@ -1,4 +1,9 @@
 # -*- coding: utf-8 -*-
+from contextlib import closing
+import psycopg2
+from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
+from minerva.db.error import ExistsError
+
 """
 Provides basic database functionality like dropping tables, creating users,
 granting privileges, etc.
@@ -6,19 +11,12 @@ granting privileges, etc.
 __docformat__ = "restructuredtext en"
 
 __copyright__ = """
-Copyright (C) 2008-2013 Hendrikx-ITC B.V.
-
+Copyright (C) 2008-2017 Hendrikx-ITC B.V.
 Distributed under the terms of the GNU General Public License as published by
 the Free Software Foundation; either version 3, or (at your option) any later
 version.  The full license is in the file COPYING, distributed as part of
 this software.
 """
-from contextlib import closing
-
-import psycopg2
-from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
-
-from minerva.db.error import ExistsError
 
 
 def prepare_statements(conn, statements):
@@ -39,7 +37,7 @@ def disable_transactions(conn):
 
 
 def full_table_name(name, schema=None):
-    if not schema is None:
+    if schema is not None:
         return "\"{0:s}\".\"{1:s}\"".format(schema, name)
     else:
         return "\"{0}\"".format(name)
@@ -179,7 +177,7 @@ usename = '{0:s}';".format(name))
 
             cursor.execute(query)
 
-            if not groups is None:
+            if groups is not None:
                 if hasattr(groups, "__iter__"):
                     for group in groups:
                         query = "GRANT {0:s} TO {1:s}".format(group, name)
@@ -204,7 +202,7 @@ groname = '{0:s}';".format(name))
         if num == 0:
             cursor.execute("CREATE ROLE \"{0:s}\"".format(name))
 
-        if not group is None:
+        if group is not None:
             query = "GRANT {0:s} TO {1:s}".format(group, name)
             cursor.execute(query)
 
