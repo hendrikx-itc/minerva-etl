@@ -37,8 +37,8 @@ class RawDataPackage(DataPackage):
         result = []
 
         for k, group in grouped_by(packages, RawDataPackage.get_key):
-            l = list(group)
-            result.append(package_group(k, l))
+            list_l = list(group)
+            result.append(package_group(k, list_l))
 
         return result
 
