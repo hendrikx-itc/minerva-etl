@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 """Distutils install script."""
 import sys
-import minerva
 from setuptools import setup
 
 sys.path.insert(0, "src")
