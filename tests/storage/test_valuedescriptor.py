@@ -1,13 +1,14 @@
-from nose.tools import assert_is_not_none
+import unittest
 
 from minerva.storage.valuedescriptor import ValueDescriptor
 from minerva.storage import datatype
 
 
-def test_constructor():
-    value_descriptor = ValueDescriptor(
-        'x',
-        datatype.registry['smallint']
-    )
+class TestValueDescriptor(unittest.TestCase):
+    def test_constructor(self):
+        value_descriptor = ValueDescriptor(
+            'x',
+            datatype.registry['smallint']
+        )
 
-    assert_is_not_none(value_descriptor)
+        self.assertIsNotNone(value_descriptor)

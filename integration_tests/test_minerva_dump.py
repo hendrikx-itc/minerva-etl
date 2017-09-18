@@ -2,35 +2,36 @@ from contextlib import closing
 import subprocess
 import unittest
 
-from nose.tools import eq_
-
 from minerva.test import connect
 
 
 class MinervaDump(unittest.TestCase):
     """
-    Use standard Python unittest TestCase here because of the assertMultiLineEqual
-    function.
+    Use standard Python unittest TestCase here because of the
+    assertMultiLineEqual function.
     """
     def test_run(self):
         self.maxDiff = None
         with closing(connect()) as conn:
             with closing(conn.cursor()) as cursor:
-                cursor.execute("DELETE FROM trend.trendstore")
-                cursor.execute("DELETE FROM attribute_directory.attributestore")
+                cursor.execute("DELETE FROM trend_directory.trend_store")
+                cursor.execute("DELETE FROM attribute_directory.attribute_store")
                 cursor.execute(
-                    "SELECT trend.create_trendstore("
-                    "    'test-datasource',"
-                    "    'test-entitytype',"
-                    "    '900',"
-                    "    ARRAY["
-                    "        ('x', 'integer', 'test trend'),"
-                    "        ('y', 'double precision', 'another test trend')"
-                    "    ]::trend.trend_descr[]"
-                    ")")
+                    "SELECT trend_directory.create_table_trend_store("
+                    "'test-trendstore'::name, "
+                    "'test-datasource'::text, "
+                    "'test-entitytype'::text, "
+                    "'900'::interval, "
+                    "86400,"
+                    "ARRAY["
+                    "('x', 'integer', 'test trend'), "
+                    "('y', 'double precision', 'another test trend')"
+                    "]::trend_directory.trend_descr[]"
+                    ")"
+                )
 
                 cursor.execute(
-                    "SELECT attribute_directory.create_attributestore("
+                    "SELECT attribute_directory.create_attribute_store("
                     "    'test-datasource',"
                     "    'test-entitytype',"
                     "    ARRAY["
@@ -45,7 +46,7 @@ class MinervaDump(unittest.TestCase):
         process = subprocess.Popen(['minerva-dump'], stdout=subprocess.PIPE)
         out, err = process.communicate()
 
-        self.assertMultiLineEqual(out, """\
+        self.assertMultiLineEqual(out.decode('utf-8'), """\
 SELECT trend.create_trendstore(
     'test-datasource',
     'test-entitytype',

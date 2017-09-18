@@ -1,49 +1,47 @@
 # -*- coding: utf-8 -*-
-
-from nose.tools import \
-        assert_raises, assert_true, assert_false, assert_equal
+import unittest
 
 from minerva.directory.distinguishedname import \
-        explode, split_parts, escape, DistinguishedName
+        split_parts, escape, DistinguishedName
 
 
-def test_splitparts():
-    """
-    Check that distinguished names are split correctly
-    """
-    dn_parts = split_parts(
+class TestDistinguishedName(unittest.TestCase):
+    def test_splitparts(self):
+        """
+        Check that distinguished names are split correctly
+        """
+        dn_parts = split_parts(
             "SubNetwork=NL1_R,SubNetwork=AHPTUR1,"
-            "MeContext=AHPTUR1,ManagedElement=1,RncFunction=1,UeRc=9")
-    assert_equal(dn_parts[0], "SubNetwork=NL1_R")
-    assert_equal(len(dn_parts), 6)
-    assert_equal(dn_parts[5], "UeRc=9")
-
-    dn_parts = split_parts("Word=asdf,Writer=qwerty\\,dvorak,Reader=Unicode")
-    assert_equal(dn_parts[0], "Word=asdf")
-    assert_equal(len(dn_parts), 3)
-    assert_equal(dn_parts[2], "Reader=Unicode")
-
-
-def test_escape():
-    """
-    Check that ',' is escaped correctly
-    """
-    assert_equal(escape("Word=asdf,fdsa"), "Word=asdf\\,fdsa")
-
-
-def test_constructor():
-    empty_dn = DistinguishedName([])
-
-    assert_equal(len(empty_dn.parts), 0)
-
-
-def test_from_str():
-    dn = DistinguishedName.from_str('Network=Global,Node=001')
-
-    assert_equal(len(dn.parts), 2)
-
-
-def test_entitytype_name():
-    dn = DistinguishedName.from_str('Network=Global,Node=001')
-
-    assert_equal(dn.entity_type_name(), 'Node')
+            "MeContext=AHPTUR1,ManagedElement=1,RncFunction=1,UeRc=9"
+        )
+        self.assertEqual(dn_parts[0], "SubNetwork=NL1_R")
+        self.assertEqual(len(dn_parts), 6)
+        self.assertEqual(dn_parts[5], "UeRc=9")
+    
+        dn_parts = split_parts(
+            "Word=asdf,Writer=qwerty\\,dvorak,Reader=Unicode"
+        )
+        self.assertEqual(dn_parts[0], "Word=asdf")
+        self.assertEqual(len(dn_parts), 3)
+        self.assertEqual(dn_parts[2], "Reader=Unicode")
+    
+    def test_escape(self):
+        """
+        Check that ',' is escaped correctly
+        """
+        self.assertEqual(escape("Word=asdf,fdsa"), "Word=asdf\\,fdsa")
+    
+    def test_constructor(self):
+        empty_dn = DistinguishedName([])
+    
+        self.assertEqual(len(empty_dn.parts), 0)
+    
+    def test_from_str(self):
+        dn = DistinguishedName.from_str('Network=Global,Node=001')
+    
+        self.assertEqual(len(dn.parts), 2)
+    
+    def test_entitytype_name(self):
+        dn = DistinguishedName.from_str('Network=Global,Node=001')
+    
+        self.assertEqual(dn.entity_type_name(), 'Node')

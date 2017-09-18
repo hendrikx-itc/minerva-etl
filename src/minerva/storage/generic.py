@@ -42,7 +42,7 @@ def create_full_table_name(schema, table):
         return "\"{0}\"".format(table)
 
 
-def format_value(value, encoding="utf-8"):
+def format_value(value):
     """
     Format a parsed value for use in a stream accepted by the COPY FROM command
     in PostgreSQL.
@@ -50,19 +50,24 @@ def format_value(value, encoding="utf-8"):
     if value is None:
         return u"\\N"
     elif isinstance(value, tuple) or isinstance(value, list):
-        return "{{{}}}".format(",".join('"{}"'.format(
-            format_value(part, encoding)) for part in value))
-    elif isinstance(value, unicode):
-        return value
+        return "{{{}}}".format(
+            ",".join('"{}"'.format(format_value(part)) for part in value)
+        )
     else:
-        return unicode(value)
+        return value
 
 
 def escape_value(value):
     if value == u"\\N":
         return value
     else:
-        return value.replace('\\', '\\\\').replace('\r', '\\r').replace('\n', '\\n')
+        return value.replace(
+            '\\', '\\\\'
+        ).replace(
+            '\r', '\\r'
+        ).replace(
+            '\n', '\\n'
+        )
 
 
 def create_column(conn, schema, table, column_name, data_type):

@@ -14,7 +14,7 @@ import csv
 from minerva import __version__ as version
 from minerva.util.config import load_config, get_defaults, ConfigError, \
     parse_size
-from minerva.directory.helpers import get_datasource, \
+from minerva.directory.helpers import get_data_source, \
     NoSuchDataSourceError
 from minerva.db import connect
 from minerva.storage.trend.plugin import TrendPlugin
@@ -144,7 +144,7 @@ def main():
         plugin = TrendPlugin(conn)
 
         try:
-            ds = get_datasource(conn, args.datasource)
+            ds = get_data_source(conn, args.datasource)
         except NoSuchDataSourceError:
             print("Unknown datasource '{0}'".format(args.datasource))
             return 1

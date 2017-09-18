@@ -5,10 +5,8 @@ Comprehensive tests of loading data into a Minerva database.
 import datetime
 from contextlib import closing
 
-from nose.tools import assert_equal
 import pytz
 
-from minerva.storage.valuedescriptor import ValueDescriptor
 from minerva.storage.inputdescriptor import InputDescriptor
 from minerva.test import with_conn, clear_database
 from minerva.directory import EntityType, DataSource

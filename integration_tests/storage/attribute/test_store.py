@@ -7,7 +7,7 @@ import pytz
 
 from minerva.directory import DataSource, EntityType
 
-from minerva.test import with_conn, clear_database, assert_not_equal, eq_, ok_
+from minerva.test import with_conn, clear_database
 from minerva.storage import datatype
 from minerva.storage.attribute.attribute import AttributeDescriptor
 from minerva.storage.attribute.attributestore import AttributeStore, Query, \

@@ -4,9 +4,7 @@ Unit tests for the core.datatype module
 """
 import decimal
 from datetime import datetime
-
-from nose.tools import assert_equal, assert_is_not_none, assert_is_none, \
-    assert_raises, eq_
+import unittest
 
 from minerva.storage import datatype
 

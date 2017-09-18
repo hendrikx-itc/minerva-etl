@@ -78,7 +78,7 @@ class EntityType(object):
         """
         args = (name, )
 
-        cursor.callproc("directory.name_to_entitytype", args)
+        cursor.callproc("directory.name_to_entity_type", args)
 
         if cursor.rowcount > 0:
             return EntityType(*cursor.fetchone())
@@ -227,7 +227,7 @@ class DataSource(object):
     @staticmethod
     def from_name(cursor, name):
         """Return new or existing datasource with name `name`."""
-        cursor.callproc("directory.name_to_datasource", (name,))
+        cursor.callproc("directory.name_to_data_source", (name,))
 
         if cursor.rowcount > 0:
             return DataSource(*cursor.fetchone())

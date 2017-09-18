@@ -2,7 +2,6 @@ from datetime import datetime
 
 import pytz
 
-from minerva.test import eq_
 from minerva.util.timestamp import to_unix_timestamp, \
     from_unix_timestamp
 

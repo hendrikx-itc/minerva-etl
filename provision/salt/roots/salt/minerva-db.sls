@@ -53,10 +53,6 @@ python3-dateutil:
   pkg:
     - installed
 
-python3-nose2:
-  pkg:
-    - installed
-
 vagrant:
   user.present:
     - shell: /bin/zsh

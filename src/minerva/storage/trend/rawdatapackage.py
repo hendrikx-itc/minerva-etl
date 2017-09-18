@@ -1,35 +1,24 @@
 # -*- coding: utf-8 -*-
-__docformat__ = "restructuredtext en"
-
-__copyright__ = """
-Copyright (C) 2012-2013 Hendrikx-ITC B.V.
-
-Distributed under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 3, or (at your option) any later
-version.  The full license is in the file COPYING, distributed as part of
-this software.
-"""
-from minerva.storage.trend.datapackage import DataPackage
-
+from minerva.storage.trend.datapackage import DataPackageBase
 from minerva.directory.distinguishedname import explode
 from minerva.util import grouped_by
 
 
-class RawDataPackage(DataPackage):
+class RawDataPackage(DataPackageBase):
     def __init__(self, granularity, timestamp, trend_names, rows):
         self.granularity = granularity
         self.timestamp = timestamp
         self.trend_names = trend_names
         self.rows = rows
 
-    def get_entitytype_name(self):
+    def get_entity_type_name(self):
         if self.rows:
             first_dn = self.rows[0][0]
 
-            return entitytype_name_from_dn(first_dn)
+            return entity_type_name_from_dn(first_dn)
 
     def get_key(self):
-        return self.timestamp, self.get_entitytype_name(), self.granularity
+        return self.timestamp, self.get_entity_type_name(), self.granularity
 
     @staticmethod
     def merge_packages(packages):
@@ -40,6 +29,13 @@ class RawDataPackage(DataPackage):
             result.append(package_group(k, l))
 
         return result
+
+    @classmethod
+    def entity_ref_type(cls):
+        raise NotImplementedError()
+
+    def entity_type_name(self):
+        raise NotImplementedError()
 
 
 def package_group(key, packages):
@@ -59,7 +55,7 @@ def package_group(key, packages):
     field_names = list(all_field_names)
 
     rows = []
-    for dn, value_dict in dict_rows_by_dn.iteritems():
+    for dn, value_dict in dict_rows_by_dn.items():
         values = [value_dict.get(f, "") for f in field_names]
 
         row = dn, values
@@ -69,7 +65,7 @@ def package_group(key, packages):
     return RawDataPackage(granularity, timestamp_str, field_names, rows)
 
 
-def entitytype_name_from_dn(dn):
+def entity_type_name_from_dn(dn):
     """
     Return the entitytype name from a Distinguished Name
     """

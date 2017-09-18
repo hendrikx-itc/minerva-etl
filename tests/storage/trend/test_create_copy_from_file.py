@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import datetime
+import unittest
 
 import pytz
 
@@ -15,131 +16,135 @@ DATA_SOURCE = DataSource(
 )
 
 
-def test_create_copy_from_file_empty():
-    f = create_copy_from_file(None, None, [], [])
+class TestCreateCopyFromFile(unittest.TestCase):
+    def test_create_copy_from_file_empty(self):
+        f = create_copy_from_file(None, None, [], [])
 
-    assert f.read() == ""
+        self.assertEqual(f.read(), "")
 
+    def test_create_copy_from_file_simple(self):
+        timestamp = pytz.utc.localize(
+            datetime.datetime(2008, 12, 3, 0, 15, 0)
+        )
 
-def test_create_copy_from_file_simple():
-    timestamp = pytz.utc.localize(
-        datetime.datetime(2008, 12, 3, 0, 15, 0)
-    )
+        modified = pytz.utc.localize(
+            datetime.datetime(2008, 12, 3, 0, 15, 0)
+        )
 
-    modified = pytz.utc.localize(
-        datetime.datetime(2008, 12, 3, 0, 15, 0)
-    )
+        rows = [
+            (1, ('a', '23'))
+        ]
 
-    rows = [
-        (1, ('a', '23'))
-    ]
+        output_descriptors = [
+            OutputDescriptor(ValueDescriptor('x', datatype.registry['text'])),
+            OutputDescriptor(ValueDescriptor('y', datatype.registry['text']))
+        ]
 
-    output_descriptors = [
-        OutputDescriptor(ValueDescriptor('x', datatype.registry['text'])),
-        OutputDescriptor(ValueDescriptor('y', datatype.registry['text']))
-    ]
+        serializers = [
+            output_descriptor.serialize
+            for output_descriptor in output_descriptors
+        ]
 
-    serializers = [
-        output_descriptor.serialize
-        for output_descriptor in output_descriptors
-    ]
+        f = create_copy_from_file(timestamp, modified, rows, serializers)
 
-    f = create_copy_from_file(timestamp, modified, rows, serializers)
+        text = f.read()
+        expected = (
+            "1\t'2008-12-03T00:15:00+00:00'\t'2008-12-03T00:15:00+00:00'\t"
+            "a\t23\n"
+        )
 
-    text = f.read()
-    expected = (
-        "1\t'2008-12-03T00:15:00+00:00'\t'2008-12-03T00:15:00+00:00'\t"
-        "a\t23\n"
-    )
+        self.assertEqual(text, expected)
 
-    assert text == expected
+    def test_create_copy_from_file_int_array(self):
+        timestamp = pytz.utc.localize(
+            datetime.datetime(2008, 12, 3, 0, 15, 0)
+        )
 
+        modified = pytz.utc.localize(
+            datetime.datetime(2008, 12, 3, 0, 15, 0)
+        )
 
-def test_create_copy_from_file_int_array():
-    timestamp = pytz.utc.localize(
-        datetime.datetime(2008, 12, 3, 0, 15, 0)
-    )
+        rows = [
+            (1, ('a', '23', [1, 2, 3]))
+        ]
 
-    modified = pytz.utc.localize(
-        datetime.datetime(2008, 12, 3, 0, 15, 0)
-    )
-
-    rows = [
-        (1, ('a', '23', [1, 2, 3]))
-    ]
-
-    output_descriptors = [
-        OutputDescriptor(
-            ValueDescriptor('x', datatype.registry['text']),
-            datatype.copy_from_serializer_config(datatype.registry['text'])
-        ),
-        OutputDescriptor(
-            ValueDescriptor('y', datatype.registry['text']),
-            datatype.copy_from_serializer_config(datatype.registry['text'])
-        ),
-        OutputDescriptor(
-            ValueDescriptor('z', datatype.registry['smallint[]']),
-            datatype.copy_from_serializer_config(
-                datatype.registry['smallint[]']
+        output_descriptors = [
+            OutputDescriptor(
+                ValueDescriptor('x', datatype.registry['text']),
+                datatype.copy_from_serializer_config(datatype.registry['text'])
+            ),
+            OutputDescriptor(
+                ValueDescriptor('y', datatype.registry['text']),
+                datatype.copy_from_serializer_config(datatype.registry['text'])
+            ),
+            OutputDescriptor(
+                ValueDescriptor('z', datatype.registry['smallint[]']),
+                datatype.copy_from_serializer_config(
+                    datatype.registry['smallint[]']
+                )
             )
+        ]
+
+        serializers = [
+            output_descriptor.serialize
+            for output_descriptor in output_descriptors
+        ]
+
+        f = create_copy_from_file(timestamp, modified, rows, serializers)
+
+        text = f.read()
+        expected = (
+            "1\t'2008-12-03T00:15:00+00:00'\t'2008-12-03T00:15:00+00:00'\t"
+            "\"a\"\t\"23\"\t{1,2,3}\n"
         )
-    ]
 
-    serializers = [
-        output_descriptor.serialize
-        for output_descriptor in output_descriptors
-    ]
+        self.assertEqual(text, expected)
 
-    f = create_copy_from_file(timestamp, modified, rows, serializers)
-
-    text = f.read()
-    expected = (
-        "1\t'2008-12-03T00:15:00+00:00'\t'2008-12-03T00:15:00+00:00'\t"
-        "\"a\"\t\"23\"\t{1,2,3}\n"
-    )
-
-    assert text == expected, '\n{}\n!=\n{}'.format(text, expected)
-
-
-def test_create_copy_from_file_text_array():
-    timestamp = pytz.utc.localize(
-        datetime.datetime(2008, 12, 3, 0, 15, 0)
-    )
-    modified = pytz.utc.localize(
-        datetime.datetime(2008, 12, 3, 0, 15, 0)
-    )
-
-    rows = [
-        (1, ('a', '23', ["a=b,c=d", "e=f,g=h", "i=j,k=l"]))
-    ]
-
-    output_descriptors = [
-        OutputDescriptor(
-            ValueDescriptor('x', datatype.registry['text']),
-            datatype.copy_from_serializer_config(datatype.registry['text'])
-        ),
-        OutputDescriptor(
-            ValueDescriptor('y', datatype.registry['smallint']),
-            datatype.copy_from_serializer_config(datatype.registry['smallint'])
-        ),
-        OutputDescriptor(
-            ValueDescriptor('z', datatype.registry['text[]']),
-            datatype.copy_from_serializer_config(datatype.registry['text[]'])
+    def test_create_copy_from_file_text_array(self):
+        timestamp = pytz.utc.localize(
+            datetime.datetime(2008, 12, 3, 0, 15, 0)
         )
-    ]
+        modified = pytz.utc.localize(
+            datetime.datetime(2008, 12, 3, 0, 15, 0)
+        )
 
-    serializers = [
-        output_descriptor.serialize
-        for output_descriptor in output_descriptors
-    ]
+        rows = [
+            (1, ('a', '23', ["a=b,c=d", "e=f,g=h", "i=j,k=l"]))
+        ]
 
-    f = create_copy_from_file(timestamp, modified, rows, serializers)
+        output_descriptors = [
+            OutputDescriptor(
+                ValueDescriptor('x', datatype.registry['text']),
+                datatype.copy_from_serializer_config(
+                    datatype.registry['text']
+                )
+            ),
+            OutputDescriptor(
+                ValueDescriptor('y', datatype.registry['smallint']),
+                datatype.copy_from_serializer_config(
+                    datatype.registry['smallint']
+                )
+            ),
+            OutputDescriptor(
+                ValueDescriptor('z', datatype.registry['text[]']),
+                datatype.copy_from_serializer_config(
+                    datatype.registry['text[]']
+                )
+            )
+        ]
 
-    text = f.read()
+        serializers = [
+            output_descriptor.serialize
+            for output_descriptor in output_descriptors
+        ]
 
-    expected = (
-        "1\t'2008-12-03T00:15:00+00:00'\t'2008-12-03T00:15:00+00:00'\t"
-        "\"a\"\t23\t{\"a=b,c=d\",\"e=f,g=h\",\"i=j,k=l\"}\n"
-    )
+        f = create_copy_from_file(timestamp, modified, rows, serializers)
 
-    assert text == expected, '\n{}\n!=\n{}'.format(text, expected)
+        text = f.read()
+
+        expected = (
+            "1\t'2008-12-03T00:15:00+00:00'\t'2008-12-03T00:15:00+00:00'\t"
+            "\"a\"\t23\t{\"a=b,c=d\",\"e=f,g=h\",\"i=j,k=l\"}\n"
+        )
+
+        self.assertEqual(text, expected)

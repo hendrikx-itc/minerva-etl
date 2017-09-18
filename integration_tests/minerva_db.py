@@ -8,8 +8,8 @@ QUERY_SEP = "\n"
 
 def clear_database(conn):
     with closing(conn.cursor()) as cursor:
-        cursor.execute("DELETE FROM directory.datasource")
-        cursor.execute("DELETE FROM directory.entitytype")
+        cursor.execute("DELETE FROM directory.data_source")
+        cursor.execute("DELETE FROM directory.entity_type")
         cursor.execute("DELETE FROM directory.tag")
         cursor.execute("DELETE FROM relation.type WHERE name <> 'self'")
 

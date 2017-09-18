@@ -5,7 +5,7 @@ from functools import partial
 from minerva.util import k, identity
 from minerva.directory import EntityType
 from minerva.storage import Engine
-from minerva.storage.trend import TableTrendStore
+from minerva.storage.trend.tabletrendstore import TableTrendStore
 
 
 class TrendEngine(Engine):
@@ -40,7 +40,7 @@ class TrendEngine(Engine):
                     if trend_store is not None:
                         trend_store.store(
                             transform_package(trend_store)(package)
-                        ).run(conn)
+                        )(conn)
 
                         conn.commit()
 

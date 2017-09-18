@@ -376,7 +376,7 @@ class Parenthesis(Sql):
 
 class And(BinaryOperator):
     def _render(self):
-        return "{} AND {}".format(self.l.render(), self.r.render())
+        return "{} AND {}".format(self.l_.render(), self.r.render())
 
 
 ands = partial(reduce, And)
@@ -384,7 +384,7 @@ ands = partial(reduce, And)
 
 class Or(BinaryOperator):
     def _render(self):
-        return "{} OR {}".format(self.l.render(), self.r.render())
+        return "{} OR {}".format(self.l_.render(), self.r.render())
 
 
 ors = partial(reduce, Or)
@@ -392,42 +392,42 @@ ors = partial(reduce, Or)
 
 class Eq(BinaryOperator):
     def _render(self):
-        return "{} = {}".format(self.l.render(), self.r.render())
+        return "{} = {}".format(self.l_.render(), self.r.render())
 
 
 class Lt(BinaryOperator):
     def _render(self):
-        return "{} < {}".format(self.l.render(), self.r.render())
+        return "{} < {}".format(self.l_.render(), self.r.render())
 
 
 class Gt(BinaryOperator):
     def _render(self):
-        return "{} > {}".format(self.l.render(), self.r.render())
+        return "{} > {}".format(self.l_.render(), self.r.render())
 
 
 class LtEq(BinaryOperator):
     def _render(self):
-        return "{} <= {}".format(self.l.render(), self.r.render())
+        return "{} <= {}".format(self.l_.render(), self.r.render())
 
 
 class GtEq(BinaryOperator):
     def _render(self):
-        return "{} >= {}".format(self.l.render(), self.r.render())
+        return "{} >= {}".format(self.l_.render(), self.r.render())
 
 
 class ArrayContains(BinaryOperator):
     def _render(self):
-        return "{} @> {}".format(self.l.render(), self.r.render())
+        return "{} @> {}".format(self.l_.render(), self.r.render())
 
 
 class ArrayIsContainedBy(BinaryOperator):
     def _render(self):
-        return "{} <@ {}".format(self.l.render(), self.r.render())
+        return "{} <@ {}".format(self.l_.render(), self.r.render())
 
 
 class In(BinaryOperator):
     def _render(self):
-        return "{} IN {}".format(self.l.render(), self.r.render())
+        return "{} IN {}".format(self.l_.render(), self.r.render())
 
 
 class As(Sql):

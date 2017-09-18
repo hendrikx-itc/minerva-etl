@@ -2,16 +2,6 @@
 """
 Provides PostgreSQL specific storage functionality using arrays.
 """
-__docformat__ = "restructuredtext en"
-
-__copyright__ = """
-Copyright (C) 2008-2013 Hendrikx-ITC B.V.
-
-Distributed under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 3, or (at your option) any later
-version.  The full license is in the file COPYING, distributed as part of
-this software.
-"""
 from contextlib import closing
 import logging
 from itertools import chain
@@ -21,7 +11,7 @@ import re
 import psycopg2.errorcodes
 
 from minerva.util import first
-from minerva.db.util import enquote_column_name
+from minerva.db.util import quote_ident
 from minerva.db.query import Sql, Table, And, Or, Eq, Column, FromItem, \
         Argument, Literal, LtEq, Gt, ands, Select, WithQuery, As, Value, \
         Parenthesis, column_exists
@@ -42,112 +32,6 @@ def table_or_view_exists(cursor, table):
     query.execute(cursor, args)
 
     return cursor.rowcount > 0
-
-
-def retrieve_aggregated(
-        cursor, trendstore, column_identifiers, interval,
-        group_by=[], subquery_filter=None, relation_table_name=None):
-    """
-    Return aggregated data
-
-    :param cursor: psycopg2 database cursor
-    :param trendstore: TrendStore object
-    :param column_identifiers: e.g. SUM(trend1), MAX(trend2)
-    :param interval: (start, end) tuple with non-naive timestamps
-    :param group_by: list of columns to GROUP BY
-    :param subquery_filter: optional subquery for additional filtering
-        by JOINing on field 'id' = entity_id
-    :param relation_table_name: optional relation table name for converting
-        entity ids to related ones
-    """
-    start, end = interval
-
-    source_tables = trendstore.tables(start, end)
-
-    def get_trend_names(column_identifier):
-        if isinstance(column_identifier, Sql):
-            if isinstance(column_identifier, Column):
-                return [column_identifier.name]
-            else:
-                return [a.name for a in column_identifier.args]
-        else:
-            trend_names_part = re.match(
-                r".*\(([\w, ]+)\)", column_identifier).group(1)
-
-            return map(str.strip, trend_names_part.split(","))
-
-    trend_names = set(chain(*map(get_trend_names, column_identifiers)))
-
-    args = {"start": start, "end": end}
-
-    # Deal with 'samples' column
-    if column_exists(cursor, source_tables[-1], "samples"):
-        select_samples_part = "SUM(samples)"
-        select_samples_column = "samples,"
-    else:
-        select_samples_part = "COUNT(*)"
-        select_samples_column = ""
-
-    existing_tables = [
-        table for table in source_tables
-        if table_or_view_exists(cursor, table)]
-
-    if not existing_tables:
-        return []
-
-    def create_select_statement(source_table):
-        join_parts = []
-
-        if subquery_filter:
-            join_part = (
-                "JOIN ({0}) AS filter "
-                "ON filter.id = {1}.entity_id").format(
-                    subquery_filter, source_table.render())
-
-            join_parts.append(join_part)
-
-        if relation_table_name:
-            relation_table = Table("relation", relation_table_name)
-            return_id_field = "r.target_id AS entity_id"
-
-            join_part = (
-                "LEFT JOIN {0} r "
-                "ON r.source_id = {1}.entity_id").format(
-                    relation_table.render(), source_table.render())
-
-            join_parts.append(join_part)
-        else:
-            return_id_field = "entity_id"
-
-        return (
-            "SELECT {0}, %(end)s, {1} {2} "
-            "FROM {3} {4} "
-            "WHERE timestamp > %(start)s AND timestamp <= %(end)s").format(
-                return_id_field,
-                select_samples_column,
-                ",".join(map(enquote_column_name, trend_names)),
-                source_table.render(),
-                " ".join(join_parts))
-
-    select_parts = map(create_select_statement, existing_tables)
-
-    query = (
-        "SELECT entity_id, %(end)s, {0}, {1} "
-        "FROM ({2}) AS sources "
-        "GROUP BY {3}").format(
-            select_samples_part,
-            ",".join(map(quote_ident, column_identifiers)),
-            " UNION ALL ".join(select_parts),
-            ",".join(map(enquote_column_name, group_by)))
-
-    try:
-        cursor.execute(query, args)
-    except psycopg2.ProgrammingError as exc:
-        raise AggregationError(
-            "{} with query: {}".format(str(exc),
-                                       cursor.mogrify(query, args)))
-    else:
-        return cursor.fetchall()
 
 
 def quote_ident(ident):
@@ -192,8 +76,6 @@ def retrieve(
     if entities is not None and len(entities) == 0:
         return []
 
-    columns = map(ensure_column, columns)
-
     # group tables by partition size signature to be able to JOIN them later
     tables_by_partition_signature = {}
     for table in tables:
@@ -210,7 +92,7 @@ def retrieve(
 
             q = Select(
                 cols, from_=Table("directory", "entity"),
-                where_=Eq(Column("entitytype_id"), Value(entitytype.id)))
+                where_=Eq(Column("entity_type_id"), Value(entitytype.id)))
 
             with_query = WithQuery("t", query=q)
             params.append(start)
@@ -261,7 +143,9 @@ def retrieve(
         else:
             entity_id_column = base_entity_id_column
 
-        partition_columns = [entity_id_column, base_timestamp_column] + columns
+        partition_columns = [entity_id_column, base_timestamp_column] + [
+            ensure_column(c) for c in columns
+        ]
 
         where_parts = []
 

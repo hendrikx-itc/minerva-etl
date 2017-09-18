@@ -5,7 +5,7 @@ import datetime
 import pytz
 
 from minerva.directory import EntityType, DataSource
-from minerva.test import with_conn, clear_database, eq_
+from minerva.test import with_conn, clear_database
 from minerva.storage import datatype
 from minerva.storage.trend.trendstore import TimestampEquals
 from minerva.storage.trend.tabletrendstore import TableTrendStore, \

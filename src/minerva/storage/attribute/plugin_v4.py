@@ -13,7 +13,7 @@ this software.
 import json
 from contextlib import closing
 
-from minerva.directory.helpers import get_entity, get_entitytype_by_id
+from minerva.directory.helpers import get_entity, get_entity_type_by_id
 from minerva.storage.attribute.attribute import Attribute
 from minerva.storage.attribute.attributestore import AttributeStore
 from minerva.storage.attribute.datapackage import DataPackage
@@ -66,7 +66,7 @@ class AttributePlugin(object):
 
             dn = raw_datapackage.rows[0][0]
             entity = get_entity(self.conn, dn)
-            entitytype = get_entitytype_by_id(self.conn, entity.entitytype_id)
+            entitytype = get_entity_type_by_id(self.conn, entity.entitytype_id)
 
             self.store(datasource, entitytype, datapackage)
 

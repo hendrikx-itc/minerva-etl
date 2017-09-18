@@ -16,8 +16,6 @@ setup(
         "pytz", "psycopg2>=2.2.1", "PyYAML", "configobj",
         "python-dateutil", "pyparsing"
     ],
-    tests_require=["nose"],
-    test_suite="nose.collector",
     packages=[
         "minerva",
         "minerva.util",

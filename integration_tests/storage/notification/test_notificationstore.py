@@ -7,7 +7,7 @@ from minerva.directory.entityref import EntityIdRef
 from minerva.storage import datatype
 from minerva.storage.notification import NotificationStore, \
     Record, NotificationStoreDescriptor, AttributeDescriptor
-from minerva.test import with_conn, clear_database, eq_
+from minerva.test import with_conn, clear_database
 
 
 @with_conn(clear_database)

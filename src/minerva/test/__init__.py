@@ -7,43 +7,6 @@ import psycopg2.extras
 from minerva.util.debug import log_call_basic
 
 
-def eq_(a, b):
-    assert a == b, '{} != {}'.format(a, b)
-
-
-def ok_(e):
-    assert e is True, '{} is not True'.format(e)
-
-
-def assert_not_equal(a, b):
-    assert a != b, '{} == {}'.format(a, b)
-
-
-def assert_is_none(a, message=None):
-    assert a is None, message or '{} is not None'.format(a)
-
-
-def assert_is_not_none(a, message=None):
-    assert a is not None, message or '{} is None'.format(a)
-
-
-def assert_raises(exception_type, f, *args, **kwargs):
-    try:
-        return f(*args, **kwargs)
-    except Exception as exc:
-        eq_(type(exc), exception_type)
-
-
-def raises(exception_type):
-    def fn(f):
-        def wrapped(*args, **kwargs):
-            assert_raises(exception_type, f, *args, **kwargs)
-
-        return wrapped()
-
-    return fn
-
-
 def connect():
     conn = psycopg2.connect(
         '', connection_factory=psycopg2.extras.LoggingConnection
@@ -86,3 +49,5 @@ def clear_database(conn):
         cursor.execute("DELETE FROM directory.data_source CASCADE")
         cursor.execute("DELETE FROM directory.entity_type CASCADE")
         cursor.execute("DELETE FROM directory.tag CASCADE")
+
+    return conn

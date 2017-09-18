@@ -5,7 +5,7 @@ from contextlib import closing
 
 import pytz
 
-from minerva.test import with_conn, eq_, clear_database
+from minerva.test import with_conn, clear_database
 from minerva.directory import DataSource, EntityType
 from minerva.storage.attribute.attribute import AttributeDescriptor
 from minerva.storage.attribute.attributestore import AttributeStore, \

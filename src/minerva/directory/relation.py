@@ -1,15 +1,5 @@
 # -*- coding: utf-8 -*-
-__docformat__ = "restructuredtext en"
-
-__copyright__ = """
-Copyright (C) 2008-2013 Hendrikx-ITC B.V.
-
-Distributed under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 3, or (at your option) any later
-version.  The full license is in the file COPYING, distributed as part of
-this software.
-"""
-import StringIO
+from io import StringIO
 from contextlib import closing
 from functools import partial
 
@@ -20,13 +10,12 @@ from minerva.db.util import is_unique
 
 
 def get_relation_name(conn, source_entitytype_name, target_entitytype_name):
-    relation_name = None
-
     if source_entitytype_name is None or target_entitytype_name is None:
         return None 
 
-    relationtype_name = "{}->{}".format(source_entitytype_name,
-                                        target_entitytype_name)
+    relationtype_name = "{}->{}".format(
+        source_entitytype_name, target_entitytype_name
+    )
     query = "SELECT name FROM relation.type WHERE lower(name) = lower(%s)"
 
     with closing(conn.cursor()) as cursor:
@@ -51,10 +40,11 @@ def add_relations(conn, relations, relationtype_name,
     try:
         relationtype_id = get_relationtype_id(conn, relationtype_name)
     except NoSuchRelationTypeError:
-        relationtype_id = create_relationtype(conn, relationtype_name,
-                                              relationtype_cardinality)
+        relationtype_id = create_relationtype(
+            conn, relationtype_name, relationtype_cardinality
+        )
 
-    _f = StringIO.StringIO()
+    _f = StringIO()
 
     for source_id, target_id in relations:
         _f.write("{0}\t{1}\t{2}\n".format(source_id, target_id,
@@ -68,7 +58,8 @@ def add_relations(conn, relations, relationtype_name,
 
         query = (
             "CREATE TEMPORARY TABLE \"{0}\" "
-            "(LIKE relation.all)".format(tmp_table))
+            "(LIKE relation.all)".format(tmp_table)
+        )
 
         cursor.execute(query)
 
@@ -85,7 +76,8 @@ def add_relations(conn, relations, relationtype_name,
             "LEFT JOIN relation.\"{0}\" r "
             "ON r.source_id = tmp.source_id "
             "AND r.target_id = tmp.target_id "
-            "WHERE r.source_id IS NULL ".format(relationtype_name, tmp_table))
+            "WHERE r.source_id IS NULL ".format(relationtype_name, tmp_table)
+        )
 
         cursor.execute(query)
 
@@ -97,7 +89,8 @@ def create_relationtype(conn, name, cardinality=None):
         query = (
             "INSERT INTO relation.type (name, cardinality) "
             "VALUES (%s, %s) "
-            "RETURNING id")
+            "RETURNING id"
+        )
         args = (name, cardinality)
     else:
         query = "INSERT INTO relation.type (name) VALUES (%s) RETURNING id"
@@ -111,8 +104,8 @@ def create_relationtype(conn, name, cardinality=None):
     return relationtype_id
 
 
-def flush_relations(conn, relationtype_name):
-    query = "TRUNCATE TABLE relation.\"{}\"".format(relationtype_name)
+def flush_relations(conn, relation_type_name):
+    query = "TRUNCATE TABLE relation.\"{}\"".format(relation_type_name)
 
     with closing(conn.cursor()) as cursor:
         cursor.execute(query)
@@ -127,34 +120,36 @@ def get_table_from_type_id(conn, relationtype_id):
     Return relation table name from relation type id
     """
     with closing(conn.cursor()) as cursor:
-        cursor.execute("SELECT name FROM relation.type WHERE id = %s",
-                       (relationtype_id,))
+        cursor.execute(
+            "SELECT name FROM relation.type WHERE id = %s",
+            (relationtype_id,)
+        )
 
         table_name, = cursor.fetchone()
 
     return table_name
 
 
-def is_one_to_one(conn, relationtype_name):
+def is_one_to_one(conn, relation_type_name):
     """
     Returns True when relation type is one to one, otherwise False.
     """
-    unique = partial(is_unique, conn, "relation", relationtype_name)
+    unique = partial(is_unique, conn, "relation", relation_type_name)
     source_unique = unique("source_id")
     target_unique = unique("target_id")
 
     return source_unique and target_unique
 
 
-def is_one_to_many(conn, relationtype_name):
+def is_one_to_many(conn, relation_type_name):
     """
     Returns True when relation type is one to many, otherwise False
     """
-    return is_unique(conn, "relation", relationtype_name, "source_id")
+    return is_unique(conn, "relation", relation_type_name, "source_id")
 
 
-def is_many_to_one(conn, relationtype_name):
+def is_many_to_one(conn, relation_type_name):
     """
     Returns True when relation type is many to one, otherwise False
     """
-    return is_unique(conn, "relation", relationtype_name, "target_id")
+    return is_unique(conn, "relation", relation_type_name, "target_id")

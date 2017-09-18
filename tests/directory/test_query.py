@@ -2,39 +2,38 @@
 """
 Unit tests for compiling Minerva Queries to SQL.
 """
-from nose.tools import assert_equal
+import unittest
 
-from minerva.test import eq_, raises
 from minerva.directory.query import compile_sql, QueryError
 
 
-def test_simple():
-    minerva_query = [{"type": "C", "value": ["Cell"]}]
-    relation_group_name = "test"
+class TestQuery(unittest.TestCase):
+    def test_simple(self):
+        minerva_query = [{"type": "C", "value": ["Cell"]}]
+        relation_group_name = "test"
 
-    sql = compile_sql(minerva_query, relation_group_name)
+        sql = compile_sql(minerva_query, relation_group_name)
 
-    expected_sql = (
-        ' FROM (VALUES(NULL)) dummy '
-        'JOIN directory.entity_tag_link_denorm eld ON %s <@ eld.tags'
-    )
+        expected_sql = (
+            ' FROM (VALUES(NULL)) dummy '
+            'JOIN directory.entity_tag_link_denorm eld ON %s <@ eld.tags'
+        )
 
-    expected_args = [[u"cell"]]
+        expected_args = [[u"cell"]]
 
-    expected_entity_id_column = "eld.entity_id"
+        expected_entity_id_column = "eld.entity_id"
 
-    expected = (expected_sql, expected_args, expected_entity_id_column)
+        expected = (expected_sql, expected_args, expected_entity_id_column)
 
-    assert_equal(sql, expected)
+        self.assertEqual(sql, expected)
 
+    def test_starting_with_specifier(self):
+        """
+        Compiling a Minerva query starting with a specifier should raise an
+        exception.
+        """
+        minerva_query = [{"type": "S", "value": "11030"}]
+        relation_group_name = "test"
 
-@raises(QueryError)
-def test_starting_with_specifier():
-    """
-    Compiling a Minerva query starting with a specifier should raise an
-    exception.
-    """
-    minerva_query = [{"type": "S", "value": "11030"}]
-    relation_group_name = "test"
-
-    compile_sql(minerva_query, relation_group_name)
+        with self.assertRaises(QueryError) as cm:
+            compile_sql(minerva_query, relation_group_name)

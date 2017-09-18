@@ -2,16 +2,6 @@
 """
 Helper functions for the trend schema.
 """
-__docformat__ = "restructuredtext en"
-
-__copyright__ = """
-Copyright (C) 2012-2013 Hendrikx-ITC B.V.
-
-Distributed under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 3, or (at your option) any later
-version.  The full license is in the file COPYING, distributed as part of
-this software.
-"""
 from datetime import datetime, timedelta, time
 from contextlib import closing
 import logging
@@ -19,8 +9,6 @@ from itertools import chain
 
 import pytz
 
-from minerva.directory.helpers_v4 import get_datasource_by_id, \
-    get_entitytype_by_id
 from minerva.storage.trend.basetypes import Trend
 from minerva.storage.trend.trendstore import TrendStore
 from minerva.storage.trend.granularity import create_granularity

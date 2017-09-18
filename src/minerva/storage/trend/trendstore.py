@@ -52,16 +52,15 @@ class TrendStoreQuery:
         return self
 
 
-class TrendStoreDescriptor:
-    def __init__(
-            self, name, data_source, entity_type, granularity):
-        self.name = name
-        self.data_source = data_source
-        self.entity_type = entity_type
-        self.granularity = granularity
-
-
 class TrendStore:
+    class Descriptor:
+        def __init__(
+                self, name, data_source, entity_type, granularity):
+            self.name = name
+            self.data_source = data_source
+            self.entity_type = entity_type
+            self.granularity = granularity
+
     """
     All data belonging to a specific data source, entity type and granularity.
     """

@@ -12,7 +12,7 @@ from configobj import ConfigObj
 from minerva import __version__ as version
 from minerva.instance import MinervaInstance
 from minerva.db import connect
-from minerva.directory.helpers import get_entitytype
+from minerva.directory.helpers import get_entity_type
 from minerva.directory.tag import NoSuchTagError, tag_entities, \
     flush_tag_links, get_tag, create_tag_group, create_tag
 from minerva.db.util import create_copy_from_file, create_temp_table, \
@@ -77,7 +77,7 @@ def main():
 
     try:
         with closing(minerva_instance.connect(user=user)) as conn:
-            entitytype = get_entitytype(conn, args.entity_type)
+            entitytype = get_entity_type(conn, args.entity_type)
 
             for file_path in args.file:
                 load_tags(conn, entitytype, args.alias_type, file_path,

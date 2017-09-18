@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import logging
+from contextlib import closing
 from itertools import chain
 from typing import List
 from datetime import datetime
@@ -7,9 +8,10 @@ from datetime import datetime
 import psycopg2
 
 from minerva.db.util import create_temp_table_from, quote_ident, create_file
-from minerva.util import first, no_op, zip_apply, compose
+from minerva.util import first, zip_apply, compose
 from minerva.db.query import Table, Column, Eq, ands
 from minerva.storage.trend.trendstore import TrendStore
+from minerva.storage.trend.tabletrendstore import TableTrendStore
 from minerva.storage.trend.trend import TrendDescriptor
 from minerva.storage.trend.partition import Partition
 from minerva.storage.trend.partitioning import Partitioning
@@ -17,28 +19,26 @@ from minerva.storage.trend.partitioning import Partitioning
 from minerva.storage.trend import schema
 from minerva.directory import DataSource, EntityType
 from minerva.storage.trend.granularity import create_granularity
-from minerva.db.error import NoCopyInProgress, UniqueViolation, \
+from minerva.db.error import NoCopyInProgress, \
     translate_postgresql_exception, translate_postgresql_exceptions
-from minerva.db.dbtransaction import DbTransaction, DbAction, \
-    replace
 
 LARGE_BATCH_THRESHOLD = 10
 
 
-class TableTrendStoreDescriptor:
-    def __init__(
-            self, name: str, data_source: DataSource, entity_type: EntityType,
-            granularity, trend_descriptors: List[TrendDescriptor],
-            partition_size):
-        self.name = name
-        self.data_source = data_source
-        self.entity_type = entity_type
-        self.granularity = granularity
-        self.trend_descriptors = trend_descriptors
-        self.partition_size = partition_size
-
-
 class TableTrendStore(TrendStore):
+    class Descriptor:
+        def __init__(
+                self, name: str, data_source: DataSource,
+                entity_type: EntityType,
+                granularity, trend_descriptors: List[TrendDescriptor],
+                partition_size):
+            self.name = name
+            self.data_source = data_source
+            self.entity_type = entity_type
+            self.granularity = granularity
+            self.trend_descriptors = trend_descriptors
+            self.partition_size = partition_size
+
     column_names = [
         "id", "name", "entity_type_id", "data_source_id", "granularity",
         "partition_size", "retention_period"
@@ -155,7 +155,7 @@ class TableTrendStore(TrendStore):
         return f
 
     @staticmethod
-    def create(descriptor: TableTrendStoreDescriptor):
+    def create(descriptor: TableTrendStore.Descriptor):
         def f(cursor):
             args = (
                 descriptor.name,
@@ -255,22 +255,27 @@ class TableTrendStore(TrendStore):
         return self
 
     def store(self, data_package):
-        if data_package.is_empty():
-            return DbTransaction(None, [])
-        else:
-            if len(data_package.rows) <= LARGE_BATCH_THRESHOLD:
-                insert_action = BatchInsert
-            else:
-                insert_action = CopyFrom
+        def f(conn):
+            with closing(conn.cursor()) as cursor:
+                modified = get_timestamp(cursor)
 
-            return DbTransaction(
-                StoreState(self, data_package),
-                [
-                    SetModified(),
-                    insert_action(),
-                    MarkModified()
-                ]
-            )
+                if len(data_package.rows) <= LARGE_BATCH_THRESHOLD:
+                    self.store_batch_insert(
+                        data_package,
+                        modified
+                    )(cursor)
+                else:
+                    self.store_copy_from(
+                        data_package,
+                        modified
+                    )(cursor)
+
+                self.mark_modified(
+                    data_package.timestamp,
+                    modified
+                )(cursor)
+
+        return f
 
     def clear_timestamp(self, timestamp):
         def f(cursor):
@@ -457,54 +462,7 @@ class TableTrendStore(TrendStore):
         return f
 
 
-class StoreState:
-    def __init__(self, trend_store, data_package):
-        self.trend_store = trend_store
-        self.data_package = data_package
-        self.modified = None
-
-
-class SetModified(DbAction):
-    def execute(self, cursor, state):
-        state.modified = get_timestamp(cursor)
-
-
-class MarkModified(DbAction):
-    def execute(self, cursor, state):
-        try:
-            state.trend_store.mark_modified(
-                state.data_package.timestamp,
-                state.modified
-            )(cursor)
-        except UniqueViolation:
-            return no_op
-
-
-class CopyFrom(DbAction):
-    def execute(self, cursor, state):
-        try:
-            state.trend_store.store_copy_from(
-                state.data_package,
-                state.modified
-            )(cursor)
-        except NoCopyInProgress:
-            return no_op
-        except UniqueViolation:
-            return replace(Update())
-
-
-class BatchInsert(DbAction):
-    def execute(self, cursor, state):
-        try:
-            state.trend_store.store_batch_insert(
-                state.data_package,
-                state.modified
-            )(cursor)
-        except UniqueViolation:
-            return replace(Update())
-
-
-class Update(DbAction):
+class Update_:
     def execute(self, cursor, state):
         state.trend_store.store_update(
             state.data_package,

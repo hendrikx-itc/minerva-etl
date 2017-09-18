@@ -1,7 +1,6 @@
-from nose.tools import assert_raises, assert_true, \
-        assert_false, assert_equal, raises
+import unittest
 
-from minerva.util import compose, handle_exceptions, dict_to_handler
+from minerva.util import handle_exceptions, dict_to_handler
 
 
 class TestException(Exception):
@@ -12,40 +11,40 @@ class UnhandledException(Exception):
     pass
 
 
-def test_handle_exceptions():
-    """
-    The correct handler should be called
-    """
-    state = {}
+class TestHandleExceptions(unittest.TestCase):
+    def test_handle_exceptions(self):
+        """
+        The correct handler should be called
+        """
+        state = {}
 
-    def fn():
-        raise TestException("some error occurred")
+        def fn():
+            raise TestException("some error occurred")
 
-    def handle_test_exception():
-        state["val"] = 42
+        def handle_test_exception():
+            state["val"] = 42
 
-    handler_map = {TestException: handle_test_exception}
+        handler_map = {TestException: handle_test_exception}
 
-    handle = dict_to_handler(handler_map)
+        handle = dict_to_handler(handler_map)
 
-    handle_exceptions(handle, fn)()
+        handle_exceptions(handle, fn)()
 
-    assert_equal(state["val"], 42)
+        self.assertEqual(state["val"], 42)
 
+    def test_reraise_unhandled_exceptions(self):
+        """
+        Unhandled exceptions shoud be re-raised
+        """
+        def fn():
+            raise UnhandledException("some error occurred")
 
-@raises(UnhandledException)
-def test_reraise_unhandled_exceptions():
-    """
-    Unhandled exceptions shoud be re-raised
-    """
-    def fn():
-        raise UnhandledException("some error occurred")
+        def handle_test_exception():
+            state["val"] = 42
 
-    def handle_test_exception():
-        state["val"] = 42
+        handler_map = {TestException: handle_test_exception}
 
-    handler_map = {TestException: handle_test_exception}
+        handle = dict_to_handler(handler_map)
 
-    handle = dict_to_handler(handler_map)
-
-    handle_exceptions(handle, fn)()
+        with self.assertRaises(UnhandledException) as cm:
+            handle_exceptions(handle, fn)()

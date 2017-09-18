@@ -18,18 +18,20 @@ from minerva.storage.attribute import schema
 
 def clear_database(conn):
     with closing(conn.cursor()) as cursor:
-        cursor.execute("DELETE FROM directory.datasource")
-        cursor.execute("DELETE FROM directory.entitytype")
+        cursor.execute("DELETE FROM directory.data_source")
+        cursor.execute("DELETE FROM directory.entity_type")
         cursor.execute("DELETE FROM directory.tag")
 
         system_tables = ["attribute", "attribute_tag_link"]
 
         all_tables = get_tables(cursor)
 
-        attribute_tables = [t for t in all_tables if not t in system_tables]
+        attribute_tables = [t for t in all_tables if t not in system_tables]
 
         for table_name in attribute_tables:
             drop_table(cursor, schema.name, table_name)
+
+    return conn
 
 
 def get_tables(cursor):

@@ -2,7 +2,9 @@
 from io import StringIO
 from contextlib import closing
 
-from minerva.test import with_conn, eq_
+import psycopg2.extras
+
+from minerva.test import with_conn
 from minerva.db.query import Table, table_exists, Column, Copy, Eq
 
 

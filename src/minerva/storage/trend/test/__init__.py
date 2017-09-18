@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 
-class DataSet():
+class DataSet:
     description = "Set this property in child classes to describe the data set"
 
     def load(self, cursor):

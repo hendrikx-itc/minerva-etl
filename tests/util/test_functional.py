@@ -1,71 +1,66 @@
 # -*- coding: utf-8 -*-
-
-from nose.tools import assert_equal
+import unittest
 
 from minerva.util import identity, compose, k, no_op, retry_while, zip_apply
 
 
-def test_identity():
-    assert_equal(identity(42), 42)
-    assert_equal(identity("Hello world!"), "Hello world!")
-    assert_equal(identity((1, 2, 3)), (1, 2, 3))
+class TestFunctional(unittest.TestCase):
+    def test_identity(self):
+        self.assertEqual(identity(42), 42)
+        self.assertEqual(identity("Hello world!"), "Hello world!")
+        self.assertEqual(identity((1, 2, 3)), (1, 2, 3))
 
+    def test_compose_pair(self):
+        composed = compose(times_two, add_one)
 
-def test_compose_pair():
-    composed = compose(times_two, add_one)
+        self.assertEqual(composed(2), 6)
 
-    assert_equal(composed(2), 6)
+    def test_compose(self):
+        composed = compose(add_one, times_two, add_one, add_one)
 
+        self.assertEqual(composed(1), 7)
 
-def test_compose():
-    composed = compose(add_one, times_two, add_one, add_one)
+    def test_k(self):
+        """
+        The result of the created function should always be the same
+        """
+        r = k(5)
 
-    assert_equal(composed(1), 7)
+        self.assertEqual(r(), 5)
+        self.assertEqual(r(2), 5)
+        self.assertEqual(r("hello", 3), 5)
 
+    def test_retry_while(self):
+        state = {
+            "loop": 1,
+            "val": 10}
 
-def test_k():
-    """
-    The result of the created function should always be the same
-    """
-    r = k(5)
+        exception_handlers = {
+            Exception: no_op}
 
-    assert_equal(r(), 5)
-    assert_equal(r(2), 5)
-    assert_equal(r("hello", 3), 5)
+        def fn():
+            curr_loop = state["loop"]
+            state["loop"] = curr_loop + 1
 
+            if curr_loop == 1:
+                raise Exception()
 
-def test_retry_while():
-    state = {
-        "loop": 1,
-        "val": 10}
+            state["val"] = 42
 
-    exception_handlers = {
-        Exception: no_op}
+        retry_while(fn, exception_handlers, condition=k(True), timeout=k(1.0))
 
-    def fn():
-        curr_loop = state["loop"]
-        state["loop"] = curr_loop + 1
+        self.assertEqual(state["val"], 42)
 
-        if curr_loop == 1:
-            raise Exception()
+    def test_zip_apply(self):
+        funcs = (add_one, add_one, times_two)
+        values = (1, 2, 3)
+        result = zip_apply(funcs)(values)
 
-        state["val"] = 42
+        self.assertEqual(result, [2, 3, 6])
 
-    retry_while(fn, exception_handlers, condition=k(True), timeout=k(1.0))
+        result = zip_apply([])([])
 
-    assert_equal(state["val"], 42)
-
-
-def test_zipapply():
-    funcs = (add_one, add_one, times_two)
-    values = (1, 2, 3)
-    result = zip_apply(funcs)(values)
-
-    assert_equal(result, [2, 3, 6])
-
-    result = zip_apply([])([])
-
-    assert result == []
+        assert result == []
 
 
 def add_one(x):

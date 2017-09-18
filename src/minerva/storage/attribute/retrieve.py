@@ -1,14 +1,4 @@
 # -*- coding: utf-8 -*-
-__docformat__ = "restructuredtext en"
-
-__copyright__ = """
-Copyright (C) 2008-2013 Hendrikx-ITC B.V.
-
-Distributed under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 3, or (at your option) any later
-version.  The full license is in the file COPYING, distributed as part of
-this software.
-"""
 from contextlib import closing
 from decimal import Decimal
 
@@ -16,8 +6,8 @@ from itertools import groupby
 from operator import itemgetter
 
 from minerva.util.timestamp import to_unix_timestamp
-from minerva.directory import helpers
-from minerva.directory.helpers import get_entitytype_by_id
+from minerva.directory.entitytype import EntityType
+from minerva.directory.entity import Entity
 
 
 def enquote_ident(ident):
@@ -168,7 +158,8 @@ def retrieve_attributes_for_entity(conn, entity_id, attribute_ids):
         "WHERE a.id IN ({}) "
         "ORDER BY table_name").format(",".join(map(str, attribute_ids)))
 
-    entity = helpers.get_entity_by_id(conn, entity_id)
+    with closing(conn.cursor()) as cursor:
+        entity = Entity.get(entity_id)(cursor)
 
     result = {}
 
@@ -191,7 +182,7 @@ def retrieve_attributes_for_entity(conn, entity_id, attribute_ids):
 
         rows = cursor.fetchall()
 
-        source_entitytype = get_entitytype_by_id(conn, entity.entitytype_id)
+        source_entitytype = get_entity_type_by_id(conn, entity.entitytype_id)
         for table_name, attrs_iter in groupby(rows, get_tablename):
             attrs = list(attrs_iter)
             attr_names = map(get_name, attrs)

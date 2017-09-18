@@ -1,69 +1,72 @@
 from contextlib import closing
+import unittest
 
-from minerva.test import with_conn, clear_database, eq_
-
-
-@with_conn(clear_database)
-def test_create_alias(conn):
-    with closing(conn.cursor()) as cursor:
-        query = (
-            "INSERT INTO directory.entity_type (id, name, description) VALUES "
-            "(1, 'test_type', 'test entity type')"
-        )
-
-        cursor.execute(query)
-
-        query = (
-            "INSERT INTO directory.entity "
-            "(id, created, \"name\", entity_type_id, dn) "
-            "VALUES"
-            "(DEFAULT, now(), 'test_entity', 1, 'type=12345')"
-        )
-
-        cursor.execute(query)
-
-        conn.commit()
-        eq_(row_count(conn, "directory", "alias"), 1)
+from minerva.test import connect, clear_database
 
 
-@with_conn(clear_database)
-def test_create_tag(conn):
-    with closing(conn.cursor()) as cursor:
-        cursor.execute(
-            "INSERT INTO directory.entity_type (id, name, description) "
-            "VALUES (1, 'test_type', 'test entity type')"
-        )
+class TestEntityTags(unittest.TestCase):
+    def setUp(self):
+        self.conn = clear_database(connect())
 
-        cursor.execute(
-            "INSERT INTO directory.entity ("
-            "id, created, name, entity_type_id, dn"
-            ") VALUES ("
-            "DEFAULT, now(), 'test_entity', 1, 'type=12345'"
-            ")"
-        )
+    def tearDown(self):
+        self.conn.close()
 
-        conn.commit()
-        eq_(row_count(conn, "directory", "tag"), 1)
+    def test_create_alias(self):
+        with closing(self.conn.cursor()) as cursor:
+            query = (
+                "INSERT INTO directory.entity_type (id, name, description) VALUES "
+                "(1, 'test_type', 'test entity type')"
+            )
 
+            cursor.execute(query)
 
-@with_conn(clear_database)
-def test_create_entity_tag_link(conn):
-    with closing(conn.cursor()) as cursor:
-        cursor.execute(
-            "INSERT INTO directory.entity_type (id, name, description) "
-            "VALUES (1, 'test_type', 'test entity type')"
-        )
+            query = (
+                "INSERT INTO directory.entity "
+                "(id, created, \"name\", entity_type_id, dn) "
+                "VALUES"
+                "(DEFAULT, now(), 'test_entity', 1, 'type=12345')"
+            )
 
-        cursor.execute(
-            "INSERT INTO directory.entity ("
-            "id, created, name, entity_type_id, dn"
-            ") "
-            "VALUES (DEFAULT, now(), 'test_entity', 1, 'type=12345')"
-        )
+            cursor.execute(query)
 
-        conn.commit()
+            self.conn.commit()
+            self.assertEqual(row_count(self.conn, "directory", "alias"), 1)
 
-        eq_(row_count(conn, "directory", "entity_tag_link"), 1)
+    def test_create_tag(self):
+        with closing(self.conn.cursor()) as cursor:
+            cursor.execute(
+                "INSERT INTO directory.entity_type (id, name, description) "
+                "VALUES (1, 'test_type', 'test entity type')"
+            )
+
+            cursor.execute(
+                "INSERT INTO directory.entity ("
+                "id, created, name, entity_type_id, dn"
+                ") VALUES ("
+                "DEFAULT, now(), 'test_entity', 1, 'type=12345'"
+                ")"
+            )
+
+            self.conn.commit()
+            self.assertEqual(row_count(self.conn, "directory", "tag"), 1)
+
+    def test_create_entity_tag_link(self):
+        with closing(self.conn.cursor()) as cursor:
+            cursor.execute(
+                "INSERT INTO directory.entity_type (id, name, description) "
+                "VALUES (1, 'test_type', 'test entity type')"
+            )
+
+            cursor.execute(
+                "INSERT INTO directory.entity ("
+                "id, created, name, entity_type_id, dn"
+                ") "
+                "VALUES (DEFAULT, now(), 'test_entity', 1, 'type=12345')"
+            )
+
+            self.conn.commit()
+
+            self.assertEqual(row_count(self.conn, "directory", "entity_tag_link"), 1)
 
 
 def row_count(conn, schema, table):

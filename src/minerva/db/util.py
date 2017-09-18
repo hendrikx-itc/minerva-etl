@@ -122,3 +122,7 @@ def create_temp_table_from(cursor, table):
     cursor.execute(query)
 
     return tmp_table
+
+
+def is_unique():
+    raise NotImplementedError()

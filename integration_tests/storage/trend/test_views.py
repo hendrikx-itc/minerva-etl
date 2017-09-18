@@ -1,44 +1,51 @@
 import datetime
 from contextlib import closing
+import unittest
 
 import pytz
 
-from minerva.test import with_conn, clear_database, eq_
+from minerva.test import connect, clear_database
 from minerva.test.trend import TestSet1Small
 from minerva.directory import DataSource
 from minerva.storage.trend.viewtrendstore import \
         ViewTrendStore, ViewTrendStoreDescriptor
 
 
-@with_conn(clear_database)
-def test_create_view(conn):
-    test_set_small = TestSet1Small()
+class TestViews(unittest.TestCase):
+    def setUp(self):
+        self.conn = clear_database(connect())
 
-    with closing(conn.cursor()) as cursor:
-        test_set_small.load(cursor)
+    def tearDown(self):
+        self.conn.close()
 
-        data_source = DataSource.from_name("view-test")(cursor)
+    def test_create_view(self):
+        test_set_small = TestSet1Small()
 
-        view_query = (
-            "SELECT "
-            "999 AS entity_id, "
-            "'2013-08-26 13:00:00+02:00'::timestamptz AS timestamp, "
-            '10 AS "CntrA"'
-        )
+        with closing(self.conn.cursor()) as cursor:
+            test_set_small.load(cursor)
 
-        trend_store = ViewTrendStore.create(ViewTrendStoreDescriptor(
-            'test-view-trend-store',
-            data_source, test_set_small.entity_type,
-            test_set_small.granularity, view_query
-        ))(cursor)
+            data_source = DataSource.from_name("view-test")(cursor)
 
-        start = pytz.utc.localize(
-            datetime.datetime(2013, 8, 26, 13, 0, 0)
-        )
-        end = start
+            view_query = (
+                "SELECT "
+                "999 AS entity_id, "
+                "'2013-08-26 13:00:00+02:00'::timestamptz AS timestamp, "
+                '10 AS "CntrA"'
+            )
 
-        trend_store.retrieve(["CntrA"]).execute(cursor)
+            trend_store = ViewTrendStore.create(ViewTrendStoreDescriptor(
+                'test-view-trend-store',
+                data_source, test_set_small.entity_type,
+                test_set_small.granularity, view_query
+            ))(cursor)
 
-        result = cursor.fetchall()
+            start = pytz.utc.localize(
+                datetime.datetime(2013, 8, 26, 13, 0, 0)
+            )
+            end = start
 
-        eq_(len(result), 1)
+            trend_store.retrieve(["CntrA"]).execute(cursor)
+
+            result = cursor.fetchall()
+
+        self.assertEqual(len(result), 1)

@@ -2,8 +2,8 @@
 """
 Unit tests for the storing of data packages.
 """
-from nose.tools import eq_
 from datetime import datetime
+import unittest
 
 import pytz
 
@@ -12,374 +12,368 @@ from minerva.db.query import smart_quote, Schema, Table, Column, Value, \
     extract_tables, Call, Insert, Function, FromItem, Join
 
 
-def test_smart_quote():
-    """
-    Names that require quoting for PostgreSQL should be quoted.
-    """
-    eq_('name', smart_quote('name'))
+class TestQuery(unittest.TestCase):
+    def test_smart_quote(self):
+        """
+        Names that require quoting for PostgreSQL should be quoted.
+        """
+        self.assertEqual(*'name', smart_quote('name'))
 
-    eq_('"Name"', smart_quote('Name'))
+        self.assertEqual(*'"Name"', smart_quote('Name'))
 
-    eq_('"name-with-dashes"', smart_quote('name-with-dashes'))
+        self.assertEqual(*'"name-with-dashes"', smart_quote('name-with-dashes'))
 
+    def test_value_int(self):
+        self.assertEqual(*Value(42).render(), '42')
 
-def test_value_int():
-    eq_(Value(42).render(), '42')
+    def test_value_bool(self):
+        self.assertEqual(*Value(True).render(), 'true')
 
+    def test_value_datetime(self):
+        dt = datetime(2013, 1, 5, 17, 0, 0)
 
-def test_value_bool():
-    eq_(Value(True).render(), 'true')
+        self.assertEqual(*Value(dt).render(), "'2013-01-05T17:00:00'")
 
+    def test_value_datetime_with_timezone(self):
+        tzinfo = pytz.timezone("Europe/Amsterdam")
+        dt = tzinfo.localize(datetime(2013, 1, 5, 17, 0, 0))
 
-def test_value_datetime():
-    dt = datetime(2013, 1, 5, 17, 0, 0)
+        self.assertEqual(*Value(dt).render(), "'2013-01-05T17:00:00+01:00'")
 
-    eq_(Value(dt).render(), "'2013-01-05T17:00:00'")
+    def test_column(self):
+        column = Column("name")
 
+        self.assertEqual(*column.render(), "name")
 
-def test_value_datetime_with_timezone():
-    tzinfo = pytz.timezone("Europe/Amsterdam")
-    dt = tzinfo.localize(datetime(2013, 1, 5, 17, 0, 0))
+        self.assertEqual(*type(column.as_("other")), As)
 
-    eq_(Value(dt).render(), "'2013-01-05T17:00:00+01:00'")
+        r = column == 45
 
+        self.assertEqual(*type(r), Eq)
 
-def test_column():
-    column = Column("name")
+        self.assertEqual(*r.render(), "name = 45")
 
-    eq_(column.render(), "name")
+    def test_and(self):
+        query_part = And(Value(True), Value(False))
 
-    eq_(type(column.as_("other")), As)
+        sql = query_part.render()
 
-    r = column == 45
+        self.assertEqual(*sql, "true AND false")
 
-    eq_(type(r), Eq)
+    def test_ands(self):
+        query_part = ands([Value(True), Value(True), Value(False)])
 
-    eq_(r.render(), "name = 45")
+        sql = query_part.render()
 
+        self.assertEqual(*sql, "true AND true AND false")
 
-def test_and():
-    query_part = And(Value(True), Value(False))
+    def test_or(self):
+        query_part = Or(Value(True), Value(False))
 
-    sql = query_part.render()
+        sql = query_part.render()
 
-    eq_(sql, "true AND false")
+        self.assertEqual(*sql, "true OR false")
 
+    def test_or_references(self):
+        query_part = Or(Eq(Column('id'), Value(42)), Value(False))
 
-def test_ands():
-    query_part = ands([Value(True), Value(True), Value(False)])
+        references = list(query_part.references())
 
-    sql = query_part.render()
+        self.assertEqual(*len(references), 1)
 
-    eq_(sql, "true AND true AND false")
+        self.assertEqual(*references[0].name, 'id')
 
+    def test_ors(self):
+        query_part = ors([Value(False), Value(True), Value(False)])
 
-def test_or():
-    query_part = Or(Value(True), Value(False))
+        sql = query_part.render()
 
-    sql = query_part.render()
+        self.assertEqual(*sql, "false OR true OR false")
 
-    eq_(sql, "true OR false")
+    def test_parenthesis(self):
+        query_part = Parenthesis(
+            And(Value(True), And(Value(True), Value(False)))
+        )
 
+        sql = query_part.render()
 
-def test_or_references():
-    query_part = Or(Eq(Column('id'), Value(42)), Value(False))
+        self.assertEqual(*sql, "(true AND true AND false)")
 
-    references = list(query_part.references())
+    def test_eq(self):
+        query_part = Eq(Value(42), Value(42))
 
-    eq_(len(references), 1)
+        sql = query_part.render()
 
-    eq_(references[0].name, 'id')
+        self.assertEqual(*sql, "42 = 42")
 
+    def test_argument(self):
+        query_part = Eq(Value(42), Argument('testarg'))
 
-def test_ors():
-    query_part = ors([Value(False), Value(True), Value(False)])
+        sql = query_part.render()
 
-    sql = query_part.render()
+        self.assertEqual(*sql, "42 = %(testarg)s")
 
-    eq_(sql, "false OR true OR false")
+    def test_argument_preset(self):
+        query_part = Eq(Value(42), Argument('testarg', Value(55)))
 
+        sql = query_part.render()
 
-def test_parenthesis():
-    query_part = Parenthesis(And(Value(True), And(Value(True), Value(False))))
+        self.assertEqual(*sql, "42 = 55")
 
-    sql = query_part.render()
+    def test_select_fq(self):
+        test_schema = Schema("test")
+        dummy_table = Table(test_schema, "dummy")
+        columns = [
+            Column(dummy_table, "id"),
+            Column(dummy_table, "name")]
+        query = Select(columns, from_=[dummy_table])
 
-    eq_(sql, "(true AND true AND false)")
+        sql = query.render()
 
+        self.assertEqual(
+            *sql, 'SELECT test.dummy.id, test.dummy.name FROM test.dummy'
+        )
 
-def test_eq():
-    query_part = Eq(Value(42), Value(42))
+    def test_select(self):
+        dummy_table = Table("dummy")
 
-    sql = query_part.render()
+        columns = [
+            Column("id"),
+            Column("name")]
 
-    eq_(sql, "42 = 42")
+        query = Select(columns, from_=[dummy_table])
 
+        sql = query.render()
 
-def test_argument():
-    query_part = Eq(Value(42), Argument('testarg'))
+        self.assertEqual(*sql, 'SELECT id, name FROM dummy')
 
-    sql = query_part.render()
+    def test_select_with_alias(self):
+        dummy_table = Table("dummy")
+        table_alias = As(dummy_table, "d")
 
-    eq_(sql, "42 = %(testarg)s")
+        columns = [
+            Column(table_alias, "id"),
+            Column(table_alias, "name")]
 
+        query = Select(columns, from_=[table_alias])
 
-def test_argument_preset():
-    query_part = Eq(Value(42), Argument('testarg', Value(55)))
+        sql = query.render()
 
-    sql = query_part.render()
+        self.assertEqual(*sql, 'SELECT d.id, d.name FROM dummy AS d')
 
-    eq_(sql, "42 = 55")
+    def test_select_with_where(self):
+        dummy_table = Table("dummy")
 
+        columns = [
+            Column("id"),
+            Column("name")]
 
-def test_select_fq():
-    test_schema = Schema("test")
-    dummy_table = Table(test_schema, "dummy")
-    columns = [
-        Column(dummy_table, "id"),
-        Column(dummy_table, "name")]
-    query = Select(columns, from_=[dummy_table])
+        query = Select(columns, from_=[dummy_table], where_=Eq(Column(
+            "id"), Value(25)))
 
-    sql = query.render()
+        sql = query.render()
 
-    eq_(sql, 'SELECT test.dummy.id, test.dummy.name FROM test.dummy')
+        self.assertEqual(*sql, 'SELECT id, name FROM dummy WHERE id = 25')
 
+    def test_select_with_where_arg(self):
+        dummy_table = Table("dummy")
 
-def test_select():
-    dummy_table = Table("dummy")
+        columns = [
+            Column("id"),
+            Column("name")]
 
-    columns = [
-        Column("id"),
-        Column("name")]
+        query = Select(columns, from_=[dummy_table], where_=Eq(Column(
+            "id"), Argument()))
 
-    query = Select(columns, from_=[dummy_table])
+        sql = query.render()
 
-    sql = query.render()
+        self.assertEqual(*sql, 'SELECT id, name FROM dummy WHERE id = %s')
 
-    eq_(sql, 'SELECT id, name FROM dummy')
+    def test_select_with_group_by(self):
+        dummy_table = Table("dummy")
 
+        col_id = Column("id")
+        col_name = Column("name")
 
-def test_select_with_alias():
-    dummy_table = Table("dummy")
-    table_alias = As(dummy_table, "d")
+        columns = [
+            col_id,
+            col_name]
 
-    columns = [
-        Column(table_alias, "id"),
-        Column(table_alias, "name")]
+        query = Select(columns, from_=[dummy_table], where_=Eq(
+            col_name, Argument()), group_by_=[col_name])
 
-    query = Select(columns, from_=[table_alias])
+        sql = query.render()
 
-    sql = query.render()
+        self.assertEqual(
+            *sql, 'SELECT id, name FROM dummy WHERE name = %s GROUP BY name'
+        )
 
-    eq_(sql, 'SELECT d.id, d.name FROM dummy AS d')
+    def test_select_chained(self):
+        dummy_table = Table("dummy")
 
+        col_id = Column("id")
+        col_name = Column("name")
 
-def test_select_with_where():
-    dummy_table = Table("dummy")
+        columns = [
+            col_id,
+            col_name]
 
-    columns = [
-        Column("id"),
-        Column("name")]
+        query = Select(columns).from_([dummy_table]).where_(Eq(
+            col_name, Argument())).group_by_([col_name])
 
-    query = Select(columns, from_=[dummy_table], where_=Eq(Column(
-        "id"), Value(25)))
+        sql = query.render()
 
-    sql = query.render()
+        self.assertEqual(
+            *sql, 'SELECT id, name FROM dummy WHERE name = %s GROUP BY name'
+        )
 
-    eq_(sql, 'SELECT id, name FROM dummy WHERE id = 25')
+    def test_select_with_join(self):
+        dummy_table_a = Table("dummy_a")
+        col_id_a = Column(dummy_table_a, "id")
+        col_name = Column(dummy_table_a, "name")
+        dummy_table_b = Table("dummy_b")
+        col_id_b = Column(dummy_table_b, "id")
+        col_amount = Column(dummy_table_b, "amount")
 
+        columns = [col_name, col_amount]
 
-def test_select_with_where_arg():
-    dummy_table = Table("dummy")
+        from_part = Join(dummy_table_a, dummy_table_b, Eq(col_id_a, col_id_b))
 
-    columns = [
-        Column("id"),
-        Column("name")]
+        query = Select(columns).from_(from_part)
 
-    query = Select(columns, from_=[dummy_table], where_=Eq(Column(
-        "id"), Argument()))
+        sql = query.render()
 
-    sql = query.render()
+        self.assertEqual(
+            *sql,
+            (
+                'SELECT dummy_a.name, dummy_b.amount '
+                'FROM dummy_a '
+                'JOIN dummy_b ON dummy_a.id = dummy_b.id'
+            )
+        )
 
-    eq_(sql, 'SELECT id, name FROM dummy WHERE id = %s')
+    def test_select_with_left_join(self):
+        dummy_table_a = Table("dummy_a")
+        col_id_a = Column(dummy_table_a, "id")
+        col_name = Column(dummy_table_a, "name")
+        dummy_table_b = Table("dummy_b")
+        col_id_b = Column(dummy_table_b, "id")
+        col_amount = Column(dummy_table_b, "amount")
+        columns = [col_name, col_amount]
 
+        from_part = FromItem(dummy_table_a).left_join(
+                dummy_table_b, Eq(col_id_a, col_id_b))
 
-def test_select_with_group_by():
-    dummy_table = Table("dummy")
+        query = Select(columns).from_(from_part)
 
-    col_id = Column("id")
-    col_name = Column("name")
+        sql = query.render()
 
-    columns = [
-        col_id,
-        col_name]
+        self.assertEqual(
+            *sql,
+            (
+                'SELECT dummy_a.name, dummy_b.amount '
+                'FROM dummy_a '
+                'LEFT JOIN dummy_b ON dummy_a.id = dummy_b.id'
+            )
+        )
 
-    query = Select(columns, from_=[dummy_table], where_=Eq(
-        col_name, Argument()), group_by_=[col_name])
+    def test_extract_references(self):
+        dummy_table = Table("dummy")
 
-    sql = query.render()
+        col_id = Column("id")
+        col_name = Column("name")
 
-    eq_(sql, 'SELECT id, name FROM dummy WHERE name = %s GROUP BY name')
+        columns = [
+            col_id,
+            col_name]
 
+        query = Select(columns).from_(
+            [dummy_table]
+        ).where_(Eq(col_name, Argument())).group_by_([col_name])
 
-def test_select_chained():
-    dummy_table = Table("dummy")
+        references = query.references()
 
-    col_id = Column("id")
-    col_name = Column("name")
+        self.assertEqual(*len(references), 4)
 
-    columns = [
-        col_id,
-        col_name]
+    def test_filter_tables(self):
+        dummy_table = Table("dummy")
 
-    query = Select(columns).from_([dummy_table]).where_(Eq(
-        col_name, Argument())).group_by_([col_name])
+        col_id = Column("id")
+        col_name = Column("name")
 
-    sql = query.render()
+        columns = [
+            col_id,
+            col_name]
 
-    eq_(sql, 'SELECT id, name FROM dummy WHERE name = %s GROUP BY name')
+        query = Select(columns).from_([dummy_table]).where_(Eq(
+            col_name, Argument())).group_by_([col_name])
 
+        tables = filter_tables(query.references())
 
-def test_select_with_join():
-    dummy_table_a = Table("dummy_a")
-    col_id_a = Column(dummy_table_a, "id")
-    col_name = Column(dummy_table_a, "name")
-    dummy_table_b = Table("dummy_b")
-    col_id_b = Column(dummy_table_b, "id")
-    col_amount = Column(dummy_table_b, "amount")
+        self.assertEqual(*len(tables), 1)
 
-    columns = [col_name, col_amount]
+        self.assertEqual(*tables[0].name, "dummy")
 
-    from_part = Join(dummy_table_a, dummy_table_b, Eq(col_id_a, col_id_b))
+    def test_extract_tables(self):
+        dummy_table = Table("dummy")
 
-    query = Select(columns).from_(from_part)
+        col_id = Column(dummy_table, "id")
+        col_name = Column(dummy_table, "name")
 
-    sql = query.render()
+        columns = [
+            col_id,
+            col_name]
 
-    eq_(sql, 'SELECT dummy_a.name, dummy_b.amount FROM \
-            dummy_a JOIN dummy_b ON dummy_a.id = dummy_b.id')
+        tables = extract_tables(columns)
 
+        self.assertEqual(*len(tables), 2)
 
-def test_select_with_left_join():
-    dummy_table_a = Table("dummy_a")
-    col_id_a = Column(dummy_table_a, "id")
-    col_name = Column(dummy_table_a, "name")
-    dummy_table_b = Table("dummy_b")
-    col_id_b = Column(dummy_table_b, "id")
-    col_amount = Column(dummy_table_b, "amount")
-    columns = [col_name, col_amount]
+        self.assertEqual(*tables[0].name, "dummy")
 
-    from_part = FromItem(dummy_table_a).left_join(
-            dummy_table_b, Eq(col_id_a, col_id_b))
+    def test_arguments(self):
+        dummy_table = Table("dummy")
 
-    query = Select(columns).from_(from_part)
+        col_id = Column("id")
+        col_name = Column("name")
 
-    sql = query.render()
+        columns = [
+            col_id,
+            col_name]
 
-    eq_(sql, 'SELECT dummy_a.name, dummy_b.amount FROM \
-            dummy_a LEFT JOIN dummy_b ON dummy_a.id = dummy_b.id')
+        query = Select(columns).from_([dummy_table]).where_(Eq(
+            col_name, Argument())).group_by_([col_name])
 
+        arguments = query.arguments()
 
-def test_extract_references():
-    dummy_table = Table("dummy")
+        self.assertEqual(*len(arguments), 1)
 
-    col_id = Column("id")
-    col_name = Column("name")
+    def test_call(self):
+        col_a = Column("a")
+        col_b = Column("b")
 
-    columns = [
-        col_id,
-        col_name]
+        call = Call("greatest", col_a, col_b)
 
-    query = Select(columns).from_(
-        [dummy_table]
-    ).where_(Eq(col_name, Argument())).group_by_([col_name])
+        self.assertEqual(*call.render(), "greatest(a, b)")
 
-    references = query.references()
+    def test_insert(self):
+        dummy_table = Table("dummy")
 
-    eq_(len(references), 4)
+        col_id = Column("id")
+        col_name = Column("name")
 
+        insert = Insert(dummy_table, (col_id, col_name))
 
-def test_filter_tables():
-    dummy_table = Table("dummy")
+        self.assertEqual(
+            *insert.render(),
+            "INSERT INTO dummy(id, name) VALUES (%s, %s)"
+        )
 
-    col_id = Column("id")
-    col_name = Column("name")
+    def test_function(self):
+        dummy_function = Function("add_many")
 
-    columns = [
-        col_id,
-        col_name]
+        col_a = Column("counter_a")
+        col_b = Column("counter_b")
 
-    query = Select(columns).from_([dummy_table]).where_(Eq(
-        col_name, Argument())).group_by_([col_name])
+        call = dummy_function.call(col_a, col_b)
 
-    tables = filter_tables(query.references())
-
-    eq_(len(tables), 1)
-
-    eq_(tables[0].name, "dummy")
-
-
-def test_extract_tables():
-    dummy_table = Table("dummy")
-
-    col_id = Column(dummy_table, "id")
-    col_name = Column(dummy_table, "name")
-
-    columns = [
-        col_id,
-        col_name]
-
-    tables = extract_tables(columns)
-
-    eq_(len(tables), 2)
-
-    eq_(tables[0].name, "dummy")
-
-
-def test_arguments():
-    dummy_table = Table("dummy")
-
-    col_id = Column("id")
-    col_name = Column("name")
-
-    columns = [
-        col_id,
-        col_name]
-
-    query = Select(columns).from_([dummy_table]).where_(Eq(
-        col_name, Argument())).group_by_([col_name])
-
-    arguments = query.arguments()
-
-    eq_(len(arguments), 1)
-
-
-def test_call():
-    col_a = Column("a")
-    col_b = Column("b")
-
-    call = Call("greatest", col_a, col_b)
-
-    eq_(call.render(), "greatest(a, b)")
-
-
-def test_insert():
-    dummy_table = Table("dummy")
-
-    col_id = Column("id")
-    col_name = Column("name")
-
-    insert = Insert(dummy_table, (col_id, col_name))
-
-    eq_(insert.render(), "INSERT INTO dummy(id, name) VALUES (%s, %s)")
-
-
-def test_function():
-    dummy_function = Function("add_many")
-
-    col_a = Column("counter_a")
-    col_b = Column("counter_b")
-
-    call = dummy_function.call(col_a, col_b)
-
-    eq_(call.render(), "add_many(counter_a, counter_b)")
+        self.assertEqual(*call.render(), "add_many(counter_a, counter_b)")
