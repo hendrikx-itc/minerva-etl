@@ -11,7 +11,7 @@ from minerva.directory.entityref import EntityDnRef, EntityIdRef
 from minerva.directory.distinguishedname import entity_type_name_from_dn
 
 
-class DataPackageBase:
+class DataPackage:
     """
     A DataPackage represents a batch of trend records for the same EntityType
     granularity and timestamp. The EntityType is implicitly determined by the
@@ -112,7 +112,7 @@ class DataPackageBase:
     def merge_packages(packages):
         return [
             package_group(key, list(group))
-            for key, group in grouped_by(packages, DataPackageBase.get_key)
+            for key, group in grouped_by(packages, DataPackage.get_key)
         ]
 
     def copy_from(self, table, value_descriptors, modified):
@@ -204,7 +204,7 @@ def data_package_type(name, entity_ref_type, entity_type_name, refine_values):
     @type refine_values: function(parsers) -> function(values)
     -> refined_values
     """
-    return type(name, (DataPackageBase,), {
+    return type(name, (DataPackage,), {
         'entity_ref_type': classmethod(lambda cls: entity_ref_type),
         'entity_type_name': entity_type_name,
         'refine_values': staticmethod(refine_values)

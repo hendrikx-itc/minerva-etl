@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
-from minerva.storage.trend.datapackage import DataPackageBase
+from minerva.storage.trend.datapackage import DataPackage
 from minerva.directory.distinguishedname import explode
 from minerva.util import grouped_by
 
 
-class RawDataPackage(DataPackageBase):
+class RawDataPackage(DataPackage):
     def __init__(self, granularity, timestamp, trend_names, rows):
         self.granularity = granularity
         self.timestamp = timestamp

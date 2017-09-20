@@ -26,6 +26,7 @@ setup(
     ],
     packages=[
         "minerva",
+        "minerva.commands",
         "minerva.util",
         "minerva.test",
         "minerva.db",
@@ -40,7 +41,8 @@ setup(
         "minerva.xmldochandler.xmlschema",
         "minerva.xmlschemaparser",
         "minerva.schemacontextbuilder",
-        "minerva.instance"
+        "minerva.instance",
+        "minerva.harvest"
     ],
     package_dir={"": "src"},
     package_data={
@@ -72,5 +74,7 @@ setup(
         "scripts/query-entities",
         "scripts/trend-to-csv",
         "scripts/vacuum-full-trend-data",
+        "scripts/processfile",
+        "scripts/minerva"
     ]
 )

@@ -7,7 +7,7 @@ import unittest
 import pytz
 
 from minerva.storage.trend.granularity import create_granularity
-from minerva.storage.trend.datapackage import DataPackageBase, DefaultPackage
+from minerva.storage.trend.datapackage import DataPackage, DefaultPackage
 
 
 class TestDataPackage(unittest.TestCase):
@@ -71,7 +71,7 @@ class TestDataPackage(unittest.TestCase):
 
         packages = [data_package_1, data_package_2]
 
-        merged_packages = DataPackageBase.merge_packages(packages)
+        merged_packages = DataPackage.merge_packages(packages)
 
         self.assertEqual(len(merged_packages), 1)
 

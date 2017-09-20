@@ -1,0 +1,25 @@
+#!/usr/bin/env python3
+import sys
+import argparse
+
+from minerva.commands import datasource
+from minerva.commands import trendstore
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description='Minerva administration tool set'
+    )
+
+    subparsers = parser.add_subparsers()
+
+    datasource.setup_command_parser(subparsers)
+    trendstore.setup_command_parser(subparsers)
+
+    args = parser.parse_args()
+
+    return args.cmd(args)
+
+
+if __name__ == '__main__':
+    sys.exit(main())
