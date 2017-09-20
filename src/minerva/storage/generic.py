@@ -91,18 +91,20 @@ def create_column(conn, schema, table, column_name, data_type):
 
 
 def extract_data_types(data_rows):
-    datatypes = None
+    data_types = None
 
     for _entity_id, values in data_rows:
-        row_datatypes = [datatype.extract_from_value(value)
-                         for value in values]
+        row_data_types = [
+            datatype.parser_descriptor_from_string(value).data_type
+            for value in values
+        ]
 
-        if datatypes is None:
-            datatypes = row_datatypes
+        if data_types is None:
+            data_types = row_data_types
         else:
-            datatypes = datatype.max_datatypes(datatypes, row_datatypes)
+            data_types = datatype.max_data_types(data_types, row_data_types)
 
-    return datatypes
+    return data_types
 
 
 def get_data_types(conn, schema, table, column_names):

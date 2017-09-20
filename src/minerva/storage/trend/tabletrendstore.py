@@ -11,7 +11,6 @@ from minerva.db.util import create_temp_table_from, quote_ident, create_file
 from minerva.util import first, zip_apply, compose
 from minerva.db.query import Table, Column, Eq, ands
 from minerva.storage.trend.trendstore import TrendStore
-from minerva.storage.trend.tabletrendstore import TableTrendStore
 from minerva.storage.trend.trend import TrendDescriptor
 from minerva.storage.trend.partition import Partition
 from minerva.storage.trend.partitioning import Partitioning
@@ -155,7 +154,7 @@ class TableTrendStore(TrendStore):
         return f
 
     @staticmethod
-    def create(descriptor: TableTrendStore.Descriptor):
+    def create(descriptor: Descriptor):
         def f(cursor):
             args = (
                 descriptor.name,

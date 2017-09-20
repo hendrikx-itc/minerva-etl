@@ -11,8 +11,7 @@ from minerva.storage.trend.datapackage import \
     refined_package_type_for_entity_type
 from minerva.storage.trend.trend import TrendDescriptor
 from minerva.storage.trend.trendstore import TrendStore
-from minerva.storage.trend.tabletrendstore import TableTrendStore, \
-    TableTrendStoreDescriptor
+from minerva.storage.trend.tabletrendstore import TableTrendStore
 
 
 class TestSetQtr(DataSet):
@@ -49,7 +48,7 @@ class TestSet1Small(TestSetQtr):
 
         if not self.trend_store:
             self.trend_store = TableTrendStore.create(
-                TableTrendStoreDescriptor(
+                TableTrendStore.Descriptor(
                     'test-set-1-small',
                     self.data_source, self.entity_type, self.granularity,
                     trend_descriptors, partition_size=86400
@@ -77,9 +76,11 @@ class TestSet1Large(TestSetQtr):
         )
 
         if not self.trend_store:
-            self.trend_store = TrendStore.create(TableTrendStoreDescriptor(
-                self.data_source, self.entity_type, self.granularity,
-                [], partition_size=86400)
+            self.trend_store = TrendStore.create(
+                TableTrendStore.Descriptor(
+                    self.data_source, self.entity_type, self.granularity,
+                    [], partition_size=86400
+                )
             )(cursor)
 
         self.trend_store.partition(data_package.timestamp).create(cursor)
@@ -124,11 +125,13 @@ class TestData:
 
         self.data_source_a = DataSource.from_name("test-source-a")(cursor)
 
-        self.trend_store_a = TrendStore.create(TableTrendStoreDescriptor(
-            'test-data-a',
-            self.data_source_a, self.entity_type, granularity,
-            trend_descriptors, partition_size=86400
-        ))(cursor)
+        self.trend_store_a = TrendStore.create(
+            TableTrendStore.Descriptor(
+                'test-data-a',
+                self.data_source_a, self.entity_type, granularity,
+                trend_descriptors, partition_size=86400
+            )
+        )(cursor)
 
         self.trend_store_a.store_copy_from(data_package, self.modified)(cursor)
 
@@ -139,22 +142,26 @@ class TestData:
         )
 
         self.data_source_b = DataSource.from_name("test-source-b")(cursor)
-        self.trend_store_b = TrendStore.create(TableTrendStoreDescriptor(
-            'test-data-b',
-            self.data_source_b, self.entity_type, granularity,
-            trend_descriptors, partition_size=86400
-        ))(cursor)
+        self.trend_store_b = TrendStore.create(
+            TableTrendStore.Descriptor(
+                'test-data-b',
+                self.data_source_b, self.entity_type, granularity,
+                trend_descriptors, partition_size=86400
+            )
+        )(cursor)
 
         self.trend_store_b.store_copy_from(data_package, self.modified)(cursor)
 
         # Data c
 
         self.data_source_c = DataSource.from_name("test-source-c")(cursor)
-        self.trend_store_c = TrendStore.create(TableTrendStoreDescriptor(
-            'test-data-c',
-            self.data_source_c, self.entity_type, granularity, [],
-            partition_size=86400
-        ))(cursor)
+        self.trend_store_c = TrendStore.create(
+            TableTrendStore.Descriptor(
+                'test-data-c',
+                self.data_source_c, self.entity_type, granularity, [],
+                partition_size=86400
+            )
+        )(cursor)
         data_package = generate_data_package_c(
             granularity, self.timestamp_1, self.entities
         )
@@ -166,24 +173,23 @@ class TestData:
         # Data d
 
         self.data_source_d = DataSource.from_name("test-source-d")(cursor)
-        self.trend_store_d = TrendStore.create(TableTrendStoreDescriptor(
-            'test-data-d',
-            self.data_source_d, self.entity_type, granularity, [],
-            partition_size=86400
-        ))(cursor)
+        self.trend_store_d = TrendStore.create(
+            TableTrendStore.Descriptor(
+                'test-data-d',
+                self.data_source_d, self.entity_type, granularity, [],
+                partition_size=86400
+            )
+        )(cursor)
         data_package_1 = generate_data_package_d(
             granularity, self.timestamp_1, self.entities
         )
-        self.partition_d_1 = self.trend_store_d.store(
-            cursor, self.trend_store_d, data_package_1, self.modified
-        )
+        self.partition_d_1 = self.trend_store_d.store(data_package_1)(cursor)
 
         data_package_2 = generate_data_package_d(
             granularity, self.timestamp_2, self.entities
         )
-        self.partition_d_2 = store_data_package(
-            cursor, self.trend_store_d, data_package_2, self.modified
-        )
+
+        self.trend_store_d.store(data_package_2)(cursor)
 
 
 def generate_data_package_a(granularity, timestamp, entities):

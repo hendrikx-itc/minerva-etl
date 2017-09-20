@@ -2,15 +2,15 @@
 """
 Dump Minerva configuration
 """
-import os
 import sys
 import argparse
 from contextlib import closing
 from functools import partial
 
+from psycopg2 import connect
+
 from minerva import __version__ as version
-from minerva.instance import MinervaInstance
-from minerva.storage.trend import TableTrendStore
+from minerva.storage.trend.tabletrendstore import TableTrendStore
 
 
 def main():
@@ -22,10 +22,6 @@ def main():
         "--version", action="version", version=version,
         help="display version information and exit"
     )
-
-    parser.add_argument("-i", "--instance", help="name of the minerva instance")
-
-    parser.add_argument("-u", "--user", help="user to connect to database")
 
     parser.add_argument(
         "-v", "--verbose", action="store_true", default=False,
@@ -39,13 +35,7 @@ def main():
 
     args = parser.parse_args()
 
-    minerva_instance = MinervaInstance.load(
-        args.instance or
-        os.environ.get("DEFAULT_MINERVA_INSTANCE") or
-        "default"
-    )
-
-    with closing(minerva_instance.connect(user=args.user)) as conn:
+    with closing(connect('')) as conn:
         lines = dump(
             conn,
             partial(table_trend_store_query, args.exclude_materialized)

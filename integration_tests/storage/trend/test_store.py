@@ -10,13 +10,12 @@ import pytz
 
 from minerva.db.query import Table, Call, Column, Eq, And
 from minerva.db.error import DataTypeMismatch
-from minerva.test import connect, clear_database
+from minerva.test import connect
 from minerva.directory import DataSource, EntityType
 from minerva.storage import datatype
 from minerva.storage.trend.datapackage import \
     refined_package_type_for_entity_type
-from minerva.storage.trend.tabletrendstore import TableTrendStore, \
-    TableTrendStoreDescriptor
+from minerva.storage.trend.tabletrendstore import TableTrendStore
 from minerva.storage.trend.trendstore import NoSuchTrendError
 from minerva.storage.trend.trend import TrendDescriptor
 from minerva.storage.trend.partitioning import Partitioning
@@ -70,7 +69,7 @@ class TestStore(unittest.TestCase):
             data_source = DataSource.from_name("test-src009")(cursor)
             entity_type = EntityType.from_name("test-type001")(cursor)
 
-            trend_store = TableTrendStore.create(TableTrendStoreDescriptor(
+            trend_store = TableTrendStore.create(TableTrendStore.Descriptor(
                 'test-trend-store', data_source, entity_type, granularity,
                 trend_descriptors, 86400
             ))(cursor)
@@ -119,7 +118,7 @@ class TestStore(unittest.TestCase):
             data_source = DataSource.from_name("test-src010")(cursor)
             entity_type = EntityType.from_name("test-type002")(cursor)
 
-            trend_store = TableTrendStore.create(TableTrendStoreDescriptor(
+            trend_store = TableTrendStore.create(TableTrendStore.Descriptor(
                 'test-trend-store', data_source, entity_type,
                 granularity, trend_descriptors, 86400
             ))(cursor)
@@ -164,7 +163,7 @@ class TestStore(unittest.TestCase):
             data_source = DataSource.from_name("test-src009")(cursor)
             entity_type = EntityType.from_name("test-type001")(cursor)
 
-            trend_store = TableTrendStore.create(TableTrendStoreDescriptor(
+            trend_store = TableTrendStore.create(TableTrendStore.Descriptor(
                 'test-trend-store', data_source, entity_type, granularity,
                 trend_descriptors, 86400
             ))(cursor)
@@ -225,10 +224,11 @@ class TestStore(unittest.TestCase):
             entity_type = EntityType.from_name("test-type001")(cursor)
 
             trend_store = TableTrendStore.create(
-                    TableTrendStoreDescriptor(
-                        'test-trend-store', data_source, entity_type, granularity,
-                        trend_descriptors, 86400 * 7
-                        ))(cursor)
+                TableTrendStore.Descriptor(
+                    'test-trend-store', data_source, entity_type,
+                    granularity, trend_descriptors, 86400 * 7
+                )
+            )(cursor)
 
             partition = trend_store.partition(time1)
 
@@ -291,7 +291,7 @@ class TestStore(unittest.TestCase):
             data_source = DataSource.from_name("test-src009")(cursor)
             entity_type = EntityType.from_name("test-type001")(cursor)
 
-            trend_store = TableTrendStore.create(TableTrendStoreDescriptor(
+            trend_store = TableTrendStore.create(TableTrendStore.Descriptor(
                 'test-trend-store', data_source, entity_type,
                 granularity, trend_descriptors, 86400
             ))(cursor)
@@ -323,7 +323,7 @@ class TestStore(unittest.TestCase):
 
             query.execute(cursor)
             modified_list = [modified for modified in cursor.fetchall()]
-            assert_not_equal(modified_list[0], modified_list[1])
+            self.assertNotEqual(modified_list[0], modified_list[1])
 
             table.select(Call("max", Column("modified"))).execute(cursor)
 
@@ -362,7 +362,7 @@ class TestStore(unittest.TestCase):
             data_source = DataSource.from_name("test-src009")(cursor)
             entity_type = EntityType.from_name("test-type001")(cursor)
 
-            trend_store = TableTrendStore.create(TableTrendStoreDescriptor(
+            trend_store = TableTrendStore.create(TableTrendStore.Descriptor(
                 'test-trend-store', data_source, entity_type, granularity,
                 trend_descriptors, 86400
                 ))(cursor)
@@ -423,7 +423,7 @@ class TestStore(unittest.TestCase):
             data_source = DataSource.from_name("test-src009")(cursor)
             entity_type = EntityType.from_name("test-type001")(cursor)
 
-            trend_store = TableTrendStore.create(TableTrendStoreDescriptor(
+            trend_store = TableTrendStore.create(TableTrendStore.Descriptor(
                 'test-trend-store', data_source, entity_type, granularity,
                 trend_descriptors, 86400
             ))(cursor)
@@ -473,10 +473,12 @@ class TestStore(unittest.TestCase):
             data_source = DataSource.create("test-source", '')(cursor)
             entity_type = EntityType.create("test_type", '')(cursor)
 
-            create_trend_store = TableTrendStore.create(TableTrendStoreDescriptor(
-                'test-trend-store', data_source, entity_type, granularity, [],
-                partition_size
-            ))
+            create_trend_store = TableTrendStore.create(
+                TableTrendStore.Descriptor(
+                    'test-trend-store', data_source, entity_type, granularity,
+                    [], partition_size
+                )
+            )
 
             trend_store = create_trend_store(cursor)
 
@@ -493,7 +495,7 @@ class TestStore(unittest.TestCase):
             data_source = DataSource.create("test-source", '')(cursor)
             entity_type = EntityType.create("test_type", '')(cursor)
 
-            trend_store = TableTrendStore.create(TableTrendStoreDescriptor(
+            trend_store = TableTrendStore.create(TableTrendStore.Descriptor(
                 'test-trend-store', data_source, entity_type, granularity,
                 [], partition_size
             ))(cursor)
@@ -516,7 +518,7 @@ class TestStore(unittest.TestCase):
             entity_type = EntityType.create("test_type", '')(cursor)
             granularity = create_granularity('900 seconds')
 
-            TableTrendStore.create(TableTrendStoreDescriptor(
+            TableTrendStore.create(TableTrendStore.Descriptor(
                 'test-trend-store', data_source, entity_type, granularity,
                 [], partition_size
             ))(cursor)
@@ -550,7 +552,7 @@ class TestStore(unittest.TestCase):
             data_source = DataSource.create("test-source", '')(cursor)
             entity_type = EntityType.create("test_type", '')(cursor)
 
-            trend_store = TableTrendStore.create(TableTrendStoreDescriptor(
+            trend_store = TableTrendStore.create(TableTrendStore.Descriptor(
                 'test-trend-store', data_source, entity_type, granularity,
                 trend_descriptors, partition_size
             ))(cursor)
@@ -595,7 +597,7 @@ class TestStore(unittest.TestCase):
             data_source = DataSource.create("test-source", '')(cursor)
             entity_type = EntityType.create("test_type", '')(cursor)
 
-            trend_store = TableTrendStore.create(TableTrendStoreDescriptor(
+            trend_store = TableTrendStore.create(TableTrendStore.Descriptor(
                 'test-trend-store', data_source, entity_type, granularity,
                 trend_descriptors, partition_size
             ))(cursor)
@@ -658,7 +660,7 @@ class TestStore(unittest.TestCase):
             data_source = DataSource.create("test-source", '')(cursor)
             entity_type = EntityType.create("test_type", '')(cursor)
 
-            trend_store = TableTrendStore.create(TableTrendStoreDescriptor(
+            trend_store = TableTrendStore.create(TableTrendStore.Descriptor(
                 'test-trend-store', data_source, entity_type, granularity,
                 trend_descriptors, partition_size
             ))(cursor)
@@ -760,7 +762,7 @@ class TestStore(unittest.TestCase):
             data_source = DataSource.create("test-source", '')(cursor)
             entity_type = EntityType.create("test_type", '')(cursor)
 
-            trend_store = TableTrendStore.create(TableTrendStoreDescriptor(
+            trend_store = TableTrendStore.create(TableTrendStore.Descriptor(
                 'test-trend-store', data_source, entity_type, granularity,
                 trend_descriptors, partition_size
             ))(cursor)
@@ -833,7 +835,7 @@ class TestStore(unittest.TestCase):
             entity_type = EntityType.create("test_type", '')(cursor)
             granularity = create_granularity('900 seconds')
 
-            trend_store = TableTrendStore.create(TableTrendStoreDescriptor(
+            trend_store = TableTrendStore.create(TableTrendStore.Descriptor(
                 'test-trend-store', data_source, entity_type, granularity,
                 trend_descriptors, partition_size
             ))(cursor)
@@ -875,23 +877,27 @@ class TestData(DataSet):
         self.data_source = None
         self.entity_type = None
 
-    def load(self, cursor):
-        self.data_source = name_to_data_source(cursor, "test-source")
-        self.entity_type = name_to_entity_type(cursor, "test_type")
+    def load(self, conn):
+        with closing(conn.cursor()) as cursor:
+            self.data_source = DataSource.from_name("test-source")(cursor)
+            self.entity_type = EntityType.from_name("test_type")(cursor)
 
 
 class TestStore(unittest.TestCase):
     def setUp(self):
         self.conn = clear_database(connect())
 
+    def tearDown(self):
+        self.conn.close()
+
     def test_create_trend_store(self):
         with with_data_context(self.conn, TestData) as data_set:
             partition_size = 3600
             retention_period = 86400 * 7
 
-            trend_store_descr = TableTrendStoreDescriptor(
-                data_set.datasource, data_set.entitytype,
-                data_set.granularity, [], partition_size, retention_period
+            trend_store_descr = TableTrendStore.Descriptor(
+                'test-store', data_set.data_source, data_set.entity_type,
+                data_set.granularity, [], partition_size
             )
 
             with closing(self.conn.cursor()) as cursor:
@@ -905,9 +911,9 @@ class TestStore(unittest.TestCase):
         with with_data_context(self.conn, TestData) as data_set:
             partition_size = 3600
 
-            trend_store_descr = TableTrendStoreDescriptor(
+            trend_store_descr = TableTrendStore.Descriptor(
                 'test_store',
-                data_set.datasource, data_set.entitytype, data_set.granularity,
+                data_set.data_source, data_set.entity_type, data_set.granularity,
                 [], partition_size
             )
 
@@ -916,7 +922,7 @@ class TestStore(unittest.TestCase):
 
                 self.assertIsNotNone(trend_store.id)
 
-                timestamp = data_set.datasource.tzinfo.localize(
+                timestamp = pytz.utc.localize(
                     datetime.datetime(2013, 5, 6, 14, 45)
                 )
 
@@ -929,32 +935,31 @@ class TestStore(unittest.TestCase):
             partition_size = 3600
 
             with closing(self.conn.cursor()) as cursor:
-                trend_store_descr = TableTrendStoreDescriptor(
-                    'test_store', data_set.datasource, data_set.entitytype,
+                trend_store_descr = TableTrendStore.Descriptor(
+                    'test_store', data_set.data_source, data_set.entity_type,
                     data_set.granularity, [], partition_size
                 )
 
                 TableTrendStore.create(trend_store_descr)(cursor)
 
                 trend_store = TableTrendStore.get(
-                    data_set.datasource, data_set.entitytype,
+                    data_set.data_source, data_set.entity_type,
                     data_set.granularity
                 )(cursor)
 
                 self.assertEqual(
-                    trend_store.datasource.id, data_set.datasource.id
+                    trend_store.data_source.id, data_set.data_source.id
                 )
                 self.assertEqual(trend_store.partition_size, partition_size)
                 self.assertIsNotNone(trend_store.id)
-                self.assertEqual(trend_store.version, 4)
 
     def test_store_copy_from(self):
         with with_data_context(self.conn, TestData) as data_set:
             partition_size = 86400
 
             with closing(self.conn.cursor()) as cursor:
-                trend_store_descr = TableTrendStoreDescriptor(
-                    'test_store', data_set.datasource, data_set.entitytype,
+                trend_store_descr = TableTrendStore.Descriptor(
+                    'test_store', data_set.data_source, data_set.entity_type,
                     data_set.granularity, [], partition_size
                 )
 
@@ -962,7 +967,7 @@ class TestStore(unittest.TestCase):
 
             self.conn.commit()
 
-            timestamp = data_set.datasource.tzinfo.localize(
+            timestamp = pytz.utc.localize(
                 datetime.datetime(2013, 4, 25, 9, 45)
             )
 
@@ -971,24 +976,22 @@ class TestStore(unittest.TestCase):
             def make_row(index):
                 return 1234 + index, [1, 2, 3 + index]
 
-            rows = map(make_row, range(100))
+            rows = list(map(make_row, range(100)))
 
             data_package = refined_package_type_for_entity_type('TestType')(
                 data_set.granularity, timestamp, trends, rows
             )
 
-            transaction = trend_store.store(data_package)
-            transaction.run(self.conn)
+            trend_store.store(data_package)(self.conn)
 
-            transaction = trend_store.store(data_package)
-            transaction.run(self.conn)
+            trend_store.store(data_package)(self.conn)
 
     def test_store_copy_from_missing_column(self):
         with with_data_context(self.conn, TestData) as dataset:
             partition_size = 86400
 
-            trend_store_descr = TableTrendStoreDescriptor(
-                'test_store', dataset.datasource, dataset.entitytype,
+            trend_store_descr = TableTrendStore.Descriptor(
+                'test_store', dataset.data_source, dataset.entity_type,
                 dataset.granularity, [], partition_size
             )
 
@@ -997,7 +1000,7 @@ class TestStore(unittest.TestCase):
 
             self.conn.commit()
 
-            timestamp = dataset.datasource.tzinfo.localize(
+            timestamp = pytz.utc.localize(
                 datetime.datetime(2013, 4, 25, 9, 45)
             )
 
@@ -1006,18 +1009,17 @@ class TestStore(unittest.TestCase):
             def make_row_x(index):
                 return 1234 + index, [1, 2, 3 + index]
 
-            rows = map(make_row_x, range(100))
+            rows = list(map(make_row_x, range(100)))
 
             data_package = refined_package_type_for_entity_type('TestType')(
                 dataset.granularity, timestamp, trends, rows
             )
 
-            transaction = trend_store.store(data_package)
-            transaction.run(self.conn)
+            trend_store.store(data_package)(self.conn)
 
             # Store second part with one column extra
 
-            timestamp = dataset.datasource.tzinfo.localize(
+            timestamp = pytz.utc.localize(
                 datetime.datetime(2013, 4, 25, 10, 00)
             )
 
@@ -1026,32 +1028,32 @@ class TestStore(unittest.TestCase):
             def make_row_y(index):
                 return 1234 + index, [1, 2, 3, 4 + index]
 
-            rows = map(make_row_y, range(100))
+            rows = list(map(make_row_y, range(100)))
 
             data_package = refined_package_type_for_entity_type('TestType')(
                 dataset.granularity, timestamp, trends, rows
             )
 
-            transaction = trend_store.store(data_package)
-            transaction.run(self.conn)
+            trend_store.store(data_package)(self.conn)
 
     def test_store(self):
         with with_data_context(self.conn, TestData) as dataset:
             partition_size = 86400
 
-            trend_store = TableTrendStoreDescriptor(
-                'TestStore', dataset.datasource, dataset.entitytype,
+            timestamp = pytz.utc.localize(
+                datetime.datetime(2013, 4, 25, 9, 45)
+            )
+
+            trend_store_descr = TableTrendStore.Descriptor(
+                'TestStore', dataset.data_source, dataset.entity_type,
                 dataset.granularity, [], partition_size
             )
 
             with closing(self.conn.cursor()) as cursor:
-                trend_store.create(cursor)
+                trend_store = TableTrendStore.create(trend_store_descr)(cursor)
+                trend_store.partition(timestamp).create(cursor)
 
             self.conn.commit()
-
-            timestamp = dataset.datasource.tzinfo.localize(
-                datetime.datetime(2013, 4, 25, 9, 45)
-            )
 
             trends = ["a", "b", "c"]
 
@@ -1064,8 +1066,7 @@ class TestStore(unittest.TestCase):
                 dataset.granularity, timestamp, trends, rows
             )
 
-            transaction = trend_store.store(data_package)
-            transaction.run(self.conn)
+            trend_store.store(data_package)(self.conn)
 
             table = trend_store.partition(timestamp).table()
 
@@ -1092,8 +1093,7 @@ class TestStore(unittest.TestCase):
                 dataset.granularity, timestamp, trends, rows
             )
 
-            transaction = trend_store.store(data_package)
-            transaction.run(self.conn)
+            trend_store.store(data_package)(self.conn)
 
             with closing(self.conn.cursor()) as cursor:
                 query.execute(cursor)
@@ -1101,159 +1101,3 @@ class TestStore(unittest.TestCase):
                 c, = cursor.fetchone()
 
             self.assertEqual(c, 7)
-
-    def test_generate_index(self):
-        with with_data_context(self.conn, TestData) as dataset:
-            partition_size = 86400
-
-            start = dataset.datasource.tzinfo.localize(
-                datetime.datetime(2013, 4, 25, 9, 45)
-            )
-            end = dataset.datasource.tzinfo.localize(
-                datetime.datetime(2013, 4, 27, 9, 45)
-            )
-
-            partitioning = Partitioning(partition_size)
-
-            for timestamp in dataset.granularity.range(start, end):
-                partition_index = partitioning.index(timestamp)
-
-                args = partition_size, timestamp
-
-                with closing(self.conn.cursor()) as cursor:
-                    cursor.callproc("trend.timestamp_to_index", args)
-
-                    postgresql_partition_index, = cursor.fetchone()
-
-                self.assertEqual(postgresql_partition_index, partition_index)
-
-    def test_store_add_column(self):
-        with with_data_context(self.conn, TestData) as data_set:
-            partition_size = 86400
-            trend_store_descr = TableTrendStoreDescriptor(
-                'test_store', data_set.datasource, data_set.entitytype,
-                data_set.granularity, [], partition_size
-            )
-
-            with closing(self.conn.cursor()) as cursor:
-                trend_store = TableTrendStore.create(trend_store_descr)(cursor)
-
-            self.conn.commit()
-
-            timestamp = data_set.datasource.tzinfo.localize(
-                    datetime.datetime(2013, 4, 25, 10, 45))
-
-            trends = ["a", "b", "c"]
-
-            rows = [
-                (1234, [1, 2, 3]),
-                (2345, [4, 5, 6])
-            ]
-
-            data_package = refined_package_type_for_entity_type('TestType')(
-                data_set.granularity, timestamp, trends, rows
-            )
-
-            transaction = trend_store.store(data_package)
-            transaction.run(self.conn)
-
-            table = trend_store.partition(timestamp).table()
-
-            condition = And(
-                Eq(Column("entity_id"), 2345),
-                Eq(Column("timestamp"), timestamp)
-            )
-
-            query = table.select(Column("c")).where_(condition)
-
-            with closing(self.conn.cursor()) as cursor:
-                query.execute(cursor)
-
-                c, = cursor.fetchone()
-
-            self.assertEqual(c, 6)
-
-            trends = ["a", "b", "c", "d"]
-
-            rows = [
-                (2345, [4, 5, 7, "2013-04-25 11:00:00"])
-            ]
-
-            data_package = refined_package_type_for_entity_type('TestType')(
-                data_set.granularity, timestamp, trends, rows
-            )
-
-            transaction = trend_store.store(data_package)
-            transaction.run(self.conn)
-
-            with closing(self.conn.cursor()) as cursor:
-                query.execute(cursor)
-
-                c, = cursor.fetchone()
-
-            self.assertEqual(c, 7)
-
-    def test_store_alter_column(self):
-        with with_data_context(self.conn, TestData) as data_set:
-            partition_size = 86400
-
-            trend_store_descr = TableTrendStoreDescriptor(
-                'test_store', data_set.datasource, data_set.entitytype,
-                data_set.granularity, [], partition_size
-            )
-
-            with closing(self.conn.cursor()) as cursor:
-                trend_store = TableTrendStore.create(trend_store_descr)(cursor)
-
-            self.conn.commit()
-
-            timestamp = data_set.datasource.tzinfo.localize(
-                datetime.datetime(2013, 4, 25, 11, 00)
-            )
-
-            trends = ["a", "b", "c"]
-
-            rows = [
-                (1234, [1, 2, 3]),
-                (2345, [4, 5, 6])]
-
-            data_package = refined_package_type_for_entity_type('TestType')(
-                data_set.granularity, timestamp, trends, rows
-            )
-
-            transaction = trend_store.store(data_package)
-            transaction.run(self.conn)
-
-            table = trend_store.partition(timestamp).table()
-
-            condition = And(
-                Eq(Column("entity_id"), 2345),
-                Eq(Column("timestamp"), timestamp))
-
-            query = table.select(Column("c")).where_(condition)
-
-            with closing(self.conn.cursor()) as cursor:
-                query.execute(cursor)
-
-                c, = cursor.fetchone()
-
-            self.assertEqual(c, 6)
-
-            trends = ["a", "b", "c"]
-
-            rows = [
-                (2345, [4, 5, "2013-04-25 11:00:00"])]
-
-            data_package = refined_package_type_for_entity_type('TestType')(
-                data_set.granularity, timestamp, trends, rows
-            )
-
-            transaction = trend_store.store(data_package)
-            transaction.run(self.conn)
-
-            with closing(self.conn.cursor()) as cursor:
-                query.execute(cursor)
-
-                c, = cursor.fetchone()
-
-            self.assertEqual(c, datetime.datetime(2013, 4, 25, 11, 0, 0))

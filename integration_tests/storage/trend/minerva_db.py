@@ -1,14 +1,6 @@
 from contextlib import closing, contextmanager
 
-from minerva.test import connect
-
-
-def clear_database(conn):
-    with closing(conn.cursor()) as cursor:
-        cursor.execute("DELETE FROM trend_directory.trend CASCADE")
-        cursor.execute("DELETE FROM trend_directory.trend_store CASCADE")
-        cursor.execute("DELETE FROM directory.data_source CASCADE")
-        cursor.execute("DELETE FROM directory.entity_type CASCADE")
+from minerva.test import connect, clear_database
 
 
 @contextmanager

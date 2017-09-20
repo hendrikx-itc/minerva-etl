@@ -1,21 +1,21 @@
 # -*- coding: utf-8 -*-
-__docformat__ = "restructuredtext en"
+from contextlib import closing
+import unittest
 
-__copyright__ = """
-Copyright (C) 2008-2013 Hendrikx-ITC B.V.
+from minerva.test import connect, clear_database
 
-Distributed under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 3, or (at your option) any later
-version.  The full license is in the file COPYING, distributed as part of
-this software.
-"""
-from minerva.test import with_conn
-
-from minerva.directory import relation
+from minerva.directory.relationtype import RelationType
 
 
-@with_conn()
-def test_create_relationtype(conn):
-    relation.create_relationtype(conn, "a->b")
+class TestEntityTags(unittest.TestCase):
+    def setUp(self):
+        self.conn = clear_database(connect())
 
-    conn.commit()
+    def tearDown(self):
+        self.conn.close()
+
+    def test_create_relationtype(self):
+        with closing(self.conn.cursor()) as cursor:
+            RelationType.create(
+                RelationType.Descriptor('test-relation-type', 'one-to-one')
+            )(cursor)

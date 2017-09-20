@@ -7,14 +7,12 @@ from pytz import timezone
 
 from minerva.util import first
 from minerva.db.query import Table, Column, Call, Eq
-from minerva.directory.helpers import name_to_data_source, name_to_entity_type
 from minerva.storage.generic import extract_data_types
+from minerva.directory.datasource import DataSource
+from minerva.directory.entitytype import EntityType
 from minerva.test import connect
-from minerva.storage.trend.trendstore import TrendStore
+from minerva.storage.trend.tabletrendstore import TableTrendStore
 from minerva.storage.trend.granularity import create_granularity
-from minerva.storage.trend.storage import DataTypeMismatch, \
-    store_copy_from, store_using_tmp, \
-    store_insert_rows, store, create_temp_table_from
 
 from .minerva_db import clear_database
 from .helpers import row_count
@@ -55,12 +53,12 @@ class TestStoreTrend(unittest.TestCase):
         modified = curr_timezone.localize(datetime.now())
 
         with closing(self.conn.cursor()) as cursor:
-            data_source = name_to_data_source(cursor, "test-src009")
-            entity_type = name_to_entity_type(cursor, "test-type001")
+            data_source = DataSource.from_name("test-src009")(cursor)
+            entity_type = EntityType.from_name("test-type001")(cursor)
 
-            trend_store = TrendStore(
-                data_source, entity_type, granularity, 86400, "table"
-            ).create(cursor)
+            trend_store = TableTrendStore.create(TableTrendStore.Descriptor(
+                'test_store', data_source, entity_type, granularity, [], 86400
+            ))(cursor)
             partition = trend_store.partition(timestamp)
 
             table = partition.table()
@@ -98,12 +96,12 @@ class TestStoreTrend(unittest.TestCase):
         granularity = create_granularity("900")
 
         with closing(self.conn.cursor()) as cursor:
-            datasource = name_to_data_source(cursor, "test-src010")
-            entitytype = name_to_entity_type(cursor, "test-type002")
-            trendstore = TrendStore(
-                datasource, entitytype, granularity, 86400, "table"
-            ).create(cursor)
-            partition = trendstore.partition(timestamp)
+            data_source = DataSource.from_name("test-src010")(cursor)
+            entity_type = EntityType.from_name("test-type002")(cursor)
+            trend_store = TableTrendStore.create(TableTrendStore.Descriptor(
+                'test_store', data_source, entity_type, granularity, [], 86400
+            ))(cursor)
+            partition = trend_store.partition(timestamp)
             partition.create(cursor)
             partition.check_columns_exist(trend_names, data_types)(cursor)
             table = partition.table()
@@ -234,12 +232,12 @@ class TestStoreTrend(unittest.TestCase):
         granularity = create_granularity("900")
 
         with closing(self.conn.cursor()) as cursor:
-            datasource = name_to_data_source(cursor, "test-src009")
-            entitytype = name_to_entity_type(cursor, "test-type001")
+            data_source = DataSource.from_name("test-src009")(cursor)
+            entity_type = EntityType.from_name("test-type001")(cursor)
 
-            trendstore = TrendStore(
-                datasource, entitytype, granularity, 86400, "table"
-            ).create(cursor)
+            trendstore = TableTrendStore.create(TableTrendStore.Descriptor(
+                'test-store', data_source, entity_type, granularity, [], 86400
+            ))(cursor)
             partition = trendstore.partition(timestamp)
 
             table = partition.table()
@@ -283,13 +281,14 @@ class TestStoreTrend(unittest.TestCase):
         granularity = create_granularity("900")
 
         with closing(self.conn.cursor()) as cursor:
-            datasource = name_to_data_source(cursor, "test-src009")
-            entitytype = name_to_entity_type(cursor, "test-type001")
+            data_source = DataSource.from_name("test-src009")(cursor)
+            entity_type = EntityType.from_name("test-type001")(cursor)
 
-            trendstore = TrendStore(
-                datasource, entitytype, granularity, 86400, "table"
-            ).create(cursor)
-            partition = trendstore.partition(timestamp)
+            trend_store = TableTrendStore.create(TableTrendStore.Descriptor(
+                'test-store', data_source, entity_type, granularity, [], 86400
+            ))(cursor)
+
+            partition = trend_store.partition(timestamp)
 
             table = partition.table()
 
@@ -297,7 +296,7 @@ class TestStoreTrend(unittest.TestCase):
 
             partition.check_columns_exist(trend_names, data_types)(cursor)
 
-        store(self.conn, SCHEMA, table.name, trend_names, timestamp, data_rows)
+        trend_store.store(self.conn, SCHEMA, table.name, trend_names, timestamp, data_rows)
 
         store(self.conn, SCHEMA, table.name, trend_names, timestamp, update_data_rows)
         self.conn.commit()
@@ -310,64 +309,3 @@ class TestStoreTrend(unittest.TestCase):
 
         self.assertNotEqual(rows[0][0], rows[1][0])
         self.assertNotEqual(rows[0][1], rows[1][1])
-
-    def test_create_temp_table_from(self):
-        table = Table(SCHEMA, "storage_tmp_test_table")
-        trend_names = ["CellID", "CCR", "Drops"]
-        data_types = ["float", "smallint", "smallint"]
-
-        with closing(self.conn.cursor()) as cursor:
-            table.drop().if_exists().execute(cursor)
-
-            create_trend_table(self.conn, SCHEMA, table, trend_names, data_types)
-
-            create_temp_table_from(self.conn, SCHEMA, table)
-
-    def test_update_and_modify_columns_fractured(self):
-        curr_timezone = timezone("Europe/Amsterdam")
-        granularity = create_granularity("900")
-        timestamp = curr_timezone.localize(datetime(2013, 1, 2, 10, 45, 0))
-        entity_ids = range(1023, 1023 + 100)
-
-        trend_names_a = ["CellID", "CCR", "Drops"]
-        data_rows_a = [(i, ("10023", "0.9919", "17")) for i in entity_ids]
-        data_types_a = extract_data_types(data_rows_a)
-
-        trend_names_b = ["CellID", "Drops"]
-        data_rows_b = [(i, ("10023", "19")) for i in entity_ids]
-        data_types_b = extract_data_types(data_rows_b)
-
-        with closing(self.conn.cursor()) as cursor:
-            datasource = name_to_data_source(cursor, "test-src009")
-            entitytype = name_to_entity_type(cursor, "test-type001")
-
-            trendstore = TrendStore(datasource, entitytype, granularity, 86400, "table").create(cursor)
-            partition = trendstore.partition(timestamp)
-
-            table = partition.table()
-
-            partition.create(cursor)
-
-            partition.check_columns_exist(trend_names_a, data_types_a)(cursor)
-            self.conn.commit()
-
-        store(self.conn, SCHEMA, table.name, trend_names_a, timestamp, data_rows_a)
-        time.sleep(0.2)
-
-        check_columns = map(Column, ["modified", "Drops"])
-        query = table.select(check_columns)
-
-        with closing(self.conn.cursor()) as cursor:
-            query.execute(cursor)
-            row_before = cursor.fetchone()
-
-        store(self.conn, SCHEMA, table.name, trend_names_b, timestamp, data_rows_b)
-
-        query = table.select(check_columns)
-
-        with closing(self.conn.cursor()) as cursor:
-            query.execute(cursor)
-            row_after = cursor.fetchone()
-
-        self.assertNotEqual(row_before[0], row_after[0])
-        self.assertNotEqual(row_before[1], row_after[1])
