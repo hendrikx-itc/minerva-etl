@@ -47,6 +47,11 @@ def main():
                         args.data_source
                     )(cursor)
 
+                if data_source is None:
+                    raise Exception(
+                        'No such data source {}'.format(args.data_source)
+                    )
+
                 def store_package(package):
                     store_cmd(package)(data_source)(conn)
 

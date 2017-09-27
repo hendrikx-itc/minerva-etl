@@ -22,8 +22,11 @@ def load_plugins():
 
 
 def get_plugin(name):
-    return next(
-        entry_point.load()()
-        for entry_point in iter_entry_points()
-        if entry_point.name == name
-    )
+    try:
+        return next(
+            entry_point.load()()
+            for entry_point in iter_entry_points()
+            if entry_point.name == name
+        )
+    except StopIteration:
+        return None

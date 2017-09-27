@@ -91,7 +91,7 @@ def fn_range(incr, start, end):
         current = incr(current)
 
 
-class Granularity():
+class Granularity:
     def __init__(self, delta):
         self.delta = delta
 

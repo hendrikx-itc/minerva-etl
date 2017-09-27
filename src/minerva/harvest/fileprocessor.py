@@ -12,7 +12,7 @@ from operator import not_
 from minerva.harvest.plugin_api_trend import HarvestParserTrend
 from minerva.util import compose
 
-from minerva_harvesting.error import DataError
+from minerva.harvest.error import DataError
 
 
 class ParseError(Exception):
@@ -20,7 +20,8 @@ class ParseError(Exception):
 
 
 def process_file(
-        file_path, parser: HarvestParserTrend, handle_package, show_progress=False):
+        file_path, parser: HarvestParserTrend, handle_package,
+        show_progress=False):
     """
     Process a single file with specified plugin.
     """

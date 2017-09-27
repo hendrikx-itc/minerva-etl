@@ -83,7 +83,7 @@ class RelationType:
 
             cursor.execute("DROP TABLE {0}".format(tmp_table))
 
-    def create_relationtype(conn, name, cardinality=None):
+    def create_relation_type(conn, name, cardinality=None):
         if cardinality is not None:
             query = (
                 "INSERT INTO relation.type (name, cardinality) "

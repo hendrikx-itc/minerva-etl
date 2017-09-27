@@ -2,8 +2,7 @@
 import sys
 import argparse
 
-from minerva.commands import datasource
-from minerva.commands import trendstore
+from minerva.commands import datasource, trendstore, entitytype
 
 
 def main():
@@ -15,6 +14,7 @@ def main():
 
     datasource.setup_command_parser(subparsers)
     trendstore.setup_command_parser(subparsers)
+    entitytype.setup_command_parser(subparsers)
 
     args = parser.parse_args()
 

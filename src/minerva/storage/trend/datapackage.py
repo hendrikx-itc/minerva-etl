@@ -2,12 +2,13 @@
 from io import StringIO
 from itertools import chain
 from operator import itemgetter
+from typing import Callable, List, Type
 
 from minerva.db.util import quote_ident
 from minerva.storage.trend import schema
 from minerva.util import grouped_by, zip_apply, identity, k
 from minerva.util.tabulate import render_table
-from minerva.directory.entityref import EntityDnRef, EntityIdRef
+from minerva.directory.entityref import EntityDnRef, EntityIdRef, EntityRef
 from minerva.directory.distinguishedname import entity_type_name_from_dn
 
 
@@ -45,7 +46,10 @@ class DataPackage:
             ','.join(self.trend_names),
         ]
 
-        lines.extend([','.join(values) for entity_ref, values in self.rows])
+        lines.extend([
+            ','.join(map(str, values))
+            for entity_ref, values in self.rows
+        ])
 
         column_names = ["entity"] + list(self.trend_names)
         column_align = ">" * len(column_names)
@@ -195,14 +199,17 @@ def package_group(key, packages):
     return cls(granularity, timestamp, field_names, rows)
 
 
-def data_package_type(name, entity_ref_type, entity_type_name, refine_values):
+def data_package_type(
+        name: str, entity_ref_type: Type[EntityRef],
+        entity_type_name: Callable[[DataPackage], str],
+        refine_values: Callable[[List], Callable[[List], List]]) -> type:
     """
     Define and return a new DataPackageBase sub-class.
 
-    @type entity_ref_type: EntityRef
-    @type entity_type_name: function(DataPackage) -> str
-    @type refine_values: function(parsers) -> function(values)
-    -> refined_values
+    :param name: Name of the new type/class
+    :param entity_ref_type:
+    :param entity_type_name:
+    :param refine_values:
     """
     return type(name, (DataPackage,), {
         'entity_ref_type': classmethod(lambda cls: entity_ref_type),
