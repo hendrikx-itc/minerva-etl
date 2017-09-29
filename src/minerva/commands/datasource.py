@@ -10,9 +10,13 @@ def setup_command_parser(subparsers):
 
     group = cmd.add_mutually_exclusive_group(required=False)
 
-    group.add_argument('--create', '-c', action='store_true', help='create new data source')
+    group.add_argument(
+        '--create', '-c', action='store_true', help='create new data source'
+    )
 
-    group.add_argument('--delete', '-d', action='store_true', help='delete data source')
+    group.add_argument(
+        '--delete', '-d', action='store_true', help='delete data source'
+    )
 
     cmd.add_argument('name', help='name of the data source')
 

@@ -160,7 +160,9 @@ class TrendStore:
             else:
                 data_type = trend.data_type
 
-                return data_type.string_serializer()
+                return data_type.string_serializer(
+                    datatype.copy_from_serializer_config(data_type)
+                )
 
         return [
             get_serializer_by_trend_name(name)

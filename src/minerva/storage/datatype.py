@@ -7,6 +7,7 @@ from datetime import datetime, tzinfo
 import decimal
 from functools import partial, reduce
 import operator
+from typing import Callable, Optional, Any
 
 import pytz
 
@@ -27,7 +28,7 @@ class DataType:
     def string_serializer(self, config=None):
         raise NotImplementedError()
 
-    def deduce_parser_config(self, value):
+    def deduce_parser_config(self, value) -> Optional[dict]:
         """
         Returns a configuration that can be used to parse the provided value
         and values like it or None if the value can not be parsed.
@@ -58,14 +59,14 @@ class Boolean(DataType):
     def __init__(self):
         DataType.__init__(self, 'boolean')
 
-    def _string_parser_config(self, config):
+    def string_parser_config(self, config):
         if config is None:
             return self.default_parser_config
         else:
             return merge_dicts(self.default_parser_config, config)
 
-    def string_parser(self, config=None):
-        config = self._string_parser_config(config)
+    def string_parser(self, config=None) -> Callable[[str], Optional[bool]]:
+        config = self.string_parser_config(config)
 
         null_value = config["null_value"]
         true_value = config["true_value"]
@@ -81,7 +82,7 @@ class Boolean(DataType):
         elif isinstance(false_value, str):
             is_false = partial(operator.eq, false_value)
 
-        def parse(value):
+        def parse(value: str) -> Optional[bool]:
             if value == null_value:
                 return None
             elif is_true(value):
@@ -104,7 +105,7 @@ class Boolean(DataType):
     def string_serializer(self, config=None):
         config = self.string_serializer_config(config)
 
-        def serialize(value):
+        def serialize(value) -> str:
             if value is None:
                 return config['null_value']
             elif value is True:
@@ -149,7 +150,7 @@ class TimestampWithTimeZone(DataType):
     def __init__(self):
         DataType.__init__(self, 'timestamp with time zone')
 
-    def _string_parser_config(self, config):
+    def string_parser_config(self, config: dict) -> dict:
         if config is None:
             return self.default_parser_config
         else:
@@ -164,13 +165,13 @@ class TimestampWithTimeZone(DataType):
         "format", <format_string>}
         :return: a function (str_value) -> value
         """
-        config = self._string_parser_config(config)
+        config = self.string_parser_config(config)
 
         null_value = config["null_value"]
         tz = assure_tzinfo(config["timezone"])
         format_str = config["format"]
 
-        def parse(value):
+        def parse(value: str) -> Optional[datetime]:
             if value == null_value:
                 return None
             else:
@@ -178,17 +179,17 @@ class TimestampWithTimeZone(DataType):
 
         return parse
 
-    def string_serializer_config(self, config):
+    def string_serializer_config(self, config: dict) -> dict:
         if config is None:
             return self.default_serializer_config
 
     def string_serializer(self, config=None):
-        config = self._string_parser_config(config)
+        config = self.string_parser_config(config)
 
         null_value = config['null_value']
         format_str = config['format']
 
-        def serialize(value):
+        def serialize(value: datetime) -> str:
             if value is None:
                 return null_value
             else:
@@ -196,7 +197,7 @@ class TimestampWithTimeZone(DataType):
 
         return serialize
 
-    def deduce_parser_config(self, value):
+    def deduce_parser_config(self, value) -> dict:
         if value is None:
             return self.default_parser_config
 
@@ -232,16 +233,16 @@ class Timestamp(DataType):
     def __init__(self):
         DataType.__init__(self, 'timestamp')
 
-    def _string_parser_config(self, config=None):
+    def string_parser_config(self, config: dict=None) -> dict:
         if config is None:
             return self.default_parser_config
         else:
             return merge_dicts(self.default_parser_config, config)
 
     def string_parser(self, config=None):
-        config = self._string_parser_config(config)
+        config = self.string_parser_config(config)
 
-        def parse(value):
+        def parse(value: str) -> Optional[datetime]:
             if value == config["null_value"]:
                 return None
             else:
@@ -249,23 +250,23 @@ class Timestamp(DataType):
 
         return parse
 
-    def _string_serializer_config(self, config):
+    def string_serializer_config(self, config: dict) -> dict:
         if config is None:
             return self.default_serializer_config
         else:
             return merge_dicts(self.default_serializer_config, config)
 
     def string_serializer(self, config=None):
-        config = self._string_serializer_config(config)
+        config = self.string_serializer_config(config)
 
         datetime_format = config["format"]
 
-        def serialize(value):
+        def serialize(value: datetime) -> str:
             return value.strftime(datetime_format)
 
         return serialize
 
-    def deduce_parser_config(self, value):
+    def deduce_parser_config(self, value) -> Optional[dict]:
         if not isinstance(value, str):
             return None
 
@@ -280,8 +281,8 @@ class Timestamp(DataType):
 
 
 class SmallInt(DataType):
-    min = -pow(2, 15)
-    max = pow(2, 15) - 1
+    min: int = -pow(2, 15)
+    max: int = pow(2, 15) - 1
 
     default_parser_config = {
         "null_value": "\\N"
@@ -294,18 +295,18 @@ class SmallInt(DataType):
     def __init__(self):
         DataType.__init__(self, 'smallint')
 
-    def _string_parser_config(self, config):
+    def string_parser_config(self, config):
         if config is None:
             return self.default_parser_config
         else:
             return merge_dicts(self.default_parser_config, config)
 
     def string_parser(self, config=None):
-        config = self._string_parser_config(config)
+        config = self.string_parser_config(config)
 
         null_value = config["null_value"]
 
-        def parse(value):
+        def parse(value: str) -> Optional[int]:
             if value == null_value:
                 return None
             else:
@@ -315,7 +316,7 @@ class SmallInt(DataType):
 
     regex = re.compile("^-?[1-9][0-9]*$")
 
-    def deduce_parser_config(self, value):
+    def deduce_parser_config(self, value: Any) -> Optional[dict]:
         if not isinstance(value, str):
             return None
 
@@ -338,18 +339,18 @@ class SmallInt(DataType):
             if self.min <= int_val <= self.max:
                 return self.default_parser_config
 
-    def _string_serializer_config(self, config):
+    def string_serializer_config(self, config):
         if config is None:
             return self.default_serializer_config
         else:
             return merge_dicts(self.default_serializer_config, config)
 
     def string_serializer(self, config=None):
-        config = self._string_serializer_config(config)
+        config = self.string_serializer_config(config)
 
         null_value = config['null_value']
 
-        def serialize(value):
+        def serialize(value: int) -> str:
             if value is None:
                 return null_value
             else:
@@ -357,7 +358,7 @@ class SmallInt(DataType):
 
         return serialize
 
-    def _parse(self, value):
+    def _parse(self, value: str) -> Optional[int]:
         if not value:
             return None
 
@@ -374,24 +375,35 @@ class SmallInt(DataType):
 
 
 class Integer(DataType):
-    min = -pow(2, 31)
-    max = pow(2, 31) - 1
+    min: int = -pow(2, 31)
+    max: int = pow(2, 31) - 1
 
     default_parser_config = {
         "null_value": "\\N"
     }
 
+    default_serializer_config = {}
+
     def __init__(self):
         DataType.__init__(self, 'integer')
 
-    def _string_parser_config(self, config):
+    def string_parser_config(self, config):
         if config is None:
             return self.default_parser_config
         else:
             return merge_dicts(self.default_parser_config, config)
 
+    @staticmethod
+    def _string_serializer_config(config):
+        if config is None:
+            return Integer.default_serializer_config
+        else:
+            return merge_dicts(
+                Integer.default_serializer_config, config
+            )
+
     def string_parser(self, config=None):
-        config = self._string_parser_config(config)
+        config = self.string_parser_config(config)
 
         def parse(value):
             if value == config["null_value"]:
@@ -402,8 +414,15 @@ class Integer(DataType):
         return parse
 
     def string_serializer(self, config=None):
+        config = self._string_serializer_config(config)
+
+        null_value = config['null_value']
+
         def serialize(value):
-            return str(value)
+            if value is None:
+                return null_value
+            else:
+                return str(value)
 
         return serialize
 
@@ -438,25 +457,34 @@ class Integer(DataType):
 
 
 class Bigint(DataType):
-    min = -pow(2, 63)
-    max = pow(2, 63) - 1
+    min: int = -pow(2, 63)
+    max: int = pow(2, 63) - 1
 
     default_parser_config = {
         "null_value": "\\N"
     }
 
+    default_serializer_config = {}
+
     def __init__(self):
         DataType.__init__(self, 'bigint')
 
     @staticmethod
-    def _string_parser_config(config):
+    def string_parser_config(config):
         if config is None:
             return Bigint.default_parser_config
         else:
             return merge_dicts(Bigint.default_parser_config, config)
 
+    @staticmethod
+    def string_serializer_config(config):
+        if config is None:
+            return Bigint.default_serializer_config
+        else:
+            return merge_dicts(Bigint.default_serializer_config, config)
+
     def string_parser(self, config=None):
-        config = self._string_parser_config(config)
+        config = self.string_parser_config(config)
 
         null_value = config["null_value"]
 
@@ -469,8 +497,15 @@ class Bigint(DataType):
         return parse
 
     def string_serializer(self, config=None):
+        config = self.string_serializer_config(config)
+
+        null_value = config['null_value']
+
         def serialize(value):
-            return str(value)
+            if value is None:
+                return null_value
+            else:
+                return str(value)
 
         return serialize
 
@@ -495,7 +530,9 @@ class Bigint(DataType):
 
         if not (cls.min <= int_val <= cls.max):
             raise ValueError("{0:d} is not in range {1:d} - {2:d}".format(
-                int_val, cls.min, cls.max))
+                    int_val, cls.min, cls.max
+                )
+            )
 
         return int_val
 
@@ -505,18 +542,29 @@ class Real(DataType):
         "null_value": "\\N"
     }
 
+    default_serializer_config = {}
+
     def __init__(self):
         DataType.__init__(self, 'real')
 
     @staticmethod
-    def _string_parser_config(config):
+    def string_parser_config(config):
         if config is None:
             return Real.default_parser_config
         else:
             return merge_dicts(Real.default_parser_config, config)
 
+    @staticmethod
+    def string_serializer_config(config):
+        if config is None:
+            return Integer.default_serializer_config
+        else:
+            return merge_dicts(
+                Integer.default_serializer_config, config
+            )
+
     def string_parser(self, config=None):
-        config = self._string_parser_config(config)
+        config = self.string_parser_config(config)
 
         def parse(value):
             """
@@ -534,8 +582,15 @@ class Real(DataType):
         return parse
 
     def string_serializer(self, config=None):
+        config = self.string_serializer_config(config)
+
+        null_value = config['null_value']
+
         def serialize(value):
-            return str(value)
+            if value is None:
+                return null_value
+            else:
+                return str(value)
 
         return serialize
 
@@ -558,18 +613,29 @@ class DoublePrecision(DataType):
         "null_value": "\\N"
     }
 
+    default_serializer_config = {}
+
     def __init__(self):
         DataType.__init__(self, 'double precision')
 
     @staticmethod
-    def _string_parser_config(config):
+    def string_parser_config(config):
         if config is None:
             return DoublePrecision.default_parser_config
         else:
             return merge_dicts(DoublePrecision.default_parser_config, config)
 
+    @staticmethod
+    def string_serializer_config(config):
+        if config is None:
+            return DoublePrecision.default_serializer_config
+        else:
+            return merge_dicts(
+                DoublePrecision.default_serializer_config, config
+            )
+
     def string_parser(self, config=None):
-        config = self._string_parser_config(config)
+        config = self.string_parser_config(config)
 
         null_value = config['null_value']
 
@@ -595,8 +661,15 @@ class DoublePrecision(DataType):
             return self.default_parser_config
 
     def string_serializer(self, config=None):
+        config = self.string_serializer_config(config)
+
+        null_value = config['null_value']
+
         def serialize(value):
-            return str(value)
+            if value is None:
+                return null_value
+            else:
+                return str(value)
 
         return serialize
 
@@ -606,18 +679,27 @@ class Numeric(DataType):
         "null_value": "\\N"
     }
 
+    default_serializer_config = {}
+
     def __init__(self):
         DataType.__init__(self, 'numeric')
 
     @staticmethod
-    def _string_parser_config(config):
+    def string_parser_config(config):
         if config is None:
             return Numeric.default_parser_config
         else:
             return merge_dicts(Numeric.default_parser_config, config)
 
+    @staticmethod
+    def string_serializer_config(config):
+        if config is None:
+            return Numeric.default_serializer_config
+        else:
+            return merge_dicts(Numeric.default_serializer_config, config)
+
     def string_parser(self, config=None):
-        config = self._string_parser_config(config)
+        config = self.string_parser_config(config)
 
         is_null = partial(operator.eq, config["null_value"])
 
@@ -633,8 +715,15 @@ class Numeric(DataType):
         return parse
 
     def string_serializer(self, config=None):
+        config = self.string_serializer_config(config)
+
+        null_value = config['null_value']
+
         def serialize(value):
-            return str(value)
+            if value is None:
+                return null_value
+            else:
+                return str(value)
 
         return serialize
 
@@ -666,14 +755,14 @@ class Text(DataType):
         DataType.__init__(self, 'text')
 
     @staticmethod
-    def _string_parser_config(config):
+    def string_parser_config(config):
         if config is None:
             return Text.default_parser_config
         else:
             return merge_dicts(Text.default_parser_config, config)
 
     def string_parser(self, config=None):
-        config = self._string_parser_config(config)
+        config = self.string_parser_config(config)
 
         null_value = config["null_value"]
 
@@ -686,14 +775,14 @@ class Text(DataType):
         return parse
 
     @staticmethod
-    def _string_serializer_config(config):
+    def string_serializer_config(config):
         if config is None:
             return Text.default_serializer_config
         else:
             return merge_dicts(Text.default_serializer_config, config)
 
     def string_serializer(self, config=None):
-        config = self._string_serializer_config(config)
+        config = self.string_serializer_config(config)
 
         null_value = config['null_value']
         prefix = config['prefix']
@@ -733,7 +822,7 @@ class ArrayType(DataType):
         DataType.__init__(self, type_name)
 
     @staticmethod
-    def _string_parser_config(config):
+    def string_parser_config(config):
         if config is None:
             config = ArrayType.default_string_parser_config
 
@@ -743,7 +832,7 @@ class ArrayType(DataType):
         )
 
     @staticmethod
-    def _string_serializer_config(config):
+    def string_serializer_config(config):
         if config is None:
             config = ArrayType.default_string_serializer_config
 
@@ -753,7 +842,7 @@ class ArrayType(DataType):
         )
 
     def string_parser(self, config=None):
-        config = self._string_parser_config(config)
+        config = self.string_parser_config(config)
 
         base_type_parser = self.base_type.string_parser(
             config.get('base_type_config')
@@ -771,7 +860,7 @@ class ArrayType(DataType):
         return parse
 
     def string_serializer(self, config=None):
-        config = self._string_serializer_config(config)
+        config = self.string_serializer_config(config)
 
         base_type_serializer = self.base_type.string_serializer(
             config['base_type_config']
@@ -914,8 +1003,9 @@ def load_data_format(format_config):
     except KeyError:
         raise Exception("No such data type: {}".format(data_type_name))
     else:
-        config = data_type._string_parser_config(
-            format_config["string_format"])
+        config = data_type.string_parser_config(
+            format_config["string_format"]
+        )
 
         return data_type, data_type.string_parser(config)
 
@@ -963,7 +1053,8 @@ def copy_from_serializer_config(data_type):
             'prefix': '{',
             'postfix': '}',
             'base_type_config': copy_from_serializer_base_type_config[
-                data_type.base_type]
+                data_type.base_type
+            ]
         }
     else:
         return copy_from_serializer_base_type_config[data_type]
