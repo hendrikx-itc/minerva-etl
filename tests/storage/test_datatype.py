@@ -79,10 +79,10 @@ class TestDataTypeBigInt(unittest.TestCase):
 
         parse_bigint = datatype.registry['bigint'].string_parser()
 
-        with self.assertRaises(ValueError):
+        with self.assertRaises(ParseError):
             parse_bigint("abc")
 
-        with self.assertRaises(ValueError):
+        with self.assertRaises(ParseError):
             parse_bigint(str(max_bigint + 1))
 
         self.assertEqual(parse_bigint(str(max_bigint)), max_bigint)
@@ -162,10 +162,10 @@ class TestDataTypeInteger(unittest.TestCase):
 
         parse_integer = datatype.registry['integer'].string_parser()
 
-        with self.assertRaises(ValueError):
+        with self.assertRaises(ParseError):
             parse_integer("abc")
 
-        with self.assertRaises(ValueError):
+        with self.assertRaises(ParseError):
             parse_integer(str(max_integer + 1))
 
         self.assertEqual(parse_integer(str(max_integer)), max_integer)
@@ -178,11 +178,26 @@ class TestDataTypeSmallInt(unittest.TestCase):
         min_int16 = -pow(2, 15)
         max_int16 = pow(2, 15) - 1
 
-        assert datatype.registry['smallint'].deduce_parser_config("")
-        assert datatype.registry['smallint'].deduce_parser_config("10")
-        assert datatype.registry['smallint'].deduce_parser_config("-10")
-        assert datatype.registry['smallint'].deduce_parser_config(str(max_int16))
-        assert datatype.registry['smallint'].deduce_parser_config(str(min_int16))
+        self.assertIsInstance(
+            datatype.registry['smallint'].deduce_parser_config(""),
+            dict
+        )
+        self.assertIsInstance(
+            datatype.registry['smallint'].deduce_parser_config("10"),
+            dict
+        )
+        self.assertIsInstance(
+            datatype.registry['smallint'].deduce_parser_config("-10"),
+            dict
+        )
+        self.assertIsInstance(
+            datatype.registry['smallint'].deduce_parser_config(str(max_int16)),
+            dict
+        )
+        self.assertIsInstance(
+            datatype.registry['smallint'].deduce_parser_config(str(min_int16)),
+            dict
+        )
 
         self.assertIsNone(
             datatype.registry['smallint'].deduce_parser_config(None),
@@ -193,18 +208,24 @@ class TestDataTypeSmallInt(unittest.TestCase):
             "Integer shouldn't accept alphabetic characters"
         )
         self.assertIsNone(
-            datatype.registry['smallint'].deduce_parser_config(str(max_int16 + 1)),
+            datatype.registry['smallint'].deduce_parser_config(
+                str(max_int16 + 1)
+            ),
             "Int16 shouldn't accept a value greater than %d" % max_int16
         )
         self.assertIsNone(
-            datatype.registry['smallint'].deduce_parser_config(str(min_int16 - 1)),
+            datatype.registry['smallint'].deduce_parser_config(
+                str(min_int16 - 1)
+            ),
             "Int16 shouldn't accept a value smaller than %d" % min_int16
         )
 
         # Checking for a match with any other type than a string shouldn't
         # result in an exception, but just return None.
         self.assertIsNone(
-            datatype.registry['smallint'].deduce_parser_config(("41", "42", "43"))
+            datatype.registry['smallint'].deduce_parser_config(
+                ("41", "42", "43")
+            )
         )
 
         self.assertIsNone(
@@ -218,10 +239,10 @@ class TestDataTypeSmallInt(unittest.TestCase):
 
         parse_smallint = datatype.registry['smallint'].string_parser({})
 
-        with self.assertRaises(ValueError):
+        with self.assertRaises(ParseError):
             parse_smallint("abc")
 
-        with self.assertRaises(ValueError):
+        with self.assertRaises(ParseError):
             parse_smallint(str(max_smallint + 1))
 
         self.assertEqual(parse_smallint(str(max_smallint)), max_smallint)
@@ -327,12 +348,16 @@ class TestDataTypeDoublePrecision(unittest.TestCase):
         )
 
         self.assertIsInstance(
-            datatype.registry['double precision'].deduce_parser_config("42.42e10"),
+            datatype.registry['double precision'].deduce_parser_config(
+                "42.42e10"
+            ),
             dict
         )
 
         self.assertIsInstance(
-            datatype.registry['double precision'].deduce_parser_config("42.42e-10"),
+            datatype.registry['double precision'].deduce_parser_config(
+                "42.42e-10"
+            ),
             dict
         )
 
@@ -454,6 +479,32 @@ class TestDataTypeNumeric(unittest.TestCase):
         value = parse_numeric("123.456")
 
         self.assertEqual(value, decimal.Decimal("123.456"))
+
+
+class TestDataTypeIntegerArray(unittest.TestCase):
+    def test_parse(self):
+        parse = datatype.registry['integer[]'].string_parser()
+
+        with self.assertRaises(ParseError):
+            parse("abc")
+
+        with self.assertRaises(ParseError):
+            parse("1,2,4.5")
+
+        value = parse("1,2,3")
+
+        self.assertEqual(value, [1, 2, 3])
+
+    def test_serialize(self):
+        serialize = datatype.registry['integer[]'].string_serializer()
+
+        value_str = serialize([42, 43, 44])
+
+        self.assertEqual(value_str, '[42,43,44]')
+
+        value_str = serialize(None)
+
+        self.assertEqual(value_str, '\\N')
 
 
 class TestDataTypeUtils(unittest.TestCase):

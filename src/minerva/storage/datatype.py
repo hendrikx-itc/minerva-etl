@@ -281,8 +281,8 @@ class Timestamp(DataType):
 
 
 class SmallInt(DataType):
-    min: int = -pow(2, 15)
-    max: int = pow(2, 15) - 1
+    min = int(-pow(2, 15))
+    max = int(pow(2, 15) - 1)
 
     default_parser_config = {
         "null_value": "\\N"
@@ -362,10 +362,13 @@ class SmallInt(DataType):
         if not value:
             return None
 
-        int_val = int(value)
+        try:
+            int_val = int(value)
+        except ValueError as exc:
+            raise ParseError(str(exc))
 
         if not (self.min <= int_val <= self.max):
-            raise ValueError(
+            raise ParseError(
                 "{0:d} is not in range {1:d} - {2:d}".format(
                     int_val, self.min, self.max
                 )
@@ -375,14 +378,16 @@ class SmallInt(DataType):
 
 
 class Integer(DataType):
-    min: int = -pow(2, 31)
-    max: int = pow(2, 31) - 1
+    min = int(-pow(2, 31))
+    max = int(pow(2, 31) - 1)
 
     default_parser_config = {
         "null_value": "\\N"
     }
 
-    default_serializer_config = {}
+    default_serializer_config = {
+        'null_value': '\\N'
+    }
 
     def __init__(self):
         DataType.__init__(self, 'integer')
@@ -444,10 +449,13 @@ class Integer(DataType):
         if not value:
             return None
 
-        int_val = int(value)
+        try:
+            int_val = int(value)
+        except ValueError as exc:
+            raise ParseError(str(exc))
 
         if not (self.min <= int_val <= self.max):
-            raise ValueError(
+            raise ParseError(
                 "{0:d} is not in range {1:d} - {2:d}".format(
                     int_val, self.min, self.max
                 )
@@ -457,8 +465,8 @@ class Integer(DataType):
 
 
 class Bigint(DataType):
-    min: int = -pow(2, 63)
-    max: int = pow(2, 63) - 1
+    min = int(-pow(2, 63))
+    max = int(pow(2, 63) - 1)
 
     default_parser_config = {
         "null_value": "\\N"
@@ -526,10 +534,13 @@ class Bigint(DataType):
         if not value:
             return None
 
-        int_val = int(value)
+        try:
+            int_val = int(value)
+        except ValueError as exc:
+            raise ParseError(str(exc))
 
         if not (cls.min <= int_val <= cls.max):
-            raise ValueError("{0:d} is not in range {1:d} - {2:d}".format(
+            raise ParseError("{0:d} is not in range {1:d} - {2:d}".format(
                     int_val, cls.min, cls.max
                 )
             )
@@ -808,6 +819,7 @@ class ArrayType(DataType):
     }
 
     default_string_serializer_config = {
+        'null_value': '\\N',
         'separator': ',',
         'prefix': '[',
         'postfix': ']',
@@ -872,9 +884,12 @@ class ArrayType(DataType):
         postfix = config['postfix']
 
         def serialize(arr_value):
-            return prefix + separator.join(
-                base_type_serializer(part) for part in arr_value
-            ) + postfix
+            if arr_value is None:
+                return config['null_value']
+            else:
+                return prefix + separator.join(
+                    base_type_serializer(part) for part in arr_value
+                ) + postfix
 
         return serialize
 
