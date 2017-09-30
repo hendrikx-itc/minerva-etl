@@ -2,7 +2,10 @@ import json
 from contextlib import closing
 import argparse
 
+from minerva.storage import datatype
 from psycopg2 import connect
+
+from minerva.storage.trend.trend import Trend
 
 
 def setup_command_parser(subparsers):
@@ -81,17 +84,30 @@ def create_trend_store_from_json(json_file):
     print(data)
 
     query = (
-        'SELECT trend_directory.create_table_trend_store(%s::name, %s::text, %s::text, %s::interval, %s::integer, '
-        '%s::trend_directory.trend_descr[])'
+        'SELECT trend_directory.create_table_trend_store(%s::text, %s::text, %s::interval, %s::integer, '
+        '{})'
+    ).format(
+        "ARRAY[{}]::trend_directory.table_trend_store_part_descr[]".format(','.join([
+            "('{}', {})".format(
+                part['name'],
+                'ARRAY[{}]::trend_directory.trend_descr[]'.format(','.join([
+                    "('{}', '{}', '')".format(
+                        trend['name'],
+                        trend['data_type'],
+                        ''
+                    )
+                    for trend in part['trends']
+                ]))
+            )
+            for part in data['parts']
+        ]))
     )
 
-    trend_descriptors = [
-        (trend['name'], trend['data_type'], '') for trend in data['trends']
-    ]
+    print(query)
 
     query_args = (
-        data['name'], data['data_source'], data['entity_type'],
-        data['granularity'], data['partition_size'], trend_descriptors
+        data['data_source'], data['entity_type'],
+        data['granularity'], data['partition_size']
     )
 
     with closing(connect('')) as conn:

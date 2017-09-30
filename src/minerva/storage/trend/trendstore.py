@@ -82,13 +82,12 @@ class TrendStore:
     ).where_(Eq(Column("id")))
 
     def __init__(
-            self, id_, name, data_source, entity_type, granularity, trends):
+            self, id_, name, data_source, entity_type, granularity):
         self.id = id_
         self.name = name
         self.data_source = data_source
         self.entity_type = entity_type
         self.granularity = granularity
-        self.trends = trends
 
     def table_name(self):
         return self.name

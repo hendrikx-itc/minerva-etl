@@ -1,22 +1,21 @@
 # -*- coding: utf-8 -*-
-from psycopg2.extensions import adapt, register_adapter
-
-
-class TrendDescriptor:
-    def __init__(self, name, data_type, description):
-        """
-
-        :param name: str
-        :param data_type: DataType
-        :param description: str
-        :return: TrendDescriptor
-        """
-        self.name = name
-        self.data_type = data_type
-        self.description = description
+from psycopg2.extensions import adapt, register_adapter, ISQLQuote
 
 
 class Trend:
+    class Descriptor:
+        def __init__(self, name, data_type, description):
+            """
+
+            :param name: str
+            :param data_type: DataType
+            :param description: str
+            :return: TrendDescriptor
+            """
+            self.name = name
+            self.data_type = data_type
+            self.description = description
+
     def __init__(self, id_, name, data_type, trend_store_id, description):
         self.id = id_
         self.name = name
@@ -56,4 +55,4 @@ def adapt_trend_descriptor(trend_descriptor):
     ))
 
 
-register_adapter(TrendDescriptor, adapt_trend_descriptor)
+register_adapter(Trend.Descriptor, adapt_trend_descriptor)

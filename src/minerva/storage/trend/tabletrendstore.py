@@ -2,16 +2,17 @@
 import logging
 from contextlib import closing
 from itertools import chain
-from typing import List
+from typing import List, Callable
 from datetime import datetime
 
 import psycopg2
 
 from minerva.db.util import create_temp_table_from, quote_ident, create_file
+from minerva.storage import datatype
 from minerva.util import first, zip_apply, compose
-from minerva.db.query import Table, Column, Eq, ands
+from minerva.db.query import Table, Column, Eq, ands, Any
 from minerva.storage.trend.trendstore import TrendStore
-from minerva.storage.trend.trend import TrendDescriptor
+from minerva.storage.trend.trend import Trend
 from minerva.storage.trend.partition import Partition
 from minerva.storage.trend.partitioning import Partitioning
 
@@ -24,49 +25,58 @@ from minerva.db.error import NoCopyInProgress, \
 LARGE_BATCH_THRESHOLD = 10
 
 
-class TableTrendStore(TrendStore):
+class TableTrendStorePart:
     class Descriptor:
         def __init__(
-                self, name: str, data_source: DataSource,
-                entity_type: EntityType,
-                granularity, trend_descriptors: List[TrendDescriptor],
-                partition_size):
+                self, name: str, trend_descriptors: List[Trend.Descriptor]):
             self.name = name
-            self.data_source = data_source
-            self.entity_type = entity_type
-            self.granularity = granularity
             self.trend_descriptors = trend_descriptors
-            self.partition_size = partition_size
 
-    column_names = [
-        "id", "name", "entity_type_id", "data_source_id", "granularity",
-        "partition_size", "retention_period"
-    ]
-
-    columns = list(map(Column, column_names))
-
-    get_query = schema.table_trend_store.select(columns).where_(ands([
-        Eq(Column("data_source_id")),
-        Eq(Column("entity_type_id")),
-        Eq(Column("granularity"))
-    ]))
-
-    get_by_id_query = schema.table_trend_store.select(
-        columns
-    ).where_(Eq(Column("id")))
-
-    def __init__(
-            self, id_, name, data_source, entity_type, granularity, trends,
-            partition_size, retention_period):
-        TrendStore.__init__(
-            self, id_, name, data_source, entity_type, granularity, trends
-        )
-        self.partition_size = partition_size
-        self.partitioning = Partitioning(partition_size)
-        self.retention_period = retention_period
+    def __init__(self, id_, name, trends):
+        self.id = id_
+        self.name = name
+        self.trends = trends
 
     def __str__(self):
         return self.base_table_name()
+
+    @staticmethod
+    def get_trends(cursor, trend_store_part_id):
+        query = (
+            "SELECT id, name, data_type, trend_store_id, description "
+            "FROM trend_directory.trend "
+            "WHERE trend_store_part_id = %s"
+        )
+
+        args = (trend_store_part_id, )
+
+        cursor.execute(query, args)
+
+        return [
+            Trend(
+                id_, name, datatype.registry[data_type], trend_store_id,
+                description
+            )
+            for id_, name, data_type, trend_store_id, description
+            in cursor.fetchall()
+        ]
+
+    @staticmethod
+    def from_record(record) -> Callable[[Any], Any]:
+        """
+        Return function that can instantiate a TableTrendStore from a
+        table_trend_store type record.
+        :param record: An iterable that represents a table_trend_store record
+        :return: function that creates and returns TableTrendStore object
+        """
+        def f(cursor):
+            (trend_store_part_id, name) = record
+
+            trends = TableTrendStorePart.get_trends(cursor, trend_store_part_id)
+
+            return TableTrendStorePart(trend_store_part_id, name, trends)
+
+        return f
 
     def base_table_name(self):
         """
@@ -92,22 +102,25 @@ class TableTrendStore(TrendStore):
     def base_table(self):
         return Table("trend", self.base_table_name())
 
-    def partition(self, timestamp: datetime):
-        index = self.partitioning.index(timestamp)
+    @classmethod
+    def get_by_id(cls, id_):
+        def f(cursor):
+            args = (id_,)
 
-        return Partition(index, self)
+            cls.get_by_id_query.execute(cursor, args)
 
-    def index_to_interval(self, partition_index: int):
-        return self.partitioning.index_to_interval(partition_index)
+            if cursor.rowcount == 1:
+                return TableTrendStorePart.from_record(cursor.fetchone())(cursor)
 
-    def check_trends_exist(self, trend_descriptors: List[TrendDescriptor]):
+        return f
+
+    def check_trends_exist(self, trend_descriptors: List[Trend.Descriptor]) -> Callable[[Any], Any]:
         """
         Returns function that creates missing trends as described by
         'trend_descriptors' and returns a new TableTrendStore.
 
         :param trend_descriptors: A list with trend descriptors indicating the
         required trends and their data types.
-        :return: Callable[cursor] -> TableTrendStore
         """
         """
         :param trend_descriptors:
@@ -126,167 +139,7 @@ class TableTrendStore(TrendStore):
         def f(cursor):
             cursor.execute(query, args)
 
-            return TableTrendStore.get_by_id(self.id)(cursor)
-
-        return f
-
-    def ensure_data_types(self, trend_descriptors: List[TrendDescriptor]):
-        """
-        Check if database column types match trend data type and correct it if
-        necessary.
-
-        :param trend_descriptors: A list with trend descriptors indicating the
-        required data type of the corresponding trends.
-        """
-        query = (
-            "SELECT trend_directory.assure_data_types("
-            "table_trend_store, %s::trend_directory.trend_descr[]"
-            ") "
-            "FROM trend_directory.table_trend_store "
-            "WHERE id = %s"
-        )
-
-        args = trend_descriptors, self.id
-
-        def f(cursor):
-            cursor.execute(query, args)
-
-        return f
-
-    @staticmethod
-    def create(descriptor: Descriptor):
-        def f(cursor):
-            args = (
-                descriptor.name,
-                descriptor.data_source.name,
-                descriptor.entity_type.name,
-                str(descriptor.granularity),
-                descriptor.partition_size,
-                descriptor.trend_descriptors
-            )
-
-            query = (
-                "SELECT * FROM trend_directory.create_table_trend_store("
-                "%s, %s, %s, %s, %s, %s::trend_directory.trend_descr[]"
-                ")"
-            )
-
-            cursor.execute(query, args)
-
-            return TableTrendStore.from_record(cursor.fetchone())(cursor)
-
-        return f
-
-    @staticmethod
-    def from_record(record):
-        """
-        Return function that can instantiate a TableTrendStore from a
-        table_trend_store type record.
-        :param record: An iterable that represents a table_trend_store record
-        :return: function that creates and returns TableTrendStore object
-        """
-        def f(cursor):
-            (
-                trend_store_id, name, entity_type_id, data_source_id,
-                granularity_str, partition_size, retention_period
-            ) = record
-
-            entity_type = EntityType.get(entity_type_id)(cursor)
-            data_source = DataSource.get(data_source_id)(cursor)
-
-            trends = TableTrendStore.get_trends(cursor, trend_store_id)
-
-            return TableTrendStore(
-                trend_store_id, name, data_source, entity_type,
-                create_granularity(granularity_str), trends, partition_size,
-                retention_period
-            )
-
-        return f
-
-    @classmethod
-    def get(cls, data_source, entity_type, granularity):
-        def f(cursor):
-            args = data_source.id, entity_type.id, str(granularity)
-
-            cls.get_query.execute(cursor, args)
-
-            if cursor.rowcount > 1:
-                raise Exception(
-                    "more than 1 ({}) trend store matches".format(
-                        cursor.rowcount
-                    )
-                )
-            elif cursor.rowcount == 1:
-                return TableTrendStore.from_record(cursor.fetchone())(cursor)
-
-        return f
-
-    @classmethod
-    def get_by_id(cls, id_):
-        def f(cursor):
-            args = (id_,)
-
-            cls.get_by_id_query.execute(cursor, args)
-
-            if cursor.rowcount == 1:
-                return TableTrendStore.from_record(cursor.fetchone())(cursor)
-
-        return f
-
-    def save(self, cursor):
-        args = (
-            self.data_source.id, self.entity_type.id, self.granularity.name,
-            self.partition_size, self.id
-        )
-
-        query = (
-            "UPDATE trend_directory.trend_store SET "
-            "data_source_id = %s, "
-            "entity_type_id = %s, "
-            "granularity = %s, "
-            "partition_size = %s "
-            "WHERE id = %s"
-        )
-
-        cursor.execute(query, args)
-
-        return self
-
-    def store(self, data_package):
-        def f(conn):
-            with closing(conn.cursor()) as cursor:
-                modified = get_timestamp(cursor)
-
-                if len(data_package.rows) <= LARGE_BATCH_THRESHOLD:
-                    self.store_batch_insert(
-                        data_package,
-                        modified
-                    )(cursor)
-                else:
-                    self.store_copy_from(
-                        data_package,
-                        modified
-                    )(cursor)
-
-                self.mark_modified(
-                    data_package.timestamp,
-                    modified
-                )(cursor)
-
-        return f
-
-    def clear_timestamp(self, timestamp):
-        def f(cursor):
-            query = (
-                "SELECT trend_directory.clear_timestamp(trend_store, %s) "
-                "FROM trend_directory.trend_store "
-                "WHERE id = %s"
-            )
-
-            args = timestamp, self.id
-
-            cursor.execute(query, args)
+            return TableTrendStorePart.get_by_id(self.id)(cursor)
 
         return f
 
@@ -460,13 +313,215 @@ class TableTrendStore(TrendStore):
 
         return f
 
+    def ensure_data_types(self, trend_descriptors: List[Trend.Descriptor]):
+        """
+        Check if database column types match trend data type and correct it if
+        necessary.
 
-class Update_:
-    def execute(self, cursor, state):
-        state.trend_store.store_update(
-            state.data_package,
-            state.modified
-        )(cursor)
+        :param trend_descriptors: A list with trend descriptors indicating the
+        required data type of the corresponding trends.
+        """
+        query = (
+            "SELECT trend_directory.assure_data_types("
+            "table_trend_store_part, %s::trend_directory.trend_descr[]"
+            ") "
+            "FROM trend_directory.table_trend_store_part "
+            "WHERE id = %s"
+        )
+
+        args = trend_descriptors, self.id
+
+        def f(cursor):
+            cursor.execute(query, args)
+
+        return f
+
+
+class TableTrendStore(TrendStore):
+    class Descriptor:
+        def __init__(
+                self, data_source: DataSource,
+                entity_type: EntityType,
+                granularity, parts: List[TableTrendStorePart.Descriptor],
+                partition_size):
+            self.data_source = data_source
+            self.entity_type = entity_type
+            self.granularity = granularity
+            self.parts = parts
+            self.partition_size = partition_size
+
+    column_names = [
+        "id", "entity_type_id", "data_source_id", "granularity",
+        "partition_size", "retention_period"
+    ]
+
+    columns = list(map(Column, column_names))
+
+    get_query = schema.table_trend_store.select(columns).where_(ands([
+        Eq(Column("data_source_id")),
+        Eq(Column("entity_type_id")),
+        Eq(Column("granularity"))
+    ]))
+
+    get_by_id_query = schema.table_trend_store.select(
+        columns
+    ).where_(Eq(Column("id")))
+
+    def __init__(
+            self, id_, name, data_source, entity_type, granularity, parts,
+            partition_size, retention_period):
+        TrendStore.__init__(
+            self, id_, name, data_source, entity_type, granularity
+        )
+        self.parts = parts
+        self.partition_size = partition_size
+        self.partitioning = Partitioning(partition_size)
+        self.retention_period = retention_period
+
+    def partition(self, timestamp: datetime):
+        index = self.partitioning.index(timestamp)
+
+        return Partition(index, self)
+
+    def index_to_interval(self, partition_index: int):
+        return self.partitioning.index_to_interval(partition_index)
+
+    @staticmethod
+    def create(descriptor: Descriptor):
+        def f(cursor):
+            args = (
+                descriptor.name,
+                descriptor.data_source.name,
+                descriptor.entity_type.name,
+                str(descriptor.granularity),
+                descriptor.partition_size,
+                descriptor.trend_descriptors
+            )
+
+            query = (
+                "SELECT * FROM trend_directory.create_table_trend_store("
+                "%s, %s, %s, %s, %s, %s::trend_directory.trend_descr[]"
+                ")"
+            )
+
+            cursor.execute(query, args)
+
+            return TableTrendStore.from_record(cursor.fetchone())(cursor)
+
+        return f
+
+    @staticmethod
+    def from_record(record) -> Callable[[Any], Any]:
+        """
+        Return function that can instantiate a TableTrendStore from a
+        table_trend_store type record.
+        :param record: An iterable that represents a table_trend_store record
+        :return: function that creates and returns TableTrendStore object
+        """
+        def f(cursor):
+            (
+                trend_store_id, name, entity_type_id, data_source_id,
+                granularity_str, partition_size, retention_period
+            ) = record
+
+            entity_type = EntityType.get(entity_type_id)(cursor)
+            data_source = DataSource.get(data_source_id)(cursor)
+
+            trends = TableTrendStore.get_trends(cursor, trend_store_id)
+
+            return TableTrendStore(
+                trend_store_id, name, data_source, entity_type,
+                create_granularity(granularity_str), trends, partition_size,
+                retention_period
+            )
+
+        return f
+
+    @classmethod
+    def get(cls, data_source, entity_type, granularity):
+        def f(cursor):
+            args = data_source.id, entity_type.id, str(granularity)
+
+            cls.get_query.execute(cursor, args)
+
+            if cursor.rowcount > 1:
+                raise Exception(
+                    "more than 1 ({}) trend store matches".format(
+                        cursor.rowcount
+                    )
+                )
+            elif cursor.rowcount == 1:
+                return TableTrendStore.from_record(cursor.fetchone())(cursor)
+
+        return f
+
+    @classmethod
+    def get_by_id(cls, id_):
+        def f(cursor):
+            args = (id_,)
+
+            cls.get_by_id_query.execute(cursor, args)
+
+            if cursor.rowcount == 1:
+                return TableTrendStore.from_record(cursor.fetchone())(cursor)
+
+        return f
+
+    def save(self, cursor):
+        args = (
+            self.data_source.id, self.entity_type.id, self.granularity.name,
+            self.partition_size, self.id
+        )
+
+        query = (
+            "UPDATE trend_directory.trend_store SET "
+            "data_source_id = %s, "
+            "entity_type_id = %s, "
+            "granularity = %s, "
+            "partition_size = %s "
+            "WHERE id = %s"
+        )
+
+        cursor.execute(query, args)
+
+        return self
+
+    def store(self, data_package):
+        def f(conn):
+            with closing(conn.cursor()) as cursor:
+                modified = get_timestamp(cursor)
+
+                if len(data_package.rows) <= LARGE_BATCH_THRESHOLD:
+                    self.store_batch_insert(
+                        data_package,
+                        modified
+                    )(cursor)
+                else:
+                    self.store_copy_from(
+                        data_package,
+                        modified
+                    )(cursor)
+
+                self.mark_modified(
+                    data_package.timestamp,
+                    modified
+                )(cursor)
+
+        return f
+
+    def clear_timestamp(self, timestamp):
+        def f(cursor):
+            query = (
+                "SELECT trend_directory.clear_timestamp(trend_store, %s) "
+                "FROM trend_directory.trend_store "
+                "WHERE id = %s"
+            )
+
+            args = timestamp, self.id
+
+            cursor.execute(query, args)
+
+        return f
 
 
 def get_timestamp(cursor):
