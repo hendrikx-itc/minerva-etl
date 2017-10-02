@@ -9,18 +9,20 @@ class Partition:
     """
     A partition of a trend store.
     """
-    def __init__(self, index, trend_store):
+    def __init__(self, index, trend_store_part):
         self.index = index
-        self.trend_store = trend_store
+        self.trend_store_part = trend_store_part
 
     def name(self):
-        return "{}_{}".format(self.trend_store.base_table_name(), self.index)
+        return "{}_{}".format(
+            self.trend_store_part.base_table_name(), self.index
+        )
 
     def start(self):
-        return self.trend_store.partitioning.timestamp(self.index)
+        return self.trend_store_part.partitioning.timestamp(self.index)
 
     def end(self):
-        return self.trend_store.partitioning.timestamp(self.index + 1)
+        return self.trend_store_part.partitioning.timestamp(self.index + 1)
 
     def __str__(self):
         return self.name()
@@ -32,17 +34,17 @@ class Partition:
         current = self.start
 
         while current < self.end:
-            current = self.trend_store.granularity.inc(current)
+            current = self.trend_store_part.granularity.inc(current)
 
             yield current
 
     def create(self, cursor):
         query = (
-            "SELECT trend_directory.create_partition(table_trend_store, %s) "
-            "FROM trend_directory.table_trend_store "
+            "SELECT trend_directory.create_partition(table_trend_store_part, %s) "
+            "FROM trend_directory.table_trend_store_part "
             "WHERE id = %s"
         )
-        args = self.index, self.trend_store.id
+        args = self.index, self.trend_store_part.id
 
         try:
             try:

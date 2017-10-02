@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 from minerva.db.util import quote_ident
 from minerva.db.query import Table, Column, Eq, ands
+from minerva.directory import DataSource, EntityType
 from minerva.storage.trend import schema
+from minerva.storage.trend.granularity import Granularity
 from minerva.storage.trend.trend import Trend
 from minerva.storage import datatype
 from minerva.storage.valuedescriptor import ValueDescriptor
@@ -55,8 +57,8 @@ class TrendStoreQuery:
 class TrendStore:
     class Descriptor:
         def __init__(
-                self, name, data_source, entity_type, granularity):
-            self.name = name
+                self, data_source: DataSource, entity_type: EntityType,
+                granularity: Granularity):
             self.data_source = data_source
             self.entity_type = entity_type
             self.granularity = granularity
@@ -82,18 +84,11 @@ class TrendStore:
     ).where_(Eq(Column("id")))
 
     def __init__(
-            self, id_, name, data_source, entity_type, granularity):
+            self, id_, data_source, entity_type, granularity):
         self.id = id_
-        self.name = name
         self.data_source = data_source
         self.entity_type = entity_type
         self.granularity = granularity
-
-    def table_name(self):
-        return self.name
-
-    def table(self):
-        return Table("trend", self.table_name())
 
     def get_trend(self, cursor, trend_name):
         query = (
@@ -108,27 +103,6 @@ class TrendStore:
 
         if cursor.rowcount > 0:
             return Trend(*cursor.fetchone())
-
-    @staticmethod
-    def get_trends(cursor, trend_store_id):
-        query = (
-            "SELECT id, name, data_type, trend_store_id, description "
-            "FROM trend_directory.trend "
-            "WHERE trend_store_id = %s"
-        )
-
-        args = (trend_store_id, )
-
-        cursor.execute(query, args)
-
-        return [
-            Trend(
-                id_, name, datatype.registry[data_type], trend_store_id,
-                description
-            )
-            for id_, name, data_type, trend_store_id, description
-            in cursor.fetchall()
-        ]
 
     def get_value_descriptors(self, trend_names):
         trend_by_name = {t.name: t for t in self.trends}

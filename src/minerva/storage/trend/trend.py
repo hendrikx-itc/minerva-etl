@@ -1,9 +1,14 @@
 # -*- coding: utf-8 -*-
+from minerva.storage import datatype
 from psycopg2.extensions import adapt, register_adapter, ISQLQuote
 
 
 class Trend:
     class Descriptor:
+        name: str
+        data_type: datatype.DataType
+        description: str
+
         def __init__(self, name, data_type, description):
             """
 
@@ -16,11 +21,11 @@ class Trend:
             self.data_type = data_type
             self.description = description
 
-    def __init__(self, id_, name, data_type, trend_store_id, description):
+    def __init__(self, id_, name, data_type, trend_store_part_id, description):
         self.id = id_
         self.name = name
         self.data_type = data_type
-        self.trend_store_id = trend_store_id
+        self.trend_store_part_id = trend_store_part_id
         self.description = description
 
     @staticmethod
