@@ -3,6 +3,10 @@ from minerva.storage import datatype
 from psycopg2.extensions import adapt, register_adapter, ISQLQuote
 
 
+class NoSuchTrendError(Exception):
+    pass
+
+
 class Trend:
     class Descriptor:
         name: str

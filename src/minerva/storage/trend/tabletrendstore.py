@@ -12,7 +12,7 @@ from minerva.storage import datatype
 from minerva.util import first, zip_apply, compose
 from minerva.db.query import Table, Column, Eq, ands, Any
 from minerva.storage.trend.trendstore import TrendStore
-from minerva.storage.trend.trend import Trend
+from minerva.storage.trend.trend import Trend, NoSuchTrendError
 from minerva.storage.trend.partition import Partition
 from minerva.storage.trend.partitioning import Partitioning
 
@@ -36,9 +36,9 @@ class TableTrendStorePart:
             self.name = name
             self.trend_descriptors = trend_descriptors
 
-    def __init__(self, id_: int, partitioning, name: str, trends: List[Trend]):
+    def __init__(self, id_: int, table_trend_store, name: str, trends: List[Trend]):
         self.id = id_
-        self.partitioning = partitioning
+        self.table_trend_store = table_trend_store
         self.name = name
         self.trends = trends
 
@@ -67,7 +67,7 @@ class TableTrendStorePart:
         ]
 
     @staticmethod
-    def from_record(record) -> Callable[[Any], Any]:
+    def from_record(record, table_trend_store) -> Callable[[Any], Any]:
         """
         Return function that can instantiate a TableTrendStore from a
         table_trend_store type record.
@@ -75,11 +75,13 @@ class TableTrendStorePart:
         :return: function that creates and returns TableTrendStore object
         """
         def f(cursor):
-            (trend_store_part_id, name) = record
+            (trend_store_part_id, trend_store_id, name) = record
 
             trends = TableTrendStorePart.get_trends(cursor, trend_store_part_id)
 
-            return TableTrendStorePart(trend_store_part_id, name, trends)
+            return TableTrendStorePart(
+                trend_store_part_id, table_trend_store, name, trends
+            )
 
         return f
 
@@ -101,16 +103,36 @@ class TableTrendStorePart:
         """
         return "{}_{}".format(
             self.base_table_name(),
-            self.partitioning.index(timestamp)
+            self.table_trend_store.index(timestamp)
         )
 
     def partition(self, timestamp: datetime):
-        index = self.partitioning.index(timestamp)
+        index = self.table_trend_store.partitioning.index(timestamp)
 
         return Partition(index, self)
 
     def base_table(self):
         return Table("trend", self.base_table_name())
+
+    def get_copy_serializers(self, trend_names):
+        trend_by_name = {t.name: t for t in self.trends}
+
+        def get_serializer_by_trend_name(name):
+            try:
+                trend = trend_by_name[name]
+            except KeyError:
+                raise NoSuchTrendError('no trend with name {}'.format(name))
+            else:
+                data_type = trend.data_type
+
+                return data_type.string_serializer(
+                    datatype.copy_from_serializer_config(data_type)
+                )
+
+        return [
+            get_serializer_by_trend_name(name)
+            for name in trend_names
+        ]
 
     @classmethod
     def get_by_id(cls, id_):
@@ -389,23 +411,14 @@ class TableTrendStore(TrendStore):
 
     def __init__(
             self, id_: int, data_source: DataSource, entity_type: EntityType,
-            granularity: Granularity, parts: List[TableTrendStorePart],
-            partition_size: int, retention_period):
+            granularity: Granularity, partition_size: int, retention_period):
         TrendStore.__init__(
             self, id_, data_source, entity_type, granularity
         )
         self.partition_size = partition_size
         self.partitioning = Partitioning(partition_size)
         self.retention_period = retention_period
-        self.parts = parts
-
-        self._part_mapping = {
-            part.name: part for part in parts
-        }
-
-        self._trend_part_mapping = {
-            trend.name: part for part in parts for trend in part.trends
-        }
+        self.parts = []
 
     def partition(self, part_name, timestamp: datetime):
         index = self._part_mapping[part_name].index(timestamp)
@@ -455,26 +468,38 @@ class TableTrendStore(TrendStore):
         return f
 
     @staticmethod
-    def get_parts(trend_store_id, partitioning):
-        def f(cursor):
-            query = (
-                "SELECT id, trend_store_id, name "
-                "FROM trend_directory.table_trend_store_part "
-                "WHERE trend_store_id = %s"
-            )
+    def create_part(record, table_trend_store):
+        trend_store_part_id, name, trend_store_id = record
 
-            args = (trend_store_id,)
+        trends = TableTrendStorePart.get_trends(cursor, trend_store_part_id)
 
-            cursor.execute(query, args)
+        TableTrendStorePart(trend_store_part_id, table_trend_store, name, trends)
 
-            trends = []
+    def load_parts(self, cursor):
+        query = (
+            "SELECT id, trend_store_id, name "
+            "FROM trend_directory.table_trend_store_part "
+            "WHERE trend_store_id = %s"
+        )
 
-            return [
-                TableTrendStorePart(id_, partitioning, name, trends)
-                for id_, table_trend_store_id, name in cursor.fetchall()
-            ]
+        args = (self.id,)
 
-        return f
+        cursor.execute(query, args)
+
+        self.parts = [
+            TableTrendStorePart.from_record(record, self)(cursor)
+            for record in cursor.fetchall()
+        ]
+
+        self._part_mapping = {
+            part.name: part for part in self.parts
+        }
+
+        self._trend_part_mapping = {
+            trend.name: part for part in self.parts for trend in part.trends
+        }
+
+        return self
 
     @staticmethod
     def from_record(record) -> Callable[[Any], Any]:
@@ -493,15 +518,11 @@ class TableTrendStore(TrendStore):
             entity_type = EntityType.get(entity_type_id)(cursor)
             data_source = DataSource.get(data_source_id)(cursor)
 
-            partitioning = Partitioning(partition_size)
-
-            parts = TableTrendStore.get_parts(trend_store_id, partitioning)(cursor)
-
             return TableTrendStore(
                 trend_store_id, data_source, entity_type,
-                create_granularity(granularity_str), parts, partition_size,
+                create_granularity(granularity_str), partition_size,
                 retention_period
-            )
+            ).load_parts(cursor)
 
         return f
 
@@ -559,18 +580,20 @@ class TableTrendStore(TrendStore):
             with closing(conn.cursor()) as cursor:
                 modified = get_timestamp(cursor)
 
+                part = self.parts[0]
+
                 if len(data_package.rows) <= LARGE_BATCH_THRESHOLD:
-                    self.store_batch_insert(
+                    part.store_batch_insert(
                         data_package,
                         modified
                     )(cursor)
                 else:
-                    self.store_copy_from(
+                    part.store_copy_from(
                         data_package,
                         modified
                     )(cursor)
 
-                self.mark_modified(
+                part.mark_modified(
                     data_package.timestamp,
                     modified
                 )(cursor)

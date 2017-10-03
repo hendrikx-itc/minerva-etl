@@ -1,17 +1,11 @@
 # -*- coding: utf-8 -*-
 from minerva.db.util import quote_ident
-from minerva.db.query import Table, Column, Eq, ands
+from minerva.db.query import Column, Eq, ands
 from minerva.directory import DataSource, EntityType
 from minerva.storage.trend import schema
 from minerva.storage.trend.granularity import Granularity
 from minerva.storage.trend.trend import Trend
-from minerva.storage import datatype
 from minerva.storage.valuedescriptor import ValueDescriptor
-from minerva.storage.trend.tables import DATA_TABLE_POSTFIXES
-
-
-class NoSuchTrendError(Exception):
-    pass
 
 
 class TimestampEquals:
@@ -103,44 +97,6 @@ class TrendStore:
 
         if cursor.rowcount > 0:
             return Trend(*cursor.fetchone())
-
-    def get_value_descriptors(self, trend_names):
-        trend_by_name = {t.name: t for t in self.trends}
-
-        def get_descriptor_by_trend_name(name):
-            try:
-                trend = trend_by_name[name]
-            except KeyError:
-                raise NoSuchTrendError('no trend with name {}'.format(name))
-            else:
-                data_type = trend.data_type
-
-                return ValueDescriptor(name, data_type)
-
-        return [
-            get_descriptor_by_trend_name(name)
-            for name in trend_names
-        ]
-
-    def get_copy_serializers(self, trend_names):
-        trend_by_name = {t.name: t for t in self.trends}
-
-        def get_serializer_by_trend_name(name):
-            try:
-                trend = trend_by_name[name]
-            except KeyError:
-                raise NoSuchTrendError('no trend with name {}'.format(name))
-            else:
-                data_type = trend.data_type
-
-                return data_type.string_serializer(
-                    datatype.copy_from_serializer_config(data_type)
-                )
-
-        return [
-            get_serializer_by_trend_name(name)
-            for name in trend_names
-        ]
 
     def retrieve(self, trend_names):
         return TrendStoreQuery(self, trend_names)

@@ -88,11 +88,18 @@ def trend_store_for_package(data_source, package: DataPackage):
     return f
 
 
-def verify_partition_for_package(trend_store, package: DataPackage):
+def verify_partition_for_package(
+        trend_store: TableTrendStore, package: DataPackage):
     def f(conn):
         with closing(conn.cursor()) as cursor:
-            partition = trend_store.partition(package.timestamp)
+            parts = {
+                trend_store._trend_part_mapping[trend_name]
+                for trend_name in package.trend_names
+            }
 
-            partition.create(cursor)
+            for part in parts:
+                partition = part.partition(package.timestamp)
+
+                partition.create(cursor)
 
     return f
