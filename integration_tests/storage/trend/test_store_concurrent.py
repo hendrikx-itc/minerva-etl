@@ -14,7 +14,7 @@ from minerva.storage import datatype
 from minerva.storage.trend.granularity import create_granularity
 from minerva.storage.trend.datapackage import DefaultPackage
 from minerva.storage.trend.tabletrendstore import TableTrendStore
-from minerva.storage.trend.trend import TrendDescriptor
+from minerva.storage.trend.trend import Trend
 
 
 def query(sql):
@@ -80,9 +80,9 @@ def test_store_concurrent(conn):
         entity_type = EntityType.from_name("test_type")(cursor)
         trend_store = TableTrendStore.create(TableTrendStore.Descriptor(
             'test-trend-store', data_source, entity_type, granularity, [
-                TrendDescriptor('c1', datatype.registry['smallint'], ''),
-                TrendDescriptor('c2', datatype.registry['smallint'], ''),
-                TrendDescriptor('c3', datatype.registry['smallint'], '')
+                Trend.Descriptor('c1', datatype.registry['smallint'], ''),
+                Trend.Descriptor('c2', datatype.registry['smallint'], ''),
+                Trend.Descriptor('c3', datatype.registry['smallint'], '')
             ],
             86400
         ))(cursor)

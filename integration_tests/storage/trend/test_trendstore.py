@@ -97,14 +97,14 @@ class TestStoreTrend(unittest.TestCase):
                 datetime.datetime(2013, 5, 6, 14, 45)
             )
 
-            part = trend_store._part_mapping['test-trend-store_part1']
+            part = trend_store.part_by_name['test-trend-store_part1']
 
             partition = part.partition(timestamp)
 
             partition.create(cursor)
 
             self.assertTrue(table_exists(
-                cursor, 'trend_partition', 'test-trend-store_379958'
+                cursor, 'trend_partition', 'test-trend-store_part1_379958'
             ), 'partition table should exist')
 
     def test_get(self):
@@ -142,7 +142,7 @@ class TestStoreTrend(unittest.TestCase):
 
             self.assertEqual(len(trend_store.parts), 1)
 
-    def test_get_by_id(self):
+    def test_retrieve(self):
         granularity = create_granularity("900")
         partition_size = 3600
         timestamp = pytz.utc.localize(datetime.datetime(2015, 1, 10, 12, 0))
@@ -167,6 +167,8 @@ class TestStoreTrend(unittest.TestCase):
                 parts,
                 partition_size
             ))(cursor)
+
+            trend_store.partition('test-store', timestamp).create(cursor)
 
         self.conn.commit()
 

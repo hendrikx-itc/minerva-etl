@@ -10,22 +10,18 @@ import pytz
 
 from minerva.db.query import Table, Call, Column, Eq, And
 from minerva.db.error import DataTypeMismatch
-from minerva.test import connect
+from minerva.storage.trend.tabletrendstorepart import TableTrendStorePart
+from minerva.test import connect, clear_database, with_data_context
 from minerva.directory import DataSource, EntityType
 from minerva.storage import datatype
 from minerva.storage.trend.datapackage import \
     refined_package_type_for_entity_type
 from minerva.storage.trend.tabletrendstore import TableTrendStore
-from minerva.storage.trend.trendstore import NoSuchTrendError
-from minerva.storage.trend.trend import TrendDescriptor
+from minerva.storage.trend.trend import Trend, NoSuchTrendError
 from minerva.storage.trend.partitioning import Partitioning
 from minerva.storage.trend.granularity import create_granularity
 
-from .minerva_db import with_data_context
 from minerva.storage.trend.test import DataSet
-
-from .minerva_db import clear_database
-
 
 modified_table = Table("trend_directory", "modified")
 
@@ -39,11 +35,15 @@ class TestStore(unittest.TestCase):
 
     def test_store_copy_from_1(self):
         trend_descriptors = [
-            TrendDescriptor('CellID', datatype.registry['integer'], ''),
-            TrendDescriptor('CCR', datatype.registry['double precision'], ''),
-            TrendDescriptor('CCRatts', datatype.registry['smallint'], ''),
-            TrendDescriptor('Drops', datatype.registry['smallint'], '')
+            Trend.Descriptor('CellID', datatype.registry['integer'], ''),
+            Trend.Descriptor('CCR', datatype.registry['double precision'], ''),
+            Trend.Descriptor('CCRatts', datatype.registry['smallint'], ''),
+            Trend.Descriptor('Drops', datatype.registry['smallint'], '')
         ]
+
+        trend_store_part_descr = TableTrendStorePart.Descriptor(
+            'test-trend-store', trend_descriptors
+        )
 
         trend_names = [t.name for t in trend_descriptors]
 
@@ -61,17 +61,17 @@ class TestStore(unittest.TestCase):
             (10087, (10087, 0.9931, 1453, 10))
         ]
 
-        timestamp = pytz.utc.localize(datetime(2013, 1, 2, 10, 45, 0))
+        timestamp = pytz.utc.localize(datetime.datetime(2013, 1, 2, 10, 45, 0))
         granularity = create_granularity("900")
-        modified = pytz.utc.localize(datetime.now())
+        modified = pytz.utc.localize(datetime.datetime.now())
 
         with closing(self.conn.cursor()) as cursor:
             data_source = DataSource.from_name("test-src009")(cursor)
             entity_type = EntityType.from_name("test-type001")(cursor)
 
             trend_store = TableTrendStore.create(TableTrendStore.Descriptor(
-                'test-trend-store', data_source, entity_type, granularity,
-                trend_descriptors, 86400
+                data_source, entity_type, granularity,
+                [trend_store_part_descr], 86400
             ))(cursor)
 
             partition = trend_store.partition(timestamp)
@@ -96,11 +96,11 @@ class TestStore(unittest.TestCase):
 
     def test_store_copy_from_2(self):
         trend_descriptors = [
-            TrendDescriptor(
+            Trend.Descriptor(
                 'CCR', datatype.registry['integer'], ''),
-            TrendDescriptor(
+            Trend.Descriptor(
                 'CCRatts', datatype.registry['smallint'], ''),
-            TrendDescriptor(
+            Trend.Descriptor(
                 'Drops', datatype.registry['smallint'], '')
         ]
 
@@ -110,8 +110,8 @@ class TestStore(unittest.TestCase):
             (10023, (0.9919, 2105, 17))
         ]
 
-        timestamp = pytz.utc.localize(datetime(2013, 1, 2, 10, 45, 0))
-        modified = pytz.utc.localize(datetime.now())
+        timestamp = pytz.utc.localize(datetime.datetime(2013, 1, 2, 10, 45, 0))
+        modified = pytz.utc.localize(datetime.datetime.now())
         granularity = create_granularity("900")
 
         with closing(self.conn.cursor()) as cursor:
@@ -119,8 +119,10 @@ class TestStore(unittest.TestCase):
             entity_type = EntityType.from_name("test-type002")(cursor)
 
             trend_store = TableTrendStore.create(TableTrendStore.Descriptor(
-                'test-trend-store', data_source, entity_type,
-                granularity, trend_descriptors, 86400
+                data_source, entity_type, granularity,
+                [TableTrendStorePart.Descriptor(
+                    'test-trend-store', trend_descriptors
+                )], 86400
             ))(cursor)
             partition = trend_store.partition(timestamp)
             partition.create(cursor)
@@ -137,11 +139,11 @@ class TestStore(unittest.TestCase):
         granularity = create_granularity(900)
 
         trend_descriptors = [
-            TrendDescriptor('CellID', datatype.registry['smallint'], ''),
-            TrendDescriptor('CCR', datatype.registry['double precision'], ''),
-            TrendDescriptor('RadioFail', datatype.registry['smallint'], ''),
-            TrendDescriptor('RFOldHo', datatype.registry['smallint'], ''),
-            TrendDescriptor('AbisFailCall', datatype.registry['smallint'], '')
+            Trend.Descriptor('CellID', datatype.registry['smallint'], ''),
+            Trend.Descriptor('CCR', datatype.registry['double precision'], ''),
+            Trend.Descriptor('RadioFail', datatype.registry['smallint'], ''),
+            Trend.Descriptor('RFOldHo', datatype.registry['smallint'], ''),
+            Trend.Descriptor('AbisFailCall', datatype.registry['smallint'], '')
         ]
 
         trend_names = [t.name for t in trend_descriptors]
@@ -164,13 +166,15 @@ class TestStore(unittest.TestCase):
             entity_type = EntityType.from_name("test-type001")(cursor)
 
             trend_store = TableTrendStore.create(TableTrendStore.Descriptor(
-                'test-trend-store', data_source, entity_type, granularity,
-                trend_descriptors, 86400
+                data_source, entity_type, granularity,
+                [TableTrendStorePart.Descriptor(
+                    'test-trend-store', trend_descriptors
+                )], 86400
             ))(cursor)
 
             self.conn.commit()
 
-            timestamp = pytz.utc.localize(datetime(2013, 1, 2, 10, 45, 0))
+            timestamp = pytz.utc.localize(datetime.datetime(2013, 1, 2, 10, 45, 0))
 
             partition = trend_store.partition(timestamp)
 
@@ -180,7 +184,7 @@ class TestStore(unittest.TestCase):
 
             partition.create(cursor)
 
-            modified = pytz.utc.localize(datetime.now())
+            modified = pytz.utc.localize(datetime.datetime.now())
 
             trend_store.store_update(
                 refined_package_type_for_entity_type('Node')(
@@ -203,9 +207,9 @@ class TestStore(unittest.TestCase):
         granularity = create_granularity("900")
 
         trend_descriptors = [
-            TrendDescriptor('CellID', datatype.registry['smallint'], ''),
-            TrendDescriptor('CCR', datatype.registry['double precision'], ''),
-            TrendDescriptor('Drops', datatype.registry['smallint'], ''),
+            Trend.Descriptor('CellID', datatype.registry['smallint'], ''),
+            Trend.Descriptor('CCR', datatype.registry['double precision'], ''),
+            Trend.Descriptor('Drops', datatype.registry['smallint'], ''),
         ]
 
         trend_names = [t.name for t in trend_descriptors]
@@ -215,8 +219,8 @@ class TestStore(unittest.TestCase):
             (10047, (10047, 0.9963, 18))
         ]
 
-        modified = pytz.utc.localize(datetime.now())
-        time1 = pytz.utc.localize(datetime(2013, 1, 2, 10, 45, 0))
+        modified = pytz.utc.localize(datetime.datetime.now())
+        time1 = pytz.utc.localize(datetime.datetime(2013, 1, 2, 10, 45, 0))
         time2 = time1 - timedelta(days=1)
 
         with closing(self.conn.cursor()) as cursor:
@@ -225,8 +229,10 @@ class TestStore(unittest.TestCase):
 
             trend_store = TableTrendStore.create(
                 TableTrendStore.Descriptor(
-                    'test-trend-store', data_source, entity_type,
-                    granularity, trend_descriptors, 86400 * 7
+                    data_source, entity_type,
+                    granularity, [TableTrendStorePart.Descriptor(
+                        'test-trend-store', trend_descriptors
+                    )], 86400 * 7
                 )
             )(cursor)
 
@@ -268,9 +274,9 @@ class TestStore(unittest.TestCase):
 
     def test_update_modified_column(self):
         trend_descriptors = [
-            TrendDescriptor('CellID', datatype.registry['smallint'], ''),
-            TrendDescriptor('CCR', datatype.registry['double precision'], ''),
-            TrendDescriptor('Drops', datatype.registry['smallint'], ''),
+            Trend.Descriptor('CellID', datatype.registry['smallint'], ''),
+            Trend.Descriptor('CCR', datatype.registry['double precision'], ''),
+            Trend.Descriptor('Drops', datatype.registry['smallint'], ''),
         ]
 
         trend_names = [t.name for t in trend_descriptors]
@@ -284,7 +290,7 @@ class TestStore(unittest.TestCase):
             (10023, (10023, 0.9919, 17))
         ]
 
-        timestamp = pytz.utc.localize(datetime.now())
+        timestamp = pytz.utc.localize(datetime.datetime.now())
         granularity = create_granularity("900")
 
         with closing(self.conn.cursor()) as cursor:
@@ -292,8 +298,10 @@ class TestStore(unittest.TestCase):
             entity_type = EntityType.from_name("test-type001")(cursor)
 
             trend_store = TableTrendStore.create(TableTrendStore.Descriptor(
-                'test-trend-store', data_source, entity_type,
-                granularity, trend_descriptors, 86400
+                data_source, entity_type,
+                granularity, [TableTrendStorePart.Descriptor(
+                    'test-trend-store', trend_descriptors
+                )], 86400
             ))(cursor)
 
             self.conn.commit()
@@ -339,9 +347,9 @@ class TestStore(unittest.TestCase):
 
     def test_update(self):
         trend_descriptors = [
-            TrendDescriptor("CellID", datatype.registry['smallint'], ''),
-            TrendDescriptor("CCR", datatype.registry['double precision'], ''),
-            TrendDescriptor("Drops", datatype.registry['smallint'], '')
+            Trend.Descriptor("CellID", datatype.registry['smallint'], ''),
+            Trend.Descriptor("CCR", datatype.registry['double precision'], ''),
+            Trend.Descriptor("Drops", datatype.registry['smallint'], '')
         ]
 
         trend_names = [t.name for t in trend_descriptors]
@@ -355,7 +363,7 @@ class TestStore(unittest.TestCase):
             (10023, (10023, 0.5555, 17))
         ]
 
-        timestamp = datetime.now()
+        timestamp = datetime.datetime.now()
         granularity = create_granularity("900")
 
         with closing(self.conn.cursor()) as cursor:
@@ -363,8 +371,10 @@ class TestStore(unittest.TestCase):
             entity_type = EntityType.from_name("test-type001")(cursor)
 
             trend_store = TableTrendStore.create(TableTrendStore.Descriptor(
-                'test-trend-store', data_source, entity_type, granularity,
-                trend_descriptors, 86400
+                data_source, entity_type, granularity,
+                [TableTrendStorePart.Descriptor(
+                    'test-trend-store', trend_descriptors
+                )], 86400
                 ))(cursor)
 
             partition = trend_store.partition(timestamp)
@@ -397,13 +407,13 @@ class TestStore(unittest.TestCase):
 
     def test_update_and_modify_columns_fractured(self):
         granularity = create_granularity("900")
-        timestamp = pytz.utc.localize(datetime(2013, 1, 2, 10, 45, 0))
+        timestamp = pytz.utc.localize(datetime.datetime(2013, 1, 2, 10, 45, 0))
         entity_ids = range(1023, 1023 + 100)
 
         trend_descriptors = [
-            TrendDescriptor("CellID", datatype.registry['smallint'], ''),
-            TrendDescriptor("CCR", datatype.registry['double precision'], ''),
-            TrendDescriptor("Drops", datatype.registry['smallint'], '')
+            Trend.Descriptor("CellID", datatype.registry['smallint'], ''),
+            Trend.Descriptor("CCR", datatype.registry['double precision'], ''),
+            Trend.Descriptor("Drops", datatype.registry['smallint'], '')
         ]
 
         trend_names_a = ["CellID", "CCR", "Drops"]
@@ -424,8 +434,10 @@ class TestStore(unittest.TestCase):
             entity_type = EntityType.from_name("test-type001")(cursor)
 
             trend_store = TableTrendStore.create(TableTrendStore.Descriptor(
-                'test-trend-store', data_source, entity_type, granularity,
-                trend_descriptors, 86400
+                data_source, entity_type, granularity,
+                [TableTrendStorePart.Descriptor(
+                    'test-trend-store', trend_descriptors
+                )], 86400
             ))(cursor)
 
             partition = trend_store.partition(timestamp)
@@ -475,8 +487,9 @@ class TestStore(unittest.TestCase):
 
             create_trend_store = TableTrendStore.create(
                 TableTrendStore.Descriptor(
-                    'test-trend-store', data_source, entity_type, granularity,
-                    [], partition_size
+                    data_source, entity_type, granularity,
+                    [TableTrendStorePart.Descriptor('test-trend-store', [])],
+                    partition_size
                 )
             )
 
@@ -496,14 +509,15 @@ class TestStore(unittest.TestCase):
             entity_type = EntityType.create("test_type", '')(cursor)
 
             trend_store = TableTrendStore.create(TableTrendStore.Descriptor(
-                'test-trend-store', data_source, entity_type, granularity,
-                [], partition_size
+                data_source, entity_type, granularity,
+                [TableTrendStorePart.Descriptor('test-trend-store', [])],
+                partition_size
             ))(cursor)
 
             assert trend_store.id is not None
 
             timestamp = pytz.utc.localize(
-                datetime(2013, 5, 6, 14, 45)
+                datetime.datetime(2013, 5, 6, 14, 45)
             )
 
             partition = trend_store.partition(timestamp)
@@ -519,8 +533,9 @@ class TestStore(unittest.TestCase):
             granularity = create_granularity('900 seconds')
 
             TableTrendStore.create(TableTrendStore.Descriptor(
-                'test-trend-store', data_source, entity_type, granularity,
-                [], partition_size
+                data_source, entity_type, granularity,
+                [TableTrendStorePart.Descriptor('test-trend-store', [])],
+                partition_size
             ))(cursor)
 
             trend_store = TableTrendStore.get(
@@ -537,15 +552,15 @@ class TestStore(unittest.TestCase):
         partition_size = 86400
 
         trend_descriptors = [
-            TrendDescriptor('a', datatype.registry['smallint'], ''),
-            TrendDescriptor('b', datatype.registry['smallint'], ''),
-            TrendDescriptor('c', datatype.registry['smallint'], '')
+            Trend.Descriptor('a', datatype.registry['smallint'], ''),
+            Trend.Descriptor('b', datatype.registry['smallint'], ''),
+            Trend.Descriptor('c', datatype.registry['smallint'], '')
         ]
 
         trend_names = [t.name for t in trend_descriptors]
 
         timestamp = pytz.utc.localize(
-            datetime(2013, 4, 25, 9, 45)
+            datetime.datetime(2013, 4, 25, 9, 45)
         )
 
         with closing(self.conn.cursor()) as cursor:
@@ -553,8 +568,10 @@ class TestStore(unittest.TestCase):
             entity_type = EntityType.create("test_type", '')(cursor)
 
             trend_store = TableTrendStore.create(TableTrendStore.Descriptor(
-                'test-trend-store', data_source, entity_type, granularity,
-                trend_descriptors, partition_size
+                data_source, entity_type, granularity,
+                [TableTrendStorePart.Descriptor(
+                    'test-trend-store', trend_descriptors
+                )], partition_size
             ))(cursor)
 
             trend_store.partition(timestamp).create(cursor)
@@ -582,15 +599,15 @@ class TestStore(unittest.TestCase):
         partition_size = 86400
 
         trend_descriptors = [
-            TrendDescriptor('a', datatype.registry['smallint'], ''),
-            TrendDescriptor('b', datatype.registry['smallint'], ''),
-            TrendDescriptor('c', datatype.registry['smallint'], '')
+            Trend.Descriptor('a', datatype.registry['smallint'], ''),
+            Trend.Descriptor('b', datatype.registry['smallint'], ''),
+            Trend.Descriptor('c', datatype.registry['smallint'], '')
         ]
 
         trend_names = [t.name for t in trend_descriptors]
 
         timestamp = pytz.utc.localize(
-            datetime(2013, 4, 25, 9, 45)
+            datetime.datetime(2013, 4, 25, 9, 45)
         )
 
         with closing(self.conn.cursor()) as cursor:
@@ -598,8 +615,10 @@ class TestStore(unittest.TestCase):
             entity_type = EntityType.create("test_type", '')(cursor)
 
             trend_store = TableTrendStore.create(TableTrendStore.Descriptor(
-                'test-trend-store', data_source, entity_type, granularity,
-                trend_descriptors, partition_size
+                data_source, entity_type, granularity,
+                [TableTrendStorePart.Descriptor(
+                    'test-trend-store', trend_descriptors
+                )], partition_size
             ))(cursor)
 
             trend_store.partition(timestamp).create(cursor)
@@ -621,7 +640,7 @@ class TestStore(unittest.TestCase):
         # Store second part with one column extra
 
         timestamp = pytz.utc.localize(
-            datetime(2013, 4, 25, 10, 00)
+            datetime.datetime(2013, 4, 25, 10, 00)
         )
 
         trends = ["a", "b", "c", "d"]
@@ -645,15 +664,15 @@ class TestStore(unittest.TestCase):
         partition_size = 86400
 
         trend_descriptors = [
-            TrendDescriptor('a', datatype.registry['smallint'], ''),
-            TrendDescriptor('b', datatype.registry['smallint'], ''),
-            TrendDescriptor('c', datatype.registry['smallint'], '')
+            Trend.Descriptor('a', datatype.registry['smallint'], ''),
+            Trend.Descriptor('b', datatype.registry['smallint'], ''),
+            Trend.Descriptor('c', datatype.registry['smallint'], '')
         ]
 
         trend_names = [t.name for t in trend_descriptors]
 
         timestamp = pytz.utc.localize(
-            datetime(2013, 4, 25, 9, 45)
+            datetime.datetime(2013, 4, 25, 9, 45)
         )
 
         with closing(self.conn.cursor()) as cursor:
@@ -661,8 +680,12 @@ class TestStore(unittest.TestCase):
             entity_type = EntityType.create("test_type", '')(cursor)
 
             trend_store = TableTrendStore.create(TableTrendStore.Descriptor(
-                'test-trend-store', data_source, entity_type, granularity,
-                trend_descriptors, partition_size
+                data_source, entity_type, granularity,
+                [
+                    TableTrendStorePart.Descriptor(
+                        'test-trend-store', trend_descriptors
+                    )
+                ], partition_size
             ))(cursor)
 
             trend_store.partition(timestamp).create(cursor)
@@ -721,12 +744,8 @@ class TestStore(unittest.TestCase):
 
         partition_size = 86400
 
-        start = pytz.utc.localize(
-            datetime(2013, 4, 25, 9, 45)
-        )
-        end = pytz.utc.localize(
-            datetime(2013, 4, 27, 9, 45)
-        )
+        start = pytz.utc.localize(datetime.datetime(2013, 4, 25, 9, 45))
+        end = pytz.utc.localize(datetime.datetime(2013, 4, 27, 9, 45))
 
         partitioning = Partitioning(partition_size)
 
@@ -747,15 +766,15 @@ class TestStore(unittest.TestCase):
         partition_size = 86400
 
         trend_descriptors = [
-            TrendDescriptor('a', datatype.registry['smallint'], ''),
-            TrendDescriptor('b', datatype.registry['smallint'], ''),
-            TrendDescriptor('c', datatype.registry['smallint'], ''),
+            Trend.Descriptor('a', datatype.registry['smallint'], ''),
+            Trend.Descriptor('b', datatype.registry['smallint'], ''),
+            Trend.Descriptor('c', datatype.registry['smallint'], ''),
         ]
 
         trend_names = [t.name for t in trend_descriptors]
 
         timestamp = pytz.utc.localize(
-            datetime(2013, 4, 25, 11, 00)
+            datetime.datetime(2013, 4, 25, 11, 00)
         )
 
         with closing(self.conn.cursor()) as cursor:
@@ -763,8 +782,12 @@ class TestStore(unittest.TestCase):
             entity_type = EntityType.create("test_type", '')(cursor)
 
             trend_store = TableTrendStore.create(TableTrendStore.Descriptor(
-                'test-trend-store', data_source, entity_type, granularity,
-                trend_descriptors, partition_size
+                data_source, entity_type, granularity,
+                [
+                    TableTrendStorePart.Descriptor(
+                        'test-trend-store', trend_descriptors
+                    )
+                ], partition_size
             ))(cursor)
 
             trend_store.partition(timestamp).create(cursor)
@@ -816,19 +839,17 @@ class TestStore(unittest.TestCase):
 
             c, = cursor.fetchone()
 
-        self.assertEqual(c, datetime(2013, 4, 25, 11, 0, 0))
+        self.assertEqual(c, datetime.datetime(2013, 4, 25, 11, 0, 0))
 
     def test_store_ignore_column(self):
         partition_size = 86400
 
         trend_descriptors = [
-            TrendDescriptor('x', datatype.registry['smallint'], ''),
-            TrendDescriptor('y', datatype.registry['smallint'], ''),
+            Trend.Descriptor('x', datatype.registry['smallint'], ''),
+            Trend.Descriptor('y', datatype.registry['smallint'], ''),
         ]
 
-        timestamp = pytz.utc.localize(
-            datetime(2013, 4, 25, 10, 45)
-        )
+        timestamp = pytz.utc.localize(datetime.datetime(2013, 4, 25, 10, 45))
 
         with closing(self.conn.cursor()) as cursor:
             data_source = DataSource.create("test-source", '')(cursor)
@@ -836,8 +857,12 @@ class TestStore(unittest.TestCase):
             granularity = create_granularity('900 seconds')
 
             trend_store = TableTrendStore.create(TableTrendStore.Descriptor(
-                'test-trend-store', data_source, entity_type, granularity,
-                trend_descriptors, partition_size
+                data_source, entity_type, granularity,
+                [
+                    TableTrendStorePart.Descriptor(
+                        'test-trend-store', trend_descriptors
+                    )
+                ], partition_size
             ))(cursor)
 
             trend_store.partition(timestamp).create(cursor)
@@ -896,8 +921,10 @@ class TestStore(unittest.TestCase):
             retention_period = 86400 * 7
 
             trend_store_descr = TableTrendStore.Descriptor(
-                'test-store', data_set.data_source, data_set.entity_type,
-                data_set.granularity, [], partition_size
+                data_set.data_source, data_set.entity_type,
+                data_set.granularity, [
+                    TableTrendStorePart.Descriptor('test-store', [])
+                ], partition_size
             )
 
             with closing(self.conn.cursor()) as cursor:
@@ -912,9 +939,10 @@ class TestStore(unittest.TestCase):
             partition_size = 3600
 
             trend_store_descr = TableTrendStore.Descriptor(
-                'test_store',
-                data_set.data_source, data_set.entity_type, data_set.granularity,
-                [], partition_size
+                data_set.data_source, data_set.entity_type,
+                data_set.granularity,
+                [TableTrendStorePart.Descriptor('test_store', [])],
+                partition_size
             )
 
             with closing(self.conn.cursor()) as cursor:
@@ -926,7 +954,7 @@ class TestStore(unittest.TestCase):
                     datetime.datetime(2013, 5, 6, 14, 45)
                 )
 
-                partition = trend_store.partition(timestamp)
+                partition = trend_store.partition('test_store', timestamp)
 
                 partition.create(cursor)
 
@@ -936,8 +964,10 @@ class TestStore(unittest.TestCase):
 
             with closing(self.conn.cursor()) as cursor:
                 trend_store_descr = TableTrendStore.Descriptor(
-                    'test_store', data_set.data_source, data_set.entity_type,
-                    data_set.granularity, [], partition_size
+                    data_set.data_source, data_set.entity_type,
+                    data_set.granularity, [
+                        TableTrendStorePart.Descriptor('test_store', [])
+                    ], partition_size
                 )
 
                 TableTrendStore.create(trend_store_descr)(cursor)
@@ -959,8 +989,10 @@ class TestStore(unittest.TestCase):
 
             with closing(self.conn.cursor()) as cursor:
                 trend_store_descr = TableTrendStore.Descriptor(
-                    'test_store', data_set.data_source, data_set.entity_type,
-                    data_set.granularity, [], partition_size
+                    data_set.data_source, data_set.entity_type,
+                    data_set.granularity, [
+                        TableTrendStorePart.Descriptor('test_store', [])
+                    ], partition_size
                 )
 
                 trend_store = TableTrendStore.create(trend_store_descr)(cursor)
@@ -991,8 +1023,10 @@ class TestStore(unittest.TestCase):
             partition_size = 86400
 
             trend_store_descr = TableTrendStore.Descriptor(
-                'test_store', dataset.data_source, dataset.entity_type,
-                dataset.granularity, [], partition_size
+                dataset.data_source, dataset.entity_type,
+                dataset.granularity, [
+                    TableTrendStorePart.Descriptor('test_store', [])
+                ], partition_size
             )
 
             with closing(self.conn.cursor()) as cursor:
@@ -1045,13 +1079,15 @@ class TestStore(unittest.TestCase):
             )
 
             trend_store_descr = TableTrendStore.Descriptor(
-                'TestStore', dataset.data_source, dataset.entity_type,
-                dataset.granularity, [], partition_size
+                dataset.data_source, dataset.entity_type,
+                dataset.granularity, [
+                    TableTrendStorePart.Descriptor('TestStore', [])
+                ], partition_size
             )
 
             with closing(self.conn.cursor()) as cursor:
                 trend_store = TableTrendStore.create(trend_store_descr)(cursor)
-                trend_store.partition(timestamp).create(cursor)
+                trend_store.partition('TestStore', timestamp).create(cursor)
 
             self.conn.commit()
 
@@ -1068,7 +1104,7 @@ class TestStore(unittest.TestCase):
 
             trend_store.store(data_package)(self.conn)
 
-            table = trend_store.partition(timestamp).table()
+            table = trend_store.partition('TestStore', timestamp).table()
 
             condition = And(
                 Eq(Column("entity_id"), 2345),

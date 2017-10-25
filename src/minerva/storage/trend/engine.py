@@ -61,11 +61,9 @@ class TrendEngine(Engine):
         :param trend_store: trend store with defined trends
         :return: (DataPackage) -> DataPackage
         """
-        existing_trend_names = {trend.name for trend in trend_store.trends}
-
         def f(package):
             return package.filter_trends(
-                partial(contains, existing_trend_names)
+                partial(contains, trend_store._trend_part_mapping)
             )
 
         return f
@@ -95,6 +93,7 @@ def verify_partition_for_package(
             parts = {
                 trend_store._trend_part_mapping[trend_name]
                 for trend_name in package.trend_names
+                if trend_name in trend_store._trend_part_mapping
             }
 
             for part in parts:

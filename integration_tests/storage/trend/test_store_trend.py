@@ -1,21 +1,20 @@
 import time
 import unittest
 from contextlib import closing
-from datetime import datetime, timedelta
+from datetime import datetime
 
 from pytz import timezone
 
+from minerva.storage.trend import datapackage
+from minerva.storage.trend.tabletrendstorepart import TableTrendStorePart
 from minerva.util import first
 from minerva.db.query import Table, Column, Call, Eq
 from minerva.storage.generic import extract_data_types
 from minerva.directory.datasource import DataSource
 from minerva.directory.entitytype import EntityType
-from minerva.test import connect
+from minerva.test import connect, clear_database, row_count
 from minerva.storage.trend.tabletrendstore import TableTrendStore
 from minerva.storage.trend.granularity import create_granularity
-
-from .minerva_db import clear_database
-from .helpers import row_count
 
 SCHEMA = 'trend'
 
@@ -57,9 +56,11 @@ class TestStoreTrend(unittest.TestCase):
             entity_type = EntityType.from_name("test-type001")(cursor)
 
             trend_store = TableTrendStore.create(TableTrendStore.Descriptor(
-                'test_store', data_source, entity_type, granularity, [], 86400
+                data_source, entity_type, granularity, [
+                    TableTrendStorePart.Descriptor('test_store', [])
+                ], 86400
             ))(cursor)
-            partition = trend_store.partition(timestamp)
+            partition = trend_store.partition('test_store', timestamp)
 
             table = partition.table()
 
@@ -67,10 +68,12 @@ class TestStoreTrend(unittest.TestCase):
 
             partition.check_columns_exist(trend_names, data_types)(cursor)
 
-            store_copy_from(
-                self.conn, SCHEMA, table.name, trend_names, timestamp,
-                modified, data_rows
-            )
+            T = datapackage.refined_package_type_for_entity_type('Cell')
+
+            data_package = T(granularity, timestamp, trend_names, data_rows)
+
+            part = trend_store.part_by_name['test_store']
+            part.store_copy_from(data_package, modified)(self.conn)
 
             self.conn.commit()
 
@@ -99,7 +102,9 @@ class TestStoreTrend(unittest.TestCase):
             data_source = DataSource.from_name("test-src010")(cursor)
             entity_type = EntityType.from_name("test-type002")(cursor)
             trend_store = TableTrendStore.create(TableTrendStore.Descriptor(
-                'test_store', data_source, entity_type, granularity, [], 86400
+                data_source, entity_type, granularity, [
+                    TableTrendStorePart.Descriptor('test_store', [])
+                ], 86400
             ))(cursor)
             partition = trend_store.partition(timestamp)
             partition.create(cursor)
@@ -166,57 +171,6 @@ class TestStoreTrend(unittest.TestCase):
 
             self.assertEqual(max_modified, modified)
 
-    def test_store_insert_rows(self):
-        table = Table(SCHEMA, 'storage_tmp_test_table')
-        trend_names = ['CellID', 'CCR', 'Drops']
-        data_rows = [
-            (10023, ('10023', '0.9919', '17')),
-            (10047, ('10047', '0.9963', '18'))
-        ]
-        curr_timezone = timezone("Europe/Amsterdam")
-        modified = curr_timezone.localize(datetime.now())
-        time1 = curr_timezone.localize(datetime.now())
-        time2 = time1 - timedelta(days=1)
-
-        data_types = extract_data_types(data_rows)
-
-        with closing(self.conn.cursor()) as cursor:
-            table.drop().if_exists().execute(cursor)
-
-            create_trend_table(
-                self.conn, SCHEMA, table.name, trend_names, data_types
-            )
-
-            store_insert_rows(
-                self.conn, SCHEMA, table.name, trend_names, time1, modified,
-                data_rows
-            )
-            self.conn.commit()
-
-            self.assertEqual(row_count(cursor, table), 2)
-
-            store_insert_rows(
-                self.conn, SCHEMA, table.name, trend_names, time2, modified,
-                data_rows
-            )
-            self.conn.commit()
-
-            self.assertEqual(row_count(cursor, table), 4)
-
-            store_insert_rows(
-                self.conn, SCHEMA, table.name, trend_names, time1, modified,
-                data_rows
-            )
-            self.conn.commit()
-
-            self.assertEqual(row_count(cursor, table), 4)
-
-            table.select(Call("max", Column("modified"))).execute(cursor)
-
-            max_modified = first(cursor.fetchone())
-
-            self.assertEqual(max_modified, modified)
-
     def test_update_modified_column(self):
         curr_timezone = timezone("Europe/Amsterdam")
 
@@ -235,10 +189,12 @@ class TestStoreTrend(unittest.TestCase):
             data_source = DataSource.from_name("test-src009")(cursor)
             entity_type = EntityType.from_name("test-type001")(cursor)
 
-            trendstore = TableTrendStore.create(TableTrendStore.Descriptor(
-                'test-store', data_source, entity_type, granularity, [], 86400
+            trend_store = TableTrendStore.create(TableTrendStore.Descriptor(
+                data_source, entity_type, granularity, [
+                    TableTrendStorePart.Descriptor('test-store', [])
+                ], 86400
             ))(cursor)
-            partition = trendstore.partition(timestamp)
+            partition = trend_store.partition('test-store', timestamp)
 
             table = partition.table()
 
@@ -246,9 +202,9 @@ class TestStoreTrend(unittest.TestCase):
 
             partition.check_columns_exist(trend_names, data_types)(cursor)
 
-            store(self.conn, SCHEMA, table.name, trend_names, timestamp, data_rows)
+            trend_store.store(self.conn, SCHEMA, table.name, trend_names, timestamp, data_rows)
             time.sleep(1)
-            store(self.conn, SCHEMA, table.name, trend_names, timestamp, update_data_rows)
+            trend_store.store(self.conn, SCHEMA, table.name, trend_names, timestamp, update_data_rows)
             self.conn.commit()
 
             query = table.select([Column("modified")])
@@ -285,10 +241,12 @@ class TestStoreTrend(unittest.TestCase):
             entity_type = EntityType.from_name("test-type001")(cursor)
 
             trend_store = TableTrendStore.create(TableTrendStore.Descriptor(
-                'test-store', data_source, entity_type, granularity, [], 86400
+                data_source, entity_type, granularity, [
+                    TableTrendStorePart.Descriptor('test-store', [])
+                ], 86400
             ))(cursor)
 
-            partition = trend_store.partition(timestamp)
+            partition = trend_store.partition('test-store', timestamp)
 
             table = partition.table()
 

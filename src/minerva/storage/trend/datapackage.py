@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from io import StringIO
-from itertools import chain
+from itertools import chain, groupby
 from operator import itemgetter
 from typing import Callable, List, Type
 
@@ -92,6 +92,31 @@ class DataPackage:
                 for entity_ref, values in self.rows
             ]
         )
+
+    def split(self, group_fn):
+        """
+        Split the trends in this package by passing the trend name through the
+        provided function. The trends with the same resulting key are placed in
+        a new separate package.
+
+        :param group_fn: Function that returns the group key for a trend name
+        :return: A list of data packages with trends grouped by key
+        """
+        for key, group in grouped_by([
+            (group_fn(trend_name), itemgetter(index), trend_name)
+            for index, trend_name in enumerate(self.trend_names)
+        ], key=itemgetter(0)):
+            keys, value_getters, trend_names = zip(*list(group))
+
+            yield key, self.__class__(
+                self.granularity,
+                self.timestamp,
+                trend_names,
+                [
+                    (entity_ref, tuple(g(values) for g in value_getters))
+                    for entity_ref, values in self.rows
+                ]
+            )
 
     def get_key(self):
         return (

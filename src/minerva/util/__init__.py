@@ -149,7 +149,6 @@ def each(fn, iterable):
     """
     Apply function `fn` to each item in `iterable`. For example:
 
-        >>> from __future__ import print_function
         >>> from minerva.util import each
         >>> each(print, ["1 - first", "2 - second", "3 - third"])
         1 - first
@@ -358,3 +357,17 @@ def merge_dicts(x: dict, y: dict):
         z.update(y)
 
         return z
+
+
+def string_fns(fns):
+    """
+    Return function that calls all functions on the same arguments
+
+    :param fns:
+    :return:
+    """
+    def f(*args, **kwargs):
+        for fn in fns:
+            fn(*args, **kwargs)
+
+    return f

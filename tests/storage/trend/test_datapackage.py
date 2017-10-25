@@ -95,3 +95,39 @@ class TestDataPackage(unittest.TestCase):
         self.assertEqual(filtered_package.trend_names, ('x', 'z'))
 
         self.assertEqual(filtered_package.rows[3], ('Node=004', (41, 43)))
+
+    def test_split(self):
+        package = DefaultPackage(
+            create_granularity("900"),
+            pytz.utc.localize(datetime(2015, 2, 25, 10, 0, 0)),
+            ['a', 'b', 'c', 'd', 'e'],
+            [
+                ('Node=001', (11, 12, 13, 14, 15)),
+                ('Node=002', (21, 22, 23, 24, 25)),
+                ('Node=003', (31, 32, 33, 34, 35)),
+                ('Node=004', (41, 42, 43, 44, 45))
+            ]
+        )
+
+        group_dict = {
+            'a': 'blue',
+            'b': 'red',
+            'c': 'green',
+            'd': 'blue',
+            'e': 'red'
+        }
+
+        def color_group(trend_name):
+            return group_dict[trend_name]
+
+        packages = list(package.split(color_group))
+
+        self.assertEqual(len(packages), 3)
+
+        for color, package in packages:
+            if color == 'blue':
+                self.assertEqual(len(package.trend_names), 2, 'blue package should have 2 trends')
+            elif color == 'red':
+                self.assertEqual(len(package.trend_names), 2, 'red package should have 2 trends')
+            elif color == 'green':
+                self.assertEqual(len(package.trend_names), 1, 'green package should have 1 trends')

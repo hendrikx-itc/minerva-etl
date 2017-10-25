@@ -1,5 +1,5 @@
 import logging
-from contextlib import closing
+from contextlib import closing, contextmanager
 from functools import wraps
 
 import psycopg2.extras
@@ -51,3 +51,22 @@ def clear_database(conn):
         cursor.execute("DELETE FROM directory.tag CASCADE")
 
     return conn
+
+
+@contextmanager
+def with_data_context(conn, test_set):
+    data = test_set()
+
+    data.load(conn)
+
+    yield data
+
+
+def row_count(cursor, table):
+    cursor.execute("SELECT COUNT(*) FROM {}".format(table.render()))
+
+    count, = cursor.fetchone()
+
+    return count
+
+

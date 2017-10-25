@@ -2,14 +2,6 @@ from minerva.util import head, tail
 from minerva.util.tabulate import render_table
 
 
-def row_count(cursor, table):
-    cursor.execute("SELECT COUNT(*) FROM {}".format(table.render()))
-
-    count, = cursor.fetchone()
-
-    return count
-
-
 def render_source(source):
     """
     Renders a data 'source' in the form of a table-like object:

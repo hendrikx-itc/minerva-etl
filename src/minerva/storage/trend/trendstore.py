@@ -29,7 +29,7 @@ class TrendStoreQuery:
             'SELECT {} FROM {}'
         ).format(
             ', '.join(map(quote_ident, self.trend_names)),
-            self.trend_store.table().render()
+            self.trend_store.parts[0].base_table().render()
         )
 
         if self.timestamp_constraint is not None:

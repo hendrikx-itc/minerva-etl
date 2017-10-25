@@ -3,15 +3,6 @@ from contextlib import closing, contextmanager
 from minerva.test import connect, clear_database
 
 
-@contextmanager
-def with_data_context(conn, test_set):
-    data = test_set()
-
-    data.load(conn)
-
-    yield data
-
-
 def with_data(test_set):
     def __init__(i):
         i.data = None

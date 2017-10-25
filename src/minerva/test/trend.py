@@ -5,11 +5,12 @@ import pytz
 
 from minerva.directory import DataSource, EntityType, Entity
 from minerva.storage import datatype
+from minerva.storage.trend.tabletrendstorepart import TableTrendStorePart
 from minerva.storage.trend.test import DataSet
 from minerva.storage.trend.granularity import create_granularity
 from minerva.storage.trend.datapackage import \
     refined_package_type_for_entity_type
-from minerva.storage.trend.trend import TrendDescriptor
+from minerva.storage.trend.trend import Trend
 from minerva.storage.trend.trendstore import TrendStore
 from minerva.storage.trend.tabletrendstore import TableTrendStore
 
@@ -42,6 +43,10 @@ class TestSet1Small(TestSetQtr):
             self.granularity, self.timestamp, self.entities
         )
 
+        table_trend_store_part_descr = TableTrendStorePart.Descriptor(
+            'test-set-1-small', trend_descriptors
+        )
+
         self.trend_store = TableTrendStore.get(
             self.data_source, self.entity_type, self.granularity
         )(cursor)
@@ -49,14 +54,15 @@ class TestSet1Small(TestSetQtr):
         if not self.trend_store:
             self.trend_store = TableTrendStore.create(
                 TableTrendStore.Descriptor(
-                    'test-set-1-small',
                     self.data_source, self.entity_type, self.granularity,
-                    trend_descriptors, partition_size=86400
+                    [table_trend_store_part_descr], 86400
                 )
             )(cursor)
 
-        self.trend_store.partition(data_package.timestamp).create(cursor)
-        self.trend_store.store_copy_from(data_package, self.modified)(cursor)
+        self.trend_store.partition(
+            'test-set-1-small', data_package.timestamp
+        ).create(cursor)
+        self.trend_store.part_by_name['test-set-1-small'].store_copy_from(data_package, self.modified)(cursor)
 
 
 class TestSet1Large(TestSetQtr):
@@ -194,10 +200,10 @@ class TestData:
 
 def generate_data_package_a(granularity, timestamp, entities):
     trend_descriptors = [
-        TrendDescriptor('CellID', datatype.registry['smallint'], ''),
-        TrendDescriptor('CCR', datatype.registry['double precision'], ''),
-        TrendDescriptor('CCRatts', datatype.registry['smallint'], ''),
-        TrendDescriptor('Drops', datatype.registry['smallint'], '')
+        Trend.Descriptor('CellID', datatype.registry['smallint'], ''),
+        Trend.Descriptor('CCR', datatype.registry['double precision'], ''),
+        Trend.Descriptor('CCRatts', datatype.registry['smallint'], ''),
+        Trend.Descriptor('Drops', datatype.registry['smallint'], '')
     ]
 
     trend_names = [t.name for t in trend_descriptors]
@@ -218,10 +224,10 @@ def generate_data_package_a(granularity, timestamp, entities):
 
 def generate_data_package_a_large(granularity, timestamp, entities):
     trend_descriptors = [
-        TrendDescriptor('CellID', datatype.registry['smallint'], ''),
-        TrendDescriptor('CCR', datatype.registry['double precision'], ''),
-        TrendDescriptor('CCRatts', datatype.registry['smallint'], ''),
-        TrendDescriptor('Drops', datatype.registry['smallint'], '')
+        Trend.Descriptor('CellID', datatype.registry['smallint'], ''),
+        Trend.Descriptor('CCR', datatype.registry['double precision'], ''),
+        Trend.Descriptor('CCRatts', datatype.registry['smallint'], ''),
+        Trend.Descriptor('Drops', datatype.registry['smallint'], '')
     ]
 
     trend_names = [t.name for t in trend_descriptors]
@@ -242,8 +248,8 @@ def generate_data_package_a_large(granularity, timestamp, entities):
 
 def generate_data_package_b(granularity, timestamp, entities):
     trend_descriptors = [
-        TrendDescriptor('counter_a', datatype.registry['smallint'], ''),
-        TrendDescriptor('counter_b', datatype.registry['smallint'], '')
+        Trend.Descriptor('counter_a', datatype.registry['smallint'], ''),
+        Trend.Descriptor('counter_b', datatype.registry['smallint'], '')
     ]
 
     trend_names = [t.name for t in trend_descriptors]
@@ -265,8 +271,8 @@ def generate_data_package_b(granularity, timestamp, entities):
 
 def generate_data_package_c(granularity, timestamp, entities):
     trend_descriptors = [
-        TrendDescriptor('counter_x', datatype.registry['smallint'], ''),
-        TrendDescriptor('counter_y', datatype.registry['smallint'], '')
+        Trend.Descriptor('counter_x', datatype.registry['smallint'], ''),
+        Trend.Descriptor('counter_y', datatype.registry['smallint'], '')
     ]
 
     trend_names = [t.name for t in trend_descriptors]
@@ -287,8 +293,8 @@ def generate_data_package_c(granularity, timestamp, entities):
 
 def generate_data_package_d(granularity, timestamp, entities):
     trend_descriptors = [
-        TrendDescriptor('counter_x', datatype.registry['smallint'], ''),
-        TrendDescriptor('counter_y', datatype.registry['smallint'], '')
+        Trend.Descriptor('counter_x', datatype.registry['smallint'], ''),
+        Trend.Descriptor('counter_y', datatype.registry['smallint'], '')
     ]
 
     trend_names = [t.name for t in trend_descriptors]

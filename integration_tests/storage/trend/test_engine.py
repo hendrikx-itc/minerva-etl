@@ -7,9 +7,10 @@ import pytz
 from minerva.test import connect, clear_database
 from minerva.directory import DataSource, EntityType
 from minerva.storage.trend.granularity import create_granularity
-from minerva.storage.trend.trend import TrendDescriptor
+from minerva.storage.trend.trend import Trend
 from minerva.storage import datatype
 from minerva.storage.trend.tabletrendstore import TableTrendStore
+from minerva.storage.trend.tabletrendstorepart import TableTrendStorePart
 from minerva.storage.trend.engine import TrendEngine
 from minerva.storage.trend.datapackage import \
     refined_package_type_for_entity_type
@@ -24,10 +25,14 @@ class TestEngine(unittest.TestCase):
 
     def test_store_matching(self):
         trend_descriptors = [
-            TrendDescriptor('x', datatype.registry['integer'], ''),
-            TrendDescriptor('y', datatype.registry['integer'], ''),
+            Trend.Descriptor('x', datatype.registry['integer'], ''),
+            Trend.Descriptor('y', datatype.registry['integer'], ''),
         ]
-    
+
+        trend_store_part_descr = TableTrendStorePart.Descriptor(
+            'test-trend-store', trend_descriptors
+        )
+
         trend_names = [t.name for t in trend_descriptors]
     
         data_rows = [
@@ -52,11 +57,11 @@ class TestEngine(unittest.TestCase):
             entity_type = EntityType.from_name("test-type001")(cursor)
     
             trend_store = TableTrendStore.create(TableTrendStore.Descriptor(
-                'test-trend-store', data_source, entity_type, granularity,
-                trend_descriptors, 86400
+                data_source, entity_type, granularity,
+                [trend_store_part_descr], 86400
             ))(cursor)
     
-            trend_store.partition(timestamp).create(cursor)
+            trend_store.partition('test-trend-store', timestamp).create(cursor)
     
             self.conn.commit()
     
@@ -82,7 +87,7 @@ class TestEngine(unittest.TestCase):
         Test if extra trends are ignored when configured to ignore
         """
         trend_descriptors = [
-            TrendDescriptor('x', datatype.registry['integer'], ''),
+            Trend.Descriptor('x', datatype.registry['integer'], ''),
         ]
     
         data_rows = [
@@ -107,13 +112,19 @@ class TestEngine(unittest.TestCase):
         with closing(self.conn.cursor()) as cursor:
             data_source = DataSource.from_name("test-src009")(cursor)
             entity_type = EntityType.from_name("test-type001")(cursor)
+
+            parts = [
+                TableTrendStorePart.Descriptor(
+                    'test-trend-store', trend_descriptors
+                )
+            ]
     
             trend_store = TableTrendStore.create(TableTrendStore.Descriptor(
-                'test-trend-store', data_source, entity_type, granularity,
-                trend_descriptors, 86400
+                data_source, entity_type, granularity,
+                parts, 86400
             ))(cursor)
     
-            trend_store.partition(timestamp).create(cursor)
+            trend_store.create_partitions(timestamp)(cursor)
     
             self.conn.commit()
     
