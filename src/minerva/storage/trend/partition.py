@@ -38,6 +38,20 @@ class Partition:
 
             yield current
 
+    def exists(self, cursor):
+        query = (
+            "SELECT trend_directory.partition_exists(table_trend_store_part, %s) "
+            "FROM trend_directory.table_trend_store_part "
+            "WHERE id = %s"
+        )
+        args = self.index, self.trend_store_part.id
+
+        cursor.execute(query, args)
+
+        exists, = cursor.fetchone()
+
+        return exists
+
     def create(self, cursor):
         query = (
             "SELECT trend_directory.create_partition(table_trend_store_part, %s) "

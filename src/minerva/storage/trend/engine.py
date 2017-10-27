@@ -99,6 +99,7 @@ def verify_partition_for_package(
             for part in parts:
                 partition = part.partition(package.timestamp)
 
-                partition.create(cursor)
+                if not partition.exists(cursor):
+                    partition.create(cursor)
 
     return f
