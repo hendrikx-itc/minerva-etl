@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import sys
 import logging
@@ -23,9 +22,73 @@ from minerva.harvest.plugins import iter_entry_points, \
 package_name = "minerva_harvesting"
 
 
-def main():
-    args = create_argparser().parse_args()
+def setup_command_parser(subparsers):
+    cmd = subparsers.add_parser(
+        'processfile', help='command for processing files'
+    )
 
+    cmd.add_argument(
+        "file_path", nargs="*",
+        help="path of file that will be processed"
+    )
+
+    cmd.add_argument(
+        "-p", "--plugin", action=_LoadHarvestPlugin,
+        help="harvester plug-in to use for processing file(s)"
+    )
+
+    cmd.add_argument(
+        "-l", "--list-plugins", action=_ListPlugins,
+        help="list installed Harvester plug-ins")
+
+    cmd.add_argument(
+        "--parser-config", default="{}", type=json.loads,
+        help="parser specific configuration"
+    )
+
+    cmd.add_argument(
+        "--store", action="store_true", default=False,
+        help="write data to database"
+    )
+
+    cmd.add_argument(
+        "--show-progress", action="store_true",
+        dest="show_progress", default=False, help="show progressbar"
+    )
+
+    cmd.add_argument(
+        "-v", "--verbose", action="store_true", dest="verbose",
+        default=False, help="produce verbose output"
+    )
+
+    cmd.add_argument(
+        "--debug", action="store_true", dest="debug",
+        default=False, help="produce debug output"
+    )
+
+    cmd.add_argument(
+        "--dn-filter", type=create_regex_filter, default=k(True),
+        help="filter by distinguished name"
+    )
+
+    cmd.add_argument(
+        "--column-filter", type=create_regex_filter,
+        default=k(True), help="filter by trend name"
+    )
+
+    cmd.add_argument(
+        "--data-source", default="processfile", help="data source to use"
+    )
+
+    cmd.add_argument(
+        "--statistics", action="store_true", dest="statistics", default=False,
+        help="show statistics like number of packages, entities, etc."
+    )
+
+    cmd.set_defaults(cmd=processfile_cmd)
+
+
+def processfile_cmd(args):
     if args.debug:
         logging.root.setLevel(logging.DEBUG)
 
@@ -86,70 +149,6 @@ def main():
     if args.statistics:
         for line in statistics.report():
             logging.info(line)
-
-
-def create_argparser():
-    parser = argparse.ArgumentParser(description="Script for processing files")
-
-    parser.add_argument(
-        "file_path", nargs="*",
-        help="path of file that will be processed"
-    )
-
-    parser.add_argument(
-        "-p", "--plugin", action=_LoadHarvestPlugin,
-        help="harvester plug-in to use for processing file(s)"
-    )
-
-    parser.add_argument(
-        "-l", "--list-plugins", action=_ListPlugins,
-        help="list installed Harvester plug-ins")
-
-    parser.add_argument(
-        "--parser-config", default="{}", type=json.loads,
-        help="parser specific configuration"
-    )
-
-    parser.add_argument(
-        "--store", action="store_true", default=False,
-        help="write data to database"
-    )
-
-    parser.add_argument(
-        "--show-progress", action="store_true",
-        dest="show_progress", default=False, help="show progressbar"
-    )
-
-    parser.add_argument(
-        "-v", "--verbose", action="store_true", dest="verbose",
-        default=False, help="produce verbose output"
-    )
-
-    parser.add_argument(
-        "--debug", action="store_true", dest="debug",
-        default=False, help="produce debug output"
-    )
-
-    parser.add_argument(
-        "--dn-filter", type=create_regex_filter, default=k(True),
-        help="filter by distinguished name"
-    )
-
-    parser.add_argument(
-        "--column-filter", type=create_regex_filter,
-        default=k(True), help="filter by trend name"
-    )
-
-    parser.add_argument(
-        "--data-source", default="processfile", help="data source to use"
-    )
-
-    parser.add_argument(
-        "--statistics", action="store_true", dest="statistics", default=False,
-        help="show statistics like number of packages, entities, etc."
-    )
-
-    return parser
 
 
 def create_regex_filter(x):
@@ -292,7 +291,3 @@ def store_dummy():
 
 def no_op(*args, **kwargs):
     pass
-
-
-if __name__ == "__main__":
-    main()
