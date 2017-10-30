@@ -24,7 +24,7 @@ package_name = "minerva_harvesting"
 
 def setup_command_parser(subparsers):
     cmd = subparsers.add_parser(
-        'processfile', help='command for processing files'
+        'load-data', help='command for loading data'
     )
 
     cmd.add_argument(
