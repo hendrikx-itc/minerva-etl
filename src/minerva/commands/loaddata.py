@@ -77,7 +77,7 @@ def setup_command_parser(subparsers):
     )
 
     cmd.add_argument(
-        "--data-source", default="processfile", help="data source to use"
+        "--data-source", default="load-data", help="data source to use"
     )
 
     cmd.add_argument(
@@ -85,70 +85,77 @@ def setup_command_parser(subparsers):
         help="show statistics like number of packages, entities, etc."
     )
 
-    cmd.set_defaults(cmd=processfile_cmd)
+    cmd.set_defaults(cmd=load_data_cmd(cmd))
 
 
-def processfile_cmd(args):
-    if args.debug:
-        logging.root.setLevel(logging.DEBUG)
+def load_data_cmd(cmd_parser):
+    def cmd (args):
+        if args.debug:
+            logging.root.setLevel(logging.DEBUG)
 
-    if args.verbose:
-        logging.root.addHandler(logging.StreamHandler())
+        if args.verbose:
+            logging.root.addHandler(logging.StreamHandler())
 
-    statistics = Statistics()
+        statistics = Statistics()
 
-    parser = args.plugin.create_parser(args.parser_config)
+        if 'plugin' not in args:
+            cmd_parser.print_help()
+            return
 
-    if args.store:
-        store_cmd = parser.store_command()
+        parser = args.plugin.create_parser(args.parser_config)
 
-        @contextmanager
-        def store_db_context():
-            with closing(connect()) as conn:
-                with closing(conn.cursor()) as cursor:
-                    data_source = DataSource.get_by_name(
-                        args.data_source
-                    )(cursor)
+        if args.store:
+            store_cmd = parser.store_command()
 
-                if data_source is None:
-                    raise Exception(
-                        'No such data source {}'.format(args.data_source)
+            @contextmanager
+            def store_db_context():
+                with closing(connect()) as conn:
+                    with closing(conn.cursor()) as cursor:
+                        data_source = DataSource.get_by_name(
+                            args.data_source
+                        )(cursor)
+
+                    if data_source is None:
+                        raise Exception(
+                            'No such data source {}'.format(args.data_source)
+                        )
+
+                    def store_package(package):
+                        store_cmd(package)(data_source)(conn)
+
+                    yield store_package
+
+            storage_provider = store_db_context
+        else:
+            storage_provider = store_dummy
+
+        with storage_provider() as store:
+            handle_package = compose(
+                store,
+                tee(lambda package: print(package.render_table()))
+            )
+
+            for file_path in args.file_path:
+                if args.verbose:
+                    logging.info("Processing {0}".format(file_path))
+
+                logging.info(
+                    "Start processing file {0} using plugin {1}"
+                    " and config {2}".format(
+                        file_path, args.plugin, args.parser_config
                     )
-
-                def store_package(package):
-                    store_cmd(package)(data_source)(conn)
-
-                yield store_package
-
-        storage_provider = store_db_context
-    else:
-        storage_provider = store_dummy
-
-    with storage_provider() as store:
-        handle_package = compose(
-            store,
-            tee(lambda package: print(package.render_table()))
-        )
-
-        for file_path in args.file_path:
-            if args.verbose:
-                logging.info("Processing {0}".format(file_path))
-
-            logging.info(
-                "Start processing file {0} using plugin {1}"
-                " and config {2}".format(
-                    file_path, args.plugin, args.parser_config
                 )
-            )
 
-            process_file(
-                file_path, parser, handle_package,
-                args.show_progress
-            )
+                process_file(
+                    file_path, parser, handle_package,
+                    args.show_progress
+                )
 
-    if args.statistics:
-        for line in statistics.report():
-            logging.info(line)
+        if args.statistics:
+            for line in statistics.report():
+                logging.info(line)
+
+    return cmd
 
 
 def create_regex_filter(x):
