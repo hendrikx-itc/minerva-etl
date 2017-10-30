@@ -19,7 +19,12 @@ def main():
 
     args = parser.parse_args()
 
-    return args.cmd(args)
+    if 'cmd' not in args:
+        parser.print_help()
+
+        return 0
+    else:
+        return args.cmd(args)
 
 
 if __name__ == '__main__':
