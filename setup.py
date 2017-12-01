@@ -49,7 +49,6 @@ setup(
         "minerva": ["defaults/*"]
     },
     scripts=[
-        "scripts/processfile",
         "scripts/minerva"
     ]
 )
