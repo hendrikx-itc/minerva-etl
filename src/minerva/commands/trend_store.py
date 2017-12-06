@@ -2,15 +2,13 @@ import json
 from contextlib import closing
 import argparse
 
-from minerva.storage import datatype
-from psycopg2 import connect
-
-from minerva.storage.trend.trend import Trend
+from minerva.db import connect
+from minerva.util.tabulate import render_table
 
 
 def setup_command_parser(subparsers):
     cmd = subparsers.add_parser(
-        'trendstore', help='command for administering trend stores'
+        'trend-store', help='command for administering trend stores'
     )
 
     cmd_subparsers = cmd.add_subparsers()
@@ -18,6 +16,7 @@ def setup_command_parser(subparsers):
     setup_create_parser(cmd_subparsers)
     setup_delete_parser(cmd_subparsers)
     setup_add_trend_parser(cmd_subparsers)
+    setup_show_parser(cmd_subparsers)
 
 
 def setup_create_parser(subparsers):
@@ -26,12 +25,12 @@ def setup_create_parser(subparsers):
     )
 
     cmd.add_argument(
-        '--datasource', default='default',
+        '--data-source', default='default',
         help='name of the data source of the new trend store'
     )
 
     cmd.add_argument(
-        '--entitytype', default='unknown',
+        '--entity-type', default='unknown',
         help='name of the entity type of the new trend store'
 
     )
@@ -53,25 +52,27 @@ def setup_create_parser(subparsers):
 
     cmd.add_argument('name', nargs="?", help='name of the new trend store')
 
-    cmd.set_defaults(cmd=create_trendstore_cmd)
+    cmd.set_defaults(cmd=create_trend_store_cmd)
 
 
-def create_trendstore_cmd(args):
+def create_trend_store_cmd(args):
     if args.from_json:
         create_trend_store_from_json(args.from_json)
     else:
         query = (
-            'SELECT trend_directory.create_table_trend_store(%s::name, %s::text, %s::text, %s::interval, %s::integer, '
+            'SELECT trend_directory.create_table_trend_store('
+            '%s::name, %s::text, %s::text, %s::interval, %s::integer, '
             '%s::trend_directory.trend_descr[])'
         )
 
         trend_descriptors = []
 
         query_args = (
-            args.name, args.datasource, args.entitytype, args.granularity, args.partition_size, trend_descriptors
+            args.name, args.data_source, args.entity_type, args.granularity,
+            args.partition_size, trend_descriptors
         )
 
-        with closing(connect('')) as conn:
+        with closing(connect()) as conn:
             with closing(conn.cursor()) as cursor:
                 cursor.execute(query, query_args)
 
@@ -81,11 +82,10 @@ def create_trendstore_cmd(args):
 def create_trend_store_from_json(json_file):
     data = json.load(json_file)
 
-    print(data)
-
     query = (
-        'SELECT trend_directory.create_table_trend_store(%s::text, %s::text, %s::interval, %s::integer, '
-        '{})'
+        'SELECT trend_directory.create_table_trend_store('
+        '%s::text, %s::text, %s::interval, %s::integer, {}'
+        ')'
     ).format(
         "ARRAY[{}]::trend_directory.table_trend_store_part_descr[]".format(','.join([
             "('{}', {})".format(
@@ -103,14 +103,12 @@ def create_trend_store_from_json(json_file):
         ]))
     )
 
-    print(query)
-
     query_args = (
         data['data_source'], data['entity_type'],
         data['granularity'], data['partition_size']
     )
 
-    with closing(connect('')) as conn:
+    with closing(connect()) as conn:
         with closing(conn.cursor()) as cursor:
             cursor.execute(query, query_args)
 
@@ -122,12 +120,12 @@ def setup_delete_parser(subparsers):
         'delete', help='command for deleting trend stores'
     )
 
-    cmd.add_argument('name', help='name of the new trend store')
+    cmd.add_argument('name', help='name of trend store')
 
-    cmd.set_defaults(cmd=delete_trendstore_cmd)
+    cmd.set_defaults(cmd=delete_trend_store_cmd)
 
 
-def delete_trendstore_cmd(args):
+def delete_trend_store_cmd(args):
     query = (
         'SELECT trend_directory.delete_table_trend_store(%s::name)'
     )
@@ -136,7 +134,7 @@ def delete_trendstore_cmd(args):
         args.name,
     )
 
-    with closing(connect('')) as conn:
+    with closing(connect()) as conn:
         with closing(conn.cursor()) as cursor:
             cursor.execute(query, query_args)
 
@@ -152,28 +150,85 @@ def setup_add_trend_parser(subparsers):
 
     cmd.add_argument('--trend-name')
 
+    cmd.add_argument('--part-name')
+
     cmd.add_argument(
-        'trendstore',
+        'trend-store',
         help='name of the trend store where the trend will be added'
     )
 
-    cmd.set_defaults(cmd=add_trend_to_trendstore_cmd)
+    cmd.set_defaults(cmd=add_trend_to_trend_store_cmd)
 
 
-def add_trend_to_trendstore_cmd(args):
+def add_trend_to_trend_store_cmd(args):
     query = (
-        'SELECT trend_directory.add_trend_to_trend_store(table_trend_store, %s::name, %s::text, %s::text) '
+        'SELECT trend_directory.add_trend_to_trend_store('
+        'table_trend_store, %s::name, %s::text, %s::text'
+        ') '
         'FROM trend_directory.table_trend_store WHERE name = %s'
     )
 
     query_args = (
-        args.trend_name, args.data_type, '', args.trendstore
+        args.trend_name, args.data_type, '', args.trend_store
     )
 
-    with closing(connect('')) as conn:
+    with closing(connect()) as conn:
         with closing(conn.cursor()) as cursor:
             cursor.execute(query, query_args)
 
             print(cursor.fetchone())
 
         conn.commit()
+
+
+def setup_show_parser(subparsers):
+    cmd = subparsers.add_parser(
+        'show', help='show information on trend stores'
+    )
+
+    cmd.add_argument(
+        '--id', help='id of trend store', type=int
+    )
+
+    cmd.set_defaults(cmd=show_trend_store_cmd)
+
+
+def show_rows(column_names, rows):
+    column_align = "<" * len(column_names)
+    column_sizes = ["max"] * len(column_names)
+
+    for line in render_table(column_names, column_align, column_sizes, rows):
+        print(line)
+
+
+def show_rows_from_cursor(cursor):
+    show_rows([c.name for c in cursor.description], cursor.fetchall())
+
+
+def show_trend_store_cmd(args):
+    query = (
+        'SELECT '
+        'table_trend_store.id, '
+        'entity_type.name AS entity_type, '
+        'data_source.name AS data_source, '
+        'table_trend_store.granularity,'
+        'table_trend_store.partition_size, '
+        'table_trend_store.retention_period '
+        'FROM trend_directory.table_trend_store '
+        'JOIN directory.entity_type ON entity_type.id = entity_type_id '
+        'JOIN directory.data_source ON data_source.id = data_source_id'
+    )
+
+    query_args = []
+
+    if args.id:
+        query += ' WHERE table_trend_store.id = %s'
+        query_args.append(
+            args.id
+        )
+
+    with closing(connect()) as conn:
+        with closing(conn.cursor()) as cursor:
+            cursor.execute(query, query_args)
+
+            show_rows_from_cursor(cursor)

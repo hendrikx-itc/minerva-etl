@@ -8,15 +8,19 @@ from contextlib import closing
 from operator import itemgetter
 import re
 
+from minerva.storage.trend.tabletrendstore import NoSuchTableTrendStore
 from minerva.util import compose, k
-from minerva.instance import connect
 from minerva.directory import DataSource
 import minerva.storage.trend.datapackage
 import minerva.storage.attribute.datapackage
-
+from minerva.directory.entitytype import NoSuchEntityType
 from minerva.harvest.fileprocessor import process_file
 from minerva.harvest.plugins import iter_entry_points, \
     get_plugin as get_harvest_plugin
+
+
+class ConfigurationError(Exception):
+    pass
 
 
 package_name = "minerva_harvesting"
@@ -47,8 +51,8 @@ def setup_command_parser(subparsers):
     )
 
     cmd.add_argument(
-        "--store", action="store_true", default=False,
-        help="write data to database"
+        "--pretend", action="store_true", default=False,
+        help="only process data, do not write to database"
     )
 
     cmd.add_argument(
@@ -89,7 +93,7 @@ def setup_command_parser(subparsers):
 
 
 def load_data_cmd(cmd_parser):
-    def cmd (args):
+    def cmd(args):
         if args.debug:
             logging.root.setLevel(logging.DEBUG)
 
@@ -104,52 +108,46 @@ def load_data_cmd(cmd_parser):
 
         parser = args.plugin.create_parser(args.parser_config)
 
-        if args.store:
-            store_cmd = parser.store_command()
-
-            @contextmanager
-            def store_db_context():
-                with closing(connect()) as conn:
-                    with closing(conn.cursor()) as cursor:
-                        data_source = DataSource.get_by_name(
-                            args.data_source
-                        )(cursor)
-
-                    if data_source is None:
-                        raise Exception(
-                            'No such data source {}'.format(args.data_source)
-                        )
-
-                    def store_package(package):
-                        store_cmd(package)(data_source)(conn)
-
-                    yield store_package
-
-            storage_provider = store_db_context
-        else:
+        if args.pretend:
             storage_provider = store_dummy
-
-        with storage_provider() as store:
-            handle_package = compose(
-                store,
-                tee(lambda package: print(package.render_table()))
+        else:
+            storage_provider = create_store_db_context(
+                args.data_source, parser.store_command()
             )
 
-            for file_path in args.file_path:
-                if args.verbose:
-                    logging.info("Processing {0}".format(file_path))
+        try:
+            with storage_provider() as store:
+                handle_package = compose(
+                    store,
+                    tee(lambda package: print(package.render_table()))
+                )
 
-                logging.info(
-                    "Start processing file {0} using plugin {1}"
-                    " and config {2}".format(
-                        file_path, args.plugin, args.parser_config
+                for file_path in args.file_path:
+                    if args.verbose:
+                        logging.info("Processing {0}".format(file_path))
+
+                    logging.info(
+                        "Start processing file {0} using plugin {1}"
+                        " and config {2}".format(
+                            file_path, args.plugin, args.parser_config
+                        )
                     )
-                )
 
-                process_file(
-                    file_path, parser, handle_package,
-                    args.show_progress
-                )
+                    for package in process_file(
+                            file_path, parser, args.show_progress):
+                        try:
+                            handle_package(package)
+                        except NoSuchEntityType as exc:
+                            raise ConfigurationError(
+                                'No such entity type \'{entity_type}\'\n'
+                                'Create a data source using e.g.\n'
+                                '\n'
+                                '    minerva entity-type create {entity_type}\n'.format(
+                                    entity_type=exc.entity_type_name
+                                )
+                            )
+        except ConfigurationError as err:
+            print('fatal: {}'.format(err))
 
         if args.statistics:
             for line in statistics.report():
@@ -289,6 +287,47 @@ class _LoadHarvestPlugin(argparse.Action):
             sys.exit(1)
 
         setattr(namespace, self.dest, plugin)
+
+
+def create_store_db_context(data_source_name, store_cmd):
+    @contextmanager
+    def store_db_context():
+        with closing(connect()) as conn:
+            with closing(conn.cursor()) as cursor:
+                data_source = DataSource.get_by_name(data_source_name)(cursor)
+
+            if data_source is None:
+                raise ConfigurationError(
+                    'No such data source \'{data_source}\'\n'
+                    'Create a data source using e.g.\n'
+                    '\n'
+                    '    minerva data-source create {data_source}\n'.format(
+                        data_source=data_source_name
+                    )
+                )
+
+            def store_package(package):
+                try:
+                    store_cmd(package)(data_source)(conn)
+                except NoSuchTableTrendStore as exc:
+                    raise ConfigurationError(
+                        'No table trend store found for the combination ('
+                        'data source: {data_source}, '
+                        'entity type: {entity_type}, '
+                        'granularity: {granularity}'
+                        ')\n'
+                        'Create a table trends store using e.g.\n'
+                        '\n'
+                        '    minerva trend-store create --from-json'.format(
+                            data_source=exc.data_source.name,
+                            entity_type=exc.entity_type.name,
+                            granularity=exc.granularity
+                        )
+                    )
+
+            yield store_package
+
+    return store_db_context
 
 
 @contextmanager

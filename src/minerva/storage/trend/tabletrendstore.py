@@ -13,6 +13,13 @@ from minerva.storage.trend.tabletrendstorepart import TableTrendStorePart
 from minerva.util import string_fns
 
 
+class NoSuchTableTrendStore(Exception):
+    def __init__(self, data_source, entity_type, granularity):
+        self.data_source = data_source
+        self.entity_type = entity_type
+        self.granularity = granularity
+
+
 class TableTrendStore(TrendStore):
     class Descriptor:
         data_source: DataSource
