@@ -17,6 +17,7 @@ from minerva.directory.entitytype import NoSuchEntityType
 from minerva.harvest.fileprocessor import process_file
 from minerva.harvest.plugins import iter_entry_points, \
     get_plugin as get_harvest_plugin
+from minerva.db import connect
 
 
 class ConfigurationError(Exception):
