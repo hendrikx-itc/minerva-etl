@@ -7,6 +7,8 @@ import os
 import threading
 import time
 import traceback
+import codecs
+
 from operator import not_
 
 from minerva.harvest.plugin_api_trend import HarvestParserTrend
@@ -29,7 +31,7 @@ def process_file(
 
     _directory, filename = os.path.split(file_path)
 
-    with open(file_path) as data_file:
+    with codecs.open(file_path, encoding='utf-8') as data_file:
         stop_event = threading.Event()
         condition = compose(not_, stop_event.is_set)
 
