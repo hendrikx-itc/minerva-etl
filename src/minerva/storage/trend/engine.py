@@ -100,7 +100,7 @@ def verify_partition_for_package(
         with closing(conn.cursor()) as cursor:
             parts = {
                 trend_store._trend_part_mapping[trend_name]
-                for trend_name in package.trend_names
+                for trend_name in package.trend_descriptors
                 if trend_name in trend_store._trend_part_mapping
             }
 

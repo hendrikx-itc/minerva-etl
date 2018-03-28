@@ -25,6 +25,13 @@ class Trend:
             self.data_type = data_type
             self.description = description
 
+        def to_dict(self):
+            return {
+                'name': self.name,
+                'data_type': self.data_type,
+                'description': self.description
+            }
+
     def __init__(self, id_, name, data_type, trend_store_part_id, description):
         self.id = id_
         self.name = name

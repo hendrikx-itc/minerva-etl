@@ -12,46 +12,30 @@ from minerva.directory.entityref import EntityDnRef, EntityIdRef, EntityRef
 from minerva.directory.distinguishedname import entity_type_name_from_dn
 
 
+class DataPackageType:
+    def __init__(self, entity_ref_type, get_entity_type_name):
+        self.entity_ref_type = entity_ref_type
+        self.get_entity_type_name = get_entity_type_name
+
+
 class DataPackage:
     """
     A DataPackage represents a batch of trend records for the same EntityType
     granularity and timestamp. The EntityType is implicitly determined by the
     entities in the data package, and they must all be of the same EntityType.
-
-    A graphical depiction of a DataPackage instance might be::
-
-        +---------------------------------------------------+
-        | '2013-08-30 15:00:00+02:00'                       | <- timestamp
-        |---------------------------------------------------+
-        | Granularity('900')                                | <- granularity
-        +---------------------------------------------------+
-        |         | "cntrA"  | "cntrB" | "cntrC" | "cntrD"  | <- trend_names
-        +---------+----------+---------+---------+----------+
-        | 1234001 |    15.6  |    10   |     90  | "on"     | <- rows
-        | 1234002 |    20.0  |     0   |     85  | "on"     |
-        | 1234003 |    22.5  |     3   |     90  | "on"     |
-        +---------+----------+---------+---------+----------+
     """
     def __init__(
-            self, granularity, timestamp, trend_names, rows):
+            self, data_package_type, granularity, trend_descriptors, rows):
+        self.data_package_type = data_package_type
         self.granularity = granularity
-        self.timestamp = timestamp
-        self.trend_names = trend_names
+        self.trend_descriptors = trend_descriptors
         self.rows = rows
 
     def render_table(self):
-        lines = [
-            str(self.timestamp),
-            str(self.granularity),
-            ','.join(self.trend_names),
-        ]
-
-        lines.extend([
-            ','.join(map(str, values))
-            for entity_ref, values in self.rows
-        ])
-
-        column_names = ["entity"] + list(self.trend_names)
+        column_names = ["entity"] + list(
+            trend_descriptor.name
+            for trend_descriptor in self.trend_descriptors
+        )
         column_align = ">" * len(column_names)
         column_sizes = ["max"] * len(column_names)
 
@@ -60,12 +44,8 @@ class DataPackage:
 
         return '\n'.join(table)
 
-    @classmethod
-    def entity_ref_type(cls):
-        raise NotImplementedError()
-
     def entity_type_name(self):
-        raise NotImplementedError()
+        return self.data_package_type.get_entity_type_name(self)
 
     def is_empty(self):
         """Return True if the package has no data rows."""
@@ -77,19 +57,19 @@ class DataPackage:
         :return: A new data package with just the trend data for the trends
         filtered by provided function
         """
-        value_getters, filtered_trend_names = zip(*[
-            (itemgetter(index), trend_name)
-            for index, trend_name in enumerate(self.trend_names)
-            if fn(trend_name)
+        value_getters, filtered_trend_descriptors = zip(*[
+            (itemgetter(index), trend_descriptor)
+            for index, trend_descriptor in enumerate(self.trend_descriptors)
+            if fn(trend_descriptor.trend_name)
         ])
 
-        return self.__class__(
+        return DataPackage(
+            self.data_package_type,
             self.granularity,
-            self.timestamp,
-            filtered_trend_names,
+            filtered_trend_descriptors,
             [
-                (entity_ref, tuple(g(values) for g in value_getters))
-                for entity_ref, values in self.rows
+                (entity_ref, timestamp, tuple(g(values) for g in value_getters))
+                for entity_ref, timestamp, values in self.rows
             ]
         )
 
@@ -103,24 +83,23 @@ class DataPackage:
         :return: A list of data packages with trends grouped by key
         """
         for key, group in grouped_by([
-            (group_fn(trend_name), itemgetter(index), trend_name)
-            for index, trend_name in enumerate(self.trend_names)
+            (group_fn(trend_descriptor.name), itemgetter(index), trend_descriptor)
+            for index, trend_descriptor in enumerate(self.trend_descriptors)
         ], key=itemgetter(0)):
             keys, value_getters, trend_names = zip(*list(group))
 
-            yield key, self.__class__(
+            yield key, DataPackage(self.data_package_type,
                 self.granularity,
-                self.timestamp,
                 trend_names,
                 [
-                    (entity_ref, tuple(g(values) for g in value_getters))
-                    for entity_ref, values in self.rows
+                    (entity_ref, timestamp, tuple(g(values) for g in value_getters))
+                    for entity_ref, timestamp, values in self.rows
                 ]
             )
 
     def get_key(self):
         return (
-            self.__class__, self.timestamp,
+            self.data_package_type,
             self.entity_type_name(), self.granularity
         )
 
@@ -129,20 +108,13 @@ class DataPackage:
         Map the entity reference to an entity ID in each row and return the
         newly formed rows with IDs.
         """
-        entity_refs, value_rows = zip(*self.rows)
+        entity_refs, timestamps, value_rows = zip(*self.rows)
 
-        entity_ids = self.entity_ref_type().map_to_entity_ids(
+        entity_ids = self.data_package_type.entity_ref_type.map_to_entity_ids(
             list(entity_refs)
         )(cursor)
 
-        return list(zip(entity_ids, value_rows))
-
-    @staticmethod
-    def merge_packages(packages):
-        return [
-            package_group(key, list(group))
-            for key, group in grouped_by(packages, DataPackage.get_key)
-        ]
+        return list(zip(entity_ids, timestamps, value_rows))
 
     def copy_from(self, table, value_descriptors, modified):
         """
@@ -158,7 +130,13 @@ class DataPackage:
 
     def _create_copy_from_query(self, table):
         """Return SQL query that can be used in the COPY FROM command."""
-        column_names = chain(schema.system_columns, self.trend_names)
+        column_names = chain(
+            schema.system_columns,
+            [
+                trend_descriptor.name
+                for trend_descriptor in self.trend_descriptors
+            ]
+        )
 
         return "COPY {0}({1}) FROM STDIN".format(
             table.render(),
@@ -187,16 +165,16 @@ class DataPackage:
         return (
             u"{0:d}\t'{1!s}'\t'{2!s}'\t{3}\n".format(
                 entity_id,
-                self.timestamp.isoformat(),
+                timestamp.isoformat(),
                 modified.isoformat(),
                 "\t".join(map_values(values))
             )
-            for entity_id, values in self.rows
+            for entity_id, timestamp, values in self.rows
         )
 
 
 def package_group(key, packages):
-    cls, timestamp, _entitytype_name, granularity = key
+    data_package_type, _entitytype_name, granularity = key
 
     all_field_names = set()
     dict_rows_by_entity_ref = {}
@@ -221,26 +199,7 @@ def package_group(key, packages):
 
         rows.append(row)
 
-    return cls(granularity, timestamp, field_names, rows)
-
-
-def data_package_type(
-        name: str, entity_ref_type: Type[EntityRef],
-        entity_type_name: Callable[[DataPackage], str],
-        refine_values: Callable[[List], Callable[[List], List]]) -> type:
-    """
-    Define and return a new DataPackageBase sub-class.
-
-    :param name: Name of the new type/class
-    :param entity_ref_type:
-    :param entity_type_name:
-    :param refine_values:
-    """
-    return type(name, (DataPackage,), {
-        'entity_ref_type': classmethod(lambda cls: entity_ref_type),
-        'entity_type_name': entity_type_name,
-        'refine_values': staticmethod(refine_values)
-    })
+    return DataPackage(data_package_type, granularity, field_names, rows)
 
 
 def from_first_dn(data_package):
@@ -251,21 +210,3 @@ def from_first_dn(data_package):
 
 def parse_values(parsers):
     return zip_apply(parsers)
-
-
-DefaultPackage = data_package_type(
-    'DataPackageClassic', EntityDnRef, from_first_dn, parse_values
-)
-
-
-def refined_package_type_for_entity_type(entity_type_name):
-    """
-    :param entity_type_name: name of entity type
-    :return: new DataPackageBase subclass
-    """
-    return data_package_type(
-        '{}DataPackage'.format(entity_type_name),
-        EntityIdRef,
-        k(entity_type_name),
-        k(identity)
-    )

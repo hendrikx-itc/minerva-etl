@@ -1,8 +1,5 @@
 # -*- coding: utf-8 -*-
-import sys
 import logging
-import json
-import argparse
 from contextlib import contextmanager
 from contextlib import closing
 from operator import itemgetter
@@ -15,9 +12,8 @@ import minerva.storage.trend.datapackage
 import minerva.storage.attribute.datapackage
 from minerva.directory.entitytype import NoSuchEntityType
 from minerva.harvest.fileprocessor import process_file
-from minerva.harvest.plugins import iter_entry_points, \
-    get_plugin as get_harvest_plugin
 from minerva.db import connect
+from minerva.commands import ListPlugins, LoadHarvestPlugin, load_json
 
 
 class ConfigurationError(Exception):
@@ -38,16 +34,16 @@ def setup_command_parser(subparsers):
     )
 
     cmd.add_argument(
-        "-p", "--plugin", action=_LoadHarvestPlugin,
+        "-p", "--plugin", action=LoadHarvestPlugin,
         help="harvester plug-in to use for processing file(s)"
     )
 
     cmd.add_argument(
-        "-l", "--list-plugins", action=_ListPlugins,
+        "-l", "--list-plugins", action=ListPlugins,
         help="list installed Harvester plug-ins")
 
     cmd.add_argument(
-        "--parser-config", default="{}", type=json.loads,
+        "--parser-config", type=load_json,
         help="parser specific configuration"
     )
 
@@ -255,41 +251,6 @@ def tee(fn):
     return wrapper
 
 
-class _ListPlugins(argparse.Action):
-    def __init__(self, option_strings, dest=argparse.SUPPRESS,
-                 default=argparse.SUPPRESS, help=None):
-        super(_ListPlugins, self).__init__(
-            option_strings=option_strings, dest=dest, default=default, nargs=0,
-            help=help
-        )
-
-    def __call__(self, parser, namespace, values, option_string=None):
-        for entry_point in iter_entry_points():
-            print(entry_point.name)
-
-        sys.exit(0)
-
-
-class _LoadHarvestPlugin(argparse.Action):
-    def __init__(self, option_strings, dest=argparse.SUPPRESS,
-                 default=argparse.SUPPRESS, help=None):
-        super(_LoadHarvestPlugin, self).__init__(
-            option_strings=option_strings, dest=dest, default=default,
-            nargs=1, help=help
-        )
-
-    def __call__(self, parser, namespace, values, option_string=None):
-        plugin_name = values[0]
-
-        plugin = get_harvest_plugin(plugin_name)
-
-        if plugin is None:
-            print("Data type '{0}' not supported".format(plugin_name))
-            sys.exit(1)
-
-        setattr(namespace, self.dest, plugin)
-
-
 def create_store_db_context(data_source_name, store_cmd):
     @contextmanager
     def store_db_context():
@@ -317,7 +278,7 @@ def create_store_db_context(data_source_name, store_cmd):
                         'entity type: {entity_type}, '
                         'granularity: {granularity}'
                         ')\n'
-                        'Create a table trends store using e.g.\n'
+                        'Create a table trend store using e.g.\n'
                         '\n'
                         '    minerva trend-store create --from-json'.format(
                             data_source=exc.data_source.name,

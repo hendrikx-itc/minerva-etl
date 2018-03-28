@@ -5,10 +5,10 @@ from minerva.util import grouped_by
 
 
 class RawDataPackage(DataPackage):
-    def __init__(self, granularity, timestamp, trend_names, rows):
+    def __init__(self, granularity, timestamp, trend_descriptors, rows):
         self.granularity = granularity
         self.timestamp = timestamp
-        self.trend_names = trend_names
+        self.trend_names = trend_descriptors
         self.rows = rows
 
     def get_entity_type_name(self):
