@@ -8,7 +8,6 @@ pipeline {
             sh "python /setup/py install"
           }
         }
-      }
     }
   }
 
