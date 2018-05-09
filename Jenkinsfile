@@ -1,10 +1,4 @@
 pipeline {
-  agent {
-    node {
-      label 'linux'
-    }
-  }
-
   stages {
     stage('unit tests') {
       steps {
@@ -21,7 +15,7 @@ pipeline {
       }
     }
   }
-  
+
   post {
     always {
       archive "phpunit_junit.xml"
