@@ -11,6 +11,7 @@ this software.
 """
 import hashlib
 from functools import partial
+from contextlib import closing
 import logging
 
 import psycopg2
@@ -53,7 +54,7 @@ def insert_cell_in_current(cursor, timestamp, values_hash, cell):
         cursor.execute(query, args)
     except psycopg2.DatabaseError as exc:
         if exc.pgcode == psycopg2.errorcodes.UNIQUE_VIOLATION:
-            fix = partial(remove_from_current, cursor, CELL_TABLENAME,
+            fix = partial(remove_from_current, CELL_TABLENAME,
                           cell.entity_id)
             raise RecoverableError(str(exc), fix)
         else:
@@ -77,7 +78,7 @@ def insert_cell_in_archive(cursor, timestamp, values_hash, cell):
         cursor.execute(query, args)
     except psycopg2.DatabaseError as exc:
         if exc.pgcode == psycopg2.errorcodes.UNIQUE_VIOLATION:
-            fix = partial(remove_from_archive, cursor, CELL_TABLENAME,
+            fix = partial(remove_from_archive, CELL_TABLENAME,
                           timestamp, cell.entity_id)
             raise RecoverableError(str(exc), fix)
         else:
@@ -104,7 +105,7 @@ def insert_site_in_current(cursor, target_srid, timestamp, site, values_hash):
         cursor.execute(query, args)
     except psycopg2.DatabaseError as exc:
         if exc.pgcode == psycopg2.errorcodes.UNIQUE_VIOLATION:
-            fix = partial(remove_from_current, cursor, SITE_TABLENAME,
+            fix = partial(remove_from_current, SITE_TABLENAME,
                           site.entity_id)
             raise RecoverableError(str(exc), fix)
         else:
@@ -131,7 +132,7 @@ def insert_site_in_archive(cursor, target_srid, timestamp, site, values_hash):
         cursor.execute(query, args)
     except psycopg2.DatabaseError as exc:
         if exc.pgcode == psycopg2.errorcodes.UNIQUE_VIOLATION:
-            fix = partial(remove_from_archive, cursor, SITE_TABLENAME,
+            fix = partial(remove_from_archive, SITE_TABLENAME,
                           timestamp, site.entity_id)
             raise RecoverableError(str(exc), fix)
         else:
@@ -143,24 +144,26 @@ def insert_site_in_archive(cursor, target_srid, timestamp, site, values_hash):
             "{0}, {1!s} in query '{2}'".format(exc.pgcode, exc, query))
 
 
-def remove_from_current(cursor, tablename, entity_id):
+def remove_from_current(tablename, entity_id, conn):
     query = (
         "DELETE FROM \"{0}\".\"{1}_curr\" "
         "WHERE entity_id=%s").format(SCHEMA, tablename)
 
     args = (entity_id,)
 
-    cursor.execute(query, args)
+    with closing(conn.cursor()) as cursor:
+        cursor.execute(query, args)
 
 
-def remove_from_archive(cursor, tablename, timestamp, entity_id):
+def remove_from_archive(tablename, timestamp, entity_id, conn):
     query = (
         "DELETE FROM \"{0}\".\"{1}\" "
         "WHERE entity_id=%s AND timestamp=%s").format(SCHEMA, tablename)
 
     args = (entity_id, timestamp)
 
-    cursor.execute(query, args)
+    with closing(conn.cursor()) as cursor:
+        cursor.execute(query, args)
 
 
 def get_current_hash(cursor, tablename, entity_id):
@@ -206,7 +209,7 @@ def copy_to_archive(cursor, table_name, entity_id):
     try:
         cursor.execute(query, args)
     except psycopg2.IntegrityError as exc:
-        fix = partial(sanitize_archive, cursor, table_name)
+        fix = partial(sanitize_archive, table_name)
         raise RecoverableError(str(exc), fix)
 
 
@@ -255,7 +258,7 @@ def store_site(cursor, target_srid, timestamp, site):
                                        values_hash)
             elif timestamp in archived_timestamps:
                 # replace attribute data with same timestamp in archive
-                remove_from_archive(cursor, SITE_TABLENAME, timestamp,
+                remove_from_archive(SITE_TABLENAME, timestamp,
                                     site.entity_id)
                 insert_site_in_archive(cursor, target_srid, timestamp, site,
                                        values_hash)
@@ -270,7 +273,7 @@ def store_site(cursor, target_srid, timestamp, site):
                         break
 
                 if values_hash == archived_hash:
-                    remove_from_archive(cursor, SITE_TABLENAME, archived_timestamp, site.entity_id)
+                    remove_from_archive(SITE_TABLENAME, archived_timestamp, site.entity_id)
                     insert_site_in_archive(cursor, target_srid, timestamp, site, values_hash)
 
 
@@ -316,7 +319,7 @@ def store_cell(cursor, timestamp, cell):
                 insert_cell_in_archive(cursor, timestamp, values_hash, cell)
             elif timestamp in archived_timestamps:
                 # replace attribute data with same timestamp in archive
-                remove_from_archive(cursor, CELL_TABLENAME, timestamp,
+                remove_from_archive(CELL_TABLENAME, timestamp,
                                     cell.entity_id)
                 insert_cell_in_archive(cursor, timestamp, values_hash, cell)
             else:
@@ -331,13 +334,13 @@ def store_cell(cursor, timestamp, cell):
                         break
 
                 if values_hash == archived_hash:
-                    remove_from_archive(cursor, CELL_TABLENAME,
+                    remove_from_archive(CELL_TABLENAME,
                                         archived_timestamp, cell.entity_id)
                     insert_cell_in_archive(cursor, timestamp, values_hash,
                                            cell)
 
 
-def sanitize_archive(cursor, table):
+def sanitize_archive(table, conn):
     """
     Remove 'impossible' records (same entity_id and timestamp as in curr) in
     archive table.
@@ -348,10 +351,11 @@ def sanitize_archive(cursor, table):
         "\"{0}\".\"{1}\".timestamp = \"{0}\".\"{1}_curr\".timestamp ".format(
             SCHEMA, table))
 
-    cursor.execute(query)
+    with closing(conn.cursor()) as cursor:
+        cursor.execute(query)
 
-    logging.warning("Sanitized geospatial table {0} (deleted {1} rows)".format(
-        table, cursor.rowcount))
+        logging.warning("Sanitized geospatial table {0} (deleted {1} rows)".format(
+            table, cursor.rowcount))
 
 
 def make_box_2d(bbox):

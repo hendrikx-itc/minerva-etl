@@ -37,7 +37,7 @@ def store_cells(conn, rows):
             except RecoverableError as err:
                 conn.rollback()
                 logging.debug(str(err))
-                err.fix()
+                err.fix(conn)
                 retry = True
             else:
                 conn.commit()
@@ -63,7 +63,7 @@ def store_sites(conn, target_srid, rows):
             except RecoverableError as err:
                 conn.rollback()
                 logging.debug(str(err))
-                err.fix()
+                err.fix(conn)
                 retry = True
             else:
                 conn.commit()
