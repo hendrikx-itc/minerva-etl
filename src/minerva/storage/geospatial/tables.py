@@ -230,7 +230,7 @@ def store_site(conn, target_srid, timestamp, site):
                 if timestamp != current_timestamp:
                     copy_to_archive(cursor, SITE_TABLENAME, site.entity_id)
 
-                remove_from_current(cursor, SITE_TABLENAME, site.entity_id)
+                remove_from_current(SITE_TABLENAME, site.entity_id, conn)
                 insert_site_in_current(cursor, target_srid, timestamp, site,
                                        values_hash)
 
@@ -246,7 +246,7 @@ def store_site(conn, target_srid, timestamp, site):
                     if values_hash == current_hash:
                         # these (identical) attribute values are older than the
                         # ones in curr
-                        remove_from_current(cursor, SITE_TABLENAME, site.entity_id)
+                        remove_from_current(SITE_TABLENAME, site.entity_id, conn)
                         insert_site_in_current(cursor, timestamp, site,
                                                values_hash)
                     elif values_hash != current_hash:
@@ -293,7 +293,7 @@ def store_cell(conn, timestamp, cell):
                 if timestamp != current_timestamp:
                     copy_to_archive(cursor, CELL_TABLENAME, cell.entity_id)
 
-                remove_from_current(cursor, CELL_TABLENAME, cell.entity_id)
+                remove_from_current(CELL_TABLENAME, cell.entity_id, conn)
                 insert_cell_in_current(cursor, timestamp, values_hash, cell)
 
             elif timestamp < current_timestamp:
@@ -308,7 +308,7 @@ def store_cell(conn, timestamp, cell):
                     if values_hash == current_hash:
                         # these (identical) attribute values are older than the
                         # ones in curr
-                        remove_from_current(cursor, CELL_TABLENAME, cell.entity_id)
+                        remove_from_current(CELL_TABLENAME, cell.entity_id, conn)
                         insert_cell_in_current(cursor, timestamp, values_hash,
                                                cell)
                     elif values_hash != current_hash:
