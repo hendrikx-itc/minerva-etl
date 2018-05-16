@@ -213,131 +213,130 @@ def copy_to_archive(cursor, table_name, entity_id):
         raise RecoverableError(str(exc), fix)
 
 
-def store_site(cursor, target_srid, timestamp, site):
-    values_hash = calc_hash([site.position.x, site.position.y])
+def store_site(conn, target_srid, timestamp, site):
+    with closing(conn.cursor()) as cursor:
+        values_hash = calc_hash([site.position.x, site.position.y])
 
-    try:
-        current_hash, current_timestamp = get_current_hash(
-            cursor, SITE_TABLENAME, site.entity_id)
-    except NoRecordError:
-        insert_site_in_current(cursor, target_srid, timestamp, site,
-                               values_hash)
-    else:
-        if timestamp >= current_timestamp and current_hash == values_hash:
-            pass  # No updated attribute values; do nothing
-        elif timestamp >= current_timestamp and current_hash != values_hash:
-            if timestamp != current_timestamp:
-                copy_to_archive(cursor, SITE_TABLENAME, site.entity_id)
-
-            remove_from_current(cursor, SITE_TABLENAME, site.entity_id)
+        try:
+            current_hash, current_timestamp = get_current_hash(
+                cursor, SITE_TABLENAME, site.entity_id)
+        except NoRecordError:
             insert_site_in_current(cursor, target_srid, timestamp, site,
                                    values_hash)
+        else:
+            if timestamp >= current_timestamp and current_hash == values_hash:
+                pass  # No updated attribute values; do nothing
+            elif timestamp >= current_timestamp and current_hash != values_hash:
+                if timestamp != current_timestamp:
+                    copy_to_archive(cursor, SITE_TABLENAME, site.entity_id)
 
-        elif timestamp < current_timestamp:
-            # This should not happen too much (maybe in a data recovering
-            # scenario), we're dealing with attribute data that's older than
-            # the attribute data in curr table
-            archived_timestamps_and_hashes = get_archived_timestamps_and_hashes(cursor,
-                    SITE_TABLENAME, site.entity_id)
-            archived_timestamps = map(head, archived_timestamps_and_hashes)
+                remove_from_current(cursor, SITE_TABLENAME, site.entity_id)
+                insert_site_in_current(cursor, target_srid, timestamp, site,
+                                       values_hash)
 
-            if timestamp > max(archived_timestamps):
-                if values_hash == current_hash:
-                    # these (identical) attribute values are older than the
-                    # ones in curr
-                    remove_from_current(cursor, SITE_TABLENAME, site.entity_id)
-                    insert_site_in_current(cursor, timestamp, site,
+            elif timestamp < current_timestamp:
+                # This should not happen too much (maybe in a data recovering
+                # scenario), we're dealing with attribute data that's older than
+                # the attribute data in curr table
+                archived_timestamps_and_hashes = get_archived_timestamps_and_hashes(cursor,
+                        SITE_TABLENAME, site.entity_id)
+                archived_timestamps = map(head, archived_timestamps_and_hashes)
+
+                if timestamp > max(archived_timestamps):
+                    if values_hash == current_hash:
+                        # these (identical) attribute values are older than the
+                        # ones in curr
+                        remove_from_current(cursor, SITE_TABLENAME, site.entity_id)
+                        insert_site_in_current(cursor, timestamp, site,
+                                               values_hash)
+                    elif values_hash != current_hash:
+                        # attribute values in curr are up-to-date
+                        insert_site_in_archive(cursor, target_srid, timestamp,
+                                               site, values_hash)
+                elif timestamp < min(archived_timestamps):
+                    # attribute data is older than all data in database
+                    insert_site_in_archive(cursor, target_srid, timestamp, site,
                                            values_hash)
-                elif values_hash != current_hash:
-                    # attribute values in curr are up-to-date
-                    insert_site_in_archive(cursor, target_srid, timestamp,
-                                           site, values_hash)
-            elif timestamp < min(archived_timestamps):
-                # attribute data is older than all data in database
-                insert_site_in_archive(cursor, target_srid, timestamp, site,
-                                       values_hash)
-            elif timestamp in archived_timestamps:
-                # replace attribute data with same timestamp in archive
-                remove_from_archive(SITE_TABLENAME, timestamp,
-                                    site.entity_id)
-                insert_site_in_archive(cursor, target_srid, timestamp, site,
-                                       values_hash)
-            else:
-                archived_timestamps_and_hashes.sort()
-                archived_timestamps_and_hashes.reverse()  # Order from new to old
+                elif timestamp in archived_timestamps:
+                    # replace attribute data with same timestamp in archive
+                    remove_from_archive(SITE_TABLENAME, timestamp, site.entity_id, conn)
+                    insert_site_in_archive(cursor, target_srid, timestamp, site,
+                                           values_hash)
+                else:
+                    archived_timestamps_and_hashes.sort()
+                    archived_timestamps_and_hashes.reverse()  # Order from new to old
 
-                #Determine where old attribute data should be placed in archive table
-                for index, (ts, h) in enumerate(archived_timestamps_and_hashes):
-                    if timestamp > ts:
-                        archived_timestamp, archived_hash = archived_timestamps_and_hashes[index - 1]
-                        break
+                    #Determine where old attribute data should be placed in archive table
+                    for index, (ts, h) in enumerate(archived_timestamps_and_hashes):
+                        if timestamp > ts:
+                            archived_timestamp, archived_hash = archived_timestamps_and_hashes[index - 1]
+                            break
 
-                if values_hash == archived_hash:
-                    remove_from_archive(SITE_TABLENAME, archived_timestamp, site.entity_id)
-                    insert_site_in_archive(cursor, target_srid, timestamp, site, values_hash)
+                    if values_hash == archived_hash:
+                        remove_from_archive(SITE_TABLENAME, archived_timestamp, site.entity_id,conn)
+                        insert_site_in_archive(cursor, target_srid, timestamp, site, values_hash)
 
 
-def store_cell(cursor, timestamp, cell):
-    values_hash = calc_hash([cell.azimuth, cell.type])
+def store_cell(conn, timestamp, cell):
+    with closing(conn.cursor()) as cursor:
+        values_hash = calc_hash([cell.azimuth, cell.type])
 
-    try:
-        current_hash, current_timestamp = get_current_hash(
-            cursor, CELL_TABLENAME, cell.entity_id)
-    except NoRecordError:
-        insert_cell_in_current(cursor, timestamp, values_hash, cell)
-    else:
-        if timestamp >= current_timestamp and current_hash == values_hash:
-            pass  # No updated attribute values; do nothing
-        elif timestamp >= current_timestamp and current_hash != values_hash:
-            if timestamp != current_timestamp:
-                copy_to_archive(cursor, CELL_TABLENAME, cell.entity_id)
-
-            remove_from_current(cursor, CELL_TABLENAME, cell.entity_id)
+        try:
+            current_hash, current_timestamp = get_current_hash(
+                cursor, CELL_TABLENAME, cell.entity_id)
+        except NoRecordError:
             insert_cell_in_current(cursor, timestamp, values_hash, cell)
+        else:
+            if timestamp >= current_timestamp and current_hash == values_hash:
+                pass  # No updated attribute values; do nothing
+            elif timestamp >= current_timestamp and current_hash != values_hash:
+                if timestamp != current_timestamp:
+                    copy_to_archive(cursor, CELL_TABLENAME, cell.entity_id)
 
-        elif timestamp < current_timestamp:
-            # This should not happen too much (maybe in a data recovering
-            # scenario), we're dealing with attribute data that's older than
-            # the attribute data in curr table
-            archived_timestamps_and_hashes = get_archived_timestamps_and_hashes(cursor, CELL_TABLENAME, cell.entity_id)
-            archived_timestamps = [
-                ts for (ts, h) in archived_timestamps_and_hashes]
+                remove_from_current(cursor, CELL_TABLENAME, cell.entity_id)
+                insert_cell_in_current(cursor, timestamp, values_hash, cell)
 
-            if timestamp > max(archived_timestamps):
-                if values_hash == current_hash:
-                    # these (identical) attribute values are older than the
-                    # ones in curr
-                    remove_from_current(cursor, CELL_TABLENAME, cell.entity_id)
-                    insert_cell_in_current(cursor, timestamp, values_hash,
-                                           cell)
-                elif values_hash != current_hash:
-                    # attribute values in curr are up-to-date
-                    insert_cell_in_archive(cursor, timestamp, values_hash,
-                                           cell)
-            elif timestamp < min(archived_timestamps):
-                # attribute data is older than all data in database
-                insert_cell_in_archive(cursor, timestamp, values_hash, cell)
-            elif timestamp in archived_timestamps:
-                # replace attribute data with same timestamp in archive
-                remove_from_archive(CELL_TABLENAME, timestamp,
-                                    cell.entity_id)
-                insert_cell_in_archive(cursor, timestamp, values_hash, cell)
-            else:
-                archived_timestamps_and_hashes.sort()
-                archived_timestamps_and_hashes.reverse() # Order from new to old
+            elif timestamp < current_timestamp:
+                # This should not happen too much (maybe in a data recovering
+                # scenario), we're dealing with attribute data that's older than
+                # the attribute data in curr table
+                archived_timestamps_and_hashes = get_archived_timestamps_and_hashes(cursor, CELL_TABLENAME, cell.entity_id)
+                archived_timestamps = [
+                    ts for (ts, h) in archived_timestamps_and_hashes]
 
-                # Determine where old attribute data should be placed in
-                # archive table
-                for index, (ts, h) in enumerate(archived_timestamps_and_hashes):
-                    if timestamp > ts:
-                        (archived_timestamp, archived_hash) = archived_timestamps_and_hashes[index - 1]
-                        break
+                if timestamp > max(archived_timestamps):
+                    if values_hash == current_hash:
+                        # these (identical) attribute values are older than the
+                        # ones in curr
+                        remove_from_current(cursor, CELL_TABLENAME, cell.entity_id)
+                        insert_cell_in_current(cursor, timestamp, values_hash,
+                                               cell)
+                    elif values_hash != current_hash:
+                        # attribute values in curr are up-to-date
+                        insert_cell_in_archive(cursor, timestamp, values_hash,
+                                               cell)
+                elif timestamp < min(archived_timestamps):
+                    # attribute data is older than all data in database
+                    insert_cell_in_archive(cursor, timestamp, values_hash, cell)
+                elif timestamp in archived_timestamps:
+                    # replace attribute data with same timestamp in archive
+                    remove_from_archive(CELL_TABLENAME, timestamp, cell.entity_id, conn)
+                    insert_cell_in_archive(cursor, timestamp, values_hash, cell)
+                else:
+                    archived_timestamps_and_hashes.sort()
+                    archived_timestamps_and_hashes.reverse() # Order from new to old
 
-                if values_hash == archived_hash:
-                    remove_from_archive(CELL_TABLENAME,
-                                        archived_timestamp, cell.entity_id)
-                    insert_cell_in_archive(cursor, timestamp, values_hash,
-                                           cell)
+                    # Determine where old attribute data should be placed in
+                    # archive table
+                    for index, (ts, h) in enumerate(archived_timestamps_and_hashes):
+                        if timestamp > ts:
+                            (archived_timestamp, archived_hash) = archived_timestamps_and_hashes[index - 1]
+                            break
+
+                    if values_hash == archived_hash:
+                        remove_from_archive(CELL_TABLENAME, archived_timestamp, cell.entity_id, conn)
+                        insert_cell_in_archive(cursor, timestamp, values_hash,
+                                               cell)
 
 
 def sanitize_archive(table, conn):
