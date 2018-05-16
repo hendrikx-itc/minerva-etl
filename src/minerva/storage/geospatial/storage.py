@@ -32,8 +32,7 @@ def store_cells(conn, rows):
                 raise MaxRetriesError(
                     "Max retries ({0}) reached".format(MAX_RETRIES))
             try:
-                with closing(conn.cursor()) as cursor:
-                    store_cell(cursor, timestamp, cell)
+                store_cell(conn, timestamp, cell)
             except RecoverableError as err:
                 conn.rollback()
                 logging.debug(str(err))
@@ -58,8 +57,7 @@ def store_sites(conn, target_srid, rows):
                 raise MaxRetriesError(
                     "Max retries ({0}) reached".format(MAX_RETRIES))
             try:
-                with closing(conn.cursor()) as cursor:
-                    store_site(cursor, target_srid, timestamp, site)
+                store_site(conn, target_srid, timestamp, site)
             except RecoverableError as err:
                 conn.rollback()
                 logging.debug(str(err))
