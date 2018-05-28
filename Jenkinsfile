@@ -6,7 +6,7 @@ pipeline {
       steps {
         script {
           def container = docker.image('python:2.7').inside("-v ${workspace}/src:/src -v ${workspace}/tests:/tests -v ${workspace}/setup.py:/setup.py") {
-            sh "python /setup/py install"
+            sh "python -m pip install ."
           }
         }
       }
