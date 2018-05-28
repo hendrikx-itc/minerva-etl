@@ -5,7 +5,7 @@ pipeline {
     stage('unit tests') {
       steps {
         script {
-          def container = docker.image('python:2.7').inside("-v ./src:/src -v ./tests:/tests -v ./setup.py:/setup.py") {
+          def container = docker.image('python:2.7').inside("-v ${WORKSPACE}/src:/src -v ${WORKSPACE}/tests:/tests -v ${WORKSPACE}/setup.py:/setup.py") {
             sh "python /setup/py install"
           }
         }
