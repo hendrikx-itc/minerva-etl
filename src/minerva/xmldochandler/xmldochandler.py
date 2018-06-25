@@ -53,7 +53,7 @@ class XmlDocHandler(ContentHandler):
 
                     value = attrs.get(attribute_key, None)
 
-                    if value:
+                    if value is not None:
                         args[attribute_name] = value
 
                 matching_handler.start_element(context, **args)

@@ -189,6 +189,7 @@ class SchemaBuilder(object):
         simplecontent_handler.elementtype.add_child_elementhandlers(extension_handler)
         extension_handler.elementtype.add_child_elementhandlers(sequence_handler, attribute_handler)
         extension_handler.elementtype.add_child_elementhandlers(sequence_handler, all_handler)
+        extension_handler.elementtype.add_child_elementhandlers(sequence_handler, choice_handler)
         all_handler.elementtype.add_child_elementhandlers(element_handler)
         sequence_handler.elementtype.add_child_elementhandlers(element_handler, choice_handler)
         choice_handler.elementtype.add_child_elementhandlers(element_handler)

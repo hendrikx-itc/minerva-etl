@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from minerva.xmldochandler.xmlnamespace import BaseTypeRelation
 
 __docformat__ = "restructuredtext en"
 
@@ -11,6 +12,7 @@ version.  The full license is in the file COPYING, distributed as part of
 this software.
 """
 import logging
+import os
 from minerva.xmlschemaparser import schematypes
 from minerva.xmldochandler import schemacontext
 from minerva.xmldochandler.qname import QName
@@ -18,6 +20,8 @@ from minerva.xmldochandler.xmlelementtype import XmlElementType
 from minerva.xmldochandler.xmlelementtype import XmlElementTypeRef
 from minerva.xmldochandler.xmlelementhandler import XmlElementHandlerRef
 from minerva.xmldochandler.xmlschema import xmlschema_string
+from urlparse import urlsplit
+
 
 class SchemaBuilderError(Exception):
     pass
@@ -42,11 +46,9 @@ class Namespace(object):
         return sorted(element.build_fullname() for element in self.elements.itervalues())
 
     def __str__(self):
-        if self.uri != None:
-            return self.uri
-        else:
-            return "Global namespace"
+        return self.uri or "Global namespace"
 
+    @property
     def shortname(self):
         """
         Tries to extract a sensible short name for the namespace
@@ -56,12 +58,12 @@ class Namespace(object):
         if self.uri != None:
             url_elements = urlsplit(self.uri)
 
-            fragment = urlelements[4]
+            fragment = url_elements[4]
 
             if len(fragment) > 0:
                 result = fragment
             else:
-                result = os.path.split(urlelements[2])[1]
+                result = os.path.split(url_elements[2])[1]
 
             result = result.replace(".", "_")
             result = result.replace("-", "_")
@@ -141,7 +143,7 @@ class SchemaContextBuilder(object):
     def build_elementhandlers(self, element):
         elementhandlers = []
 
-        containers = set([schematypes.Sequence, schematypes.Choice, schematypes.All])
+        #containers = set([schematypes.Sequence, schematypes.Choice, schematypes.All])
 
         for childelement in element.get_children():
             if isinstance(childelement, schematypes.Element):
@@ -160,9 +162,7 @@ class SchemaContextBuilder(object):
             basetype = xsdtype.simplecontent.extension.basetypereference.type
 
             if basetype.schema.target_namespace.uri == "http://www.w3.org/2001/XMLSchema":
-                if basetype.name == "string":
-                    elementtype = xmlschema_string.XmlSchema_string()
-                if basetype.name == "date":
+                if basetype.name in ["string", "date", "integer", "boolean"]:
                     elementtype = xmlschema_string.XmlSchema_string()
         else:
             if xsdtype.name != None:
@@ -182,6 +182,7 @@ class SchemaContextBuilder(object):
             self.xmlnamespace.basetyperelations.append(basetyperelation)
 
         if len(xsdtype.attributes) > 0:
+
             for attribute in xsdtype.attributes:
                 #elementtype.addAttribute(AttributeHandler(attribute.name))
                 raise Exception("Attribute support not implemented yet")
@@ -207,10 +208,7 @@ class SchemaContextBuilder(object):
         elementhandler = None
 
         if element.typename != None:
-            if element.typename.localname == 'string':
-                elementtype = xmlschema_string.XmlSchema_string()
-                elementhandler = elementtype.create_elementhandler(element.name)
-            elif element.typename.localname == 'date':
+            if element.typename.localname in ['string', 'date', 'integer', 'boolean']:
                 elementtype = xmlschema_string.XmlSchema_string()
                 elementhandler = elementtype.create_elementhandler(element.name)
             else:
@@ -227,7 +225,7 @@ class SchemaContextBuilder(object):
                 elementtype = self.build_complextype(children[0], element)
                 elementhandler = elementtype.create_elementhandler(element.name)
 
-            elif element.ref != None:
+            elif element.ref is not None:
                 elementhandler = XmlElementHandlerRef(element.ref)
 
                 self.schemacontext.elementreferences.append(elementhandler)
