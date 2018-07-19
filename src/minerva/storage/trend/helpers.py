@@ -9,7 +9,7 @@ from itertools import chain
 
 import pytz
 
-from minerva.storage.trend.basetypes import Trend
+from minerva.storage.trend.trend import Trend
 from minerva.storage.trend.trendstore import TrendStore
 from minerva.storage.trend.granularity import create_granularity
 
