@@ -10,7 +10,7 @@ from minerva.test import connect
 from minerva.directory.datasource import DataSource
 from minerva.directory.entitytype import EntityType
 
-from .minerva_db import clear_database
+from minerva.test import clear_database
 
 from minerva.storage.attribute.datapackage import DataPackage
 from minerva.storage.attribute.attributestore import AttributeStore, \

@@ -216,6 +216,7 @@ class AttributeStore:
                 "%s, %s, %s::attribute_directory.attribute_descr[]"
                 ")"
             )
+
             args = (
                 attribute_store_descriptor.data_source.name,
                 attribute_store_descriptor.entity_type.name,
@@ -224,7 +225,7 @@ class AttributeStore:
             cursor.execute(query, args)
 
             (
-                attribute_store_id, data_source_id, entity_type_id
+                data_source_id, entity_type_id, attribute_store_id
             ) = cursor.fetchone()
 
             entity_type = EntityType.get(entity_type_id)(cursor)
