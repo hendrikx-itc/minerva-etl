@@ -5,7 +5,8 @@ from functools import partial
 from minerva.util import k, identity
 from minerva.directory import EntityType, NoSuchEntityType
 from minerva.storage import Engine
-from minerva.storage.trend.tabletrendstore import TableTrendStore
+from minerva.storage.trend.tabletrendstore import TableTrendStore, \
+    NoSuchTableTrendStore
 from minerva.storage.trend.datapackage import DataPackage
 
 
@@ -79,9 +80,16 @@ def trend_store_for_package(data_source, package: DataPackage):
             if entity_type is None:
                 raise NoSuchEntityType(entity_type_name)
             else:
-                return TableTrendStore.get(
+                table_trend_store = TableTrendStore.get(
                     data_source, entity_type, package.granularity
                 )(cursor)
+
+                if table_trend_store is None:
+                    raise NoSuchTableTrendStore(
+                        data_source, entity_type, package.granularity
+                    )
+
+                return table_trend_store
 
     return f
 
@@ -92,7 +100,7 @@ def verify_partition_for_package(
         with closing(conn.cursor()) as cursor:
             parts = {
                 trend_store._trend_part_mapping[trend_name]
-                for trend_name in package.trend_names
+                for trend_name in package.trend_descriptors
                 if trend_name in trend_store._trend_part_mapping
             }
 

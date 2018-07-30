@@ -31,7 +31,7 @@ class TestInputDescriptor(unittest.TestCase):
             ValueDescriptor('x', datatype.registry['smallint'])
         )
 
-        with self.assertRaises(ValueError) as cm:
+        with self.assertRaises(datatype.ParseError) as cm:
             input_descriptor.parse('7800900')
     
     def test_parse_timestamp(self):

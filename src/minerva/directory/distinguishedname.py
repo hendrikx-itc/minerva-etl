@@ -40,14 +40,6 @@ def escape(part):
     return part
 
 
-def type_indexes(parts, type_name):
-    """
-    Return the indexes of `type_name` in the Distinguished Name parts, counting
-    from left to right, starting at 0.
-    """
-    return [index for index, part in enumerate(parts) if part[0] == type_name]
-
-
 def entity_type_name_from_dn(dn):
     """
     Return type of last component of distinguished name

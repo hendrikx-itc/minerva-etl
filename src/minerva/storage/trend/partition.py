@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+from contextlib import closing
+
 import psycopg2
 
 from minerva.db.error import translate_postgresql_exception, DuplicateTable
@@ -52,7 +54,7 @@ class Partition:
 
         return exists
 
-    def create(self, cursor):
+    def create(self, conn):
         query = (
             "SELECT trend_directory.create_partition(table_trend_store_part, %s) "
             "FROM trend_directory.table_trend_store_part "
@@ -60,12 +62,13 @@ class Partition:
         )
         args = self.index, self.trend_store_part.id
 
-        try:
+        with closing(conn.cursor()) as cursor:
             try:
-                cursor.execute(query, args)
-            except Exception as exc:
-                print(exc)
-        except psycopg2.IntegrityError:
-            raise DuplicateTable()
-        except psycopg2.ProgrammingError as exc:
-            raise translate_postgresql_exception(exc)
+                try:
+                    cursor.execute(query, args)
+                except Exception as exc:
+                    print(exc)
+            except psycopg2.IntegrityError:
+                raise DuplicateTable()
+            except psycopg2.ProgrammingError as exc:
+                raise translate_postgresql_exception(exc)

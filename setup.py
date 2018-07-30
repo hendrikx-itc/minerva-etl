@@ -41,7 +41,6 @@ setup(
         "minerva.xmldochandler.xmlschema",
         "minerva.xmlschemaparser",
         "minerva.schemacontextbuilder",
-        "minerva.instance",
         "minerva.harvest"
     ],
     package_dir={"": "src"},
@@ -49,7 +48,6 @@ setup(
         "minerva": ["defaults/*"]
     },
     scripts=[
-        "scripts/processfile",
         "scripts/minerva"
     ]
 )

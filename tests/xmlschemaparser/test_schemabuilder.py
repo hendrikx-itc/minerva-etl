@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-import StringIO
+from io import StringIO
 
 from minerva.xmlschemaparser.schemabuilder import SchemaBuilder
 # from minerva.xmlschemaparser.schematypes import *

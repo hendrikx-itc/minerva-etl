@@ -6,10 +6,6 @@ from minerva.storage.attribute.datapackage import DataPackage
 
 class HarvestParserAttribute:
     @staticmethod
-    def store_command():
-        raise NotImplementedError()
-
-    @staticmethod
     def load_packages(stream: BinaryIO, name: str) -> Iterable[DataPackage]:
         """
         Return iterable of DataPackage objects.

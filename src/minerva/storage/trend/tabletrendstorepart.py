@@ -182,16 +182,25 @@ class TableTrendStorePart:
                 else:
                     self.store_copy_from(data_package, modified)(cursor)
 
-                self.mark_modified(
-                    data_package.timestamp,
-                    modified
-                )(cursor)
+                #self.mark_modified(
+                #    data_package.timestamp,
+                #    modified
+                #)(cursor)
 
         return f
 
-    def _store_copy_from(self, table, data_package, modified):
+    def store_copy_from(self, data_package, modified):
+        """
+        Store the data using the PostgreSQL specific COPY FROM command
+
+        :param data_package: A DataPackage object
+        """
+
         def f(cursor):
-            serializers = self.get_copy_serializers(data_package.trend_names)
+            serializers = self.get_copy_serializers(
+                trend_descriptor.name
+                for trend_descriptor in data_package.trend_descriptors
+            )
 
             copy_from_file = create_copy_from_file(
                 data_package.timestamp, modified,
@@ -200,7 +209,11 @@ class TableTrendStorePart:
             )
 
             copy_from_query = create_copy_from_query(
-                table, data_package.trend_names
+                self.base_table(),
+                [
+                    trend_descriptor.name
+                    for trend_descriptor in data_package.trend_descriptors
+                ]
             )
 
             logging.debug(copy_from_query)
@@ -217,25 +230,15 @@ class TableTrendStorePart:
 
         return f
 
-    def store_copy_from(self, data_package, modified):
-        """
-        Store the data using the PostgreSQL specific COPY FROM command
-
-        :param data_package: A DataPackage object
-        """
-        return self._store_copy_from(
-            self.partition(data_package.timestamp).table(),
-            data_package,
-            modified
-        )
-
     def store_batch_insert(self, data_package, modified):
         def f(cursor):
-
-            table = self.partition(data_package.timestamp).table()
+            table = self.base_table()
 
             column_names = ["entity_id", "timestamp", "modified"]
-            column_names.extend(data_package.trend_names)
+            column_names.extend(
+                trend_descriptor.name
+                for trend_descriptor in data_package.trend_descriptors
+            )
 
             columns_part = ",".join(
                 map(quote_ident, column_names)
@@ -249,8 +252,8 @@ class TableTrendStorePart:
             ).format(table.render(), columns_part, parameters)
 
             rows = [
-                (entity_id, data_package.timestamp, modified) + tuple(values)
-                for entity_id, values
+                (entity_id, timestamp, modified) + tuple(values)
+                for entity_id, timestamp, values
                 in data_package.refined_rows(cursor)
             ]
 
@@ -265,7 +268,7 @@ class TableTrendStorePart:
 
     def store_update(self, data_package, modified):
         def f(cursor):
-            table = self.partition(data_package.timestamp).table()
+            table = self.base_table()
 
             tmp_table = create_temp_table_from(cursor, table)
 

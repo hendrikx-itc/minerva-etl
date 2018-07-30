@@ -2,10 +2,32 @@
 import unittest
 
 from minerva.directory.distinguishedname import \
-        split_parts, escape, DistinguishedName
+        explode, implode, split_parts, escape, entity_type_name_from_dn, DistinguishedName
 
 
 class TestDistinguishedName(unittest.TestCase):
+    def test_explode(self):
+        """
+        Check that distinguished names are exploded correctly
+        """
+        exploded = explode(
+            "Well,number=10,and,othernumber=20,notanumber=,thirdnumber= "
+            )
+        self.assertEqual(len(exploded), 3)
+        self.assertEqual(exploded[0], ("number", "10"))
+        self.assertEqual(exploded[1], ("othernumber", "20"))
+        self.assertEqual(exploded[2], ("thirdnumber", " "))
+
+    def test_implode(self):
+        """
+        Check that distinguished names are imploded correctly
+        """
+        imploded = implode([("SubNetwork", "NL1_R"),
+                            ("Number", "17"),
+                            ("Empty", ""),
+                            ("UeRc", "9")])
+        self.assertEqual(imploded, "SubNetwork=NL1_R,Number=17,Empty=,UeRc=9")
+        
     def test_splitparts(self):
         """
         Check that distinguished names are split correctly
@@ -29,7 +51,7 @@ class TestDistinguishedName(unittest.TestCase):
         """
         Check that ',' is escaped correctly
         """
-        self.assertEqual(escape("Word=asdf,fdsa"), "Word=asdf\\,fdsa")
+        self.assertEqual(escape("Word=asdf,fdsa$2"), "Word=asdf\\,fdsa$2")
     
     def test_constructor(self):
         empty_dn = DistinguishedName([])
@@ -45,3 +67,7 @@ class TestDistinguishedName(unittest.TestCase):
         dn = DistinguishedName.from_str('Network=Global,Node=001')
     
         self.assertEqual(dn.entity_type_name(), 'Node')
+
+    def test_entity_type_name_from_dn(self):
+        self.assertEqual(entity_type_name_from_dn('Network=Global,Node=001'), 'Node')
+

@@ -7,6 +7,8 @@ import os
 import threading
 import time
 import traceback
+import codecs
+
 from operator import not_
 
 from minerva.harvest.plugin_api_trend import HarvestParserTrend
@@ -20,8 +22,7 @@ class ParseError(Exception):
 
 
 def process_file(
-        file_path, parser: HarvestParserTrend, handle_package,
-        show_progress=False):
+        file_path, parser: HarvestParserTrend, show_progress=False):
     """
     Process a single file with specified plugin.
     """
@@ -30,7 +31,7 @@ def process_file(
 
     _directory, filename = os.path.split(file_path)
 
-    with open(file_path) as data_file:
+    with codecs.open(file_path, encoding='utf-8') as data_file:
         stop_event = threading.Event()
         condition = compose(not_, stop_event.is_set)
 
@@ -39,13 +40,15 @@ def process_file(
 
         try:
             for package in parser.load_packages(data_file, filename):
-                handle_package(package)
+                yield package
         except DataError as exc:
-            raise ParseError("{0!s} at position {1:d}".format(
-                exc, data_file.tell()))
+            raise exc
+            #raise ParseError(
+            #    "{0!s} at position {1:d}".format(exc, data_file.tell())
+            #)
         except Exception:
             stack_trace = traceback.format_exc()
-            position = data_file.tell()
+            position = -1# data_file.tell()
             message = "{0} at position {1:d}".format(stack_trace, position)
             raise Exception(message)
         finally:

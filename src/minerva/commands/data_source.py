@@ -1,13 +1,12 @@
 from contextlib import closing
 
-from psycopg2 import connect
-
 from minerva.util.tabulate import render_table
+from minerva.db import connect
 
 
 def setup_command_parser(subparsers):
     cmd = subparsers.add_parser(
-        'entitytype', help='command for administering entity types'
+        'data-source', help='command for administering data sources'
     )
 
     cmd_subparsers = cmd.add_subparsers()
@@ -19,64 +18,64 @@ def setup_command_parser(subparsers):
 
 def setup_create_parser(subparsers):
     cmd = subparsers.add_parser(
-        'create', help='command for creating entity types'
+        'create', help='command for creating data sources'
     )
 
-    cmd.add_argument('name', help='name of the new entity type')
+    cmd.add_argument('name', help='name of the new data source')
 
-    cmd.set_defaults(cmd=create_entitytype_cmd)
+    cmd.set_defaults(cmd=create_data_source_cmd)
 
 
 def setup_delete_parser(subparsers):
     cmd = subparsers.add_parser(
-        'delete', help='command for deleting entity types'
+        'delete', help='command for deleting data sources'
     )
 
-    cmd.add_argument('name', help='name of the entity type to delete')
+    cmd.add_argument('name', help='name of the data source to delete')
 
-    cmd.set_defaults(cmd=delete_entitytype_cmd)
+    cmd.set_defaults(cmd=delete_data_source_cmd)
 
 
 def setup_list_parser(subparsers):
     cmd = subparsers.add_parser(
-        'list', help='command for listing entity types'
+        'list', help='command for listing data sources'
     )
 
-    cmd.set_defaults(cmd=list_entitytype_cmd)
+    cmd.set_defaults(cmd=list_data_source_cmd)
 
 
-def create_entitytype_cmd(args):
-    create_entity_type(args.name)
+def create_data_source_cmd(args):
+    create_data_source(args.name)
 
 
-def delete_entitytype_cmd(args):
-    delete_entity_type(args.name)
+def delete_data_source_cmd(args):
+    delete_data_source(args.name)
 
 
-def list_entitytype_cmd(args):
-    list_entity_types()
+def list_data_source_cmd(args):
+    list_data_sources()
 
 
-def create_entity_type(name):
+def create_data_source(name):
     query_args = (name,)
 
-    with closing(connect('')) as conn:
+    with closing(connect()) as conn:
         with closing(conn.cursor()) as cursor:
             cursor.execute(
-                'SELECT directory.create_entity_type(%s)',
+                'SELECT directory.create_data_source(%s)',
                 query_args
             )
 
         conn.commit()
 
 
-def delete_entity_type(name):
+def delete_data_source(name):
     query_args = (name,)
 
-    with closing(connect('')) as conn:
+    with closing(connect()) as conn:
         with closing(conn.cursor()) as cursor:
             cursor.execute(
-                'SELECT directory.delete_entity_type(%s)',
+                'SELECT directory.delete_data_source(%s)',
                 query_args
             )
 
@@ -85,13 +84,13 @@ def delete_entity_type(name):
         conn.commit()
 
     if rowcount == 1:
-        print('successfully deleted entity type {}'.format(name))
+        print('deleted data source {}'.format(name))
 
 
-def list_entity_types():
-    with closing(connect('')) as conn:
+def list_data_sources():
+    with closing(connect()) as conn:
         with closing(conn.cursor()) as cursor:
-            cursor.execute('SELECT id, name FROM directory.entity_type')
+            cursor.execute('SELECT id, name FROM directory.data_source')
 
             rows = cursor.fetchall()
 

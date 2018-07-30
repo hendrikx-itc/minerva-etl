@@ -1,5 +1,6 @@
 class NoSuchEntityType(Exception):
-    pass
+    def __init__(self, entity_type_name):
+        self.entity_type_name = entity_type_name
 
 
 class EntityType:

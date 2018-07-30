@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from contextlib import closing
 from typing import List, Callable, Any
 from datetime import datetime
 
@@ -11,6 +12,13 @@ from minerva.directory import DataSource, EntityType
 from minerva.storage.trend.granularity import create_granularity, Granularity
 from minerva.storage.trend.tabletrendstorepart import TableTrendStorePart
 from minerva.util import string_fns
+
+
+class NoSuchTableTrendStore(Exception):
+    def __init__(self, data_source, entity_type, granularity):
+        self.data_source = data_source
+        self.entity_type = entity_type
+        self.granularity = granularity
 
 
 class TableTrendStore(TrendStore):
@@ -191,13 +199,14 @@ class TableTrendStore(TrendStore):
 
     @classmethod
     def get_by_id(cls, id_):
-        def f(cursor):
+        def f(conn):
             args = (id_,)
 
-            cls.get_by_id_query.execute(cursor, args)
+            with closing(conn.cursor()) as cursor:
+                cls.get_by_id_query.execute(cursor, args)
 
-            if cursor.rowcount == 1:
-                return TableTrendStore.from_record(cursor.fetchone())(cursor)
+                if cursor.rowcount == 1:
+                    return TableTrendStore.from_record(cursor.fetchone())(cursor)
 
         return f
 
