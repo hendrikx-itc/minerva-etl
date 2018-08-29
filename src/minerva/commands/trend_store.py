@@ -224,9 +224,9 @@ def setup_add_trend_parser(subparsers):
 def add_trend_to_trend_store_cmd(args):
     query = (
         'SELECT trend_directory.add_trend_to_trend_store('
-        'table_trend_store, %s::name, %s::text, %s::text'
+        'table_trend_store_part, %s::name, %s::text, %s::text'
         ') '
-        'FROM trend_directory.table_trend_store WHERE name = %s'
+        'FROM trend_directory.table_trend_store_part WHERE name = %s'
     )
 
     query_args = (
