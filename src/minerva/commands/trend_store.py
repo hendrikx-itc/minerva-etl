@@ -214,7 +214,7 @@ def setup_add_trend_parser(subparsers):
     cmd.add_argument('--part-name')
 
     cmd.add_argument(
-        'trend-store',
+        'trend_store',
         help='name of the trend store where the trend will be added'
     )
 
