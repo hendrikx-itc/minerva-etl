@@ -64,12 +64,14 @@ class XmlDocHandler(ContentHandler):
         else:
             self.handle_unknown_element(name, qname, attrs)
 
+    def render_path(self):
+        return '->'.join(handler.name for handler, context in self._stack)
+
     def break_on_missing_handler(self, name, qname, attrs):
         if len(self._stack) > 0:
-            parent_handler, context = self._stack[-1]
             raise Exception(
                 "No handler found for element '{0}' under parent element "
-                "handler '{1}'".format(name[1], parent_handler.name)
+                "handler '{1}'".format(name[1], self.render_path())
             )
         else:
             raise Exception(
