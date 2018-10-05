@@ -4,6 +4,7 @@ import argparse
 import datetime
 
 from minerva.db import connect
+from minerva.db.error import translate_postgresql_exceptions, UniqueViolation
 from minerva.util.tabulate import render_table
 
 
@@ -32,17 +33,21 @@ def setup_create_parser(subparsers):
 
 
 def create_alias_cmd(args):
+    try:
+        translate_postgresql_exceptions(create_alias)(args.name)
+    except UniqueViolation as exc:
+        print("an alias with the name '{}' already exists".format(args.name))
+        return 1
+
+
+def create_alias(name):
     query = (
         'SELECT * FROM alias_directory.create_alias_type(%s::name)'
     )
 
-    query_args = (
-        args.name,
-    )
-
     with closing(connect()) as conn:
         with closing(conn.cursor()) as cursor:
-            cursor.execute(query, query_args)
+            cursor.execute(query, (name,))
 
             conn.commit()
 
@@ -61,7 +66,7 @@ def setup_delete_parser(subparsers):
 
 def delete_alias_cmd(args):
     query = (
-        'SELECT alias_directory.delete_alias_type(alias_type) '
+        'SELECT (alias_directory.delete_alias_type(alias_type)).* '
         'FROM alias_directory.alias_type '
         'WHERE name = %s'
     )
@@ -74,7 +79,12 @@ def delete_alias_cmd(args):
         with closing(conn.cursor()) as cursor:
             cursor.execute(query, query_args)
 
-        conn.commit()
+            conn.commit()
+
+            if cursor.rowcount == 0:
+                print("no aliases found matching name '{}'".format(args.name))
+            else:
+                show_rows_from_cursor(cursor)
 
 
 def setup_list_parser(subparsers):
