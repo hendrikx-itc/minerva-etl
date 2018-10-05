@@ -32,7 +32,7 @@ class DataPackage:
         self.rows = rows
 
     def render_table(self):
-        column_names = ["entity"] + list(
+        column_names = ["entity", "timestamp"] + list(
             trend_descriptor.name
             for trend_descriptor in self.trend_descriptors
         )

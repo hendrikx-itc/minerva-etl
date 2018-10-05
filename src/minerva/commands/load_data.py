@@ -259,37 +259,45 @@ def create_store_db_context(data_source_name, store_cmd):
                 data_source = DataSource.get_by_name(data_source_name)(cursor)
 
             if data_source is None:
-                raise ConfigurationError(
-                    'No such data source \'{data_source}\'\n'
-                    'Create a data source using e.g.\n'
-                    '\n'
-                    '    minerva data-source create {data_source}\n'.format(
-                        data_source=data_source_name
-                    )
-                )
+                raise no_such_data_source_error(data_source_name)
 
             def store_package(package):
                 try:
                     store_cmd(package)(data_source)(conn)
                 except NoSuchTableTrendStore as exc:
-                    raise ConfigurationError(
-                        'No table trend store found for the combination ('
-                        'data source: {data_source}, '
-                        'entity type: {entity_type}, '
-                        'granularity: {granularity}'
-                        ')\n'
-                        'Create a table trend store using e.g.\n'
-                        '\n'
-                        '    minerva trend-store create --from-json'.format(
-                            data_source=exc.data_source.name,
-                            entity_type=exc.entity_type.name,
-                            granularity=exc.granularity
-                        )
+                    raise no_such_table_trend_store_error(
+                        exc.data_source, exc.entity_type, exc.granularity
                     )
 
             yield store_package
 
     return store_db_context
+
+
+def no_such_data_source_error(data_source_name):
+    return ConfigurationError(
+        'No such data source \'{data_source}\'\n'
+        'Create a data source using e.g.\n'
+        '\n'
+        '    minerva data-source create {data_source}\n'.format(
+            data_source=data_source_name
+        )
+    )
+
+
+def no_such_table_trend_store_error(data_source, entity_type, granularity):
+    return ConfigurationError(
+        'No table trend store found for the combination (data source: '
+        '{data_source}, entity type: {entity_type}, granularity: {granularity}'
+        ')\n'
+        'Create a table trend store using e.g.\n'
+        '\n'
+        '    minerva trend-store create --from-json'.format(
+            data_source=data_source.name,
+            entity_type=entity_type.name,
+            granularity=granularity
+        )
+    )
 
 
 @contextmanager

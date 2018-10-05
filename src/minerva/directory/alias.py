@@ -103,3 +103,14 @@ def flush(conn, type_name):
 
     with closing(conn.cursor()) as cursor:
         cursor.execute(query, (type_id,))
+
+
+def get_entity_id_by_alias(conn, type_name, alias):
+    query = "SELECT entity_id FROM alias.{} WHERE alias = %s".format(alias)
+
+    with closing(conn.cursor()) as cursor:
+        cursor.execute(query, (alias,))
+
+        (entity_id,) = cursor.fetchone()
+
+    return entity_id

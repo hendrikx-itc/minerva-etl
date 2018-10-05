@@ -1,9 +1,6 @@
 # -*- coding: utf-8 -*-
 """Distutils install script."""
-import sys
 from setuptools import setup
-from distutils.util import convert_path
-
 
 # Load module with version
 ns = {}

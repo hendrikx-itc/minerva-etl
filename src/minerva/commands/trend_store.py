@@ -1,6 +1,7 @@
 import json
 from contextlib import closing
 import argparse
+import datetime
 
 from minerva.commands import LoadHarvestPlugin, ListPlugins, load_json
 from minerva.db import connect
@@ -30,22 +31,22 @@ def setup_create_parser(subparsers):
     )
 
     cmd.add_argument(
-        '--data-source', default='default',
+        '--data-source',
         help='name of the data source of the new trend store'
     )
 
     cmd.add_argument(
-        '--entity-type', default='unknown',
+        '--entity-type',
         help='name of the entity type of the new trend store'
     )
 
     cmd.add_argument(
-        '--granularity', default='1 day',
+        '--granularity',
         help='granularity of the new trend store'
     )
 
     cmd.add_argument(
-        '--partition-size', default=86400,
+        '--partition-size',
         help='partition size of the new trend store'
     )
 
@@ -54,33 +55,30 @@ def setup_create_parser(subparsers):
         help='use json description for trend store'
     )
 
-    cmd.add_argument('name', nargs="?", help='name of the new trend store')
-
     cmd.set_defaults(cmd=create_trend_store_cmd)
 
 
 def create_trend_store_cmd(args):
     if args.from_json:
-        create_trend_store_from_json(args.from_json)
+        data = json.load(args.from_json)
     else:
-        query = (
-            'SELECT trend_directory.create_table_trend_store('
-            '%s::name, %s::text, %s::text, %s::interval, %s::integer, '
-            '%s::trend_directory.trend_descr[])'
-        )
+        data = {
+            'parts': []
+        }
 
-        trend_descriptors = []
+    if args.data_source:
+        data['data_source'] = args.data_source
 
-        query_args = (
-            args.name, args.data_source, args.entity_type, args.granularity,
-            args.partition_size, trend_descriptors
-        )
+    if args.entity_type:
+        data['entity_type'] = args.entity_type
 
-        with closing(connect()) as conn:
-            with closing(conn.cursor()) as cursor:
-                cursor.execute(query, query_args)
+    if args.granularity:
+        data['granularity'] = args.granularity
 
-            conn.commit()
+    if args.partition_size:
+        data['partition_size'] = args.partition_size
+
+    create_trend_store_from_json(data)
 
 
 def setup_deduce_parser(subparsers):
@@ -140,9 +138,7 @@ def deduce_trend_store_cmd(cmd_parser):
     return cmd
 
 
-def create_trend_store_from_json(json_file):
-    data = json.load(json_file)
-
+def create_trend_store_from_json(data):
     query = (
         'SELECT trend_directory.create_table_trend_store('
         '%s::text, %s::text, %s::interval, %s::integer, {}'
@@ -309,7 +305,8 @@ def setup_create_partition_parser(subparsers):
     )
 
     cmd.add_argument(
-        '--timestamp', help='timestamp for which to create partition'
+        '--timestamp', default=datetime.datetime.now(),
+        help='timestamp for which to create partition'
     )
 
     cmd.set_defaults(cmd=create_partition_cmd)
@@ -320,6 +317,10 @@ def create_partition_cmd(args):
         table_trend_store = TableTrendStore.get_by_id(args.id)(conn)
 
         if args.part_name:
-            table_trend_store.partition(args.part_name, args.timestamp).create(conn)
+            table_trend_store.partition(
+                args.part_name, args.timestamp
+            ).create(conn)
         else:
             table_trend_store.create_partitions(args.timestamp)(conn)
+
+        conn.commit()

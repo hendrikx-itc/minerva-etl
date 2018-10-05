@@ -1,0 +1,26 @@
+{
+    "data_source": "example_source",
+    "entity_type": "Node",
+    "granularity": "1 day",
+    "partition_size": 86400,
+    "parts": [
+        {
+            "name": "left",
+            "trends": [
+                {
+                    "name": "x",
+                    "data_type": "integer"
+                }
+            ]
+        },
+        {
+            "name": "right",
+            "trends": [
+                {
+                    "name": "y",
+                    "data_type": "integer"
+                }
+            ]
+        }
+    ]
+}
