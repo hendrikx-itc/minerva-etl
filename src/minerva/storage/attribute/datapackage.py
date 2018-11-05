@@ -170,10 +170,13 @@ def value_to_string(null_value="\\N"):
 
 def format_text_value(null_value='\\N'):
     def fn(value):
+        if type(value) is tuple:
+            value = ','.join(value)
+
         if is_null_value(value):
             return null_value
         else:
-            return value.replace('\t', '\\\t')
+            return value.replace('\t', '\\\t').replace('\n', '\\\n')
 
     return fn
 
