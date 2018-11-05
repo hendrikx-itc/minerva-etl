@@ -25,14 +25,14 @@ pipeline {
                         sh "mkdir -p ${buildDir}"
 
                         // Credentials used should be stored in Jenkins under the name 'hitc-docker-registry'
-                        docker.withRegistry(docker_registry, 'hitc-docker-registry') {
+                        docker.withRegistry("https://${docker_registry}", 'hitc-docker-registry') {
                             def img = docker.image imgName
 
                             img.pull()
 
                             def container = img.run("-v ${workspace}:/package/source -v ${workspace}/${buildDir}:/package/build", targetDistribution)
 
-                            sh "docker wait ${container.id}"
+                            sh "docker logs --follow ${container.id}"
                         }
 
                         sh "scp -r ${buildDir}/. repo-manager@controller.hitc:/var/packages/common/stable"
