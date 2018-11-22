@@ -1,7 +1,4 @@
-import json
 from contextlib import closing
-import argparse
-import datetime
 
 from minerva.db import connect
 from minerva.db.error import translate_postgresql_exceptions, UniqueViolation
@@ -109,9 +106,7 @@ def show_rows_from_cursor(cursor):
 
 def list_aliases_cmd(args):
     query = (
-        'SELECT '
-        'id, '
-        'name '
+        'SELECT id, name '
         'FROM alias_directory.alias_type'
     )
 
