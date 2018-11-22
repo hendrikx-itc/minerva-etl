@@ -34,10 +34,6 @@ setup(
         "minerva.storage.trend.test",
         "minerva.storage.attribute",
         "minerva.storage.notification",
-        "minerva.xmldochandler",
-        "minerva.xmldochandler.xmlschema",
-        "minerva.xmlschemaparser",
-        "minerva.schemacontextbuilder",
         "minerva.harvest"
     ],
     package_dir={"": "src"},
