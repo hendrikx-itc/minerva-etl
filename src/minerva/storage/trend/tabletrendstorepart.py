@@ -203,7 +203,7 @@ class TableTrendStorePart:
             )
 
             copy_from_file = create_copy_from_file(
-                data_package.timestamp, modified,
+                modified,
                 data_package.refined_rows(cursor),
                 serializers
             )
@@ -396,7 +396,7 @@ def create_copy_from_query(table, trend_names):
     )
 
 
-def create_copy_from_lines(timestamp, modified, rows, serializers):
+def create_copy_from_lines(modified, rows, serializers):
     map_values = zip_apply(serializers)
 
     return (
@@ -406,7 +406,7 @@ def create_copy_from_lines(timestamp, modified, rows, serializers):
             modified.isoformat(),
             "\t".join(map_values(values))
         )
-        for entity_id, values in rows
+        for entity_id, timestamp, values in rows
     )
 
 
