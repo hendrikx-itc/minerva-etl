@@ -1,51 +1,9 @@
 # -*- coding: utf-8 -*-
-from minerva.db.util import quote_ident
 from minerva.db.query import Column, Eq, ands
 from minerva.directory import DataSource, EntityType
 from minerva.storage.trend import schema
 from minerva.storage.trend.granularity import Granularity
 from minerva.storage.trend.trend import Trend
-from minerva.storage.valuedescriptor import ValueDescriptor
-
-
-class TimestampEquals:
-    def __init__(self, timestamp):
-        self.timestamp = timestamp
-
-    def render(self):
-        return 'timestamp = %s', (self.timestamp,)
-
-
-class TrendStoreQuery:
-    def __init__(self, trend_store, trend_names):
-        self.trend_store = trend_store
-        self.trend_names = trend_names
-        self.timestamp_constraint = None
-
-    def execute(self, cursor):
-        args = tuple()
-
-        query = (
-            'SELECT {} FROM {}'
-        ).format(
-            ', '.join(map(quote_ident, self.trend_names)),
-            self.trend_store.parts[0].base_table().render()
-        )
-
-        if self.timestamp_constraint is not None:
-            query_part, args_part = self.timestamp_constraint.render()
-
-            query += ' WHERE {}'.format(query_part)
-            args += args_part
-
-        cursor.execute(query, args)
-
-        return cursor
-
-    def timestamp(self, constraint):
-        self.timestamp_constraint = constraint
-
-        return self
 
 
 class TrendStore:
@@ -86,9 +44,11 @@ class TrendStore:
 
     def get_trend(self, cursor, trend_name):
         query = (
-            "SELECT id, name, data_type, trend_store_id, description "
+            "SELECT trend.id, trend.name, data_type, trend_store_part_id, description "
             "FROM trend_directory.trend "
-            "WHERE trend_store_id = %s AND name = %s"
+            "JOIN trend_directory.trend_store_part "
+            "ON trend_store_part_id = trend_store_part.id "
+            "WHERE trend_store_id = %s AND trend.name = %s"
         )
 
         args = self.id, trend_name
@@ -97,6 +57,3 @@ class TrendStore:
 
         if cursor.rowcount > 0:
             return Trend(*cursor.fetchone())
-
-    def retrieve(self, trend_names):
-        return TrendStoreQuery(self, trend_names)

@@ -315,12 +315,21 @@ def setup_create_partition_parser(subparsers):
 def create_partition_cmd(args):
     with closing(connect()) as conn:
         table_trend_store = TableTrendStore.get_by_id(args.id)(conn)
+        try:
+            timestamp = int(args.timestamp)
+        except:
+            # args.timestamp was not a number, assume it's a datetime already
+            timestamp = args.timestamp
+        else:
+            # args.timestamp was a number, assume it's a unix timestamp
+            timestamp = datetime.datetime.fromtimestamp(timestamp)
+
 
         if args.part_name:
             table_trend_store.partition(
-                args.part_name, args.timestamp
+                args.part_name, timestamp
             ).create(conn)
         else:
-            table_trend_store.create_partitions(args.timestamp)(conn)
+            table_trend_store.create_partitions(timestamp)(conn)
 
         conn.commit()

@@ -217,6 +217,10 @@ class TableTrendStorePart:
             )
 
             logging.debug(copy_from_query)
+            print('=' * 80)
+            print(str(copy_from_query))
+            print(str(copy_from_file))
+            print('=' * 80)
 
             try:
                 cursor.copy_expert(copy_from_query, copy_from_file)
