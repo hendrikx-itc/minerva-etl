@@ -13,9 +13,10 @@ from minerva.directory.distinguishedname import entity_type_name_from_dn
 
 
 class DataPackageType:
-    def __init__(self, entity_ref_type, get_entity_type_name):
+    def __init__(self, entity_ref_type, get_entity_type_name, alias_type='dn'):
         self.entity_ref_type = entity_ref_type
         self.get_entity_type_name = get_entity_type_name
+        self.alias_type = alias_type
 
 
 class DataPackage:
@@ -30,6 +31,7 @@ class DataPackage:
         self.granularity = granularity
         self.trend_descriptors = trend_descriptors
         self.rows = rows
+        self.alias_type = data_package_type.alias_type
 
     def render_table(self):
         column_names = ["entity", "timestamp"] + list(

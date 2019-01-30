@@ -177,15 +177,7 @@ class TableTrendStorePart:
             with closing(conn.cursor()) as cursor:
                 modified = get_timestamp(cursor)
 
-                if len(data_package.rows) <= LARGE_BATCH_THRESHOLD:
-                    self.store_batch_insert(data_package, modified)(cursor)
-                else:
-                    self.store_copy_from(data_package, modified)(cursor)
-
-                #self.mark_modified(
-                #    data_package.timestamp,
-                #    modified
-                #)(cursor)
+                self.store_copy_from(data_package, modified)(cursor)
 
         return f
 
@@ -216,12 +208,6 @@ class TableTrendStorePart:
                 ]
             )
 
-            logging.debug(copy_from_query)
-            print('=' * 80)
-            print(str(copy_from_query))
-            print(str(copy_from_file))
-            print('=' * 80)
-
             try:
                 cursor.copy_expert(copy_from_query, copy_from_file)
             except psycopg2.DatabaseError as exc:
@@ -231,42 +217,6 @@ class TableTrendStorePart:
                     raise NoCopyInProgress()
                 else:
                     raise translate_postgresql_exception(exc)
-
-        return f
-
-    def store_batch_insert(self, data_package, modified):
-        def f(cursor):
-            table = self.base_table()
-
-            column_names = ["entity_id", "timestamp", "modified"]
-            column_names.extend(
-                trend_descriptor.name
-                for trend_descriptor in data_package.trend_descriptors
-            )
-
-            columns_part = ",".join(
-                map(quote_ident, column_names)
-            )
-
-            parameters = ", ".join(['%s'] * len(column_names))
-
-            query = (
-                "INSERT INTO {0} ({1}) "
-                "VALUES ({2})"
-            ).format(table.render(), columns_part, parameters)
-
-            rows = [
-                (entity_id, timestamp, modified) + tuple(values)
-                for entity_id, timestamp, values
-                in data_package.refined_rows(cursor)
-            ]
-
-            try:
-                cursor.executemany(query, rows)
-            except psycopg2.DatabaseError as exc:
-                logging.debug(cursor.query)
-
-                raise translate_postgresql_exception(exc)
 
         return f
 

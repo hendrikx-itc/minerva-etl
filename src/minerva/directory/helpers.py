@@ -13,9 +13,13 @@ from minerva.db.error import translate_postgresql_exceptions
 MATCH_ALL = re.compile(".*")
 
 
-@translate_postgresql_exceptions
 def dns_to_entity_ids(cursor, dns):
-    cursor.callproc("directory.dns_to_entity_ids", (dns,))
+    return aliases_to_entity_ids(cursor, 'dn', dns)
+
+
+@translate_postgresql_exceptions
+def aliases_to_entity_ids(cursor, namespace, aliases):
+    cursor.callproc("alias_directory.aliases_to_entity_ids", (namespace, aliases))
 
     return list(map(fst, cursor.fetchall()))
 
