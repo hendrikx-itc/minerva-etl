@@ -44,9 +44,9 @@ def get_child_ids(cursor, base_entity, entity_type):
     """
     query = (
         "SELECT id FROM directory.entity "
-        "WHERE entitytype_id = %s AND dn LIKE %s")
+        "WHERE entitytype_id = %s AND name LIKE %s")
 
-    args = (entity_type.id, base_entity.dn + ",%")
+    args = (entity_type.id, base_entity.name + ",%")
 
     cursor.execute(query, args)
 

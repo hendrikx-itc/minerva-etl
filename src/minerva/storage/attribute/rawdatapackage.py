@@ -10,8 +10,8 @@ the Free Software Foundation; either version 3, or (at your option) any later
 version.  The full license is in the file COPYING, distributed as part of
 this software.
 """
-from minerva.directory.distinguishedname import entitytype_name_from_dn
-from minerva.directory.helpers_v4 import dns_to_entity_ids
+from minerva.directory.distinguishedname import entity_type_name_from_dn
+from minerva.directory.helpers import aliases_to_entity_ids
 from minerva.storage.attribute.datapackage import DataPackage
 
 
@@ -26,10 +26,14 @@ class RawDataPackage(DataPackage):
 
     def get_entitytype_name(self):
         """Return the entity type name from the first Distinguished Name."""
-        if self.rows:
-            first_dn = self.rows[0][0]
+        if self.alias_type == 'dn':
+            if self.rows:
+                first_dn = self.rows[0][0]
 
-            return entitytype_name_from_dn(first_dn)
+                return entity_type_name_from_dn(first_dn)
+
+        else:
+            return self.alias_type
 
     def get_key(self):
         """Return key by which to merge this package with other packages."""
@@ -42,9 +46,9 @@ class RawDataPackage(DataPackage):
         This means that all distinguished names are translated to entity Ids.
 
         """
-        dns, timestamps, value_rows = zip(*self.rows)
+        aliases, timestamps, value_rows = zip(*self.rows)
 
-        entity_ids = dns_to_entity_ids(cursor, list(dns))
+        entity_ids = aliases_to_entity_ids(cursor, self.alias_type, (aliases))
 
         rows = zip(entity_ids, timestamps, value_rows)
         return DataPackage(self.attribute_names, rows)

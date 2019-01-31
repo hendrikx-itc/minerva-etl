@@ -105,7 +105,7 @@ def get_entities_by_query(conn, minerva_query, relation_group_name):
     q, args, entity_id_column = compile_sql(minerva_query, relation_group_name)
 
     sql = (
-        " SELECT entity.id, entity.dn, entity.entity_type_id"
+        " SELECT entity.id, entity.name, entity.entity_type_id"
         " {0}"
         " JOIN directory.entity entity ON entity.id = {1}").format(
         q, entity_id_column)
@@ -115,7 +115,7 @@ def get_entities_by_query(conn, minerva_query, relation_group_name):
 
         rows = cursor.fetchall()
 
-    attr_names = ("id", "dn", "entity_type_id")
+    attr_names = ("id", "name", "entity_type_id")
 
     return [dict(zip(attr_names, row)) for row in rows]
 
@@ -145,7 +145,7 @@ def get_related_entities_by_query(
         conn, minerva_query, relation_group_name, target_entity_type_id):
     # Quick Hack: get_entities_by_query -> get_related_entities on result
     entities = get_entities_by_query(conn, minerva_query, relation_group_name)
-    attr_names = ("id", "dn", "entity_type_id")
+    attr_names = ("id", "name", "entity_type_id")
 
     related_entities = []
 
@@ -166,7 +166,7 @@ def get_related_entities_by_query(
             )
 
             query = (
-                " SELECT target_id, e.dn, e.entity_type_id"
+                " SELECT target_id, e.name, e.entity_type_id"
                 " FROM relation.\"{0}\""
                 " JOIN directory.entity e ON e.id = target_id"
                 " AND e.entity_type_id = %s"

@@ -88,15 +88,13 @@ class Entity(object):
     """
     All data within the Minerva platform is linked to entities. Entities are
     very minimal objects with only very generic properties such as name,
-    parent, type and a few more.
+    type and a few more.
     """
-    def __init__(self, id, name, entitytype_id, dn, parent_id):
+    def __init__(self, id, name, entitytype_id):
         self.id = id
         self.first_appearance = pytz.utc.localize(datetime.datetime.utcnow())
         self.name = name
         self.entitytype_id = entitytype_id
-        self.dn = dn
-        self.parent_id = parent_id
 
     def __repr__(self):
         return "<Entity('{0:s}')>".format(self.name)
@@ -114,33 +112,32 @@ class Entity(object):
 
         row = cursor.fetchone()
 
-        id, _first_appearance, name, entitytype_id, dn, parent_id = row
+        _first_appearance, dn, entitytype_id, id = row
 
-        return Entity(id, name, entitytype_id, dn, parent_id)
+        return Entity(id, dn, entitytype_id)
 
     @staticmethod
     def get(cursor, entity_id):
         """Return entity with specified distinguished name."""
         args = (entity_id,)
 
-        cursor.callproc("directory.getentitybyid", args)
+        cursor.callproc("directory.get_entity_by_id", args)
 
-        if cursor.rowcount == 1:
-            (dn, entitytype_id, entity_name, parent_id) = cursor.fetchone()
+        (_first_appearance, name, entitytype_id, id) = cursor.fetchone()
 
-            return Entity(entity_id, entity_name, entitytype_id, dn, parent_id)
+        return Entity(id, name, entitytype_id)
 
     @staticmethod
     def get_by_dn(cursor, dn):
         """Return entity with specified distinguished name."""
         args = (dn,)
 
-        cursor.callproc("directory.getentitybydn", args)
+        cursor.callproc("directory.get_entity_by_dn", args)
 
         if cursor.rowcount == 1:
-            (entity_id, entitytype_id, entity_name, parent_id) = cursor.fetchone()
+            (_first_appearance, name, entitytype_id, id) = cursor.fetchone()
 
-            return Entity(entity_id, entity_name, entitytype_id, dn, parent_id)
+            return Entity(id, name, entitytype_id)
 
     @staticmethod
     def from_dn(cursor, dn):
@@ -148,9 +145,9 @@ class Entity(object):
 
         row = cursor.fetchone()
 
-        id, first_appearance, name, entitytype_id, _dn, parent_id = row
+        _first_appearance, dn, entitytype_id, id = row
 
-        return Entity(id, name, entitytype_id, dn, parent_id)
+        return Entity(id, dn, entitytype_id)
 
 
 class DataSource(object):

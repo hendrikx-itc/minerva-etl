@@ -9,7 +9,6 @@ from minerva.storage.trend import schema
 from minerva.util import grouped_by, zip_apply, identity, k
 from minerva.util.tabulate import render_table
 from minerva.directory.entityref import EntityDnRef, EntityIdRef, EntityRef
-from minerva.directory.distinguishedname import entity_type_name_from_dn
 
 
 class DataPackageType:
@@ -202,12 +201,6 @@ def package_group(key, packages):
         rows.append(row)
 
     return DataPackage(data_package_type, granularity, field_names, rows)
-
-
-def from_first_dn(data_package):
-    dn = data_package.rows[0][0]
-
-    return entity_type_name_from_dn(dn)
 
 
 def parse_values(parsers):

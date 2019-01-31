@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from minerva.directory.helpers import aliases_to_entity_ids
+from minerva.directory.helpers import aliases_to_entity_ids, dns_to_entity_ids
 from minerva.directory.distinguishedname import entity_type_name_from_dn
 from minerva.directory import EntityType
 
@@ -55,7 +55,7 @@ class EntityDnRef(EntityRef):
     """
 
     def __init__(self, dn):
-        self.dn = dn
+        self.alias = self.dn = dn
 
     def to_argument(self):
         return "(directory.dn_to_entity(%s)).id", self.dn
@@ -101,7 +101,7 @@ def _create_alias_ref_class(alias_type):
         return EntityAliasRef
 
 
-_alias_ref_classes = {} # alias_name -> EntityAliasRef class
+_alias_ref_classes = {}  # alias_name -> EntityAliasRef class
 
 def entity_alias_ref_class(alias_type):
     if alias_type not in _alias_ref_classes.keys():
