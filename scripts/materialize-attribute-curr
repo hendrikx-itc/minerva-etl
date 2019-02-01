@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python2.7
 """Command line tool materialize attribute current 'pointer' view."""
 import argparse
 import os
@@ -50,25 +50,29 @@ def main():
 
 
 def materialize_attributestores(conn, attributestore_ids):
+    print("materializing {} changed attribute stores".format(len(attributestore_ids)))
+
     for attributestore_id in attributestore_ids:
-        with closing(conn.cursor()) as cursor:
-            materialize(cursor, attributestore_id)
+        count, name = materialize(conn, attributestore_id)
 
         conn.commit()
 
-        print("materialized {}".format(attributestore_id))
+        print("materialized {}: {}".format(name, count))
 
 
-def materialize(cursor, attributestore_id):
-    query = (
-        "SELECT attribute_directory.materialize_curr_ptr(attributestore) "
-        "FROM attribute_directory.attributestore "
-        "WHERE id = %s"
-    )
+def materialize(conn, attributestore_id):
+    with closing(conn.cursor()) as cursor:
+        query = (
+            "SELECT attribute_directory.materialize_curr_ptr(attributestore), attributestore::text "
+            "FROM attribute_directory.attributestore "
+            "WHERE id = %s"
+        )
 
-    args = (attributestore_id,)
+        args = (attributestore_id,)
 
-    cursor.execute(query, args)
+        cursor.execute(query, args)
+
+        return cursor.fetchone()
 
 
 def get_all_attributestore_ids(cursor):
