@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-import sys
 import argparse
 
 from minerva.commands import data_source, trend_store, entity_type, load_data, \
@@ -28,7 +27,3 @@ def main():
         return 0
     else:
         return args.cmd(args)
-
-
-if __name__ == '__main__':
-    sys.exit(main())
