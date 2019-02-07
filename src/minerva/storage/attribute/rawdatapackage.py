@@ -48,7 +48,7 @@ class RawDataPackage(DataPackage):
         """
         aliases, timestamps, value_rows = zip(*self.rows)
 
-        entity_ids = aliases_to_entity_ids(cursor, self.alias_type, (aliases))
+        entity_ids = aliases_to_entity_ids(cursor, self.alias_type, (aliases), self.get_entitytype_name())
 
         rows = zip(entity_ids, timestamps, value_rows)
         return DataPackage(self.attribute_names, rows)

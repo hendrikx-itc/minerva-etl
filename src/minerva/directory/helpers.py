@@ -8,18 +8,19 @@ from io import StringIO
 
 from minerva.util import identity, k, fst
 from minerva.db.error import translate_postgresql_exceptions
+from minerva.directory.distinguishedname import entity_type_name_from_dn
 
 
 MATCH_ALL = re.compile(".*")
 
 
 def dns_to_entity_ids(cursor, dns):
-    return aliases_to_entity_ids(cursor, 'dn', dns)
+    return aliases_to_entity_ids(cursor, 'dn', dns, entity_type_name_from_dn(dns[0]))
 
 
 @translate_postgresql_exceptions
-def aliases_to_entity_ids(cursor, namespace, aliases):
-    cursor.callproc("alias_directory.aliases_to_entity_ids", (namespace, aliases))
+def aliases_to_entity_ids(cursor, namespace: str, aliases: list, entity_type: str):
+    cursor.callproc("alias_directory.aliases_to_entity_ids", (namespace, aliases, entity_type))
 
     return list(map(fst, cursor.fetchall()))
 

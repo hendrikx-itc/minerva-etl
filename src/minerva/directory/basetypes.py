@@ -108,7 +108,7 @@ class Entity(object):
         :param conn: A cursor an a Minerva Directory database.
         :param dn: The distinguished name of the entity.
         """
-        cursor.callproc("directory.create_entity", (dn,))
+        cursor.callproc("directory.create_entity_from_dn", (dn,))
 
         row = cursor.fetchone()
 

@@ -78,6 +78,9 @@ def create_trend_store_cmd(args):
     if args.partition_size:
         data['partition_size'] = args.partition_size
 
+    if 'alias_type' not in data and 'entity_type' in data:
+        data['alias_type'] = data['entity_type']
+
     create_trend_store_from_json(data)
 
 
@@ -165,9 +168,14 @@ def create_trend_store_from_json(data):
         data['granularity'], data['partition_size']
     )
 
+    alias_query = "SELECT alias_directory.get_or_create_alias_type('{}')".format(
+        data['alias_type']
+    )
+
     with closing(connect()) as conn:
         with closing(conn.cursor()) as cursor:
             cursor.execute(query, query_args)
+            cursor.execute(alias_query)
 
         conn.commit()
 
