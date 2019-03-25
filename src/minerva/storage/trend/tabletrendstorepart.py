@@ -403,14 +403,14 @@ def create_insertion_command(table, column_names, values):
 
 def create_update_command_parts(columns, values):
     return [
-        '"{0}" = {1}'.format(pair[0], pair[1]) for pair in zip(columns, values)
+        '"{0}" = {1}'.format(pair[0], pair[1]) for pair in zip(columns, values) if pair[0] != 'created'
     ]
 
 def create_copy_from_lines(modified, rows, serializers):
     map_values = zip_apply(serializers)
 
     return (
-        u"{0:d}\t'{1!s}'\t'{2!s}'\t{3}\n".format(
+        u"{0:d}\t'{1!s}'\t'{2!s}'\t'{2!s}'\t{3}\n".format(
             entity_id,
             timestamp.isoformat(),
             modified.isoformat(),
