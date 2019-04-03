@@ -12,7 +12,7 @@ with open(mod_path) as mod_file:
 
 
 setup(
-    name="minerva",
+    name="minerva-etl",
     author="Hendrikx ITC",
     author_email="info@hendrikx-itc.nl",
     version=ns['__version__'],
