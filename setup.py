@@ -18,7 +18,7 @@ setup(
     version=ns['__version__'],
     license="GPL",
     install_requires=[
-        "pytz", "psycopg2>=2.2.1", "PyYAML", "configobj",
+        "pytz", "psycopg2-binary>=2.2.1", "PyYAML", "configobj",
         "python-dateutil", "pyparsing"
     ],
     packages=[
