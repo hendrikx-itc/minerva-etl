@@ -174,10 +174,23 @@ class TableTrendStorePart:
 
     def store(self, data_package):
         def f(conn):
-            with closing(conn.cursor()) as cursor:
-                modified = get_timestamp(cursor)
+            try:
+                with closing(conn.cursor()) as cursor:
+                    modified = get_timestamp(cursor)
 
-                self.store_copy_from(data_package, modified)(cursor)
+                    self.store_copy_from(data_package, modified)(cursor)
+
+            except psycopg2.DatabaseError as exc:
+                if exc.pgcode is None and str(exc).find(
+                        "no COPY in progress") != -1:
+                    # Might happen after database connection loss
+                    raise NoCopyInProgress()
+                else:
+                    # Try again through a slower but more reliable method
+                    with closing(conn.cursor()) as cursor:
+                        cursor.execute('rollback')
+                        modified = get_timestamp(cursor)
+                        self.securely_store_copy_from(data_package, modified)(cursor)
 
         return f
 
@@ -189,6 +202,11 @@ class TableTrendStorePart:
         """
 
         def f(cursor):
+            trend_names = [
+                trend_descriptor.name
+                for trend_descriptor in data_package.trend_descriptors
+            ]
+
             serializers = self.get_copy_serializers(
                 trend_descriptor.name
                 for trend_descriptor in data_package.trend_descriptors
@@ -201,24 +219,49 @@ class TableTrendStorePart:
             )
 
             copy_from_query = create_copy_from_query(
-                self.base_table(),
-                [
-                    trend_descriptor.name
-                    for trend_descriptor in data_package.trend_descriptors
-                ]
+                self.base_table(), trend_names
             )
 
-            try:
-                cursor.copy_expert(copy_from_query, copy_from_file)
-            except psycopg2.DatabaseError as exc:
-                if exc.pgcode is None and str(exc).find(
-                        "no COPY in progress") != -1:
-                    # Might happen after database connection loss
-                    raise NoCopyInProgress()
-                else:
-                    raise translate_postgresql_exception(exc)
+            cursor.copy_expert(copy_from_query, copy_from_file)
 
         return f
+
+
+    def securely_store_copy_from(self, data_package, modified):
+        """
+        Same function as the previous, but with a slower, but less error-prone method
+        """
+        def f(cursor):
+            trend_names = [
+                trend_descriptor.name
+                for trend_descriptor in data_package.trend_descriptors
+            ]
+
+            serializers = self.get_copy_serializers(
+                trend_descriptor.name
+                for trend_descriptor in data_package.trend_descriptors
+            )
+
+            copy_from_file = create_copy_from_file(
+                modified,
+                data_package.refined_rows(cursor),
+                serializers
+            )
+
+            column_names = list(chain(schema.system_columns, trend_names))
+
+            try:
+                for line in copy_from_file.readlines():
+                    command = create_insertion_command(
+                        self.base_table(), column_names, line.strip().split('\t')
+                    )
+                    cursor.execute(command)
+
+            except psycopg2.DatabaseError as exc:
+                raise translate_postgresql_exception(exc)
+
+        return f
+
 
     def store_update(self, data_package, modified):
         def f(cursor):
@@ -349,12 +392,25 @@ def create_copy_from_query(table, trend_names):
         ",".join(map(quote_ident, column_names))
     )
 
+def create_insertion_command(table, column_names, values):
+    """Return insertion query to be performed when copy fails"""
+    return 'INSERT INTO trend."{0}"({1}) VALUES({2}) ON CONFLICT ON CONSTRAINT airbox_pkey DO UPDATE SET {3};'.format(
+        table.name,
+        ",".join(map(quote_ident, column_names)),
+        ",".join(values),
+        ", ".join(create_update_command_parts(column_names, values))
+    )
+
+def create_update_command_parts(columns, values):
+    return [
+        '"{0}" = {1}'.format(pair[0], pair[1]) for pair in zip(columns, values) if pair[0] != 'created'
+    ]
 
 def create_copy_from_lines(modified, rows, serializers):
     map_values = zip_apply(serializers)
 
     return (
-        u"{0:d}\t'{1!s}'\t'{2!s}'\t{3}\n".format(
+        u"{0:d}\t'{1!s}'\t'{2!s}'\t'{2!s}'\t{3}\n".format(
             entity_id,
             timestamp.isoformat(),
             modified.isoformat(),
