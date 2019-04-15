@@ -394,7 +394,7 @@ def create_copy_from_query(table, trend_names):
 
 def create_insertion_command(table, column_names, values):
     """Return insertion query to be performed when copy fails"""
-    return 'INSERT INTO trend."{0}"({1}) VALUES({2}) ON CONFLICT ON CONSTRAINT airbox_pkey DO UPDATE SET {3};'.format(
+    return 'INSERT INTO trend."{0}"({1}) VALUES({2}) ON CONFLICT (entity_id, timestamp) DO UPDATE SET {3};'.format(
         table.name,
         ",".join(map(quote_ident, column_names)),
         ",".join(values),
