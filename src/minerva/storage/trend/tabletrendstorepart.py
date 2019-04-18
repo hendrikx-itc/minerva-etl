@@ -172,13 +172,16 @@ class TableTrendStorePart:
 
         return f
 
-    def store(self, data_package):
+    def store(self, data_package, description):
         def f(conn):
             try:
                 with closing(conn.cursor()) as cursor:
+                    cursor.execute("SELECT logging.start_job('{}')".format(description))
+                    currentjob = cursor.fetchone()[0]
                     modified = get_timestamp(cursor)
 
-                    self.store_copy_from(data_package, modified)(cursor)
+                    self.store_copy_from(data_package, modified, currentjob)(cursor)
+                    cursor.execute("SELECT logging.end_job({})".format(currentjob))
 
             except psycopg2.DatabaseError as exc:
                 if exc.pgcode is None and str(exc).find(
@@ -189,12 +192,15 @@ class TableTrendStorePart:
                     # Try again through a slower but more reliable method
                     with closing(conn.cursor()) as cursor:
                         cursor.execute('rollback')
+                        cursor.execute("SELECT logging.start_job('{} - upsert')".format(description))
+                        currentjob = cursor.fetchone()[0]
                         modified = get_timestamp(cursor)
-                        self.securely_store_copy_from(data_package, modified)(cursor)
+                        self.securely_store_copy_from(data_package, modified, currentjob)(cursor)
+                        cursor.execute("SELECT logging.end_job({})".format(currentjob))
 
         return f
 
-    def store_copy_from(self, data_package, modified):
+    def store_copy_from(self, data_package, modified, job):
         """
         Store the data using the PostgreSQL specific COPY FROM command
 
@@ -214,6 +220,7 @@ class TableTrendStorePart:
 
             copy_from_file = create_copy_from_file(
                 modified,
+                job,
                 data_package.refined_rows(cursor),
                 serializers
             )
@@ -227,7 +234,7 @@ class TableTrendStorePart:
         return f
 
 
-    def securely_store_copy_from(self, data_package, modified):
+    def securely_store_copy_from(self, data_package, modified, job):
         """
         Same function as the previous, but with a slower, but less error-prone method
         """
@@ -244,6 +251,7 @@ class TableTrendStorePart:
 
             copy_from_file = create_copy_from_file(
                 modified,
+                job,
                 data_package.refined_rows(cursor),
                 serializers
             )
@@ -406,14 +414,15 @@ def create_update_command_parts(columns, values):
         '"{0}" = {1}'.format(pair[0], pair[1]) for pair in zip(columns, values) if pair[0] != 'created'
     ]
 
-def create_copy_from_lines(modified, rows, serializers):
+def create_copy_from_lines(modified, job, rows, serializers):
     map_values = zip_apply(serializers)
 
     return (
-        u"{0:d}\t'{1!s}'\t'{2!s}'\t'{2!s}'\t{3}\n".format(
+        u"{0:d}\t'{1!s}'\t'{2!s}'\t'{2!s}'\t{3:d}\t{4}\n".format(
             entity_id,
             timestamp.isoformat(),
             modified.isoformat(),
+            job,
             "\t".join(map_values(values))
         )
         for entity_id, timestamp, values in rows

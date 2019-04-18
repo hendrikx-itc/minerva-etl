@@ -229,9 +229,9 @@ class TableTrendStore(TrendStore):
 
         return self
 
-    def store(self, data_package):
+    def store(self, data_package, description):
         return string_fns([
-            part.store(package_part)
+            part.store(package_part, description)
             for part, package_part in self.split_package_by_parts(data_package)
         ])
 

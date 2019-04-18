@@ -14,7 +14,7 @@ class TrendEngine(Engine):
     pass_through = k(identity)
 
     @staticmethod
-    def store_cmd(package: DataPackage):
+    def store_cmd(package: DataPackage, description: str):
         """
         Return a function to bind a data source to the store command.
 
@@ -22,7 +22,7 @@ class TrendEngine(Engine):
         :return: function that binds a data source to the store command
         :rtype: (data_source) -> (conn) -> None
         """
-        return TrendEngine.make_store_cmd(TrendEngine.pass_through)(package)
+        return TrendEngine.make_store_cmd(TrendEngine.pass_through)(package, description)
 
     @staticmethod
     def make_store_cmd(transform_package):
@@ -32,7 +32,7 @@ class TrendEngine(Engine):
         :param transform_package: (TableTrendStore) -> (DataPackage)
         -> DataPackage
         """
-        def cmd(package: DataPackage):
+        def cmd(package: DataPackage, description: str):
             def bind_data_source(data_source):
                 def execute(conn):
                     trend_store = trend_store_for_package(
@@ -42,7 +42,8 @@ class TrendEngine(Engine):
                     verify_partition_for_package(trend_store, package)(conn)
 
                     trend_store.store(
-                        transform_package(trend_store)(package)
+                        transform_package(trend_store)(package),
+                        description
                     )(conn)
 
                     conn.commit()
