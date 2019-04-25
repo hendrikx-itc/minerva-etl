@@ -244,26 +244,22 @@ class TableTrendStorePart:
                 for trend_descriptor in data_package.trend_descriptors
             ]
 
-            serializers = self.get_copy_serializers(
-                trend_descriptor.name
-                for trend_descriptor in data_package.trend_descriptors
-            )
+            column_names = list(chain(schema.system_columns, trend_names))
 
             copy_from_file = create_copy_from_file(
                 modified,
                 job,
                 data_package.refined_rows(cursor),
-                serializers
+                None
             )
-
-            column_names = list(chain(schema.system_columns, trend_names))
 
             try:
                 for line in copy_from_file.readlines():
+                    values = line.strip().split('\t')
                     command = create_insertion_command(
-                        self.base_table(), column_names, line.strip().split('\t')
+                        self.base_table(), column_names, values
                     )
-                    cursor.execute(command)
+                    cursor.execute(command, values + values[:2] + values[3:])
 
             except psycopg2.DatabaseError as exc:
                 raise translate_postgresql_exception(exc)
@@ -405,25 +401,24 @@ def create_insertion_command(table, column_names, values):
     return 'INSERT INTO trend."{0}"({1}) VALUES({2}) ON CONFLICT (entity_id, timestamp) DO UPDATE SET {3};'.format(
         table.name,
         ",".join(map(quote_ident, column_names)),
-        ",".join(values),
+        ",".join('%s' for _ in values),
         ", ".join(create_update_command_parts(column_names, values))
     )
 
 def create_update_command_parts(columns, values):
     return [
-        '"{0}" = {1}'.format(pair[0], pair[1]) for pair in zip(columns, values) if pair[0] != 'created'
+        '"{}" = {}'.format(pair[0], '%s') for pair in zip(columns, values) if pair[0] != 'created'
     ]
 
 def create_copy_from_lines(modified, job, rows, serializers):
-    map_values = zip_apply(serializers)
 
     return (
-        u"{0:d}\t'{1!s}'\t'{2!s}'\t'{2!s}'\t{3:d}\t{4}\n".format(
-            entity_id,
+        u"{0}\t{1}\t{2}\t{2}\t{3}\t{4}\n".format(
+            str(entity_id),
             timestamp.isoformat(),
             modified.isoformat(),
-            job,
-            "\t".join(map_values(values))
+            str(job),
+            "\t".join(str(value) for value in values)
         )
         for entity_id, timestamp, values in rows
     )
