@@ -15,8 +15,8 @@ from minerva.storage.trend.trend import Trend, NoSuchTrendError
 from minerva.storage.trend.partition import Partition
 
 from minerva.db.error import NoCopyInProgress, \
-    translate_postgresql_exception, translate_postgresql_exceptions
-from minerva.util import compose, zip_apply, first
+     translate_postgresql_exception, translate_postgresql_exceptions
+from minerva.util import compose, zip_apply, first, flatten
 
 LARGE_BATCH_THRESHOLD = 10
 
@@ -184,6 +184,7 @@ class TableTrendStorePart:
                     cursor.execute("SELECT logging.end_job({})".format(currentjob))
 
             except psycopg2.DatabaseError as exc:
+
                 if exc.pgcode is None and str(exc).find(
                         "no COPY in progress") != -1:
                     # Might happen after database connection loss
@@ -246,20 +247,13 @@ class TableTrendStorePart:
 
             column_names = list(chain(schema.system_columns, trend_names))
 
-            copy_from_file = create_copy_from_file(
-                modified,
-                job,
-                data_package.refined_rows(cursor),
-                None
-            )
-
             try:
-                for line in copy_from_file.readlines():
-                    values = line.strip().split('\t')
-                    command = create_insertion_command(
-                        self.base_table(), column_names, values
-                    )
-                    cursor.execute(command, values + values[:2] + values[3:])
+                values = [create_value_row(modified, job, row) for row in data_package.refined_rows(cursor)]
+                command = create_insertion_command(
+                    self.base_table(), column_names, len(values)
+                )
+                values = flatten(values)
+                cursor.execute(command, values)
 
             except psycopg2.DatabaseError as exc:
                 raise translate_postgresql_exception(exc)
@@ -396,33 +390,37 @@ def create_copy_from_query(table, trend_names):
         ",".join(map(quote_ident, column_names))
     )
 
-def create_insertion_command(table, column_names, values):
+def create_insertion_command(table, column_names, number_of_lines):
     """Return insertion query to be performed when copy fails"""
-    return 'INSERT INTO trend."{0}"({1}) VALUES({2}) ON CONFLICT (entity_id, timestamp) DO UPDATE SET {3};'.format(
+    return 'INSERT INTO trend."{0}"({1}) VALUES {2} ON CONFLICT (entity_id, timestamp) DO UPDATE SET {3};'.format(
         table.name,
         ",".join(map(quote_ident, column_names)),
-        ",".join('%s' for _ in values),
-        ", ".join(create_update_command_parts(column_names, values))
+        ", ".join(['({})'.format(",".join('%s' for _ in column_names))] * number_of_lines),
+        ", ".join(create_update_command_parts(column_names))
     )
 
-def create_update_command_parts(columns, values):
+def create_update_command_parts(columns):
     return [
-        '"{}" = {}'.format(pair[0], '%s') for pair in zip(columns, values) if pair[0] != 'created'
+        '"{}" = excluded."{}"'.format(column, column ) for column in columns if column != 'created'
     ]
 
 def create_copy_from_lines(modified, job, rows, serializers):
+    map_values = zip_apply(serializers)
 
     return (
-        u"{0}\t{1}\t{2}\t{2}\t{3}\t{4}\n".format(
-            str(entity_id),
+        u"{0:d}\t'{1!s}'\t'{2!s}'\t'{2!s}'\t{3:d}\t{4}\n".format(
+            entity_id,
             timestamp.isoformat(),
             modified.isoformat(),
-            str(job),
-            "\t".join(str(value) for value in values)
+            job,
+            "\t".join(map_values(values))
         )
         for entity_id, timestamp, values in rows
     )
 
+def create_value_row(modified, job, row):
+    (entity_id, timestamp, values) = row
+    return [str(entity_id), timestamp, modified, modified, job] + list(values)
 
 create_copy_from_file = compose(create_file, create_copy_from_lines)
 
