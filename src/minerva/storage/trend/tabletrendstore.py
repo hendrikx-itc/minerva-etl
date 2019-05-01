@@ -5,7 +5,6 @@ from datetime import datetime
 
 from minerva.db.query import Column, Eq, ands
 from minerva.storage.trend.trendstore import TrendStore
-from minerva.storage.trend.partitioning import Partitioning
 
 from minerva.storage.trend import schema
 from minerva.directory import DataSource, EntityType
@@ -41,7 +40,6 @@ class TableTrendStore(TrendStore):
             self.partition_size = partition_size
 
     partition_size: int
-    partitioning: Partitioning
     parts: List[TableTrendStorePart]
 
     column_names = [
@@ -68,26 +66,10 @@ class TableTrendStore(TrendStore):
             self, id_, data_source, entity_type, granularity
         )
         self.partition_size = partition_size
-        self.partitioning = Partitioning(partition_size)
         self.retention_period = retention_period
         self.parts = []
         self.part_by_name = None
         self._trend_part_mapping = None
-
-    def partition(self, part_name, timestamp: datetime):
-        return self.part_by_name[part_name].partition(timestamp)
-
-    def create_partitions(self, timestamp: datetime):
-        def f(cursor):
-            partitions = [part.partition(timestamp) for part in self.parts]
-
-            for partition in partitions:
-                partition.create(cursor)
-
-        return f
-
-    def index_to_interval(self, partition_index: int):
-        return self.partitioning.index_to_interval(partition_index)
 
     @staticmethod
     def create(descriptor: Descriptor):

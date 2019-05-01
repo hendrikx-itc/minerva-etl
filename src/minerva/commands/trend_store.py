@@ -22,7 +22,6 @@ def setup_command_parser(subparsers):
     setup_delete_parser(cmd_subparsers)
     setup_add_trend_parser(cmd_subparsers)
     setup_show_parser(cmd_subparsers)
-    setup_create_partition_parser(cmd_subparsers)
 
 
 def setup_create_parser(subparsers):
@@ -297,47 +296,3 @@ def show_trend_store_cmd(args):
             cursor.execute(query, query_args)
 
             show_rows_from_cursor(cursor)
-
-
-def setup_create_partition_parser(subparsers):
-    cmd = subparsers.add_parser(
-        'create-partition', help='create partition for trend store'
-    )
-
-    cmd.add_argument(
-        '--id', help='id of trend store', type=int
-    )
-
-    cmd.add_argument(
-        '--part-name', help='name of trend store part'
-    )
-
-    cmd.add_argument(
-        '--timestamp', default=datetime.datetime.now(),
-        help='timestamp for which to create partition'
-    )
-
-    cmd.set_defaults(cmd=create_partition_cmd)
-
-
-def create_partition_cmd(args):
-    with closing(connect()) as conn:
-        table_trend_store = TableTrendStore.get_by_id(args.id)(conn)
-        try:
-            timestamp = int(args.timestamp)
-        except:
-            # args.timestamp was not a number, assume it's a datetime already
-            timestamp = args.timestamp
-        else:
-            # args.timestamp was a number, assume it's a unix timestamp
-            timestamp = datetime.datetime.fromtimestamp(timestamp)
-
-
-        if args.part_name:
-            table_trend_store.partition(
-                args.part_name, timestamp
-            ).create(conn)
-        else:
-            table_trend_store.create_partitions(timestamp)(conn)
-
-        conn.commit()

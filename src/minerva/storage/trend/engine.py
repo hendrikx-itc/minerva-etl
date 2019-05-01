@@ -39,8 +39,6 @@ class TrendEngine(Engine):
                         data_source, package
                     )(conn)
 
-                    verify_partition_for_package(trend_store, package)(conn)
-
                     trend_store.store(
                         transform_package(trend_store)(package),
                         description
@@ -91,24 +89,5 @@ def trend_store_for_package(data_source, package: DataPackage):
                     )
 
                 return table_trend_store
-
-    return f
-
-
-def verify_partition_for_package(
-        trend_store: TableTrendStore, package: DataPackage):
-    def f(conn):
-        with closing(conn.cursor()) as cursor:
-            parts = {
-                trend_store._trend_part_mapping[trend_name]
-                for trend_name in package.trend_descriptors
-                if trend_name in trend_store._trend_part_mapping
-            }
-
-            for part in parts:
-                partition = part.partition(package.timestamp)
-
-                if not partition.exists(cursor):
-                    partition.create(cursor)
 
     return f
