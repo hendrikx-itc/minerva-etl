@@ -2,7 +2,7 @@ Source: python-minerva
 Section: contrib/python
 Priority: extra
 Maintainer: Alfred Blokland <a.j.n.blokland@hendrikx-itc.nl>
-Build-Depends: debhelper (>= 8.0.0), python-setuptools, python-sphinx, dh-python
+Build-Depends: debhelper (>= 8.0.0), python-setuptools, dh-python
 Standards-Version: 3.9.2
 XS-Python-Version: 2.7
 Homepage: http://hendrikx-itc.nl
