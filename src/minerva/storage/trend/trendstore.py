@@ -961,4 +961,4 @@ def refine_value(value):
     elif type(value) is tuple:
         return ",".join(value)
     else:
-        return value
+        return value.strip()
