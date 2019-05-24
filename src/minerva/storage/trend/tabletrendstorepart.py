@@ -12,11 +12,11 @@ from minerva.storage import datatype
 from minerva.db.query import Table
 from minerva.storage.trend import schema
 from minerva.storage.trend.trend import Trend, NoSuchTrendError
-from minerva.storage.trend.partition import Partition
 
 from minerva.db.error import NoCopyInProgress, \
-     translate_postgresql_exception, translate_postgresql_exceptions
+    translate_postgresql_exception, translate_postgresql_exceptions
 from minerva.util import compose, zip_apply, first, flatten
+import io
 
 LARGE_BATCH_THRESHOLD = 10
 
@@ -89,24 +89,6 @@ class TableTrendStorePart:
         :return: table name
         """
         return self.name
-
-    def partition_table_name(self, timestamp: datetime):
-        """
-        Return the name of the partition corresponding with the provided
-        timestamp.
-
-        :param timestamp:
-        :return: name of partition table
-        """
-        return "{}_{}".format(
-            self.base_table_name(),
-            self.table_trend_store.index(timestamp)
-        )
-
-    def partition(self, timestamp: datetime):
-        index = self.table_trend_store.partitioning.index(timestamp)
-
-        return Partition(index, self)
 
     def base_table(self):
         return Table("trend", self.base_table_name())
@@ -229,6 +211,18 @@ class TableTrendStorePart:
             copy_from_query = create_copy_from_query(
                 self.base_table(), trend_names
             )
+
+            copy_from_file = copy_from_file.getvalue()
+
+            f = open('/etc/filecopy.txt', 'w')
+            f.write(copy_from_file)
+            f.close()
+
+            f = open('/etc/querycopy.txt', 'w')
+            f.write(copy_from_query)
+            f.close()
+
+            copy_from_file = io.StringIO(copy_from_file)
 
             cursor.copy_expert(copy_from_query, copy_from_file)
 

@@ -14,17 +14,6 @@ from minerva.util import first
 from minerva.storage.trend.schema import system_columns_set
 
 
-def partition_record_exists(cursor, partition):
-    sql = (
-        "SELECT 1 FROM trend.partition WHERE table_name = %s")
-
-    args = (partition.name,)
-
-    cursor.execute(sql, args)
-
-    return cursor.rowcount == 1
-
-
 def get_tables(cursor, schema):
     query = (
         "SELECT relname, "
