@@ -33,6 +33,16 @@ def main():
         "-a", "--all", action="store_true", default=False,
         help="materialize all current pointer tables")
 
+    group = parser.add_mutually_exclusive_group()
+
+    group.add_argument(
+        "--include", action="append", help="include attribute store"
+    )
+
+    group.add_argument(
+        "--exclude", action="append", help="exclude attribute store"
+    )
+
     args = parser.parse_args()
 
     minerva_instance = MinervaInstance.load(args.instance)
@@ -43,6 +53,14 @@ def main():
 
             if args.all:
                 attributestore_ids = get_all_attributestore_ids(cursor)
+            elif args.include:
+                attributestore_ids = get_include_attributestore_ids(
+                    cursor, args.include
+                )
+            elif args.exclude:
+                attributestore_ids = get_exclude_attributestore_ids(
+                    cursor, args.exclude
+                )
             else:
                 attributestore_ids = get_changed_attributestore_ids(cursor)
 
@@ -78,6 +96,26 @@ def materialize(conn, attributestore_id):
 def get_all_attributestore_ids(cursor):
     """Return Ids of all attributestores."""
     cursor.execute("SELECT id FROM attribute_directory.attributestore")
+
+    return map(head, cursor.fetchall())
+
+
+def get_include_attributestore_ids(cursor, includes):
+    cursor.execute(
+        "SELECT id FROM attribute_directory.attributestore "
+        "WHERE attributestore::text IN %s",
+        includes
+    )
+
+    return map(head, cursor.fetchall())
+
+
+def get_exclude_attributestore_ids(cursor, excludes):
+    cursor.execute(
+        "SELECT id FROM attribute_directory.attributestore "
+        "WHERE attributestore::text NOT IN %s",
+        excludes
+    )
 
     return map(head, cursor.fetchall())
 
