@@ -102,9 +102,13 @@ def get_all_attributestore_ids(cursor):
 
 def get_include_attributestore_ids(cursor, includes):
     cursor.execute(
-        "SELECT id FROM attribute_directory.attributestore "
-        "WHERE attributestore::text IN %s",
-        includes
+        "SELECT mod.attributestore_id "
+        "FROM attribute_directory.attributestore_modified mod "
+        "LEFT JOIN attribute_directory.attributestore_curr_materialized mat "
+        "ON mod.attributestore_id = mat.attributestore_id "
+        "JOIN attribute_directory.attributestore ON attributestore.id = mod.attributestore_id "
+        "WHERE (mat.materialized <> mod.modified OR mat.materialized IS NULL) AND attributestore::text IN %s",
+        (tuple(includes),)
     )
 
     return map(head, cursor.fetchall())
@@ -112,9 +116,13 @@ def get_include_attributestore_ids(cursor, includes):
 
 def get_exclude_attributestore_ids(cursor, excludes):
     cursor.execute(
-        "SELECT id FROM attribute_directory.attributestore "
-        "WHERE attributestore::text NOT IN %s",
-        excludes
+        "SELECT mod.attributestore_id "
+        "FROM attribute_directory.attributestore_modified mod "
+        "LEFT JOIN attribute_directory.attributestore_curr_materialized mat "
+        "ON mod.attributestore_id = mat.attributestore_id "
+        "JOIN attribute_directory.attributestore ON attributestore.id = mod.attributestore_id "
+        "WHERE (mat.materialized <> mod.modified OR mat.materialized IS NULL) AND attributestore::text NOT IN %s",
+        (tuple(excludes),)
     )
 
     return map(head, cursor.fetchall())
