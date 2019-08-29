@@ -1,18 +1,18 @@
-Source: python-minerva
+Source: python3-minerva-etl
 Section: contrib/python
 Priority: extra
-Maintainer: Alfred Blokland <a.j.n.blokland@hendrikx-itc.nl>
-Build-Depends: debhelper (>= 8.0.0), python-setuptools, python-sphinx
+Maintainer: Hendrikx ITC <info@hendrikx-itc.nl>
+Build-Depends: debhelper (>= 11), python3, dh-python, python3-all, python3-all-dev, python3-setuptools
 Standards-Version: 3.9.2
-XS-Python-Version: 2.7
+X-Python3-Version: >= 3.6
 Homepage: http://hendrikx-itc.nl
-Vcs-Git: http://github.com/hendrikx-itc/minerva.git
-Vcs-Browser: http://github.com/hendrikx-itc/minerva
+Vcs-Git: http://github.com/hendrikx-itc/python-minerva-etl.git
+Vcs-Browser: http://github.com/hendrikx-itc/python-minerva-etl
 
-Package: python-minerva
+Package: python3-minerva-etl
 Section: contrib/python
 Architecture: all
-Depends: ${shlibs:Depends}, ${misc:Depends}, python (>=2.6.5), python-setuptools, python-psycopg2, python-tz, python-yaml, python-dateutil, python-configobj, python-pyparsing, python-dbutils
-Description: Minerva Core Library
- The Minerva Core Library provides core functionality for all Python based
+Depends: ${misc:Depends}, ${python3:Depends}
+Description: Minerva ETL Core Library
+ The Minerva ETL Core Library provides core functionality for all Python based
  Minerva solutions.
