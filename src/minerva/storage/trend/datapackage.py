@@ -83,19 +83,30 @@ class DataPackage:
         :param group_fn: Function that returns the group key for a trend name
         :return: A list of data packages with trends grouped by key
         """
-        for key, group in grouped_by([
+        value_getters = (
             (group_fn(trend_descriptor.name), itemgetter(index), trend_descriptor)
             for index, trend_descriptor in enumerate(self.trend_descriptors)
-        ], key=itemgetter(0)):
+        )
+
+        grouped_value_getters = grouped_by(
+            (g for g in value_getters if g[0] is not None),
+            key=itemgetter(0)
+        )
+
+        for key, group in grouped_value_getters:
             keys, value_getters, trend_names = zip(*list(group))
 
-            yield key, DataPackage(self.data_package_type,
-                self.granularity,
-                trend_names,
-                [
-                    (entity_ref, timestamp, tuple(g(values) for g in value_getters))
-                    for entity_ref, timestamp, values in self.rows
-                ]
+            yield (
+                key,
+                DataPackage(
+                    self.data_package_type,
+                    self.granularity,
+                    trend_names,
+                    [
+                        (entity_ref, timestamp, tuple(g(values) for g in value_getters))
+                        for entity_ref, timestamp, values in self.rows
+                    ]
+                )
             )
 
     def get_key(self):

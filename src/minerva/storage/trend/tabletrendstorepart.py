@@ -212,26 +212,14 @@ class TableTrendStorePart:
                 self.base_table(), trend_names
             )
 
-            copy_from_file = copy_from_file.getvalue()
-
-            f = open('/etc/filecopy.txt', 'w')
-            f.write(copy_from_file)
-            f.close()
-
-            f = open('/etc/querycopy.txt', 'w')
-            f.write(copy_from_query)
-            f.close()
-
-            copy_from_file = io.StringIO(copy_from_file)
-
             cursor.copy_expert(copy_from_query, copy_from_file)
 
         return f
 
-
     def securely_store_copy_from(self, data_package, modified, job):
         """
-        Same function as the previous, but with a slower, but less error-prone method
+        Same function as the previous, but with a slower, but less error-prone
+        method
         """
         def f(cursor):
             trend_names = [
@@ -242,7 +230,11 @@ class TableTrendStorePart:
             column_names = list(chain(schema.system_columns, trend_names))
 
             try:
-                values = [create_value_row(modified, job, row) for row in data_package.refined_rows(cursor)]
+                values = [
+                    create_value_row(modified, job, row)
+                    for row in data_package.refined_rows(cursor)
+                ]
+
                 command = create_insertion_command(
                     self.base_table(), column_names, len(values)
                 )

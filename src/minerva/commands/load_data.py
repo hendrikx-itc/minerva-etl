@@ -262,8 +262,10 @@ def create_store_db_context(data_source_name, store_cmd):
                 raise no_such_data_source_error(data_source_name)
 
             def store_package(package):
+                description = 'load-data'
+
                 try:
-                    store_cmd(package)(data_source)(conn)
+                    store_cmd(package, description)(data_source)(conn)
                 except NoSuchTableTrendStore as exc:
                     raise no_such_table_trend_store_error(
                         exc.data_source, exc.entity_type, exc.granularity

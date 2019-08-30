@@ -219,11 +219,14 @@ class TableTrendStore(TrendStore):
 
     def split_package_by_parts(self, data_package):
         def group_fn(trend_name):
-            return self._trend_part_mapping[trend_name].name
+            try:
+                return self._trend_part_mapping[trend_name].name
+            except KeyError:
+                return None
 
         return [
             (self.part_by_name[part_name], package)
-            for part_name, package in data_package.split(group_fn)
+            for part_name, package in data_package.split(group_fn) if part_name
         ]
 
     def clear_timestamp(self, timestamp):

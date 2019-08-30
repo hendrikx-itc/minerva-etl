@@ -72,7 +72,7 @@ class EntityDnRef(EntityRef):
         return f
 
 
-def _create_alias_ref_class(alias_type, entity_type):
+def _create_alias_ref_class(alias_type: str, entity_type: str):
     if alias_type == 'dn':
         return EntityDnRef
 
@@ -86,7 +86,10 @@ def _create_alias_ref_class(alias_type, entity_type):
                 self.alias = alias
 
             def to_argument(self):
-                return "(alias_directory.get_entity_by_alias(%s, %s)).id", (alias_type, self.alias)
+                return (
+                    "(alias_directory.get_entity_by_alias(%s, %s)).id",
+                    (alias_type, self.alias)
+                )
 
             def get_entity_type(self, cursor):
                 return alias_type
@@ -94,7 +97,9 @@ def _create_alias_ref_class(alias_type, entity_type):
             @classmethod
             def map_to_entity_ids(cls, entity_refs):
                 def f(cursor):
-                    return aliases_to_entity_ids(cursor, alias_type, entity_refs, entity_type)
+                    return aliases_to_entity_ids(
+                        cursor, alias_type, entity_refs, entity_type
+                    )
 
                 return f
 
@@ -103,7 +108,11 @@ def _create_alias_ref_class(alias_type, entity_type):
 
 _alias_ref_classes = {}  # alias_type, entity_type -> EntityAliasRef class
 
-def entity_alias_ref_class(alias_type, entity_type):
+
+def entity_alias_ref_class(alias_type: str, entity_type: str):
     if alias_type not in _alias_ref_classes.keys():
-        _alias_ref_classes[alias_type] = _create_alias_ref_class(alias_type, entity_type)
+        _alias_ref_classes[alias_type] = _create_alias_ref_class(
+            alias_type, entity_type
+        )
+
     return _alias_ref_classes[alias_type]
