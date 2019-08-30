@@ -51,7 +51,7 @@ def store(conn, aliases, type_name):
         cursor.copy_expert(query, _f)
 
         query = (
-            "INSERT INTO directory.alias (entity_id, name, type_id) "
+            "INSERT INTO directory.alias (entity_id, name, type_id) ON CONFLICT DO NOTHING"
             "SELECT tmp.entity_id, tmp.name, tmp.type_id FROM \"{0}\" tmp "
             "LEFT JOIN directory.alias a "
             "ON a.entity_id = tmp.entity_id AND a.type_id = tmp.type_id "
