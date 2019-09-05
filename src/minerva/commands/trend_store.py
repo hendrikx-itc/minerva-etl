@@ -22,6 +22,7 @@ def setup_command_parser(subparsers):
     setup_delete_parser(cmd_subparsers)
     setup_add_trend_parser(cmd_subparsers)
     setup_show_parser(cmd_subparsers)
+    setup_list_parser(cmd_subparsers)
 
 
 def setup_create_parser(subparsers):
@@ -247,26 +248,30 @@ def add_trend_to_trend_store_cmd(args):
 
 def setup_show_parser(subparsers):
     cmd = subparsers.add_parser(
-        'show', help='show information on trend stores'
+        'show', help='show information on a trend store'
     )
 
     cmd.add_argument(
-        '--id', help='id of trend store', type=int
+        'trend_store_id', help='id of trend store', type=int
     )
 
     cmd.set_defaults(cmd=show_trend_store_cmd)
 
 
-def show_rows(column_names, rows):
+def show_rows(column_names, rows, show_cmd=print):
     column_align = "<" * len(column_names)
     column_sizes = ["max"] * len(column_names)
 
     for line in render_table(column_names, column_align, column_sizes, rows):
-        print(line)
+        show_cmd(line)
 
 
-def show_rows_from_cursor(cursor):
-    show_rows([c.name for c in cursor.description], cursor.fetchall())
+def show_rows_from_cursor(cursor, show_cmd=print):
+    show_rows(
+        [c.name for c in cursor.description],
+        cursor.fetchall(),
+        show_cmd
+    )
 
 
 def show_trend_store_cmd(args):
@@ -280,16 +285,67 @@ def show_trend_store_cmd(args):
         'table_trend_store.retention_period '
         'FROM trend_directory.table_trend_store '
         'JOIN directory.entity_type ON entity_type.id = entity_type_id '
-        'JOIN directory.data_source ON data_source.id = data_source_id'
+        'JOIN directory.data_source ON data_source.id = data_source_id '
+        'WHERE table_trend_store.id = %s'
+    )
+
+    query_args = (args.trend_store_id,)
+
+    parts_query = (
+        'SELECT '
+        'tsp.id, '
+        'tsp.name '
+        'FROM trend_directory.table_trend_store_part tsp '
+        'WHERE tsp.trend_store_id = %s'
+    )
+
+    parts_query_args = (args.trend_store_id,)
+
+    with closing(connect()) as conn:
+        with closing(conn.cursor()) as cursor:
+            cursor.execute(query, query_args)
+
+            id_, entity_type, data_source, granularity, partition_size, retention_period = cursor.fetchone()
+
+            print("Table Trend Store")
+            print("")
+            print("id:               {}".format(id_))
+            print("entity_type:      {}".format(entity_type))
+            print("data_source:      {}".format(data_source))
+            print("granularity:      {}".format(granularity))
+            print("partition_size:   {}".format(partition_size))
+            print("retention_period: {}".format(retention_period))
+            print("parts:")
+
+            cursor.execute(parts_query, parts_query_args)
+
+            def show_cmd(line):
+                print("                  {}".format(line))
+
+            show_rows_from_cursor(cursor, show_cmd)
+
+
+def setup_list_parser(subparsers):
+    cmd = subparsers.add_parser(
+        'list', help='list trend stores'
+    )
+
+    cmd.set_defaults(cmd=list_trend_stores_cmd)
+
+
+def list_trend_stores_cmd(args):
+    query = (
+        'SELECT '
+        'ts.id as id, '
+        'data_source.name as data_source, '
+        'entity_type.name as entity_type, '
+        'ts.granularity '
+        'FROM trend_directory.trend_store ts '
+        'JOIN directory.data_source ON data_source.id = ts.data_source_id '
+        'JOIN directory.entity_type ON entity_type.id = ts.entity_type_id'
     )
 
     query_args = []
-
-    if args.id:
-        query += ' WHERE table_trend_store.id = %s'
-        query_args.append(
-            args.id
-        )
 
     with closing(connect()) as conn:
         with closing(conn.cursor()) as cursor:

@@ -40,7 +40,9 @@ setup(
     package_data={
         "minerva": ["defaults/*"]
     },
-    scripts=[
-        "scripts/minerva"
-    ]
+    entry_points={
+        'console_scripts': [
+            'minerva = minerva.commands.minerva:main'
+        ]
+    }
 )
