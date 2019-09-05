@@ -19,6 +19,13 @@ class NoSuchTableTrendStore(Exception):
         self.entity_type = entity_type
         self.granularity = granularity
 
+    def __str__(self):
+        return 'No such table trend store {}, {}, {}'.format(
+            self.data_source.name,
+            self.entity_type.name,
+            self.granularity
+        )
+
 
 class TableTrendStore(TrendStore):
     class Descriptor:

@@ -89,7 +89,7 @@ def setup_command_parser(subparsers):
     cmd.set_defaults(cmd=load_data_cmd(cmd))
 
 
-def load_data_cmd(cmd_parser):
+def load_data_cmd(cmd_parser, stop_on_missing_entity_type=False):
     def cmd(args):
         if args.debug:
             logging.root.setLevel(logging.DEBUG)
@@ -135,14 +135,18 @@ def load_data_cmd(cmd_parser):
                         try:
                             handle_package(package)
                         except NoSuchEntityType as exc:
-                            raise ConfigurationError(
-                                'No such entity type \'{entity_type}\'\n'
-                                'Create a data source using e.g.\n'
-                                '\n'
-                                '    minerva entity-type create {entity_type}\n'.format(
-                                    entity_type=exc.entity_type_name
+                            if stop_on_missing_entity_type:
+                                raise ConfigurationError(
+                                    'No such entity type \'{entity_type}\'\n'
+                                    'Create a data source using e.g.\n'
+                                    '\n'
+                                    '    minerva entity-type create {entity_type}\n'.format(
+                                        entity_type=exc.entity_type_name
+                                    )
                                 )
-                            )
+                            else:
+                                logging.warning(exc)
+
         except ConfigurationError as err:
             print('fatal: {}'.format(err))
 
@@ -251,7 +255,7 @@ def tee(fn):
     return wrapper
 
 
-def create_store_db_context(data_source_name, store_cmd):
+def create_store_db_context(data_source_name, store_cmd, stop_on_missing_trend_store=False):
     @contextmanager
     def store_db_context():
         with closing(connect()) as conn:
@@ -267,9 +271,12 @@ def create_store_db_context(data_source_name, store_cmd):
                 try:
                     store_cmd(package, description)(data_source)(conn)
                 except NoSuchTableTrendStore as exc:
-                    raise no_such_table_trend_store_error(
-                        exc.data_source, exc.entity_type, exc.granularity
-                    )
+                    if stop_on_missing_trend_store:
+                        raise no_such_table_trend_store_error(
+                            exc.data_source, exc.entity_type, exc.granularity
+                        )
+                    else:
+                        logging.warning('No table trend store found for the combination {}, {}, {}'.format(exc.data_source.name, exc.entity_type.name, exc.granularity))
 
             yield store_package
 
