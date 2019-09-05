@@ -185,18 +185,18 @@ def setup_delete_parser(subparsers):
         'delete', help='command for deleting trend stores'
     )
 
-    cmd.add_argument('name', help='name of trend store')
+    cmd.add_argument('id', help='id of trend store')
 
     cmd.set_defaults(cmd=delete_trend_store_cmd)
 
 
 def delete_trend_store_cmd(args):
     query = (
-        'SELECT trend_directory.delete_table_trend_store(%s::name)'
+        'SELECT trend_directory.delete_table_trend_store(%s)'
     )
 
     query_args = (
-        args.name,
+        args.id,
     )
 
     with closing(connect()) as conn:
