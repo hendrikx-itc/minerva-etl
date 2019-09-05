@@ -193,7 +193,7 @@ def remove_attribute_from_attribute_store_cmd(args):
     )
 
     query_args = (
-        args.attribute_store, args.attribute_name
+        args.attribute_name, args.attribute_store
     )
 
     with closing(connect()) as conn:
