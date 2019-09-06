@@ -37,9 +37,6 @@ setup(
         "minerva.harvest"
     ],
     package_dir={"": "src"},
-    package_data={
-        "minerva": ["defaults/*"]
-    },
     entry_points={
         'console_scripts': [
             'minerva = minerva.commands.minerva:main'
