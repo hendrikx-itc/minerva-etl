@@ -4,6 +4,7 @@ from contextlib import contextmanager
 from contextlib import closing
 from operator import itemgetter
 import re
+import json
 
 from minerva.storage.trend.tabletrendstore import NoSuchTableTrendStore
 from minerva.util import compose, k

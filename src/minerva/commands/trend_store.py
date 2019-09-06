@@ -151,10 +151,10 @@ def create_trend_store_from_json(data):
             "('{}', {})".format(
                 part['name'],
                 'ARRAY[{}]::trend_directory.trend_descr[]'.format(','.join([
-                    "('{}', '{}', '')".format(
+                    "('{}', '{}', '{}')".format(
                         trend['name'],
                         trend['data_type'],
-                        ''
+                        trend['description']
                     )
                     for trend in part['trends']
                 ]))
