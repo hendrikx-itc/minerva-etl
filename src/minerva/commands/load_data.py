@@ -3,8 +3,8 @@ import logging
 from contextlib import contextmanager
 from contextlib import closing
 from operator import itemgetter
+from functools import partial
 import re
-import json
 
 from minerva.storage.trend.tabletrendstore import NoSuchTableTrendStore
 from minerva.util import compose, k
@@ -13,7 +13,7 @@ import minerva.storage.trend.datapackage
 import minerva.storage.attribute.datapackage
 from minerva.directory.entitytype import NoSuchEntityType
 from minerva.harvest.fileprocessor import process_file
-from minerva.db import connect
+from minerva.db import connect, connect_logging
 from minerva.commands import ListPlugins, LoadHarvestPlugin, load_json
 
 
@@ -101,8 +101,13 @@ def load_data_cmd(cmd_parser, stop_on_missing_entity_type=False):
         if args.pretend:
             storage_provider = store_dummy
         else:
+            if args.debug:
+                connect_to_db = partial(connect_logging, logging.getLogger('psycopg2'))
+            else:
+                connect_to_db = connect
+
             storage_provider = create_store_db_context(
-                args.data_source, parser.store_command()
+                args.data_source, parser.store_command(), connect_to_db
             )
 
         try:
@@ -245,10 +250,10 @@ def tee(fn):
     return wrapper
 
 
-def create_store_db_context(data_source_name, store_cmd, stop_on_missing_trend_store=False):
+def create_store_db_context(data_source_name, store_cmd, connect_to_db, stop_on_missing_trend_store=False):
     @contextmanager
     def store_db_context():
-        with closing(connect()) as conn:
+        with closing(connect_to_db()) as conn:
             with closing(conn.cursor()) as cursor:
                 data_source = DataSource.get_by_name(data_source_name)(cursor)
 
