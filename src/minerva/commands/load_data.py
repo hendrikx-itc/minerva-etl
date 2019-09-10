@@ -59,11 +59,6 @@ def setup_command_parser(subparsers):
     )
 
     cmd.add_argument(
-        "-v", "--verbose", action="store_true", dest="verbose",
-        default=False, help="produce verbose output"
-    )
-
-    cmd.add_argument(
         "--debug", action="store_true", dest="debug",
         default=False, help="produce debug output"
     )
@@ -95,9 +90,6 @@ def load_data_cmd(cmd_parser, stop_on_missing_entity_type=False):
         if args.debug:
             logging.root.setLevel(logging.DEBUG)
 
-        if args.verbose:
-            logging.root.addHandler(logging.StreamHandler())
-
         statistics = Statistics()
 
         if 'plugin' not in args:
@@ -121,9 +113,6 @@ def load_data_cmd(cmd_parser, stop_on_missing_entity_type=False):
                 )
 
                 for file_path in args.file_path:
-                    if args.verbose:
-                        logging.info("Processing {0}".format(file_path))
-
                     logging.info(
                         "Start processing file {0} using plugin {1}"
                         " and config {2}".format(
