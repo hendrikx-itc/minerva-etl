@@ -21,6 +21,7 @@ def setup_command_parser(subparsers):
     setup_deduce_parser(cmd_subparsers)
     setup_delete_parser(cmd_subparsers)
     setup_add_trend_parser(cmd_subparsers)
+    setup_alter_trend_parser(cmd_subparsers)
     setup_show_parser(cmd_subparsers)
     setup_list_parser(cmd_subparsers)
 
@@ -227,15 +228,50 @@ def setup_add_trend_parser(subparsers):
 
 def add_trend_to_trend_store_cmd(args):
     query = (
-        'SELECT trend_directory.add_trend_to_trend_store('
+        'WITH ts AS (SELECT trend_directory.add_trend_to_trend_store('
         'table_trend_store_part, %s::name, %s::text, %s::text'
-        ') '
-        'FROM trend_directory.table_trend_store_part WHERE name = %s'
+        ') as created '
+        'FROM trend_directory.table_trend_store_part WHERE name = %s) '
+        'SELECT (ts.created).* FROM ts'
     )
 
     query_args = (
         args.trend_name, args.data_type, '', args.trend_store
     )
+
+    with closing(connect()) as conn:
+        with closing(conn.cursor()) as cursor:
+            cursor.execute(query, query_args)
+
+            result = cursor.fetchone()
+
+        conn.commit()
+
+    trend_id, table_trend_store_part_id, name, data_type, extra_data, description = result
+
+    print("Created trend '{}'".format(name))
+
+
+def setup_alter_trend_parser(subparsers):
+    cmd = subparsers.add_parser(
+        'alter-trend', help='alter a trend of a trend store'
+    )
+
+    cmd.add_argument('--data-type', help='New data type')
+
+    cmd.add_argument('--trend-name', help='New trend name')
+
+    cmd.add_argument(
+        'trend',
+        help='Identifier of the trend to modify <trend_store_part>.<trend_name>'
+    )
+
+    cmd.set_defaults(cmd=alter_trend_cmd)
+
+
+def alter_trend_cmd(args):
+    query = "SELECT 10"
+    query_args = tuple()
 
     with closing(connect()) as conn:
         with closing(conn.cursor()) as cursor:
@@ -319,10 +355,22 @@ def show_trend_store_cmd(args):
 
             cursor.execute(parts_query, parts_query_args)
 
-            def show_cmd(line):
-                print("                  {}".format(line))
+            rows = cursor.fetchall()
 
-            show_rows_from_cursor(cursor, show_cmd)
+            for part_id, part_name in rows:
+                header = '{} ({})'.format(part_name, part_id)
+                print("                  {}".format(header))
+                print("                  {}".format('='*len(header)))
+
+                part_query = 'SELECT id, name, data_type FROM trend_directory.trend WHERE trend_store_part_id = %s'
+                part_args = (part_id, )
+
+                cursor.execute(part_query, part_args)
+
+                def show_cmd(line):
+                    print("                  {}".format(line))
+
+                show_rows_from_cursor(cursor, show_cmd)
 
 
 def setup_list_parser(subparsers):
