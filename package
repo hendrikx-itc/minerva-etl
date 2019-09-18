@@ -3,12 +3,13 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
 DISTRIBUTION=${1-1804}
 PKG_DIR="$SCRIPT_DIR/pkg-build/${DISTRIBUTION}"
+BUILD_NAME=package-python-minerva46
 
 # Make sure the package target directory exists
 mkdir -p "$PKG_DIR"
 
 "$SCRIPT_DIR/debian/make-changelog" "$SCRIPT_DIR/debian/control" > "$SCRIPT_DIR/debian/changelog"
 
-docker build -t package-minerva-etl -f "$SCRIPT_DIR/Dockerfile.${DISTRIBUTION}.package" "$SCRIPT_DIR/docker-context"
+docker build -t $BUILD_NAME -f "$SCRIPT_DIR/Dockerfile.${DISTRIBUTION}.package" "$SCRIPT_DIR/docker-context"
 
-docker run --name package-minerva-etl --rm -v "$SCRIPT_DIR:/package/source" -v "$PKG_DIR:/package/build" package-minerva-etl build-package
+docker run --name $BUILD_NAME --rm -v "$SCRIPT_DIR:/package/source" -v "$PKG_DIR:/package/build" $BUILD_NAME build-package
