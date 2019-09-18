@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python
 # -*- coding: utf-8 -*-
 __docformat__ = "restructuredtext en"
 
@@ -113,13 +113,18 @@ def main():
         conn.set_session(autocommit=True)
 
         with closing(conn.cursor()) as cursor:
+            cursor.execute("SET lock_timeout = 10")
             cursor.execute(select_query, select_args)
 
             for table_name, start, end in cursor.fetchall():
                 if not args.pretend:
-                    cursor.execute(delete_query, (table_name,))
-                logging.info("dropped table {}, {} - {}".format(
-                    table_name, start, end))
+                    try:
+                        cursor.execute(delete_query, (table_name,))
+
+                        logging.info("dropped table {}, {} - {}".format(table_name, start, end))
+                    except Exception as exc:
+                        logging.error('error dropping table {}: {}'.format(table_name, str(exc)))
+
 
 
 if __name__ == "__main__":
