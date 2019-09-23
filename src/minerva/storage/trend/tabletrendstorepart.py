@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
+from datetime import datetime
 from contextlib import closing
 from itertools import chain
 from typing import List, Callable, Any
 
 import psycopg2
+import psycopg2.extras
 
 from minerva.db.util import create_temp_table_from, quote_ident, create_file
 from minerva.storage import datatype
@@ -158,17 +160,34 @@ class TableTrendStorePart:
     def store(self, data_package, description):
         def f(conn):
             try:
+                store_method = {'store_method': 'copy_from'}
+                action = {**description, **store_method}
+
                 with closing(conn.cursor()) as cursor:
                     cursor.execute(
-                        "SELECT logging.start_job('{}')".format(description)
+                        "SELECT logging.start_job(%s)",
+                        (psycopg2.extras.Json(action),)
                     )
+
                     current_job = cursor.fetchone()[0]
                     modified = get_timestamp(cursor)
 
-                    self.store_copy_from(data_package, modified, current_job)(cursor)
-                    cursor.execute("SELECT logging.end_job({})".format(current_job))
+                    self.store_copy_from(
+                        data_package, modified, current_job
+                    )(cursor)
+
+                    cursor.execute(
+                        "SELECT logging.end_job(%s)",
+                        (current_job,)
+                    )
+
+                    for timestamp in data_package.timestamps():
+                        self.mark_modified(timestamp, modified)(cursor)
 
             except psycopg2.DatabaseError as exc:
+                print(exc)
+                store_method = {'store_method': 'upsert'}
+                action = {**description, **store_method}
 
                 if exc.pgcode is None and str(exc).find(
                         "no COPY in progress") != -1:
@@ -176,13 +195,27 @@ class TableTrendStorePart:
                     raise NoCopyInProgress()
                 else:
                     # Try again through a slower but more reliable method
+                    conn.rollback()
+
                     with closing(conn.cursor()) as cursor:
-                        cursor.execute('rollback')
-                        cursor.execute("SELECT logging.start_job('{} - upsert')".format(description))
+                        cursor.execute(
+                            "SELECT logging.start_job(%s)",
+                            (psycopg2.extras.Json(action),)
+                        )
                         current_job = cursor.fetchone()[0]
                         modified = get_timestamp(cursor)
-                        self.securely_store_copy_from(data_package, modified, current_job)(cursor)
-                        cursor.execute("SELECT logging.end_job({})".format(current_job))
+
+                        self.securely_store_copy_from(
+                            data_package, modified, current_job
+                        )(cursor)
+
+                        cursor.execute(
+                            "SELECT logging.end_job(%s)",
+                            (current_job,)
+                        )
+
+                        for timestamp in data_package.timestamps():
+                            self.mark_modified(timestamp, modified)(cursor)
 
         return f
 
@@ -337,7 +370,7 @@ class TableTrendStorePart:
         return f
 
     @translate_postgresql_exceptions
-    def mark_modified(self, timestamp, modified):
+    def mark_modified(self, timestamp: datetime, modified: datetime):
         def f(cursor):
             args = self.id, timestamp, modified
 
@@ -400,12 +433,16 @@ def create_copy_from_lines(modified, job, rows, serializers):
     map_values = zip_apply(serializers)
 
     return (
-        u"{0:d}\t'{1!s}'\t'{2!s}'\t'{2!s}'\t{3:d}\t{4}\n".format(
-            entity_id,
-            timestamp.isoformat(),
-            modified.isoformat(),
-            job,
-            "\t".join(map_values(values))
+        u"{entity_id:d}\t"
+        "'{timestamp!s}'\t"
+        "'{created!s}'\t"
+        "{job_id:d}\t"
+        "{values}\n".format(
+            entity_id=entity_id,
+            timestamp=timestamp.isoformat(),
+            created=modified.isoformat(),
+            job_id=job,
+            values="\t".join(map_values(values))
         )
         for entity_id, timestamp, values in rows
     )
@@ -413,7 +450,7 @@ def create_copy_from_lines(modified, job, rows, serializers):
 
 def create_value_row(modified, job, row):
     (entity_id, timestamp, values) = row
-    return [str(entity_id), timestamp, modified, modified, job] + list(values)
+    return [str(entity_id), timestamp, modified, job] + list(values)
 
 
 create_copy_from_file = compose(create_file, create_copy_from_lines)

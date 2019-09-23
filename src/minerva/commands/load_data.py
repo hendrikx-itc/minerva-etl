@@ -14,7 +14,8 @@ import minerva.storage.attribute.datapackage
 from minerva.directory.entitytype import NoSuchEntityType
 from minerva.harvest.fileprocessor import process_file
 from minerva.db import connect, connect_logging
-from minerva.commands import ListPlugins, LoadHarvestPlugin, load_json
+from minerva.commands import ListPlugins, load_json
+from minerva.harvest.plugins import get_plugin
 
 
 class ConfigurationError(Exception):
@@ -35,7 +36,7 @@ def setup_command_parser(subparsers):
     )
 
     cmd.add_argument(
-        "-p", "--plugin", action=LoadHarvestPlugin,
+        "-p", "--plugin",
         help="harvester plug-in to use for processing file(s)"
     )
 
@@ -96,26 +97,29 @@ def load_data_cmd(cmd_parser, stop_on_missing_entity_type=False):
             cmd_parser.print_help()
             return
 
-        parser = args.plugin.create_parser(args.parser_config)
+        plugin = get_plugin(args.plugin)
+
+        parser = plugin.create_parser(args.parser_config)
 
         if args.pretend:
             storage_provider = store_dummy
         else:
             if args.debug:
-                connect_to_db = partial(connect_logging, logging.getLogger('psycopg2'))
+                connect_to_db = partial(
+                    connect_logging, logging.getLogger('psycopg2')
+                )
             else:
                 connect_to_db = connect
 
             storage_provider = create_store_db_context(
-                args.data_source, parser.store_command(), connect_to_db
+                args.data_source, parser.store_command(), connect_to_db,
             )
 
         try:
             with storage_provider() as store:
-                handle_package = compose(
-                    store,
-                    tee(lambda package: print(package.render_table()))
-                )
+                def handle_package(package, action):
+                    print(package.render_table())
+                    store(package, action)
 
                 for file_path in args.file_path:
                     logging.info(
@@ -125,10 +129,16 @@ def load_data_cmd(cmd_parser, stop_on_missing_entity_type=False):
                         )
                     )
 
+                    action = {
+                        'type': 'load-data',
+                        'plugin': args.plugin,
+                        'uri': file_path
+                    }
+
                     for package in process_file(
                             file_path, parser, args.show_progress):
                         try:
-                            handle_package(package)
+                            handle_package(package, action)
                         except NoSuchEntityType as exc:
                             if stop_on_missing_entity_type:
                                 raise ConfigurationError(
@@ -250,7 +260,10 @@ def tee(fn):
     return wrapper
 
 
-def create_store_db_context(data_source_name, store_cmd, connect_to_db, stop_on_missing_trend_store=False):
+def create_store_db_context(
+        data_source_name, store_cmd, connect_to_db,
+        stop_on_missing_trend_store=False
+):
     @contextmanager
     def store_db_context():
         with closing(connect_to_db()) as conn:
@@ -260,18 +273,16 @@ def create_store_db_context(data_source_name, store_cmd, connect_to_db, stop_on_
             if data_source is None:
                 raise no_such_data_source_error(data_source_name)
 
-            def store_package(package):
-                description = 'load-data'
-
+            def store_package(package, action):
                 try:
-                    store_cmd(package, description)(data_source)(conn)
+                    store_cmd(package, action)(data_source)(conn)
                 except NoSuchTableTrendStore as exc:
                     if stop_on_missing_trend_store:
                         raise no_such_table_trend_store_error(
                             exc.data_source, exc.entity_type, exc.granularity
                         )
                     else:
-                        logging.warning('No table trend store found for the combination {}, {}, {}'.format(exc.data_source.name, exc.entity_type.name, exc.granularity))
+                        logging.warning(str(exc))
 
             yield store_package
 

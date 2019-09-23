@@ -140,6 +140,9 @@ class DataPackage:
 
         return fn
 
+    def timestamps(self):
+        return list(set(row[1] for row in self.rows))
+
     def _create_copy_from_query(self, table):
         """Return SQL query that can be used in the COPY FROM command."""
         column_names = chain(
