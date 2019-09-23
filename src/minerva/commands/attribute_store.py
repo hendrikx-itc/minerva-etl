@@ -1,6 +1,7 @@
 import json
 from contextlib import closing
 import argparse
+import sys
 
 import yaml
 
@@ -69,7 +70,20 @@ def create_attribute_store_cmd(args):
     if args.entity_type:
         attribute_store_config['entity_type'] = args.entity_type
 
-    create_attribute_store_from_json(attribute_store_config)
+    attribute_store_name = '{}_{}'.format(
+        attribute_store_config['data_source'],
+        attribute_store_config['entity_type']
+    )
+
+    sys.stdout.write(
+        "Creating attribute store '{}'... ".format(attribute_store_name)
+    )
+
+    try:
+        create_attribute_store_from_json(attribute_store_config)
+        sys.stdout.write("OK\n")
+    except Exception as exc:
+        sys.stdout.write("Error:\n{}".format(exc))
 
 
 def create_attribute_store_from_json(data):

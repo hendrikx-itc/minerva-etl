@@ -1,9 +1,7 @@
 # -*- coding: utf-8 -*-
-import logging
 from contextlib import closing
 from itertools import chain
 from typing import List, Callable, Any
-from datetime import datetime
 
 import psycopg2
 
@@ -16,7 +14,6 @@ from minerva.storage.trend.trend import Trend, NoSuchTrendError
 from minerva.db.error import NoCopyInProgress, \
     translate_postgresql_exception, translate_postgresql_exceptions
 from minerva.util import compose, zip_apply, first, flatten
-import io
 
 LARGE_BATCH_THRESHOLD = 10
 
@@ -45,9 +42,9 @@ class TableTrendStorePart:
     @staticmethod
     def get_trends(cursor, trend_store_part_id):
         query = (
-            "SELECT id, name, data_type, trend_store_part_id, description "
-            "FROM trend_directory.trend "
-            "WHERE trend_store_part_id = %s"
+            "SELECT id, name, data_type, table_trend_store_part_id, description "
+            "FROM trend_directory.table_trend "
+            "WHERE table_trend_store_part_id = %s"
         )
 
         args = (trend_store_part_id, )
@@ -68,6 +65,7 @@ class TableTrendStorePart:
         """
         Return function that can instantiate a TableTrendStore from a
         table_trend_store type record.
+        :param table_trend_store:
         :param record: An iterable that represents a table_trend_store record
         :return: function that creates and returns TableTrendStore object
         """
@@ -121,11 +119,14 @@ class TableTrendStorePart:
             cls.get_by_id_query.execute(cursor, args)
 
             if cursor.rowcount == 1:
-                return TableTrendStorePart.from_record(cursor.fetchone())(cursor)
+                return TableTrendStorePart.from_record(
+                    cursor.fetchone()
+                )(cursor)
 
         return f
 
-    def check_trends_exist(self, trend_descriptors: List[Trend.Descriptor]) -> Callable[[Any], Any]:
+    def check_trends_exist(self, trend_descriptors: List[Trend.Descriptor]) \
+            -> Callable[[Any], Any]:
         """
         Returns function that creates missing trends as described by
         'trend_descriptors' and returns a new TableTrendStore.
@@ -158,12 +159,14 @@ class TableTrendStorePart:
         def f(conn):
             try:
                 with closing(conn.cursor()) as cursor:
-                    cursor.execute("SELECT logging.start_job('{}')".format(description))
-                    currentjob = cursor.fetchone()[0]
+                    cursor.execute(
+                        "SELECT logging.start_job('{}')".format(description)
+                    )
+                    current_job = cursor.fetchone()[0]
                     modified = get_timestamp(cursor)
 
-                    self.store_copy_from(data_package, modified, currentjob)(cursor)
-                    cursor.execute("SELECT logging.end_job({})".format(currentjob))
+                    self.store_copy_from(data_package, modified, current_job)(cursor)
+                    cursor.execute("SELECT logging.end_job({})".format(current_job))
 
             except psycopg2.DatabaseError as exc:
 
@@ -176,10 +179,10 @@ class TableTrendStorePart:
                     with closing(conn.cursor()) as cursor:
                         cursor.execute('rollback')
                         cursor.execute("SELECT logging.start_job('{} - upsert')".format(description))
-                        currentjob = cursor.fetchone()[0]
+                        current_job = cursor.fetchone()[0]
                         modified = get_timestamp(cursor)
-                        self.securely_store_copy_from(data_package, modified, currentjob)(cursor)
-                        cursor.execute("SELECT logging.end_job({})".format(currentjob))
+                        self.securely_store_copy_from(data_package, modified, current_job)(cursor)
+                        cursor.execute("SELECT logging.end_job({})".format(current_job))
 
         return f
 
@@ -245,7 +248,6 @@ class TableTrendStorePart:
                 raise translate_postgresql_exception(exc)
 
         return f
-
 
     def store_update(self, data_package, modified):
         def f(cursor):
@@ -376,6 +378,7 @@ def create_copy_from_query(table, trend_names):
         ",".join(map(quote_ident, column_names))
     )
 
+
 def create_insertion_command(table, column_names, number_of_lines):
     """Return insertion query to be performed when copy fails"""
     return 'INSERT INTO trend."{0}"({1}) VALUES {2} ON CONFLICT (entity_id, timestamp) DO UPDATE SET {3};'.format(
@@ -385,10 +388,13 @@ def create_insertion_command(table, column_names, number_of_lines):
         ", ".join(create_update_command_parts(column_names))
     )
 
+
 def create_update_command_parts(columns):
     return [
-        '"{}" = excluded."{}"'.format(column, column ) for column in columns if column != 'created'
+        '"{}" = excluded."{}"'.format(column, column)
+        for column in columns if column != 'created'
     ]
+
 
 def create_copy_from_lines(modified, job, rows, serializers):
     map_values = zip_apply(serializers)
@@ -404,9 +410,11 @@ def create_copy_from_lines(modified, job, rows, serializers):
         for entity_id, timestamp, values in rows
     )
 
+
 def create_value_row(modified, job, row):
     (entity_id, timestamp, values) = row
     return [str(entity_id), timestamp, modified, modified, job] + list(values)
+
 
 create_copy_from_file = compose(create_file, create_copy_from_lines)
 

@@ -1,13 +1,12 @@
 import json
 from contextlib import closing
 import argparse
-import datetime
+import sys
 
 from minerva.commands import LoadHarvestPlugin, ListPlugins, load_json
 from minerva.db import connect
 from minerva.harvest.trend_config_deducer import deduce_config
 from minerva.util.tabulate import render_table
-from minerva.storage.trend.tabletrendstore import TableTrendStore
 
 
 def setup_command_parser(subparsers):
@@ -82,7 +81,17 @@ def create_trend_store_cmd(args):
     if 'alias_type' not in data and 'entity_type' in data:
         data['alias_type'] = data['entity_type']
 
-    create_trend_store_from_json(data)
+    sys.stdout.write(
+        "Creating trend store '{}' - '{}'... ".format(
+            data['data_source'], data['entity_type']
+        )
+    )
+
+    try:
+        create_trend_store_from_json(data)
+        sys.stdout.write("OK\n")
+    except Exception as exc:
+        sys.stdout.write("Error:\n{}".format(exc))
 
 
 def setup_deduce_parser(subparsers):
@@ -169,8 +178,10 @@ def create_trend_store_from_json(data):
         data['granularity'], data['partition_size']
     )
 
-    alias_query = "SELECT alias_directory.get_or_create_alias_type('{}')".format(
-        data['alias_type']
+    alias_query = (
+        "SELECT alias_directory.get_or_create_alias_type('{}')".format(
+            data['alias_type']
+        )
     )
 
     with closing(connect()) as conn:
@@ -247,7 +258,10 @@ def add_trend_to_trend_store_cmd(args):
 
         conn.commit()
 
-    trend_id, table_trend_store_part_id, name, data_type, extra_data, description = result
+    (
+        trend_id, table_trend_store_part_id, name, data_type, extra_data,
+        description
+    )= result
 
     print("Created trend '{}'".format(name))
 
@@ -269,7 +283,7 @@ def setup_alter_trend_parser(subparsers):
     cmd.set_defaults(cmd=alter_trend_cmd)
 
 
-def alter_trend_cmd(args):
+def alter_trend_cmd(_args):
     query = "SELECT 10"
     query_args = tuple()
 
@@ -341,7 +355,10 @@ def show_trend_store_cmd(args):
         with closing(conn.cursor()) as cursor:
             cursor.execute(query, query_args)
 
-            id_, entity_type, data_source, granularity, partition_size, retention_period = cursor.fetchone()
+            (
+                id_, entity_type, data_source, granularity, partition_size,
+                retention_period
+            ) = cursor.fetchone()
 
             print("Table Trend Store")
             print("")
@@ -362,7 +379,11 @@ def show_trend_store_cmd(args):
                 print("                  {}".format(header))
                 print("                  {}".format('='*len(header)))
 
-                part_query = 'SELECT id, name, data_type FROM trend_directory.trend WHERE trend_store_part_id = %s'
+                part_query = (
+                    'SELECT id, name, data_type '
+                    'FROM trend_directory.table_trend '
+                    'WHERE table_trend_store_part_id = %s'
+                )
                 part_args = (part_id, )
 
                 cursor.execute(part_query, part_args)
@@ -381,14 +402,14 @@ def setup_list_parser(subparsers):
     cmd.set_defaults(cmd=list_trend_stores_cmd)
 
 
-def list_trend_stores_cmd(args):
+def list_trend_stores_cmd(_args):
     query = (
         'SELECT '
         'ts.id as id, '
         'data_source.name as data_source, '
         'entity_type.name as entity_type, '
         'ts.granularity '
-        'FROM trend_directory.trend_store ts '
+        'FROM trend_directory.table_trend_store ts '
         'JOIN directory.data_source ON data_source.id = ts.data_source_id '
         'JOIN directory.entity_type ON entity_type.id = ts.entity_type_id'
     )
