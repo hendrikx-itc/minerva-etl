@@ -83,6 +83,11 @@ def setup_command_parser(subparsers):
         help="show statistics like number of packages, entities, etc."
     )
 
+    cmd.add_argument(
+        "--merge-packages", action="store_true", default=False,
+        help="merge packages by entity type and granularity"
+    )
+
     cmd.set_defaults(cmd=load_data_cmd(cmd))
 
 
@@ -135,8 +140,16 @@ def load_data_cmd(cmd_parser, stop_on_missing_entity_type=False):
                         'uri': file_path
                     }
 
-                    for package in process_file(
-                            file_path, parser, args.show_progress):
+                    packages_generator = process_file(
+                        file_path, parser, args.show_progress
+                    )
+
+                    if args.merge_packages:
+                        packages = minerva.storage.trend.datapackage.DataPackage.merge_packages(packages_generator)
+                    else:
+                        packages = packages_generator
+
+                    for package in packages:
                         try:
                             handle_package(package, action)
                         except NoSuchEntityType as exc:

@@ -13,25 +13,20 @@ def main():
     args = parser.parse_args()
 
     with closing(connect()) as conn:
-        process_loop(conn, 1)
+        process_loop(conn, 0)
 
     return 0
 
 
 def process_loop(conn, start_id):
-    query = (
-        "SELECT max(id), trend_directory.update_modified(table_trend_store_part_id, timestamp, max(modified)) "
-        "FROM trend_directory.modified_log "
-        "WHERE id > %s "
-        "GROUP BY table_trend_store_part_id, timestamp"
-    )
+    query = "SELECT trend_directory.process_modified_log(%s)"
 
     query_args = (start_id,)
 
     with closing(conn.cursor()) as cursor:
         cursor.execute(query, query_args)
 
-        max_id, _ = cursor.fetchone()
+        max_id, = cursor.fetchone()
 
         print(max_id)
 
