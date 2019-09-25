@@ -3,6 +3,8 @@ from contextlib import closing
 import argparse
 import sys
 
+import yaml
+
 from minerva.commands import LoadHarvestPlugin, ListPlugins, load_json
 from minerva.db import connect
 from minerva.harvest.trend_config_deducer import deduce_config
@@ -55,40 +57,44 @@ def setup_create_parser(subparsers):
         help='use json description for trend store'
     )
 
+    cmd.add_argument(
+        '--from-yaml', type=argparse.FileType('r'),
+        help='use yaml description for trend store'
+    )
+
     cmd.set_defaults(cmd=create_trend_store_cmd)
 
 
 def create_trend_store_cmd(args):
     if args.from_json:
-        data = json.load(args.from_json)
+        trend_store_config = json.load(args.from_json)
+    elif args.from_yaml:
+        trend_store_config = yaml.load(args.from_yaml)
     else:
-        data = {
+        trend_store_config = {
             'parts': []
         }
 
     if args.data_source:
-        data['data_source'] = args.data_source
+        trend_store_config['data_source'] = args.data_source
 
     if args.entity_type:
-        data['entity_type'] = args.entity_type
+        trend_store_config['entity_type'] = args.entity_type
 
     if args.granularity:
-        data['granularity'] = args.granularity
+        trend_store_config['granularity'] = args.granularity
 
     if args.partition_size:
-        data['partition_size'] = args.partition_size
-
-    if 'alias_type' not in data and 'entity_type' in data:
-        data['alias_type'] = data['entity_type']
+        trend_store_config['partition_size'] = args.partition_size
 
     sys.stdout.write(
         "Creating trend store '{}' - '{}'... ".format(
-            data['data_source'], data['entity_type']
+            trend_store_config['data_source'], trend_store_config['entity_type']
         )
     )
 
     try:
-        create_trend_store_from_json(data)
+        create_trend_store_from_json(trend_store_config)
         sys.stdout.write("OK\n")
     except Exception as exc:
         sys.stdout.write("Error:\n{}".format(exc))
@@ -178,16 +184,9 @@ def create_trend_store_from_json(data):
         data['granularity'], data['partition_size']
     )
 
-    alias_query = (
-        "SELECT alias_directory.get_or_create_alias_type('{}')".format(
-            data['alias_type']
-        )
-    )
-
     with closing(connect()) as conn:
         with closing(conn.cursor()) as cursor:
             cursor.execute(query, query_args)
-            cursor.execute(alias_query)
 
         conn.commit()
 
