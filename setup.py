@@ -39,8 +39,7 @@ setup(
     package_dir={"": "src"},
     entry_points={
         'console_scripts': [
-            'minerva = minerva.commands.minerva:main',
-            'process-modified-log = minerva.commands.process_modified_log:main'
+            'minerva = minerva.commands.minerva:main'
         ]
     }
 )
