@@ -123,7 +123,9 @@ def load_data_cmd(cmd_parser, stop_on_missing_entity_type=False):
         try:
             with storage_provider() as store:
                 def handle_package(package, action):
-                    print(package.render_table())
+                    if args.debug:
+                        print(package.render_table())
+
                     store(package, action)
 
                 for file_path in args.file_path:
