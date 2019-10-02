@@ -88,8 +88,10 @@ def create_trend_store_cmd(args):
         trend_store_config['partition_size'] = args.partition_size
 
     sys.stdout.write(
-        "Creating trend store '{}' - '{}'... ".format(
-            trend_store_config['data_source'], trend_store_config['entity_type']
+        "Creating trend store '{}' - '{}' - '{}' ... ".format(
+            trend_store_config['data_source'],
+            trend_store_config['entity_type'],
+            trend_store_config['granularity']
         )
     )
 
@@ -97,7 +99,8 @@ def create_trend_store_cmd(args):
         create_trend_store_from_json(trend_store_config)
         sys.stdout.write("OK\n")
     except Exception as exc:
-        sys.stdout.write("Error:\n{}".format(exc))
+        sys.stdout.write("Error:\n{}".format(str(exc)))
+        raise exc
 
 
 def setup_deduce_parser(subparsers):
@@ -167,10 +170,12 @@ def create_trend_store_from_json(data):
             "('{}', {})".format(
                 part['name'],
                 'ARRAY[{}]::trend_directory.trend_descr[]'.format(','.join([
-                    "('{}', '{}', '{}')".format(
+                    "('{}', '{}', '{}', '{}', '{}')".format(
                         trend['name'],
                         trend['data_type'],
-                        trend.get('description', '')
+                        trend.get('description', ''),
+                        trend['time_aggregation'],
+                        trend['object_aggregation']
                     )
                     for trend in part['trends']
                 ]))
