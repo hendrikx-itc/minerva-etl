@@ -9,8 +9,8 @@ from minerva.directory import EntityType, DataSource
 from minerva.test import connect, clear_database
 from minerva.storage import datatype
 from minerva.storage.trend.trendstore import TimestampEquals
-from minerva.storage.trend.tabletrendstore import TableTrendStore, \
-    TableTrendStorePart
+from minerva.storage.trend.trendstore import TableTrendStore, \
+    TrendStorePart
 from minerva.storage.trend.trend import Trend
 from minerva.storage.trend.granularity import create_granularity
 from minerva.storage.trend.datapackage import DefaultPackage
@@ -51,7 +51,7 @@ class TestStoreTrend(unittest.TestCase):
             trend_store = TableTrendStore.create(TableTrendStore.Descriptor(
                 data_source, entity_type, granularity,
                 [
-                    TableTrendStorePart.Descriptor(
+                    TrendStorePart.Descriptor(
                         'test-trend-store-part',
                         [
                             Trend.Descriptor(
@@ -86,7 +86,7 @@ class TestStoreTrend(unittest.TestCase):
 
             trend_store = TableTrendStore.create(TableTrendStore.Descriptor(
                 data_source, entity_type, granularity, [
-                    TableTrendStorePart.Descriptor(
+                    TrendStorePart.Descriptor(
                         'test-trend-store_part1', [])
                 ], partition_size
             ))(cursor)
@@ -118,7 +118,7 @@ class TestStoreTrend(unittest.TestCase):
             TableTrendStore.create(TableTrendStore.Descriptor(
                 data_source, entity_type, granularity,
                 [
-                    TableTrendStorePart.Descriptor(
+                    TrendStorePart.Descriptor(
                         'test-trend-store',
                         [
                             Trend.Descriptor(
@@ -152,7 +152,7 @@ class TestStoreTrend(unittest.TestCase):
             entity_type = EntityType.create("test_type", '')(cursor)
 
             parts = [
-                TableTrendStorePart.Descriptor('test-store', [
+                TrendStorePart.Descriptor('test-store', [
                     Trend.Descriptor(
                         'counter1', datatype.registry['integer'], ''
                     ),

@@ -162,11 +162,11 @@ def deduce_trend_store_cmd(cmd_parser):
 
 def create_trend_store_from_json(data):
     query = (
-        'SELECT trend_directory.create_table_trend_store('
+        'SELECT trend_directory.create_trend_store('
         '%s::text, %s::text, %s::interval, %s::integer, {}'
         ')'
     ).format(
-        "ARRAY[{}]::trend_directory.table_trend_store_part_descr[]".format(','.join([
+        "ARRAY[{}]::trend_directory.trend_store_part_descr[]".format(','.join([
             "('{}', {})".format(
                 part['name'],
                 'ARRAY[{}]::trend_directory.trend_descr[]'.format(','.join([
@@ -175,7 +175,7 @@ def create_trend_store_from_json(data):
                         trend['data_type'],
                         trend.get('description', ''),
                         trend['time_aggregation'],
-                        trend['object_aggregation']
+                        trend['entity_aggregation']
                     )
                     for trend in part['trends']
                 ]))
@@ -208,7 +208,7 @@ def setup_delete_parser(subparsers):
 
 def delete_trend_store_cmd(args):
     query = (
-        'SELECT trend_directory.delete_table_trend_store(%s)'
+        'SELECT trend_directory.delete_trend_store(%s)'
     )
 
     query_args = (
@@ -244,9 +244,9 @@ def setup_add_trend_parser(subparsers):
 def add_trend_to_trend_store_cmd(args):
     query = (
         'WITH ts AS (SELECT trend_directory.add_trend_to_trend_store('
-        'table_trend_store_part, %s::name, %s::text, %s::text'
+        'trend_store_part, %s::name, %s::text, %s::text'
         ') as created '
-        'FROM trend_directory.table_trend_store_part WHERE name = %s) '
+        'FROM trend_directory.trend_store_part WHERE name = %s) '
         'SELECT (ts.created).* FROM ts'
     )
 
@@ -263,7 +263,7 @@ def add_trend_to_trend_store_cmd(args):
         conn.commit()
 
     (
-        trend_id, table_trend_store_part_id, name, data_type, extra_data,
+        trend_id, trend_store_part_id, name, data_type, extra_data,
         description
     )= result
 
@@ -331,16 +331,16 @@ def show_rows_from_cursor(cursor, show_cmd=print):
 def show_trend_store_cmd(args):
     query = (
         'SELECT '
-        'table_trend_store.id, '
+        'trend_store.id, '
         'entity_type.name AS entity_type, '
         'data_source.name AS data_source, '
-        'table_trend_store.granularity,'
-        'table_trend_store.partition_size, '
-        'table_trend_store.retention_period '
-        'FROM trend_directory.table_trend_store '
+        'trend_store.granularity,'
+        'trend_store.partition_size, '
+        'trend_store.retention_period '
+        'FROM trend_directory.trend_store '
         'JOIN directory.entity_type ON entity_type.id = entity_type_id '
         'JOIN directory.data_source ON data_source.id = data_source_id '
-        'WHERE table_trend_store.id = %s'
+        'WHERE trend_store.id = %s'
     )
 
     query_args = (args.trend_store_id,)
@@ -349,7 +349,7 @@ def show_trend_store_cmd(args):
         'SELECT '
         'tsp.id, '
         'tsp.name '
-        'FROM trend_directory.table_trend_store_part tsp '
+        'FROM trend_directory.trend_store_part tsp '
         'WHERE tsp.trend_store_id = %s'
     )
 
@@ -386,7 +386,7 @@ def show_trend_store_cmd(args):
                 part_query = (
                     'SELECT id, name, data_type '
                     'FROM trend_directory.table_trend '
-                    'WHERE table_trend_store_part_id = %s'
+                    'WHERE trend_store_part_id = %s'
                 )
                 part_args = (part_id, )
 
@@ -413,7 +413,7 @@ def list_trend_stores_cmd(_args):
         'data_source.name as data_source, '
         'entity_type.name as entity_type, '
         'ts.granularity '
-        'FROM trend_directory.table_trend_store ts '
+        'FROM trend_directory.trend_store ts '
         'JOIN directory.data_source ON data_source.id = ts.data_source_id '
         'JOIN directory.entity_type ON entity_type.id = ts.entity_type_id'
     )

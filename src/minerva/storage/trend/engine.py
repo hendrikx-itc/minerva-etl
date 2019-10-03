@@ -5,8 +5,8 @@ from functools import partial
 from minerva.util import k, identity
 from minerva.directory import EntityType, NoSuchEntityType
 from minerva.storage import Engine
-from minerva.storage.trend.tabletrendstore import TableTrendStore, \
-    NoSuchTableTrendStore
+from minerva.storage.trend.trendstore import TrendStore, \
+    NoSuchTrendStore
 from minerva.storage.trend.datapackage import DataPackage
 
 
@@ -79,12 +79,12 @@ def trend_store_for_package(data_source, package: DataPackage):
             if entity_type is None:
                 raise NoSuchEntityType(entity_type_name)
             else:
-                table_trend_store = TableTrendStore.get(
+                table_trend_store = TrendStore.get(
                     data_source, entity_type, package.granularity
                 )(cursor)
 
                 if table_trend_store is None:
-                    raise NoSuchTableTrendStore(
+                    raise NoSuchTrendStore(
                         data_source, entity_type, package.granularity
                     )
 

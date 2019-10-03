@@ -6,7 +6,7 @@ from operator import itemgetter
 from functools import partial
 import re
 
-from minerva.storage.trend.tabletrendstore import NoSuchTableTrendStore
+from minerva.storage.trend.trendstore import NoSuchTrendStore
 from minerva.util import compose, k
 from minerva.directory import DataSource
 import minerva.storage.trend.datapackage
@@ -291,9 +291,9 @@ def create_store_db_context(
             def store_package(package, action):
                 try:
                     store_cmd(package, action)(data_source)(conn)
-                except NoSuchTableTrendStore as exc:
+                except NoSuchTrendStore as exc:
                     if stop_on_missing_trend_store:
-                        raise no_such_table_trend_store_error(
+                        raise no_such_trend_store_error(
                             exc.data_source, exc.entity_type, exc.granularity
                         )
                     else:
@@ -315,7 +315,7 @@ def no_such_data_source_error(data_source_name):
     )
 
 
-def no_such_table_trend_store_error(data_source, entity_type, granularity):
+def no_such_trend_store_error(data_source, entity_type, granularity):
     return ConfigurationError(
         'No table trend store found for the combination (data source: '
         '{data_source}, entity type: {entity_type}, granularity: {granularity}'

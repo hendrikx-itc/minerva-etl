@@ -10,13 +10,13 @@ import pytz
 
 from minerva.db.query import Table, Call, Column, Eq, And
 from minerva.db.error import DataTypeMismatch
-from minerva.storage.trend.tabletrendstorepart import TableTrendStorePart
+from minerva.storage.trend.trendstorepart import TrendStorePart
 from minerva.test import connect, clear_database, with_data_context
 from minerva.directory import DataSource, EntityType
 from minerva.storage import datatype
 from minerva.storage.trend.datapackage import \
     refined_package_type_for_entity_type
-from minerva.storage.trend.tabletrendstore import TableTrendStore
+from minerva.storage.trend.trendstore import TableTrendStore
 from minerva.storage.trend.trend import Trend, NoSuchTrendError
 from minerva.storage.trend.partitioning import Partitioning
 from minerva.storage.trend.granularity import create_granularity
@@ -41,7 +41,7 @@ class TestStore(unittest.TestCase):
             Trend.Descriptor('Drops', datatype.registry['smallint'], '')
         ]
 
-        trend_store_part_descr = TableTrendStorePart.Descriptor(
+        trend_store_part_descr = TrendStorePart.Descriptor(
             'test-trend-store', trend_descriptors
         )
 
@@ -120,7 +120,7 @@ class TestStore(unittest.TestCase):
 
             trend_store = TableTrendStore.create(TableTrendStore.Descriptor(
                 data_source, entity_type, granularity,
-                [TableTrendStorePart.Descriptor(
+                [TrendStorePart.Descriptor(
                     'test-trend-store', trend_descriptors
                 )], 86400
             ))(cursor)
@@ -167,7 +167,7 @@ class TestStore(unittest.TestCase):
 
             trend_store = TableTrendStore.create(TableTrendStore.Descriptor(
                 data_source, entity_type, granularity,
-                [TableTrendStorePart.Descriptor(
+                [TrendStorePart.Descriptor(
                     'test-trend-store', trend_descriptors
                 )], 86400
             ))(cursor)
@@ -230,7 +230,7 @@ class TestStore(unittest.TestCase):
             trend_store = TableTrendStore.create(
                 TableTrendStore.Descriptor(
                     data_source, entity_type,
-                    granularity, [TableTrendStorePart.Descriptor(
+                    granularity, [TrendStorePart.Descriptor(
                         'test-trend-store', trend_descriptors
                     )], 86400 * 7
                 )
@@ -299,7 +299,7 @@ class TestStore(unittest.TestCase):
 
             trend_store = TableTrendStore.create(TableTrendStore.Descriptor(
                 data_source, entity_type,
-                granularity, [TableTrendStorePart.Descriptor(
+                granularity, [TrendStorePart.Descriptor(
                     'test-trend-store', trend_descriptors
                 )], 86400
             ))(cursor)
@@ -372,7 +372,7 @@ class TestStore(unittest.TestCase):
 
             trend_store = TableTrendStore.create(TableTrendStore.Descriptor(
                 data_source, entity_type, granularity,
-                [TableTrendStorePart.Descriptor(
+                [TrendStorePart.Descriptor(
                     'test-trend-store', trend_descriptors
                 )], 86400
                 ))(cursor)
@@ -435,7 +435,7 @@ class TestStore(unittest.TestCase):
 
             trend_store = TableTrendStore.create(TableTrendStore.Descriptor(
                 data_source, entity_type, granularity,
-                [TableTrendStorePart.Descriptor(
+                [TrendStorePart.Descriptor(
                     'test-trend-store', trend_descriptors
                 )], 86400
             ))(cursor)
@@ -488,7 +488,7 @@ class TestStore(unittest.TestCase):
             create_trend_store = TableTrendStore.create(
                 TableTrendStore.Descriptor(
                     data_source, entity_type, granularity,
-                    [TableTrendStorePart.Descriptor('test-trend-store', [])],
+                    [TrendStorePart.Descriptor('test-trend-store', [])],
                     partition_size
                 )
             )
@@ -510,7 +510,7 @@ class TestStore(unittest.TestCase):
 
             trend_store = TableTrendStore.create(TableTrendStore.Descriptor(
                 data_source, entity_type, granularity,
-                [TableTrendStorePart.Descriptor('test-trend-store', [])],
+                [TrendStorePart.Descriptor('test-trend-store', [])],
                 partition_size
             ))(cursor)
 
@@ -534,7 +534,7 @@ class TestStore(unittest.TestCase):
 
             TableTrendStore.create(TableTrendStore.Descriptor(
                 data_source, entity_type, granularity,
-                [TableTrendStorePart.Descriptor('test-trend-store', [])],
+                [TrendStorePart.Descriptor('test-trend-store', [])],
                 partition_size
             ))(cursor)
 
@@ -569,7 +569,7 @@ class TestStore(unittest.TestCase):
 
             trend_store = TableTrendStore.create(TableTrendStore.Descriptor(
                 data_source, entity_type, granularity,
-                [TableTrendStorePart.Descriptor(
+                [TrendStorePart.Descriptor(
                     'test-trend-store', trend_descriptors
                 )], partition_size
             ))(cursor)
@@ -616,7 +616,7 @@ class TestStore(unittest.TestCase):
 
             trend_store = TableTrendStore.create(TableTrendStore.Descriptor(
                 data_source, entity_type, granularity,
-                [TableTrendStorePart.Descriptor(
+                [TrendStorePart.Descriptor(
                     'test-trend-store', trend_descriptors
                 )], partition_size
             ))(cursor)
@@ -682,7 +682,7 @@ class TestStore(unittest.TestCase):
             trend_store = TableTrendStore.create(TableTrendStore.Descriptor(
                 data_source, entity_type, granularity,
                 [
-                    TableTrendStorePart.Descriptor(
+                    TrendStorePart.Descriptor(
                         'test-trend-store', trend_descriptors
                     )
                 ], partition_size
@@ -784,7 +784,7 @@ class TestStore(unittest.TestCase):
             trend_store = TableTrendStore.create(TableTrendStore.Descriptor(
                 data_source, entity_type, granularity,
                 [
-                    TableTrendStorePart.Descriptor(
+                    TrendStorePart.Descriptor(
                         'test-trend-store', trend_descriptors
                     )
                 ], partition_size
@@ -859,7 +859,7 @@ class TestStore(unittest.TestCase):
             trend_store = TableTrendStore.create(TableTrendStore.Descriptor(
                 data_source, entity_type, granularity,
                 [
-                    TableTrendStorePart.Descriptor(
+                    TrendStorePart.Descriptor(
                         'test-trend-store', trend_descriptors
                     )
                 ], partition_size
@@ -923,7 +923,7 @@ class TestStore(unittest.TestCase):
             trend_store_descr = TableTrendStore.Descriptor(
                 data_set.data_source, data_set.entity_type,
                 data_set.granularity, [
-                    TableTrendStorePart.Descriptor('test-store', [])
+                    TrendStorePart.Descriptor('test-store', [])
                 ], partition_size
             )
 
@@ -941,7 +941,7 @@ class TestStore(unittest.TestCase):
             trend_store_descr = TableTrendStore.Descriptor(
                 data_set.data_source, data_set.entity_type,
                 data_set.granularity,
-                [TableTrendStorePart.Descriptor('test_store', [])],
+                [TrendStorePart.Descriptor('test_store', [])],
                 partition_size
             )
 
@@ -966,7 +966,7 @@ class TestStore(unittest.TestCase):
                 trend_store_descr = TableTrendStore.Descriptor(
                     data_set.data_source, data_set.entity_type,
                     data_set.granularity, [
-                        TableTrendStorePart.Descriptor('test_store', [])
+                        TrendStorePart.Descriptor('test_store', [])
                     ], partition_size
                 )
 
@@ -991,7 +991,7 @@ class TestStore(unittest.TestCase):
                 trend_store_descr = TableTrendStore.Descriptor(
                     data_set.data_source, data_set.entity_type,
                     data_set.granularity, [
-                        TableTrendStorePart.Descriptor('test_store', [])
+                        TrendStorePart.Descriptor('test_store', [])
                     ], partition_size
                 )
 
@@ -1025,7 +1025,7 @@ class TestStore(unittest.TestCase):
             trend_store_descr = TableTrendStore.Descriptor(
                 dataset.data_source, dataset.entity_type,
                 dataset.granularity, [
-                    TableTrendStorePart.Descriptor('test_store', [])
+                    TrendStorePart.Descriptor('test_store', [])
                 ], partition_size
             )
 
@@ -1081,7 +1081,7 @@ class TestStore(unittest.TestCase):
             trend_store_descr = TableTrendStore.Descriptor(
                 dataset.data_source, dataset.entity_type,
                 dataset.granularity, [
-                    TableTrendStorePart.Descriptor('TestStore', [])
+                    TrendStorePart.Descriptor('TestStore', [])
                 ], partition_size
             )
 

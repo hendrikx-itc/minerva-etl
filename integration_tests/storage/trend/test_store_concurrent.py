@@ -13,7 +13,7 @@ from minerva.test import connect, with_conn, clear_database
 from minerva.storage import datatype
 from minerva.storage.trend.granularity import create_granularity
 from minerva.storage.trend.datapackage import DefaultPackage
-from minerva.storage.trend.tabletrendstore import TableTrendStore
+from minerva.storage.trend.trendstore import TableTrendStore
 from minerva.storage.trend.trend import Trend
 
 

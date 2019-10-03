@@ -6,14 +6,14 @@ from datetime import datetime
 from pytz import timezone
 
 from minerva.storage.trend import datapackage
-from minerva.storage.trend.tabletrendstorepart import TableTrendStorePart
+from minerva.storage.trend.trendstorepart import TrendStorePart
 from minerva.util import first
 from minerva.db.query import Table, Column, Call, Eq
 from minerva.storage.generic import extract_data_types
 from minerva.directory.datasource import DataSource
 from minerva.directory.entitytype import EntityType
 from minerva.test import connect, clear_database, row_count
-from minerva.storage.trend.tabletrendstore import TableTrendStore
+from minerva.storage.trend.trendstore import TableTrendStore
 from minerva.storage.trend.granularity import create_granularity
 
 SCHEMA = 'trend'
@@ -57,7 +57,7 @@ class TestStoreTrend(unittest.TestCase):
 
             trend_store = TableTrendStore.create(TableTrendStore.Descriptor(
                 data_source, entity_type, granularity, [
-                    TableTrendStorePart.Descriptor('test_store', [])
+                    TrendStorePart.Descriptor('test_store', [])
                 ], 86400
             ))(cursor)
             partition = trend_store.partition('test_store', timestamp)
@@ -103,7 +103,7 @@ class TestStoreTrend(unittest.TestCase):
             entity_type = EntityType.from_name("test-type002")(cursor)
             trend_store = TableTrendStore.create(TableTrendStore.Descriptor(
                 data_source, entity_type, granularity, [
-                    TableTrendStorePart.Descriptor('test_store', [])
+                    TrendStorePart.Descriptor('test_store', [])
                 ], 86400
             ))(cursor)
             partition = trend_store.partition(timestamp)
@@ -191,7 +191,7 @@ class TestStoreTrend(unittest.TestCase):
 
             trend_store = TableTrendStore.create(TableTrendStore.Descriptor(
                 data_source, entity_type, granularity, [
-                    TableTrendStorePart.Descriptor('test-store', [])
+                    TrendStorePart.Descriptor('test-store', [])
                 ], 86400
             ))(cursor)
             partition = trend_store.partition('test-store', timestamp)
@@ -242,7 +242,7 @@ class TestStoreTrend(unittest.TestCase):
 
             trend_store = TableTrendStore.create(TableTrendStore.Descriptor(
                 data_source, entity_type, granularity, [
-                    TableTrendStorePart.Descriptor('test-store', [])
+                    TrendStorePart.Descriptor('test-store', [])
                 ], 86400
             ))(cursor)
 
