@@ -163,7 +163,7 @@ def deduce_trend_store_cmd(cmd_parser):
 def create_trend_store_from_json(data):
     query = (
         'SELECT trend_directory.create_trend_store('
-        '%s::text, %s::text, %s::interval, %s::integer, {}'
+        '%s::text, %s::text, %s::interval, %s::interval, {}'
         ')'
     ).format(
         "ARRAY[{}]::trend_directory.trend_store_part_descr[]".format(','.join([
