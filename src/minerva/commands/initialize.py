@@ -1,16 +1,11 @@
 import os
-import json
 from contextlib import closing
-import argparse
 import sys
 import glob
 
 import yaml
 
-from minerva.commands import LoadHarvestPlugin, ListPlugins, load_json
 from minerva.db import connect
-from minerva.harvest.trend_config_deducer import deduce_config
-from minerva.util.tabulate import render_table
 
 from minerva.commands.attribute_store import create_attribute_store_from_json
 from minerva.commands.trend_store import create_trend_store_from_json
@@ -117,6 +112,7 @@ def define_relation(definition):
             cursor.execute(register_type_query(definition))
 
         conn.commit()
+
 
 def create_materialized_view_query(relation):
     return 'CREATE MATERIALIZED VIEW relation."{}" AS\n{}'.format(
