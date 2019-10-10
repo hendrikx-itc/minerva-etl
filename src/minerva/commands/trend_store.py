@@ -2,6 +2,7 @@ import json
 from contextlib import closing
 import argparse
 import sys
+import datetime
 
 import yaml
 
@@ -9,6 +10,7 @@ from minerva.commands import LoadHarvestPlugin, ListPlugins, load_json
 from minerva.db import connect
 from minerva.harvest.trend_config_deducer import deduce_config
 from minerva.util.tabulate import render_table
+from minerva.commands.partition import create_partitions_for_trend_store
 
 
 def setup_command_parser(subparsers):
@@ -25,6 +27,7 @@ def setup_command_parser(subparsers):
     setup_alter_trend_parser(cmd_subparsers)
     setup_show_parser(cmd_subparsers)
     setup_list_parser(cmd_subparsers)
+    setup_partition_parser(cmd_subparsers)
 
 
 def setup_create_parser(subparsers):
@@ -425,3 +428,48 @@ def list_trend_stores_cmd(_args):
             cursor.execute(query, query_args)
 
             show_rows_from_cursor(cursor)
+
+
+def setup_partition_parser(subparsers):
+    cmd = subparsers.add_parser(
+        'partition', help='manage trend store partitions'
+    )
+
+    cmd_subparsers = cmd.add_subparsers()
+    create_parser = cmd_subparsers.add_parser(
+        'create', help='create partitions for trend store'
+    )
+
+    create_parser.add_argument(
+        '--trend-store', type=int,
+        help='Id of trend store for which to create partitions'
+    )
+
+    create_parser.add_argument(
+        '--ahead-interval',
+        help='period for which to create partitions'
+    )
+
+    create_parser.set_defaults(cmd=create_partition_cmd)
+
+
+def create_partition_cmd(args):
+    query = 'SELECT id FROM trend_directory.trend_store'
+
+    ahead_interval = args.ahead_interval or '1 day'
+
+    with closing(connect()) as conn:
+        if args.trend_store is None:
+            with closing(conn.cursor()) as cursor:
+                cursor.execute(query)
+
+                rows = cursor.fetchall()
+
+
+            for trend_store_id, in rows:
+                create_partitions_for_trend_store(conn, trend_store_id, ahead_interval)
+                conn.commit()
+        else:
+            create_partitions_for_trend_store(conn, args.trend_store, ahead_interval)
+            conn.commit()
+

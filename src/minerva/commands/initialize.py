@@ -1,14 +1,20 @@
 import os
+import json
 from contextlib import closing
+import argparse
 import sys
 import glob
 
 import yaml
 
+from minerva.commands import LoadHarvestPlugin, ListPlugins, load_json
 from minerva.db import connect
+from minerva.harvest.trend_config_deducer import deduce_config
+from minerva.util.tabulate import render_table
 
 from minerva.commands.attribute_store import create_attribute_store_from_json
 from minerva.commands.trend_store import create_trend_store_from_json
+from minerva.commands.partition import create_partitions_for_trend_store
 
 
 def setup_command_parser(subparsers):
@@ -113,7 +119,6 @@ def define_relation(definition):
 
         conn.commit()
 
-
 def create_materialized_view_query(relation):
     return 'CREATE MATERIALIZED VIEW relation."{}" AS\n{}'.format(
         relation['name'],
@@ -155,37 +160,5 @@ def create_partitions():
             rows = cursor.fetchall()
 
         for trend_store_id, in rows:
-            create_partitions_for_trend_store(conn, trend_store_id)
-
-
-def create_partitions_for_trend_store(conn, trend_store_id):
-    query = (
-        "SELECT trend_directory.timestamp_to_index(partition_size, generate_series(now() - retention_period, now(), partition_size)) "
-        "FROM trend_directory.trend_store WHERE id = %s"
-    )
-    args = (trend_store_id,)
-
-    with closing(conn.cursor()) as cursor:
-        cursor.execute(query, args)
-
-        rows = cursor.fetchall()
-
-    for partition_index, in rows:
-        create_partition_for_trend_store(conn, trend_store_id, partition_index)
-
-
-def create_partition_for_trend_store(conn, trend_store_id, partition_index):
-    query = (
-        "SELECT p.name, trend_directory.create_partition(p, %s) "
-        "FROM trend_directory.trend_store_part p "
-        "WHERE p.trend_store_id = %s"
-    )
-    args = (partition_index, trend_store_id)
-
-    with closing(conn.cursor()) as cursor:
-        cursor.execute(query, args)
-
-        name, p = cursor.fetchone()
-
-        print('{} - {}'.format(name, partition_index))
+            create_partitions_for_trend_store(conn, trend_store_id, '1 day')
 
