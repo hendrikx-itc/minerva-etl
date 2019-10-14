@@ -7,7 +7,7 @@ def create_partitions_for_trend_store(conn, trend_store_id, ahead_interval):
         "SELECT trend_directory.timestamp_to_index(partition_size, t) AS i, p.id AS part_id "
         "FROM trend_directory.trend_store "
         "JOIN trend_directory.trend_store_part p ON p.trend_store_id = trend_store.id "
-        "JOIN generate_series(now() - trend_store.retention_period, now() + '{}'::interval, partition_size) t ON true "
+        "JOIN generate_series(now() - trend_store.retention_period, now() + partition_size + '{}'::interval, partition_size) t ON true "
         "WHERE trend_store.id = %s"
         ") "
         "SELECT partition_indexes.part_id, partition_indexes.i FROM partition_indexes "
