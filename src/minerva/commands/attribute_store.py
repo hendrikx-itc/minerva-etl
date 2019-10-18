@@ -56,7 +56,9 @@ def create_attribute_store_cmd(args):
     if args.from_json:
         attribute_store_config = json.load(args.from_json)
     elif args.from_yaml:
-        attribute_store_config = yaml.load(args.from_yaml)
+        attribute_store_config = yaml.load(
+            args.from_yaml, Loader=yaml.SafeLoader
+        )
     else:
         attribute_store_config = {
             'data_source': 'example_source',

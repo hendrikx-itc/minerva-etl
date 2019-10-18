@@ -66,7 +66,7 @@ def initialize_attribute_stores(instance_root):
         print(definition_file_path)
 
         with open(definition_file_path) as definition_file:
-            definition = yaml.load(definition_file)
+            definition = yaml.load(definition_file, Loader=yaml.SafeLoader)
 
         create_attribute_store_from_json(definition)
 
@@ -78,7 +78,7 @@ def initialize_trend_stores(instance_root):
         print(definition_file_path)
 
         with open(definition_file_path) as definition_file:
-            definition = yaml.load(definition_file)
+            definition = yaml.load(definition_file, Loader=yaml.SafeLoader)
 
         create_trend_store_from_json(definition)
 
@@ -106,7 +106,7 @@ def define_relations(instance_root):
         print(definition_file_path)
 
         with open(definition_file_path) as definition_file:
-            definition = yaml.load(definition_file)
+            definition = yaml.load(definition_file, Loader=yaml.SafeLoader)
 
         define_relation(definition)
 

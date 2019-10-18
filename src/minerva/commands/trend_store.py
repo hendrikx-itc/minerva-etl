@@ -72,7 +72,7 @@ def create_trend_store_cmd(args):
     if args.from_json:
         trend_store_config = json.load(args.from_json)
     elif args.from_yaml:
-        trend_store_config = yaml.load(args.from_yaml)
+        trend_store_config = yaml.load(args.from_yaml, Loader=yaml.SafeLoader)
     else:
         trend_store_config = {
             'parts': []
