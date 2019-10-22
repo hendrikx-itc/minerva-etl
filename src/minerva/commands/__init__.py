@@ -6,6 +6,10 @@ from minerva.harvest.plugins import iter_entry_points, \
     get_plugin as get_harvest_plugin
 
 
+class ConfigurationError(Exception):
+    pass
+
+
 class ListPlugins(argparse.Action):
     def __init__(self, option_strings, dest=argparse.SUPPRESS,
                  default=argparse.SUPPRESS, help=None):

@@ -2,15 +2,29 @@ import json
 from contextlib import closing
 import argparse
 import sys
-import datetime
 
 import yaml
+import psycopg2
 
 from minerva.commands import LoadHarvestPlugin, ListPlugins, load_json
 from minerva.db import connect
 from minerva.harvest.trend_config_deducer import deduce_config
 from minerva.util.tabulate import render_table
 from minerva.commands.partition import create_partitions_for_trend_store
+
+
+class DuplicateTrendStore(Exception):
+    def __init__(self, data_source, entity_type, granularity):
+        self.data_source = data_source
+        self.entity_type = entity_type
+        self.granularity = granularity
+
+    def __str__(self):
+        return 'Duplicate trend store {}, {}, {}'.format(
+            self.data_source,
+            self.entity_type,
+            self.granularity
+        )
 
 
 def setup_command_parser(subparsers):
@@ -194,7 +208,13 @@ def create_trend_store_from_json(data):
 
     with closing(connect()) as conn:
         with closing(conn.cursor()) as cursor:
-            cursor.execute(query, query_args)
+            try:
+                cursor.execute(query, query_args)
+            except psycopg2.errors.UniqueViolation as exc:
+                raise DuplicateTrendStore(
+                    data['data_source'], data['entity_type'],
+                    data['granularity']
+                )
 
         conn.commit()
 
@@ -464,7 +484,6 @@ def create_partition_cmd(args):
                 cursor.execute(query)
 
                 rows = cursor.fetchall()
-
 
             for trend_store_id, in rows:
                 create_partitions_for_trend_store(conn, trend_store_id, ahead_interval)

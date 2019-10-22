@@ -3,10 +3,23 @@ from contextlib import closing
 import argparse
 import sys
 
+import psycopg2
 import yaml
 
 from minerva.db import connect
 from minerva.util.tabulate import render_table
+
+
+class DuplicateAttributeStore(Exception):
+    def __init__(self, data_source, entity_type):
+        self.data_source = data_source
+        self.entity_type = entity_type
+
+    def __str__(self):
+        return 'Duplicate attribute store {}, {}'.format(
+            self.data_source,
+            self.entity_type,
+        )
 
 
 def setup_command_parser(subparsers):
@@ -84,6 +97,8 @@ def create_attribute_store_cmd(args):
     try:
         create_attribute_store_from_json(attribute_store_config)
         sys.stdout.write("OK\n")
+    except DuplicateAttributeStore as exc:
+        sys.stdout.write(exc)
     except Exception as exc:
         sys.stdout.write("Error:\n{}".format(exc))
 
@@ -110,7 +125,12 @@ def create_attribute_store_from_json(data):
 
     with closing(connect()) as conn:
         with closing(conn.cursor()) as cursor:
-            cursor.execute(query, query_args)
+            try:
+                cursor.execute(query, query_args)
+            except psycopg2.errors.UniqueViolation as exc:
+                raise DuplicateAttributeStore(
+                    data['data_source'], data['entity_type']
+                ) from exc
 
         conn.commit()
 
@@ -165,11 +185,13 @@ def add_attribute_to_attribute_store_cmd(args):
         'SELECT attribute_directory.create_attribute('
         'attribute_store, %s::name, %s::text, %s::text'
         ') '
-        'FROM attribute_directory.attribute_store WHERE attribute_store::text = %s'
+        'FROM attribute_directory.attribute_store '
+        'WHERE attribute_store::text = %s'
     )
 
     query_args = (
-        args.attribute_name, args.data_type, args.description, args.attribute_store
+        args.attribute_name, args.data_type, args.description,
+        args.attribute_store
     )
 
     with closing(connect()) as conn:
