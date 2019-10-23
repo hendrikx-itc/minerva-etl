@@ -148,7 +148,7 @@ def set_fingerprint(conn, config):
 
 
 def create_rule(conn, config):
-    query = "SELECT trigger.create_rule('{}', array[{}]::trigger.threshold_def[]);".format(
+    create_query = "SELECT * FROM trigger.create_rule('{}', array[{}]::trigger.threshold_def[]);".format(
         config['name'],
         ','.join(
             "('{}', '{}')".format(threshold['name'], threshold['data_type'])
@@ -156,5 +156,20 @@ def create_rule(conn, config):
         )
     )
 
+    set_notification_store_query = (
+        "UPDATE trigger.rule "
+        "SET notification_store_id = notification_store.id "
+        "FROM notification_directory.notification_store "
+        "JOIN directory.data_source ON data_source.id = notification_store.data_source_id "
+        "WHERE rule.id = %s AND data_source.name = %s"
+    )
+
     with closing(conn.cursor()) as cursor:
-        cursor.execute(query)
+        cursor.execute(create_query)
+
+        row = cursor.fetchone()
+
+        rule_id, _, _, _, _, _ = row
+
+        cursor.execute(set_notification_store_query, (rule_id, config['notification_store'],))
+

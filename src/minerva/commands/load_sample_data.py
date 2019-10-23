@@ -41,8 +41,6 @@ def load_sample_data_cmd(args):
 
 
 def load_sample_data(instance_root):
-    print("Loading sample data")
-
     sys.path.append(os.path.join(instance_root, 'sample-data'))
 
     definition_file_path = os.path.join(
@@ -90,6 +88,8 @@ def generate_and_load(name, config):
 
     with storage_provider() as store:
         for timestamp in timestamp_range:
+            print(' - {}'.format(timestamp))
+
             file_path = data_set_generator.generate(target_dir, timestamp, granularity)
 
             with open(file_path) as data_file:
@@ -101,7 +101,8 @@ def generate_and_load(name, config):
                     try:
                         store(package, action)
                     except NoSuchEntityType as exc:
-                        print("Undefined entity type '{}'".format(exc.entity_type_name))
+                        # Suppress messages about missing entity types
+                        pass
 
 
 

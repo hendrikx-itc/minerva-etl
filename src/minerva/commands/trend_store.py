@@ -536,7 +536,10 @@ def process_modified_log(args):
 
             cursor.execute(get_position_query)
 
-            started_at_id, = cursor.fetchone()
+            if cursor.rowcount == 1:
+                started_at_id, = cursor.fetchone()
+            else:
+                started_at_id = 0
 
             cursor.execute(query)
 

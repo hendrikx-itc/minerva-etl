@@ -2,7 +2,6 @@ import os
 from contextlib import closing
 import sys
 import glob
-import datetime
 
 import yaml
 import psycopg2.errors
@@ -13,6 +12,8 @@ from minerva.commands.attribute_store import create_attribute_store_from_json, \
     DuplicateAttributeStore
 from minerva.commands.trend_store import create_trend_store_from_json, \
     DuplicateTrendStore
+from minerva.commands.notification_store import \
+    create_notification_store_from_json, DuplicateNotificationStore
 from minerva.commands.partition import create_partitions_for_trend_store
 from minerva.commands.trigger import create_trigger_from_config
 from minerva.commands.load_sample_data import load_sample_data
@@ -55,23 +56,47 @@ def initialize_cmd(args):
         raise exc
 
     if args.load_sample_data:
+        header('Loading sample data')
         load_sample_data(instance_root)
 
 
+def header(title):
+    width = (len(title) + 4)
+
+    print('')
+    print('#' * width)
+    print('# {} #'.format(title))
+    print('#' * width)
+    print('')
+
+
 def initialize_instance(instance_root):
+    header("Initializing attribute stores")
     initialize_attribute_stores(instance_root)
+
+    header("Initializing trend stores")
     initialize_trend_stores(instance_root)
+
+    header("Initializing notification stores")
+    initialize_notification_stores(instance_root)
+
+    header("Initializing virtual entities")
     define_virtual_entities(instance_root)
+
+    header("Defining relations")
     define_relations(instance_root)
+
+    header('Initializing materializations')
     define_materializations(instance_root)
+
+    header('Initializing triggers')
     define_triggers(instance_root)
 
+    header('Creating partitions')
     create_partitions()
 
 
 def initialize_attribute_stores(instance_root):
-    print("Initializing attribute stores")
-
     definition_files = glob.glob(
         os.path.join(instance_root, 'attribute/*.yaml')
     )
@@ -87,11 +112,9 @@ def initialize_attribute_stores(instance_root):
         except DuplicateAttributeStore as exc:
             print(exc)
 
-    print("Done initializing attribute stores")
-
 
 def initialize_trend_stores(instance_root):
-    definition_files = glob.glob(os.path.join(instance_root, 'trend/*.json'))
+    definition_files = glob.glob(os.path.join(instance_root, 'trend/*.yaml'))
 
     for definition_file_path in definition_files:
         print(definition_file_path)
@@ -105,9 +128,22 @@ def initialize_trend_stores(instance_root):
             print(exc)
 
 
-def define_virtual_entities(instance_root):
-    print("Initializing virtual entities")
+def initialize_notification_stores(instance_root):
+    definition_files = glob.glob(os.path.join(instance_root, 'notification/*.yaml'))
 
+    for definition_file_path in definition_files:
+        print(definition_file_path)
+
+        with open(definition_file_path) as definition_file:
+            definition = yaml.load(definition_file, Loader=yaml.SafeLoader)
+
+        try:
+            create_notification_store_from_json(definition)
+        except DuplicateNotificationStore as exc:
+            print(exc)
+
+
+def define_virtual_entities(instance_root):
     definition_files = glob.glob(
         os.path.join(instance_root, 'virtual-entity/*.sql')
     )
@@ -116,8 +152,6 @@ def define_virtual_entities(instance_root):
         print(definition_file_path)
 
         execute_sql_file(definition_file_path)
-
-    print("Done initializing virtual entities")
 
 
 def define_relations(instance_root):
