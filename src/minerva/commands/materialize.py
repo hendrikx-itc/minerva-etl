@@ -1,4 +1,3 @@
-import os
 from contextlib import closing
 import sys
 
@@ -25,8 +24,12 @@ def materialize_all():
     query = (
         "SELECT m.id, m::text, ms.timestamp "
         "FROM trend_directory.materialization_state ms "
-        "JOIN trend_directory.materialization m on m.id = ms.materialization_id "
-        "WHERE (source_fingerprint != processed_fingerprint OR processed_fingerprint IS NULL) AND m.enabled AND ms.timestamp < now()"
+        "JOIN trend_directory.materialization m "
+        "ON m.id = ms.materialization_id "
+        "WHERE ("
+        "source_fingerprint != processed_fingerprint OR "
+        "processed_fingerprint IS NULL"
+        ") AND m.enabled AND ms.timestamp < now()"
     )
 
     with closing(connect()) as conn:

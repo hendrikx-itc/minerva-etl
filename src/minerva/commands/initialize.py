@@ -2,6 +2,7 @@ import os
 from contextlib import closing
 import sys
 import glob
+import datetime
 
 import yaml
 import psycopg2.errors
@@ -14,6 +15,7 @@ from minerva.commands.trend_store import create_trend_store_from_json, \
     DuplicateTrendStore
 from minerva.commands.partition import create_partitions_for_trend_store
 from minerva.commands.trigger import create_trigger_from_config
+from minerva.commands.load_sample_data import load_sample_data
 
 
 def setup_command_parser(subparsers):
@@ -211,19 +213,3 @@ def create_partitions():
 
         for trend_store_id, in rows:
             create_partitions_for_trend_store(conn, trend_store_id, '1 day')
-
-
-def load_sample_data(instance_root):
-    print("Loading sample data")
-
-    definition_file_path = os.path.join(
-        instance_root, 'sample-data/definition.yaml'
-    )
-
-    with open(definition_file_path) as definition_file:
-        definition = yaml.load(definition_file, Loader=yaml.SafeLoader)
-
-        print(definition)
-
-        for name, data_set_config in definition:
-            print("Loading data of type '{}'".format(name))

@@ -42,6 +42,7 @@ def setup_command_parser(subparsers):
     setup_show_parser(cmd_subparsers)
     setup_list_parser(cmd_subparsers)
     setup_partition_parser(cmd_subparsers)
+    setup_process_modified_log_parser(cmd_subparsers)
 
 
 def setup_create_parser(subparsers):
@@ -288,7 +289,7 @@ def add_trend_to_trend_store_cmd(args):
     (
         trend_id, trend_store_part_id, name, data_type, extra_data,
         description
-    )= result
+    ) = result
 
     print("Created trend '{}'".format(name))
 
@@ -486,9 +487,65 @@ def create_partition_cmd(args):
                 rows = cursor.fetchall()
 
             for trend_store_id, in rows:
-                create_partitions_for_trend_store(conn, trend_store_id, ahead_interval)
+                create_partitions_for_trend_store(
+                    conn, trend_store_id, ahead_interval
+                )
+
                 conn.commit()
         else:
-            create_partitions_for_trend_store(conn, args.trend_store, ahead_interval)
+            create_partitions_for_trend_store(
+                conn, args.trend_store, ahead_interval
+            )
+
             conn.commit()
 
+
+def setup_process_modified_log_parser(subparsers):
+    cmd = subparsers.add_parser(
+        'process-modified-log',
+        help='process modified log into modified state'
+    )
+
+    cmd.add_argument(
+        '--reset', action='store_true', default=False,
+        help='reset modified log processing state to Id 0'
+    )
+
+    cmd.set_defaults(cmd=process_modified_log)
+
+
+def process_modified_log(args):
+    reset_query = (
+        "UPDATE trend_directory.modified_log_processing_state "
+        "SET last_processed_id = %s "
+        "WHERE name = 'current'"
+    )
+
+    get_position_query = (
+        "SELECT last_processed_id "
+        "FROM trend_directory.modified_log_processing_state "
+        "WHERE name = 'current'"
+    )
+
+    query = "SELECT * FROM trend_directory.process_modified_log()"
+
+    with closing(connect()) as conn:
+        with closing(conn.cursor()) as cursor:
+            if args.reset:
+                cursor.execute(reset_query, (0,))
+
+            cursor.execute(get_position_query)
+
+            started_at_id, = cursor.fetchone()
+
+            cursor.execute(query)
+
+            last_processed_id, = cursor.fetchone()
+
+        conn.commit()
+
+    print(
+        "Processed modified log {} - {}".format(
+            started_at_id, last_processed_id
+        )
+    )

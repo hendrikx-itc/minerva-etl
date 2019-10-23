@@ -1,5 +1,4 @@
 from contextlib import closing
-import logging
 
 from psycopg2 import sql
 
@@ -43,4 +42,5 @@ def materialize_relations(args):
                 ).format(sql.Identifier(name))
 
                 cursor.execute(materialize_relation_query)
-                logging.info("Materialized relation '{}'".format(name))
+
+                print("Materialized relation '{}'".format(name))
