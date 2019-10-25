@@ -43,6 +43,7 @@ def setup_command_parser(subparsers):
     setup_list_parser(cmd_subparsers)
     setup_partition_parser(cmd_subparsers)
     setup_process_modified_log_parser(cmd_subparsers)
+    setup_materialize_parser(cmd_subparsers)
 
 
 def setup_create_parser(subparsers):
@@ -552,3 +553,79 @@ def process_modified_log(args):
             started_at_id, last_processed_id
         )
     )
+
+
+def setup_materialize_parser(subparsers):
+    cmd = subparsers.add_parser(
+        'materialize', help='command for materializing trend data'
+    )
+
+    cmd.add_argument(
+        '--reset', action='store_true', default=False,
+        help='ignore materialization state'
+    )
+
+    cmd.set_defaults(cmd=materialize_cmd)
+
+
+def materialize_cmd(args):
+    try:
+        materialize_all(args.reset)
+    except Exception as exc:
+        sys.stdout.write("Error:\n{}".format(str(exc)))
+        raise exc
+
+
+def materialize_all(reset):
+    query = (
+        "SELECT m.id, m::text, ms.timestamp "
+        "FROM trend_directory.materialization_state ms "
+        "JOIN trend_directory.materialization m "
+        "ON m.id = ms.materialization_id "
+    )
+
+    if reset:
+        where_clause = (
+            "WHERE m.enabled AND ms.timestamp < now()"
+        )
+    else:
+        where_clause = (
+            "WHERE ("
+            "source_fingerprint != processed_fingerprint OR "
+            "processed_fingerprint IS NULL"
+            ") AND m.enabled AND ms.timestamp < now()"
+        )
+
+    query += where_clause
+
+    with closing(connect()) as conn:
+        with closing(conn.cursor()) as cursor:
+            cursor.execute(query)
+
+            rows = cursor.fetchall()
+
+        conn.commit()
+
+        for materialization_id, name, timestamp in rows:
+            try:
+                row_count = materialize(conn, materialization_id, timestamp)
+
+                conn.commit()
+
+                print("{} - {}: {} records".format(name, timestamp, row_count))
+            except Exception as e:
+                conn.rollback()
+                print(str(e))
+
+
+def materialize(conn, materialization_id, timestamp):
+    materialize_query = (
+        "SELECT (trend_directory.materialize(m, %s)).row_count "
+        "FROM trend_directory.materialization m WHERE id = %s"
+    )
+
+    with closing(conn.cursor()) as cursor:
+        cursor.execute(materialize_query, (timestamp, materialization_id))
+        row_count, = cursor.fetchone()
+
+    return row_count

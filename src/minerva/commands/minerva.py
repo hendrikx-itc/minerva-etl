@@ -2,7 +2,7 @@ import sys
 import argparse
 
 from minerva.commands import data_source, trend_store, entity_type, load_data, \
-    structure, alias, attribute_store, initialize, materialize, relation, \
+    structure, alias, attribute_store, initialize, relation, \
     trigger, load_sample_data, virtual_entity, notification_store
 
 
@@ -21,7 +21,6 @@ def main():
     structure.setup_command_parser(subparsers)
     alias.setup_command_parser(subparsers)
     initialize.setup_command_parser(subparsers)
-    materialize.setup_command_parser(subparsers)
     relation.setup_command_parser(subparsers)
     trigger.setup_command_parser(subparsers)
     load_sample_data.setup_command_parser(subparsers)

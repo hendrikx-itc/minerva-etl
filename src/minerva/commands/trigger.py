@@ -5,6 +5,8 @@ import sys
 import yaml
 import psycopg2
 from psycopg2 import sql
+import dateutil.parser
+import dateutil.tz
 
 from minerva.db import connect
 
@@ -16,10 +18,11 @@ def setup_command_parser(subparsers):
 
     cmd_subparsers = cmd.add_subparsers()
 
-    setup_trigger_parser(cmd_subparsers)
+    setup_create_parser(cmd_subparsers)
+    setup_create_notifications_parser(cmd_subparsers)
 
 
-def setup_trigger_parser(subparsers):
+def setup_create_parser(subparsers):
     cmd = subparsers.add_parser(
         'create', help='command for creating triggers'
     )
@@ -78,7 +81,13 @@ def create_trigger_from_config(config):
 
         #set_fingerprint(conn, config)
 
+        print("Creating rule")
+
         create_rule(conn, config)
+
+        print("Defining notification")
+
+        define_notification(conn, config)
 
 
 def create_kpi_type(conn, config):
@@ -137,6 +146,18 @@ def create_kpi_function(conn, config):
         cursor.execute(query)
 
 
+def define_notification(conn, config):
+    query = 'SELECT trigger.define_notification(%s, %s)'
+
+    query_args = (
+        config['name'],
+        config['notification']
+    )
+
+    with closing(conn.cursor()) as cursor:
+        cursor.execute(query, query_args)
+
+
 def set_fingerprint(conn, config):
     query = sql.SQL('SELECT trigger.set_fingerprint({}, {});').format(
         sql.Literal(config['name']),
@@ -148,7 +169,10 @@ def set_fingerprint(conn, config):
 
 
 def create_rule(conn, config):
-    create_query = "SELECT * FROM trigger.create_rule('{}', array[{}]::trigger.threshold_def[]);".format(
+    create_query = (
+        "SELECT * "
+        "FROM trigger.create_rule('{}', array[{}]::trigger.threshold_def[]);"
+    ).format(
         config['name'],
         ','.join(
             "('{}', '{}')".format(threshold['name'], threshold['data_type'])
@@ -160,7 +184,8 @@ def create_rule(conn, config):
         "UPDATE trigger.rule "
         "SET notification_store_id = notification_store.id "
         "FROM notification_directory.notification_store "
-        "JOIN directory.data_source ON data_source.id = notification_store.data_source_id "
+        "JOIN directory.data_source "
+        "ON data_source.id = notification_store.data_source_id "
         "WHERE rule.id = %s AND data_source.name = %s"
     )
 
@@ -171,5 +196,42 @@ def create_rule(conn, config):
 
         rule_id, _, _, _, _, _ = row
 
-        cursor.execute(set_notification_store_query, (rule_id, config['notification_store'],))
+        cursor.execute(
+            set_notification_store_query,
+            (rule_id, config['notification_store'])
+        )
 
+
+def setup_create_notifications_parser(subparsers):
+    cmd = subparsers.add_parser(
+        'create-notifications',
+        help='command for executing triggers and creating notifications'
+    )
+
+    cmd.add_argument('--trigger', help="name of trigger")
+
+    cmd.add_argument(
+        '--timestamp', help="timestamp for which to execute trigger"
+    )
+
+    cmd.set_defaults(cmd=execute_trigger_cmd)
+
+
+def execute_trigger_cmd(args):
+    if args.timestamp:
+        timestamp = dateutil.parser.parse(args.timestamp)
+    else:
+        timestamp = None
+
+    query = "SELECT * FROM trigger.create_notifications(%s, %s)"
+    query_args = (args.trigger, timestamp)
+
+    with closing(connect()) as conn:
+        conn.autocommit = True
+
+        with closing(conn.cursor()) as cursor:
+            cursor.execute(query, query_args)
+
+            row = cursor.fetchone()
+
+            print(row)
