@@ -3,17 +3,19 @@ import logging
 from contextlib import contextmanager
 from contextlib import closing
 from operator import itemgetter
+from functools import partial
 import re
 
-from minerva.storage.trend.tabletrendstore import NoSuchTableTrendStore
+from minerva.storage.trend.trendstore import NoSuchTrendStore
 from minerva.util import compose, k
 from minerva.directory import DataSource
 import minerva.storage.trend.datapackage
 import minerva.storage.attribute.datapackage
 from minerva.directory.entitytype import NoSuchEntityType
 from minerva.harvest.fileprocessor import process_file
-from minerva.db import connect
-from minerva.commands import ListPlugins, LoadHarvestPlugin, load_json
+from minerva.db import connect, connect_logging
+from minerva.commands import ListPlugins, load_json
+from minerva.harvest.plugins import get_plugin
 
 
 class ConfigurationError(Exception):
@@ -34,7 +36,7 @@ def setup_command_parser(subparsers):
     )
 
     cmd.add_argument(
-        "-p", "--plugin", action=LoadHarvestPlugin,
+        "-p", "--plugin",
         help="harvester plug-in to use for processing file(s)"
     )
 
@@ -55,11 +57,6 @@ def setup_command_parser(subparsers):
     cmd.add_argument(
         "--show-progress", action="store_true",
         dest="show_progress", default=False, help="show progressbar"
-    )
-
-    cmd.add_argument(
-        "-v", "--verbose", action="store_true", dest="verbose",
-        default=False, help="produce verbose output"
     )
 
     cmd.add_argument(
@@ -86,16 +83,18 @@ def setup_command_parser(subparsers):
         help="show statistics like number of packages, entities, etc."
     )
 
+    cmd.add_argument(
+        "--merge-packages", action="store_true", default=False,
+        help="merge packages by entity type and granularity"
+    )
+
     cmd.set_defaults(cmd=load_data_cmd(cmd))
 
 
-def load_data_cmd(cmd_parser):
+def load_data_cmd(cmd_parser, stop_on_missing_entity_type=False):
     def cmd(args):
         if args.debug:
             logging.root.setLevel(logging.DEBUG)
-
-        if args.verbose:
-            logging.root.addHandler(logging.StreamHandler())
 
         statistics = Statistics()
 
@@ -103,26 +102,33 @@ def load_data_cmd(cmd_parser):
             cmd_parser.print_help()
             return
 
-        parser = args.plugin.create_parser(args.parser_config)
+        plugin = get_plugin(args.plugin)
+
+        parser = plugin.create_parser(args.parser_config)
 
         if args.pretend:
             storage_provider = store_dummy
         else:
+            if args.debug:
+                connect_to_db = partial(
+                    connect_logging, logging.getLogger('psycopg2')
+                )
+            else:
+                connect_to_db = connect
+
             storage_provider = create_store_db_context(
-                args.data_source, parser.store_command()
+                args.data_source, parser.store_command(), connect_to_db,
             )
 
         try:
             with storage_provider() as store:
-                handle_package = compose(
-                    store,
-                    tee(lambda package: print(package.render_table()))
-                )
+                def handle_package(package, action):
+                    if args.debug:
+                        print(package.render_table())
+
+                    store(package, action)
 
                 for file_path in args.file_path:
-                    if args.verbose:
-                        logging.info("Processing {0}".format(file_path))
-
                     logging.info(
                         "Start processing file {0} using plugin {1}"
                         " and config {2}".format(
@@ -130,19 +136,37 @@ def load_data_cmd(cmd_parser):
                         )
                     )
 
-                    for package in process_file(
-                            file_path, parser, args.show_progress):
+                    action = {
+                        'type': 'load-data',
+                        'plugin': args.plugin,
+                        'uri': file_path
+                    }
+
+                    packages_generator = process_file(
+                        file_path, parser, args.show_progress
+                    )
+
+                    if args.merge_packages:
+                        packages = minerva.storage.trend.datapackage.DataPackage.merge_packages(packages_generator)
+                    else:
+                        packages = packages_generator
+
+                    for package in packages:
                         try:
-                            handle_package(package)
+                            handle_package(package, action)
                         except NoSuchEntityType as exc:
-                            raise ConfigurationError(
-                                'No such entity type \'{entity_type}\'\n'
-                                'Create a data source using e.g.\n'
-                                '\n'
-                                '    minerva entity-type create {entity_type}\n'.format(
-                                    entity_type=exc.entity_type_name
+                            if stop_on_missing_entity_type:
+                                raise ConfigurationError(
+                                    'No such entity type \'{entity_type}\'\n'
+                                    'Create a data source using e.g.\n'
+                                    '\n'
+                                    '    minerva entity-type create {entity_type}\n'.format(
+                                        entity_type=exc.entity_type_name
+                                    )
                                 )
-                            )
+                            else:
+                                logging.warning(exc)
+
         except ConfigurationError as err:
             print('fatal: {}'.format(err))
 
@@ -251,45 +275,59 @@ def tee(fn):
     return wrapper
 
 
-def create_store_db_context(data_source_name, store_cmd):
+def create_store_db_context(
+        data_source_name, store_cmd, connect_to_db,
+        stop_on_missing_trend_store=False
+):
     @contextmanager
     def store_db_context():
-        with closing(connect()) as conn:
+        with closing(connect_to_db()) as conn:
             with closing(conn.cursor()) as cursor:
                 data_source = DataSource.get_by_name(data_source_name)(cursor)
 
             if data_source is None:
-                raise ConfigurationError(
-                    'No such data source \'{data_source}\'\n'
-                    'Create a data source using e.g.\n'
-                    '\n'
-                    '    minerva data-source create {data_source}\n'.format(
-                        data_source=data_source_name
-                    )
-                )
+                raise no_such_data_source_error(data_source_name)
 
-            def store_package(package):
+            def store_package(package, action):
                 try:
-                    store_cmd(package)(data_source)(conn)
-                except NoSuchTableTrendStore as exc:
-                    raise ConfigurationError(
-                        'No table trend store found for the combination ('
-                        'data source: {data_source}, '
-                        'entity type: {entity_type}, '
-                        'granularity: {granularity}'
-                        ')\n'
-                        'Create a table trend store using e.g.\n'
-                        '\n'
-                        '    minerva trend-store create --from-json'.format(
-                            data_source=exc.data_source.name,
-                            entity_type=exc.entity_type.name,
-                            granularity=exc.granularity
+                    store_cmd(package, action)(data_source)(conn)
+                except NoSuchTrendStore as exc:
+                    if stop_on_missing_trend_store:
+                        raise no_such_trend_store_error(
+                            exc.data_source, exc.entity_type, exc.granularity
                         )
-                    )
+                    else:
+                        logging.warning(str(exc))
 
             yield store_package
 
     return store_db_context
+
+
+def no_such_data_source_error(data_source_name):
+    return ConfigurationError(
+        'No such data source \'{data_source}\'\n'
+        'Create a data source using e.g.\n'
+        '\n'
+        '    minerva data-source create {data_source}\n'.format(
+            data_source=data_source_name
+        )
+    )
+
+
+def no_such_trend_store_error(data_source, entity_type, granularity):
+    return ConfigurationError(
+        'No table trend store found for the combination (data source: '
+        '{data_source}, entity type: {entity_type}, granularity: {granularity}'
+        ')\n'
+        'Create a table trend store using e.g.\n'
+        '\n'
+        '    minerva trend-store create --from-json'.format(
+            data_source=data_source.name,
+            entity_type=entity_type.name,
+            granularity=granularity
+        )
+    )
 
 
 @contextmanager

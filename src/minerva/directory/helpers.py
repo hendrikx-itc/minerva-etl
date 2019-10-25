@@ -4,20 +4,81 @@ Helper functions for the directory schema.
 """
 from contextlib import closing
 import re
-from io import StringIO
+
+from psycopg2 import sql
 
 from minerva.util import identity, k, fst
 from minerva.db.error import translate_postgresql_exceptions
+from minerva.directory.distinguishedname import entity_type_name_from_dn
 
 
 MATCH_ALL = re.compile(".*")
 
 
-@translate_postgresql_exceptions
 def dns_to_entity_ids(cursor, dns):
-    cursor.callproc("directory.dns_to_entity_ids", (dns,))
+    return aliases_to_entity_ids(cursor, 'dn', dns, entity_type_name_from_dn(dns[0]))
+
+
+@translate_postgresql_exceptions
+def aliases_to_entity_ids(cursor, namespace: str, aliases: list, entity_type: str):
+    cursor.callproc("alias_directory.aliases_to_entity_ids", (namespace, aliases, entity_type))
 
     return list(map(fst, cursor.fetchall()))
+
+
+def names_to_entity_ids(cursor, entity_type: str, names: list):
+    """
+    Map names to entity ID's, create any missing entities, and return the
+    corresponding entity ID's.
+
+    :param cursor:
+    :param entity_type: name of the entity type
+    :param names: names of entities for which to return the ID's
+    :return:
+    """
+    query = sql.SQL(
+        'WITH lookup_list AS (SELECT unnest(ARRAY[%s]::text[]) AS name) '
+        'SELECT l.name, e.id FROM lookup_list l '
+        'LEFT JOIN entity.{} e ON l.name = e.name '
+    ).format(sql.Identifier(entity_type))
+
+    unmapped_names = []
+    entity_ids = []
+
+    cursor.execute(query, (names,))
+
+    for name, entity_id in cursor.fetchall():
+        if entity_id is None:
+            unmapped_names.append(name)
+        else:
+            entity_ids.append(entity_id)
+
+    if len(unmapped_names) > 0:
+        entity_ids.extend(
+            create_entities_from_names(cursor, entity_type, unmapped_names)
+        )
+
+    return entity_ids
+
+
+def create_entities_from_names(cursor, entity_type: str, names: list):
+    entity_ids = []
+
+    insert_query = sql.SQL(
+        'INSERT INTO entity.{}(name) '
+        'VALUES (%s) '
+        'ON CONFLICT DO NOTHING '
+        'RETURNING id'
+    ).format(sql.Identifier(entity_type))
+
+    for name in names:
+        cursor.execute(insert_query, (name,))
+
+        entity_id, = cursor.fetchone()
+
+        entity_ids.append(entity_id)
+
+    return entity_ids
 
 
 class InvalidNameError(Exception):
@@ -40,9 +101,9 @@ def get_child_ids(cursor, base_entity, entity_type):
     """
     query = (
         "SELECT id FROM directory.entity "
-        "WHERE entitytype_id = %s AND dn LIKE %s")
+        "WHERE entitytype_id = %s AND name LIKE %s")
 
-    args = (entity_type.id, base_entity.dn + ",%")
+    args = (entity_type.id, base_entity.name + ",%")
 
     cursor.execute(query, args)
 

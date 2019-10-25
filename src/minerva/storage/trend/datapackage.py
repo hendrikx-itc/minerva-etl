@@ -1,21 +1,27 @@
 # -*- coding: utf-8 -*-
 from io import StringIO
-from itertools import chain, groupby
+from itertools import chain
 from operator import itemgetter
-from typing import Callable, List, Type
+from functools import total_ordering
 
 from minerva.db.util import quote_ident
 from minerva.storage.trend import schema
-from minerva.util import grouped_by, zip_apply, identity, k
+from minerva.util import grouped_by, zip_apply
 from minerva.util.tabulate import render_table
-from minerva.directory.entityref import EntityDnRef, EntityIdRef, EntityRef
-from minerva.directory.distinguishedname import entity_type_name_from_dn
 
 
+@total_ordering
 class DataPackageType:
-    def __init__(self, entity_ref_type, get_entity_type_name):
+    def __init__(self, identifier, entity_ref_type, get_entity_type_name):
+        self.identifier = identifier
         self.entity_ref_type = entity_ref_type
         self.get_entity_type_name = get_entity_type_name
+
+    def __eq__(self, other):
+        return self.identifier == other.identifier
+
+    def __lt__(self, other):
+        return self.identifier < other.identifier
 
 
 class DataPackage:
@@ -31,8 +37,15 @@ class DataPackage:
         self.trend_descriptors = trend_descriptors
         self.rows = rows
 
+    @staticmethod
+    def merge_packages(packages):
+        return [
+            package_group(key, list(group))
+            for key, group in grouped_by(packages, DataPackage.get_key)
+        ]
+
     def render_table(self):
-        column_names = ["entity"] + list(
+        column_names = ["entity", "timestamp"] + list(
             trend_descriptor.name
             for trend_descriptor in self.trend_descriptors
         )
@@ -82,19 +95,30 @@ class DataPackage:
         :param group_fn: Function that returns the group key for a trend name
         :return: A list of data packages with trends grouped by key
         """
-        for key, group in grouped_by([
+        value_getters = (
             (group_fn(trend_descriptor.name), itemgetter(index), trend_descriptor)
             for index, trend_descriptor in enumerate(self.trend_descriptors)
-        ], key=itemgetter(0)):
+        )
+
+        grouped_value_getters = grouped_by(
+            (g for g in value_getters if g[0] is not None),
+            key=itemgetter(0)
+        )
+
+        for key, group in grouped_value_getters:
             keys, value_getters, trend_names = zip(*list(group))
 
-            yield key, DataPackage(self.data_package_type,
-                self.granularity,
-                trend_names,
-                [
-                    (entity_ref, timestamp, tuple(g(values) for g in value_getters))
-                    for entity_ref, timestamp, values in self.rows
-                ]
+            yield (
+                key,
+                DataPackage(
+                    self.data_package_type,
+                    self.granularity,
+                    trend_names,
+                    [
+                        (entity_ref, timestamp, tuple(g(values) for g in value_getters))
+                        for entity_ref, timestamp, values in self.rows
+                    ]
+                )
             )
 
     def get_key(self):
@@ -127,6 +151,9 @@ class DataPackage:
             )
 
         return fn
+
+    def timestamps(self):
+        return list(set(row[1] for row in self.rows))
 
     def _create_copy_from_query(self, table):
         """Return SQL query that can be used in the COPY FROM command."""
@@ -174,38 +201,41 @@ class DataPackage:
 
 
 def package_group(key, packages):
-    data_package_type, _entitytype_name, granularity = key
+    data_package_type, _entity_type_name, granularity = key
 
-    all_field_names = set()
+    all_trend_descriptors = {}
+
+    # Combine all values from all packages using dictionaries
     dict_rows_by_entity_ref = {}
 
     for p in packages:
-        for entity_ref, values in p.rows:
-            value_dict = dict(zip(p.trend_names, values))
+        for entity_ref, timestamp, values in p.rows:
+            value_dict = dict(zip(
+                (td.name for td in p.trend_descriptors), values
+            ))
 
             dict_rows_by_entity_ref.setdefault(
-                entity_ref, {}
+                (entity_ref, timestamp), {}
             ).update(value_dict)
 
-        all_field_names.update(p.trend_names)
+        all_trend_descriptors.update(
+            {td.name: td for td in p.trend_descriptors}
+        )
 
-    field_names = list(all_field_names)
+    # Use the encountered field names to construct new rows with a value for
+    # each field
+    trend_descriptors = list(all_trend_descriptors.values())
 
     rows = []
-    for entity_ref, value_dict in dict_rows_by_entity_ref.items():
-        values = [value_dict.get(f, "") for f in field_names]
 
-        row = entity_ref, values
+    for (entity_ref, timestamp), value_dict in dict_rows_by_entity_ref.items():
+        values = [value_dict.get(td.name) for td in trend_descriptors]
+
+        row = entity_ref, timestamp, values
 
         rows.append(row)
 
-    return DataPackage(data_package_type, granularity, field_names, rows)
-
-
-def from_first_dn(data_package):
-    dn = data_package.rows[0][0]
-
-    return entity_type_name_from_dn(dn)
+    return DataPackage(data_package_type, granularity, trend_descriptors, rows)
 
 
 def parse_values(parsers):

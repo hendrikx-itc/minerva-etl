@@ -1,9 +1,6 @@
 # -*- coding: utf-8 -*-
 """Distutils install script."""
-import sys
 from setuptools import setup
-from distutils.util import convert_path
-
 
 # Load module with version
 ns = {}
@@ -15,7 +12,7 @@ with open(mod_path) as mod_file:
 
 
 setup(
-    name="minerva",
+    name="minerva-etl",
     author="Hendrikx ITC",
     author_email="info@hendrikx-itc.nl",
     version=ns['__version__'],
@@ -37,17 +34,12 @@ setup(
         "minerva.storage.trend.test",
         "minerva.storage.attribute",
         "minerva.storage.notification",
-        "minerva.xmldochandler",
-        "minerva.xmldochandler.xmlschema",
-        "minerva.xmlschemaparser",
-        "minerva.schemacontextbuilder",
         "minerva.harvest"
     ],
     package_dir={"": "src"},
-    package_data={
-        "minerva": ["defaults/*"]
-    },
-    scripts=[
-        "scripts/minerva"
-    ]
+    entry_points={
+        'console_scripts': [
+            'minerva = minerva.commands.minerva:main'
+        ]
+    }
 )

@@ -1,12 +1,30 @@
 import json
 from contextlib import closing
 import argparse
+import sys
+
+import yaml
+import psycopg2
 
 from minerva.commands import LoadHarvestPlugin, ListPlugins, load_json
 from minerva.db import connect
 from minerva.harvest.trend_config_deducer import deduce_config
 from minerva.util.tabulate import render_table
-from minerva.storage.trend.tabletrendstore import TableTrendStore
+from minerva.commands.partition import create_partitions_for_trend_store
+
+
+class DuplicateTrendStore(Exception):
+    def __init__(self, data_source, entity_type, granularity):
+        self.data_source = data_source
+        self.entity_type = entity_type
+        self.granularity = granularity
+
+    def __str__(self):
+        return 'Duplicate trend store {}, {}, {}'.format(
+            self.data_source,
+            self.entity_type,
+            self.granularity
+        )
 
 
 def setup_command_parser(subparsers):
@@ -17,11 +35,16 @@ def setup_command_parser(subparsers):
     cmd_subparsers = cmd.add_subparsers()
 
     setup_create_parser(cmd_subparsers)
+    setup_extend_parser(cmd_subparsers)
     setup_deduce_parser(cmd_subparsers)
     setup_delete_parser(cmd_subparsers)
     setup_add_trend_parser(cmd_subparsers)
+    setup_alter_trend_parser(cmd_subparsers)
     setup_show_parser(cmd_subparsers)
-    setup_create_partition_parser(cmd_subparsers)
+    setup_list_parser(cmd_subparsers)
+    setup_partition_parser(cmd_subparsers)
+    setup_process_modified_log_parser(cmd_subparsers)
+    setup_materialize_parser(cmd_subparsers)
 
 
 def setup_create_parser(subparsers):
@@ -30,22 +53,22 @@ def setup_create_parser(subparsers):
     )
 
     cmd.add_argument(
-        '--data-source', default='default',
+        '--data-source',
         help='name of the data source of the new trend store'
     )
 
     cmd.add_argument(
-        '--entity-type', default='unknown',
+        '--entity-type',
         help='name of the entity type of the new trend store'
     )
 
     cmd.add_argument(
-        '--granularity', default='1 day',
+        '--granularity',
         help='granularity of the new trend store'
     )
 
     cmd.add_argument(
-        '--partition-size', default=86400,
+        '--partition-size',
         help='partition size of the new trend store'
     )
 
@@ -54,33 +77,126 @@ def setup_create_parser(subparsers):
         help='use json description for trend store'
     )
 
-    cmd.add_argument('name', nargs="?", help='name of the new trend store')
+    cmd.add_argument(
+        '--from-yaml', type=argparse.FileType('r'),
+        help='use yaml description for trend store'
+    )
 
     cmd.set_defaults(cmd=create_trend_store_cmd)
 
 
 def create_trend_store_cmd(args):
     if args.from_json:
-        create_trend_store_from_json(args.from_json)
+        trend_store_config = json.load(args.from_json)
+    elif args.from_yaml:
+        trend_store_config = yaml.load(args.from_yaml, Loader=yaml.SafeLoader)
     else:
-        query = (
-            'SELECT trend_directory.create_table_trend_store('
-            '%s::name, %s::text, %s::text, %s::interval, %s::integer, '
-            '%s::trend_directory.trend_descr[])'
+        trend_store_config = {
+            'parts': []
+        }
+
+    if args.data_source:
+        trend_store_config['data_source'] = args.data_source
+
+    if args.entity_type:
+        trend_store_config['entity_type'] = args.entity_type
+
+    if args.granularity:
+        trend_store_config['granularity'] = args.granularity
+
+    if args.partition_size:
+        trend_store_config['partition_size'] = args.partition_size
+
+    sys.stdout.write(
+        "Creating trend store '{}' - '{}' - '{}' ... ".format(
+            trend_store_config['data_source'],
+            trend_store_config['entity_type'],
+            trend_store_config['granularity']
         )
+    )
 
-        trend_descriptors = []
+    try:
+        create_trend_store_from_json(trend_store_config)
+        sys.stdout.write("OK\n")
+    except Exception as exc:
+        sys.stdout.write("Error:\n{}".format(str(exc)))
+        raise exc
 
-        query_args = (
-            args.name, args.data_source, args.entity_type, args.granularity,
-            args.partition_size, trend_descriptors
+
+def setup_extend_parser(subparsers):
+    cmd = subparsers.add_parser(
+        'add-trends', help='command for adding trends to trend stores'
+    )
+
+    cmd.add_argument(
+        '--data-source',
+        help='name of the data source of the trend store'
+    )
+
+    cmd.add_argument(
+        '--entity-type',
+        help='name of the entity type of the trend store'
+    )
+
+    cmd.add_argument(
+        '--granularity',
+        help='granularity of the trend store'
+    )
+
+    cmd.add_argument(
+        '--partition-size',
+        help='partition size of the trend store'
+    )
+
+    cmd.add_argument(
+        '--from-json', type=argparse.FileType('r'),
+        help='use json description for trend store'
+    )
+
+    cmd.add_argument(
+        '--from-yaml', type=argparse.FileType('r'),
+        help='use yaml description for trend store'
+    )
+
+    cmd.set_defaults(cmd=add_trends_cmd)
+
+
+def add_trends_cmd(args):
+    if args.from_json:
+        trend_store_config = json.load(args.from_json)
+    elif args.from_yaml:
+        trend_store_config = yaml.load(args.from_yaml, Loader=yaml.SafeLoader)
+    else:
+        trend_store_config = {
+            'parts': []
+        }
+
+    if args.data_source:
+        trend_store_config['data_source'] = args.data_source
+
+    if args.entity_type:
+        trend_store_config['entity_type'] = args.entity_type
+
+    if args.granularity:
+        trend_store_config['granularity'] = args.granularity
+
+    if args.partition_size:
+        trend_store_config['partition_size'] = args.partition_size
+
+    sys.stdout.write(
+        "Adding trends to trend store '{}' - '{}' - '{}' ... ".format(
+            trend_store_config['data_source'],
+            trend_store_config['entity_type'],
+            trend_store_config['granularity']
         )
+    )
 
-        with closing(connect()) as conn:
-            with closing(conn.cursor()) as cursor:
-                cursor.execute(query, query_args)
-
-            conn.commit()
+    try:
+        add_tables_to_trend_store_from_json(trend_store_config)
+        sys.stdout.write("OK\n")
+    except Exception as exc:
+        sys.stdout.write("Error:\n{}".format(str(exc)))
+        raise exc
 
 
 def setup_deduce_parser(subparsers):
@@ -140,22 +256,22 @@ def deduce_trend_store_cmd(cmd_parser):
     return cmd
 
 
-def create_trend_store_from_json(json_file):
-    data = json.load(json_file)
-
+def create_trend_store_from_json(data):
     query = (
-        'SELECT trend_directory.create_table_trend_store('
-        '%s::text, %s::text, %s::interval, %s::integer, {}'
+        'SELECT trend_directory.create_trend_store('
+        '%s::text, %s::text, %s::interval, %s::interval, {}'
         ')'
     ).format(
-        "ARRAY[{}]::trend_directory.table_trend_store_part_descr[]".format(','.join([
+        "ARRAY[{}]::trend_directory.trend_store_part_descr[]".format(','.join([
             "('{}', {})".format(
                 part['name'],
                 'ARRAY[{}]::trend_directory.trend_descr[]'.format(','.join([
-                    "('{}', '{}', '')".format(
+                    "('{}', '{}', '{}', '{}', '{}')".format(
                         trend['name'],
                         trend['data_type'],
-                        ''
+                        trend.get('description', ''),
+                        trend['time_aggregation'],
+                        trend['entity_aggregation']
                     )
                     for trend in part['trends']
                 ]))
@@ -171,6 +287,50 @@ def create_trend_store_from_json(json_file):
 
     with closing(connect()) as conn:
         with closing(conn.cursor()) as cursor:
+            try:
+                cursor.execute(query, query_args)
+            except psycopg2.errors.UniqueViolation as exc:
+                raise DuplicateTrendStore(
+                    data['data_source'], data['entity_type'],
+                    data['granularity']
+                )
+
+        conn.commit()
+
+
+def add_tables_to_trend_store_from_json(data):
+    query = (
+        'SELECT trend_directory.add_missing_trends('
+        'trend_directory.get_trend_store('
+        '%s::text, %s::text, %s::interval'
+        '), {}'
+        ')'
+    ).format(
+        "ARRAY[{}]::trend_directory.trend_store_part_descr[]".format(','.join([
+            "('{}', {})".format(
+                part['name'],
+                'ARRAY[{}]::trend_directory.trend_descr[]'.format(','.join([
+                    "('{}', '{}', '{}', '{}', '{}')".format(
+                        trend['name'],
+                        trend['data_type'],
+                        trend.get('description', ''),
+                        trend['time_aggregation'],
+                        trend['entity_aggregation']
+                    )
+                    for trend in part['trends']
+                ]))
+            )
+            for part in data['parts']
+        ]))
+    )
+
+    query_args = (
+        data['data_source'], data['entity_type'],
+        data['granularity']
+    )
+
+    with closing(connect()) as conn:
+        with closing(conn.cursor()) as cursor:
             cursor.execute(query, query_args)
 
         conn.commit()
@@ -181,18 +341,18 @@ def setup_delete_parser(subparsers):
         'delete', help='command for deleting trend stores'
     )
 
-    cmd.add_argument('name', help='name of trend store')
+    cmd.add_argument('id', help='id of trend store')
 
     cmd.set_defaults(cmd=delete_trend_store_cmd)
 
 
 def delete_trend_store_cmd(args):
     query = (
-        'SELECT trend_directory.delete_table_trend_store(%s::name)'
+        'SELECT trend_directory.delete_trend_store(%s)'
     )
 
     query_args = (
-        args.name,
+        args.id,
     )
 
     with closing(connect()) as conn:
@@ -214,7 +374,7 @@ def setup_add_trend_parser(subparsers):
     cmd.add_argument('--part-name')
 
     cmd.add_argument(
-        'trend-store',
+        'trend_store',
         help='name of the trend store where the trend will be added'
     )
 
@@ -223,15 +383,53 @@ def setup_add_trend_parser(subparsers):
 
 def add_trend_to_trend_store_cmd(args):
     query = (
-        'SELECT trend_directory.add_trend_to_trend_store('
-        'table_trend_store, %s::name, %s::text, %s::text'
-        ') '
-        'FROM trend_directory.table_trend_store WHERE name = %s'
+        'WITH ts AS (SELECT trend_directory.add_trend_to_trend_store('
+        'trend_store_part, %s::name, %s::text, %s::text'
+        ') as created '
+        'FROM trend_directory.trend_store_part WHERE name = %s) '
+        'SELECT (ts.created).* FROM ts'
     )
 
     query_args = (
         args.trend_name, args.data_type, '', args.trend_store
     )
+
+    with closing(connect()) as conn:
+        with closing(conn.cursor()) as cursor:
+            cursor.execute(query, query_args)
+
+            result = cursor.fetchone()
+
+        conn.commit()
+
+    (
+        trend_id, trend_store_part_id, name, data_type, extra_data,
+        description
+    ) = result
+
+    print("Created trend '{}'".format(name))
+
+
+def setup_alter_trend_parser(subparsers):
+    cmd = subparsers.add_parser(
+        'alter-trend', help='alter a trend of a trend store'
+    )
+
+    cmd.add_argument('--data-type', help='New data type')
+
+    cmd.add_argument('--trend-name', help='New trend name')
+
+    cmd.add_argument(
+        'trend',
+        help='Identifier of the trend to modify <trend_store_part>.<trend_name>'
+    )
+
+    cmd.set_defaults(cmd=alter_trend_cmd)
+
+
+def alter_trend_cmd(_args):
+    query = "SELECT 10"
+    query_args = tuple()
 
     with closing(connect()) as conn:
         with closing(conn.cursor()) as cursor:
@@ -244,49 +442,123 @@ def add_trend_to_trend_store_cmd(args):
 
 def setup_show_parser(subparsers):
     cmd = subparsers.add_parser(
-        'show', help='show information on trend stores'
+        'show', help='show information on a trend store'
     )
 
     cmd.add_argument(
-        '--id', help='id of trend store', type=int
+        'trend_store_id', help='id of trend store', type=int
     )
 
     cmd.set_defaults(cmd=show_trend_store_cmd)
 
 
-def show_rows(column_names, rows):
+def show_rows(column_names, rows, show_cmd=print):
     column_align = "<" * len(column_names)
     column_sizes = ["max"] * len(column_names)
 
     for line in render_table(column_names, column_align, column_sizes, rows):
-        print(line)
+        show_cmd(line)
 
 
-def show_rows_from_cursor(cursor):
-    show_rows([c.name for c in cursor.description], cursor.fetchall())
+def show_rows_from_cursor(cursor, show_cmd=print):
+    show_rows(
+        [c.name for c in cursor.description],
+        cursor.fetchall(),
+        show_cmd
+    )
 
 
 def show_trend_store_cmd(args):
     query = (
         'SELECT '
-        'table_trend_store.id, '
+        'trend_store.id, '
         'entity_type.name AS entity_type, '
         'data_source.name AS data_source, '
-        'table_trend_store.granularity,'
-        'table_trend_store.partition_size, '
-        'table_trend_store.retention_period '
-        'FROM trend_directory.table_trend_store '
+        'trend_store.granularity,'
+        'trend_store.partition_size, '
+        'trend_store.retention_period '
+        'FROM trend_directory.trend_store '
         'JOIN directory.entity_type ON entity_type.id = entity_type_id '
-        'JOIN directory.data_source ON data_source.id = data_source_id'
+        'JOIN directory.data_source ON data_source.id = data_source_id '
+        'WHERE trend_store.id = %s'
+    )
+
+    query_args = (args.trend_store_id,)
+
+    parts_query = (
+        'SELECT '
+        'tsp.id, '
+        'tsp.name '
+        'FROM trend_directory.trend_store_part tsp '
+        'WHERE tsp.trend_store_id = %s'
+    )
+
+    parts_query_args = (args.trend_store_id,)
+
+    with closing(connect()) as conn:
+        with closing(conn.cursor()) as cursor:
+            cursor.execute(query, query_args)
+
+            (
+                id_, entity_type, data_source, granularity, partition_size,
+                retention_period
+            ) = cursor.fetchone()
+
+            print("Table Trend Store")
+            print("")
+            print("id:               {}".format(id_))
+            print("entity_type:      {}".format(entity_type))
+            print("data_source:      {}".format(data_source))
+            print("granularity:      {}".format(granularity))
+            print("partition_size:   {}".format(partition_size))
+            print("retention_period: {}".format(retention_period))
+            print("parts:")
+
+            cursor.execute(parts_query, parts_query_args)
+
+            rows = cursor.fetchall()
+
+            for part_id, part_name in rows:
+                header = '{} ({})'.format(part_name, part_id)
+                print("                  {}".format(header))
+                print("                  {}".format('='*len(header)))
+
+                part_query = (
+                    'SELECT id, name, data_type '
+                    'FROM trend_directory.table_trend '
+                    'WHERE trend_store_part_id = %s'
+                )
+                part_args = (part_id, )
+
+                cursor.execute(part_query, part_args)
+
+                def show_cmd(line):
+                    print("                  {}".format(line))
+
+                show_rows_from_cursor(cursor, show_cmd)
+
+
+def setup_list_parser(subparsers):
+    cmd = subparsers.add_parser(
+        'list', help='list trend stores'
+    )
+
+    cmd.set_defaults(cmd=list_trend_stores_cmd)
+
+
+def list_trend_stores_cmd(_args):
+    query = (
+        'SELECT '
+        'ts.id as id, '
+        'data_source.name as data_source, '
+        'entity_type.name as entity_type, '
+        'ts.granularity '
+        'FROM trend_directory.trend_store ts '
+        'JOIN directory.data_source ON data_source.id = ts.data_source_id '
+        'JOIN directory.entity_type ON entity_type.id = ts.entity_type_id'
     )
 
     query_args = []
-
-    if args.id:
-        query += ' WHERE table_trend_store.id = %s'
-        query_args.append(
-            args.id
-        )
 
     with closing(connect()) as conn:
         with closing(conn.cursor()) as cursor:
@@ -295,31 +567,180 @@ def show_trend_store_cmd(args):
             show_rows_from_cursor(cursor)
 
 
-def setup_create_partition_parser(subparsers):
+def setup_partition_parser(subparsers):
     cmd = subparsers.add_parser(
-        'create-partition', help='create partition for trend store'
+        'partition', help='manage trend store partitions'
     )
 
-    cmd.add_argument(
-        '--id', help='id of trend store', type=int
+    cmd_subparsers = cmd.add_subparsers()
+    create_parser = cmd_subparsers.add_parser(
+        'create', help='create partitions for trend store'
     )
 
-    cmd.add_argument(
-        '--part-name', help='name of trend store part'
+    create_parser.add_argument(
+        '--trend-store', type=int,
+        help='Id of trend store for which to create partitions'
     )
 
-    cmd.add_argument(
-        '--timestamp', help='timestamp for which to create partition'
+    create_parser.add_argument(
+        '--ahead-interval',
+        help='period for which to create partitions'
     )
 
-    cmd.set_defaults(cmd=create_partition_cmd)
+    create_parser.set_defaults(cmd=create_partition_cmd)
 
 
 def create_partition_cmd(args):
-    with closing(connect()) as conn:
-        table_trend_store = TableTrendStore.get_by_id(args.id)(conn)
+    query = 'SELECT id FROM trend_directory.trend_store'
 
-        if args.part_name:
-            table_trend_store.partition(args.part_name, args.timestamp).create(conn)
+    ahead_interval = args.ahead_interval or '1 day'
+
+    with closing(connect()) as conn:
+        if args.trend_store is None:
+            with closing(conn.cursor()) as cursor:
+                cursor.execute(query)
+
+                rows = cursor.fetchall()
+
+            for trend_store_id, in rows:
+                create_partitions_for_trend_store(
+                    conn, trend_store_id, ahead_interval
+                )
+
+                conn.commit()
         else:
-            table_trend_store.create_partitions(args.timestamp)(conn)
+            create_partitions_for_trend_store(
+                conn, args.trend_store, ahead_interval
+            )
+
+            conn.commit()
+
+
+def setup_process_modified_log_parser(subparsers):
+    cmd = subparsers.add_parser(
+        'process-modified-log',
+        help='process modified log into modified state'
+    )
+
+    cmd.add_argument(
+        '--reset', action='store_true', default=False,
+        help='reset modified log processing state to Id 0'
+    )
+
+    cmd.set_defaults(cmd=process_modified_log)
+
+
+def process_modified_log(args):
+    reset_query = (
+        "UPDATE trend_directory.modified_log_processing_state "
+        "SET last_processed_id = %s "
+        "WHERE name = 'current'"
+    )
+
+    get_position_query = (
+        "SELECT last_processed_id "
+        "FROM trend_directory.modified_log_processing_state "
+        "WHERE name = 'current'"
+    )
+
+    query = "SELECT * FROM trend_directory.process_modified_log()"
+
+    with closing(connect()) as conn:
+        with closing(conn.cursor()) as cursor:
+            if args.reset:
+                cursor.execute(reset_query, (0,))
+
+            cursor.execute(get_position_query)
+
+            if cursor.rowcount == 1:
+                started_at_id, = cursor.fetchone()
+            else:
+                started_at_id = 0
+
+            cursor.execute(query)
+
+            last_processed_id, = cursor.fetchone()
+
+        conn.commit()
+
+    print(
+        "Processed modified log {} - {}".format(
+            started_at_id, last_processed_id
+        )
+    )
+
+
+def setup_materialize_parser(subparsers):
+    cmd = subparsers.add_parser(
+        'materialize', help='command for materializing trend data'
+    )
+
+    cmd.add_argument(
+        '--reset', action='store_true', default=False,
+        help='ignore materialization state'
+    )
+
+    cmd.set_defaults(cmd=materialize_cmd)
+
+
+def materialize_cmd(args):
+    try:
+        materialize_all(args.reset)
+    except Exception as exc:
+        sys.stdout.write("Error:\n{}".format(str(exc)))
+        raise exc
+
+
+def materialize_all(reset):
+    query = (
+        "SELECT m.id, m::text, ms.timestamp "
+        "FROM trend_directory.materialization_state ms "
+        "JOIN trend_directory.materialization m "
+        "ON m.id = ms.materialization_id "
+    )
+
+    if reset:
+        where_clause = (
+            "WHERE m.enabled AND ms.timestamp < now()"
+        )
+    else:
+        where_clause = (
+            "WHERE ("
+            "source_fingerprint != processed_fingerprint OR "
+            "processed_fingerprint IS NULL"
+            ") AND m.enabled AND ms.timestamp < now()"
+        )
+
+    query += where_clause
+
+    with closing(connect()) as conn:
+        with closing(conn.cursor()) as cursor:
+            cursor.execute(query)
+
+            rows = cursor.fetchall()
+
+        conn.commit()
+
+        for materialization_id, name, timestamp in rows:
+            try:
+                row_count = materialize(conn, materialization_id, timestamp)
+
+                conn.commit()
+
+                print("{} - {}: {} records".format(name, timestamp, row_count))
+            except Exception as e:
+                conn.rollback()
+                print(str(e))
+
+
+def materialize(conn, materialization_id, timestamp):
+    materialize_query = (
+        "SELECT (trend_directory.materialize(m, %s)).row_count "
+        "FROM trend_directory.materialization m WHERE id = %s"
+    )
+
+    with closing(conn.cursor()) as cursor:
+        cursor.execute(materialize_query, (timestamp, materialization_id))
+        row_count, = cursor.fetchone()
+
+    return row_count

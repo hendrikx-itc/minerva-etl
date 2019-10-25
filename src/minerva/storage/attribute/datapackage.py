@@ -10,7 +10,7 @@ from minerva.storage.valuedescriptor import ValueDescriptor
 from minerva.storage.attribute.attribute import AttributeDescriptor
 
 from minerva.directory.distinguishedname import entity_type_name_from_dn
-from minerva.directory.helpers import dns_to_entity_ids
+from minerva.directory.helpers import aliases_to_entity_ids
 
 
 SYSTEM_COLUMNS = "entity_id", "timestamp"
@@ -32,9 +32,10 @@ class DataPackage:
         | 1234003 |    22.5  |     3  |     90  | "on"    |
         +---------+----------+--------+---------+---------+
     """
-    def __init__(self, attribute_names, rows):
+    def __init__(self, attribute_names, rows, alias_type='dn'):
         self.attribute_names = attribute_names
         self.rows = rows
+        self.alias_type = alias_type
 
     def __str__(self):
         return str((self.attribute_names, self.rows))
@@ -62,7 +63,7 @@ class DataPackage:
                 ValueDescriptor(name, data_type)
                 for name, data_type in zip(
                     self.attribute_names, datatype.deduce_data_types(
-                     (values for dn, timestamp, values in self.rows)
+                     (values for alias, timestamp, values in self.rows)
                     ))
                  ]
 
@@ -146,10 +147,13 @@ class DataPackage:
 
     def get_entity_type_name(self):
         """Return the entity type name from the first Distinguished Name."""
-        if self.rows:
-            first_dn = self.rows[0][0]
+        if self.alias_type == 'dn':
+            if self.rows:
+                first_dn = self.rows[0][0]
 
-            return entity_type_name_from_dn(first_dn)
+                return entity_type_name_from_dn(first_dn)
+
+        return self.alias_type
 
     def get_key(self):
         """Return key by which to merge this package with other packages."""
@@ -162,9 +166,9 @@ class DataPackage:
         This means that all distinguished names are translated to entity Ids.
 
         """
-        dns, timestamps, value_rows = zip(*self.rows)
+        aliases, timestamps, value_rows = zip(*self.rows)
 
-        entity_ids = dns_to_entity_ids(cursor, list(dns))
+        entity_ids = aliases_to_entity_ids(cursor, self.alias_type, list(aliases), self.get_entity_type_name())
 
         rows = zip(entity_ids, timestamps, value_rows)
         return DataPackage(self.attribute_names, rows)

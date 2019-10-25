@@ -5,14 +5,14 @@ import pytz
 
 from minerva.directory import DataSource, EntityType, Entity
 from minerva.storage import datatype
-from minerva.storage.trend.tabletrendstorepart import TableTrendStorePart
+from minerva.storage.trend.trendstorepart import TrendStorePart
 from minerva.storage.trend.test import DataSet
 from minerva.storage.trend.granularity import create_granularity
 from minerva.storage.trend.datapackage import \
     refined_package_type_for_entity_type
 from minerva.storage.trend.trend import Trend
 from minerva.storage.trend.trendstore import TrendStore
-from minerva.storage.trend.tabletrendstore import TableTrendStore
+from minerva.storage.trend.trendstore import TableTrendStore
 
 
 class TestSetQtr(DataSet):
@@ -43,7 +43,7 @@ class TestSet1Small(TestSetQtr):
             self.granularity, self.timestamp, self.entities
         )
 
-        table_trend_store_part_descr = TableTrendStorePart.Descriptor(
+        table_trend_store_part_descr = TrendStorePart.Descriptor(
             'test-set-1-small', trend_descriptors
         )
 

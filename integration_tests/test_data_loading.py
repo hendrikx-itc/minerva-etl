@@ -9,11 +9,11 @@ from contextlib import closing
 import pytz
 
 from minerva.storage.inputdescriptor import InputDescriptor
-from minerva.storage.trend.tabletrendstorepart import TableTrendStorePart
+from minerva.storage.trend.trendstorepart import TrendStorePart
 from minerva.test import connect, clear_database
 from minerva.directory import EntityType, DataSource
 from minerva.storage.trend.granularity import create_granularity
-from minerva.storage.trend.tabletrendstore import TableTrendStore
+from minerva.storage.trend.trendstore import TableTrendStore
 from minerva.storage.trend.trend import Trend
 from minerva.storage.trend.datapackage import DefaultPackage
 from minerva.storage import datatype
@@ -64,7 +64,7 @@ class TestStoreTrend(unittest.TestCase):
         granularity = create_granularity("900 second")
         timestamp = pytz.utc.localize(datetime.datetime(2015, 2, 24, 20, 0))
 
-        table_trend_store_part_descr = TableTrendStorePart.Descriptor(
+        table_trend_store_part_descr = TrendStorePart.Descriptor(
             'test-trend-store',
             [
                 Trend.Descriptor(
@@ -169,7 +169,7 @@ class TestStoreTrend(unittest.TestCase):
         granularity = create_granularity("900 second")
         timestamp = pytz.utc.localize(datetime.datetime(2015, 2, 24, 20, 0))
 
-        table_trend_store_part = TableTrendStorePart.Descriptor(
+        table_trend_store_part = TrendStorePart.Descriptor(
             'test-trend-store',
             [
                 Trend.Descriptor(

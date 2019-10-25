@@ -9,8 +9,8 @@ from minerva.directory import DataSource, EntityType
 from minerva.storage.trend.granularity import create_granularity
 from minerva.storage.trend.trend import Trend
 from minerva.storage import datatype
-from minerva.storage.trend.tabletrendstore import TableTrendStore
-from minerva.storage.trend.tabletrendstorepart import TableTrendStorePart
+from minerva.storage.trend.trendstore import TableTrendStore
+from minerva.storage.trend.trendstorepart import TrendStorePart
 from minerva.storage.trend.engine import TrendEngine
 from minerva.storage.trend.datapackage import \
     refined_package_type_for_entity_type
@@ -29,7 +29,7 @@ class TestEngine(unittest.TestCase):
             Trend.Descriptor('y', datatype.registry['integer'], ''),
         ]
 
-        trend_store_part_descr = TableTrendStorePart.Descriptor(
+        trend_store_part_descr = TrendStorePart.Descriptor(
             'test-trend-store', trend_descriptors
         )
 
@@ -114,7 +114,7 @@ class TestEngine(unittest.TestCase):
             entity_type = EntityType.from_name("test-type001")(cursor)
 
             parts = [
-                TableTrendStorePart.Descriptor(
+                TrendStorePart.Descriptor(
                     'test-trend-store', trend_descriptors
                 )
             ]

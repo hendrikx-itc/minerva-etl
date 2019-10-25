@@ -2,6 +2,11 @@ class NoSuchEntityType(Exception):
     def __init__(self, entity_type_name):
         self.entity_type_name = entity_type_name
 
+    def __str__(self):
+        return "No such entity type '{}'".format(
+            self.entity_type_name
+        )
+
 
 class EntityType:
     def __init__(self, id_, name, description):

@@ -110,6 +110,7 @@ def retrieve_trend(conn, database_srid, region, region_srid, datasource,
         trendstore = TrendStore.get(cursor, datasource, entitytype,
                                     granularity)
 
+    # this is outdated code...
     partition = trendstore.partition(timestamp)
     table = partition.table()
 

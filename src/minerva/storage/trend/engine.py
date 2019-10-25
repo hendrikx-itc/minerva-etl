@@ -5,8 +5,8 @@ from functools import partial
 from minerva.util import k, identity
 from minerva.directory import EntityType, NoSuchEntityType
 from minerva.storage import Engine
-from minerva.storage.trend.tabletrendstore import TableTrendStore, \
-    NoSuchTableTrendStore
+from minerva.storage.trend.trendstore import TrendStore, \
+    NoSuchTrendStore
 from minerva.storage.trend.datapackage import DataPackage
 
 
@@ -14,7 +14,7 @@ class TrendEngine(Engine):
     pass_through = k(identity)
 
     @staticmethod
-    def store_cmd(package: DataPackage):
+    def store_cmd(package: DataPackage, description: str):
         """
         Return a function to bind a data source to the store command.
 
@@ -22,7 +22,7 @@ class TrendEngine(Engine):
         :return: function that binds a data source to the store command
         :rtype: (data_source) -> (conn) -> None
         """
-        return TrendEngine.make_store_cmd(TrendEngine.pass_through)(package)
+        return TrendEngine.make_store_cmd(TrendEngine.pass_through)(package, description)
 
     @staticmethod
     def make_store_cmd(transform_package):
@@ -32,17 +32,16 @@ class TrendEngine(Engine):
         :param transform_package: (TableTrendStore) -> (DataPackage)
         -> DataPackage
         """
-        def cmd(package: DataPackage):
+        def cmd(package: DataPackage, description: str):
             def bind_data_source(data_source):
                 def execute(conn):
                     trend_store = trend_store_for_package(
                         data_source, package
                     )(conn)
 
-                    verify_partition_for_package(trend_store, package)(conn)
-
                     trend_store.store(
-                        transform_package(trend_store)(package)
+                        transform_package(trend_store)(package),
+                        description
                     )(conn)
 
                     conn.commit()
@@ -80,34 +79,15 @@ def trend_store_for_package(data_source, package: DataPackage):
             if entity_type is None:
                 raise NoSuchEntityType(entity_type_name)
             else:
-                table_trend_store = TableTrendStore.get(
+                table_trend_store = TrendStore.get(
                     data_source, entity_type, package.granularity
                 )(cursor)
 
                 if table_trend_store is None:
-                    raise NoSuchTableTrendStore(
+                    raise NoSuchTrendStore(
                         data_source, entity_type, package.granularity
                     )
 
                 return table_trend_store
-
-    return f
-
-
-def verify_partition_for_package(
-        trend_store: TableTrendStore, package: DataPackage):
-    def f(conn):
-        with closing(conn.cursor()) as cursor:
-            parts = {
-                trend_store._trend_part_mapping[trend_name]
-                for trend_name in package.trend_descriptors
-                if trend_name in trend_store._trend_part_mapping
-            }
-
-            for part in parts:
-                partition = part.partition(package.timestamp)
-
-                if not partition.exists(cursor):
-                    partition.create(cursor)
 
     return f

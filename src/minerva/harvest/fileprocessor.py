@@ -43,14 +43,6 @@ def process_file(
                 yield package
         except DataError as exc:
             raise exc
-            #raise ParseError(
-            #    "{0!s} at position {1:d}".format(exc, data_file.tell())
-            #)
-        except Exception:
-            stack_trace = traceback.format_exc()
-            position = -1# data_file.tell()
-            message = "{0} at position {1:d}".format(stack_trace, position)
-            raise Exception(message)
         finally:
             stop_event.set()
 
