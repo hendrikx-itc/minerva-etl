@@ -39,31 +39,38 @@ def str_to_granularity(granularity_str):
             relativedelta(hours=hours, minutes=minutes, seconds=seconds)
         )
 
-    m = re.match('^([0-9]+)( second[s]?)?$', granularity_str)
+    m = re.match('^([0-9]+)[ ]*(s|second|seconds)$', granularity_str)
 
     if m:
         seconds, _ = m.groups()
 
         return Granularity(relativedelta(seconds=int(seconds)))
 
-    m = re.match('([0-9]+) day[s]?', granularity_str)
+    m = re.match('^([0-9]+)[ ]*(m|min|minute|minutes)$', granularity_str)
 
     if m:
-        days, = m.groups()
+        minutes, _ = m.groups()
+
+        return Granularity(relativedelta(minutes=int(minutes)))
+
+    m = re.match('([0-9]+)[ ]*(d|day|days)', granularity_str)
+
+    if m:
+        days, _ = m.groups()
 
         return Granularity(relativedelta(days=int(days)))
 
-    m = re.match('([0-9]+) week[s]?', granularity_str)
+    m = re.match('([0-9]+)[ ]*(w|week|weeks)', granularity_str)
 
     if m:
-        weeks, = m.groups()
+        weeks, _ = m.groups()
 
         return Granularity(relativedelta(days=int(weeks) * 7))
 
-    m = re.match('([0-9]+) month[s]?', granularity_str)
+    m = re.match('([0-9]+)[ ]*(month|months)', granularity_str)
 
     if m:
-        months, = m.groups()
+        months, _ = m.groups()
 
         return Granularity(relativedelta(months=int(months)))
 
@@ -130,10 +137,32 @@ class Granularity:
         )
 
     def truncate(self, x):
+        years, months, days, hours, minutes, seconds = x.timetuple()[:6]
+
+        if self.delta == DELTA_1D:
+            return x.tzinfo.localize(
+                datetime.datetime(years, months, days, 0, 0, 0)
+            )
+        elif self.delta == DELTA_1H:
+            return x.tzinfo.localize(
+                datetime.datetime(years, months, days, hours, 0, 0)
+            )
+        elif self.delta == DELTA_15M:
+            truncated_minutes = minutes - (minutes % 15)
+
+            return x.tzinfo.localize(
+                datetime.datetime(years, months, days, hours, truncated_minutes, 0)
+            )
+
         raise NotImplementedError()
 
     def range(self, start, end):
         return fn_range(self.inc, self.inc(start), self.inc(end))
+
+
+DELTA_1D = relativedelta(days=1)
+DELTA_1H = relativedelta(hours=1)
+DELTA_15M = relativedelta(minutes=15)
 
 
 def months_str(num):

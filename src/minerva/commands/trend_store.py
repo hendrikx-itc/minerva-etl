@@ -2,15 +2,29 @@ import json
 from contextlib import closing
 import argparse
 import sys
-import datetime
 
 import yaml
+import psycopg2
 
 from minerva.commands import LoadHarvestPlugin, ListPlugins, load_json
 from minerva.db import connect
 from minerva.harvest.trend_config_deducer import deduce_config
 from minerva.util.tabulate import render_table
 from minerva.commands.partition import create_partitions_for_trend_store
+
+
+class DuplicateTrendStore(Exception):
+    def __init__(self, data_source, entity_type, granularity):
+        self.data_source = data_source
+        self.entity_type = entity_type
+        self.granularity = granularity
+
+    def __str__(self):
+        return 'Duplicate trend store {}, {}, {}'.format(
+            self.data_source,
+            self.entity_type,
+            self.granularity
+        )
 
 
 def setup_command_parser(subparsers):
@@ -30,6 +44,8 @@ def setup_command_parser(subparsers):
     setup_show_parser(cmd_subparsers)
     setup_list_parser(cmd_subparsers)
     setup_partition_parser(cmd_subparsers)
+    setup_process_modified_log_parser(cmd_subparsers)
+    setup_materialize_parser(cmd_subparsers)
 
 
 def setup_create_parser(subparsers):
@@ -348,7 +364,13 @@ def create_trend_store_from_json(data):
 
     with closing(connect()) as conn:
         with closing(conn.cursor()) as cursor:
-            cursor.execute(query, query_args)
+            try:
+                cursor.execute(query, query_args)
+            except psycopg2.errors.UniqueViolation as exc:
+                raise DuplicateTrendStore(
+                    data['data_source'], data['entity_type'],
+                    data['granularity']
+                )
 
         conn.commit()
 
@@ -498,7 +520,7 @@ def add_trend_to_trend_store_cmd(args):
     (
         trend_id, trend_store_part_id, name, data_type, extra_data,
         description
-    )= result
+    ) = result
 
     print("Created trend '{}'".format(name))
 
@@ -695,11 +717,145 @@ def create_partition_cmd(args):
 
                 rows = cursor.fetchall()
 
-
             for trend_store_id, in rows:
-                create_partitions_for_trend_store(conn, trend_store_id, ahead_interval)
+                create_partitions_for_trend_store(
+                    conn, trend_store_id, ahead_interval
+                )
+
                 conn.commit()
         else:
-            create_partitions_for_trend_store(conn, args.trend_store, ahead_interval)
+            create_partitions_for_trend_store(
+                conn, args.trend_store, ahead_interval
+            )
+
             conn.commit()
 
+
+def setup_process_modified_log_parser(subparsers):
+    cmd = subparsers.add_parser(
+        'process-modified-log',
+        help='process modified log into modified state'
+    )
+
+    cmd.add_argument(
+        '--reset', action='store_true', default=False,
+        help='reset modified log processing state to Id 0'
+    )
+
+    cmd.set_defaults(cmd=process_modified_log)
+
+
+def process_modified_log(args):
+    reset_query = (
+        "UPDATE trend_directory.modified_log_processing_state "
+        "SET last_processed_id = %s "
+        "WHERE name = 'current'"
+    )
+
+    get_position_query = (
+        "SELECT last_processed_id "
+        "FROM trend_directory.modified_log_processing_state "
+        "WHERE name = 'current'"
+    )
+
+    query = "SELECT * FROM trend_directory.process_modified_log()"
+
+    with closing(connect()) as conn:
+        with closing(conn.cursor()) as cursor:
+            if args.reset:
+                cursor.execute(reset_query, (0,))
+
+            cursor.execute(get_position_query)
+
+            if cursor.rowcount == 1:
+                started_at_id, = cursor.fetchone()
+            else:
+                started_at_id = 0
+
+            cursor.execute(query)
+
+            last_processed_id, = cursor.fetchone()
+
+        conn.commit()
+
+    print(
+        "Processed modified log {} - {}".format(
+            started_at_id, last_processed_id
+        )
+    )
+
+
+def setup_materialize_parser(subparsers):
+    cmd = subparsers.add_parser(
+        'materialize', help='command for materializing trend data'
+    )
+
+    cmd.add_argument(
+        '--reset', action='store_true', default=False,
+        help='ignore materialization state'
+    )
+
+    cmd.set_defaults(cmd=materialize_cmd)
+
+
+def materialize_cmd(args):
+    try:
+        materialize_all(args.reset)
+    except Exception as exc:
+        sys.stdout.write("Error:\n{}".format(str(exc)))
+        raise exc
+
+
+def materialize_all(reset):
+    query = (
+        "SELECT m.id, m::text, ms.timestamp "
+        "FROM trend_directory.materialization_state ms "
+        "JOIN trend_directory.materialization m "
+        "ON m.id = ms.materialization_id "
+    )
+
+    if reset:
+        where_clause = (
+            "WHERE m.enabled AND ms.timestamp < now()"
+        )
+    else:
+        where_clause = (
+            "WHERE ("
+            "source_fingerprint != processed_fingerprint OR "
+            "processed_fingerprint IS NULL"
+            ") AND m.enabled AND ms.timestamp < now()"
+        )
+
+    query += where_clause
+
+    with closing(connect()) as conn:
+        with closing(conn.cursor()) as cursor:
+            cursor.execute(query)
+
+            rows = cursor.fetchall()
+
+        conn.commit()
+
+        for materialization_id, name, timestamp in rows:
+            try:
+                row_count = materialize(conn, materialization_id, timestamp)
+
+                conn.commit()
+
+                print("{} - {}: {} records".format(name, timestamp, row_count))
+            except Exception as e:
+                conn.rollback()
+                print(str(e))
+
+
+def materialize(conn, materialization_id, timestamp):
+    materialize_query = (
+        "SELECT (trend_directory.materialize(m, %s)).row_count "
+        "FROM trend_directory.materialization m WHERE id = %s"
+    )
+
+    with closing(conn.cursor()) as cursor:
+        cursor.execute(materialize_query, (timestamp, materialization_id))
+        row_count, = cursor.fetchone()
+
+    return row_count
