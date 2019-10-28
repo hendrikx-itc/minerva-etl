@@ -22,6 +22,7 @@ def setup_command_parser(subparsers):
 
     setup_create_parser(cmd_subparsers)
     setup_extend_parser(cmd_subparsers)
+    setup_part_parser(cmd_subparsers)
     setup_deduce_parser(cmd_subparsers)
     setup_delete_parser(cmd_subparsers)
     setup_add_trend_parser(cmd_subparsers)
@@ -183,6 +184,82 @@ def add_trends_cmd(args):
         raise exc
 
 
+def setup_part_parser(subparsers):
+    cmd = subparsers.add_parser(
+        'add-parts', help='command for adding trend store parts to trend stores'
+    )
+
+    cmd.add_argument(
+        '--data-source',
+        help='name of the data source of the trend store'
+    )
+
+    cmd.add_argument(
+        '--entity-type',
+        help='name of the entity type of the trend store'
+    )
+
+    cmd.add_argument(
+        '--granularity',
+        help='granularity of the trend store'
+    )
+
+    cmd.add_argument(
+        '--partition-size',
+        help='partition size of the trend store'
+    )
+
+    cmd.add_argument(
+        '--from-json', type=argparse.FileType('r'),
+        help='use json description for trend store'
+    )
+
+    cmd.add_argument(
+        '--from-yaml', type=argparse.FileType('r'),
+        help='use yaml description for trend store'
+    )
+
+    cmd.set_defaults(cmd=add_parts_cmd)
+
+
+def add_parts_cmd(args):
+    if args.from_json:
+        trend_store_config = json.load(args.from_json)
+    elif args.from_yaml:
+        trend_store_config = yaml.load(args.from_yaml, Loader=yaml.SafeLoader)
+    else:
+        trend_store_config = {
+            'parts': []
+        }
+
+    if args.data_source:
+        trend_store_config['data_source'] = args.data_source
+
+    if args.entity_type:
+        trend_store_config['entity_type'] = args.entity_type
+
+    if args.granularity:
+        trend_store_config['granularity'] = args.granularity
+
+    if args.partition_size:
+        trend_store_config['partition_size'] = args.partition_size
+
+    sys.stdout.write(
+        "Adding trend store parts to trend store '{}' - '{}' - '{}' ... ".format(
+            trend_store_config['data_source'],
+            trend_store_config['entity_type'],
+            trend_store_config['granularity']
+        )
+    )
+
+    try:
+        add_parts_to_trend_store_from_json(trend_store_config)
+        sys.stdout.write("OK\n")
+    except Exception as exc:
+        sys.stdout.write("Error:\n{}".format(str(exc)))
+        raise exc
+
+
 def setup_deduce_parser(subparsers):
     cmd = subparsers.add_parser(
         'deduce', help='command for deducing trend stores from data'
@@ -279,6 +356,44 @@ def create_trend_store_from_json(data):
 def add_tables_to_trend_store_from_json(data):
     query = (
         'SELECT trend_directory.add_missing_trends('
+        'trend_directory.get_trend_store('
+        '%s::text, %s::text, %s::interval'
+        '), {}'
+        ')'
+    ).format(
+        "ARRAY[{}]::trend_directory.trend_store_part_descr[]".format(','.join([
+            "('{}', {})".format(
+                part['name'],
+                'ARRAY[{}]::trend_directory.trend_descr[]'.format(','.join([
+                    "('{}', '{}', '{}', '{}', '{}')".format(
+                        trend['name'],
+                        trend['data_type'],
+                        trend.get('description', ''),
+                        trend['time_aggregation'],
+                        trend['entity_aggregation']
+                    )
+                    for trend in part['trends']
+                ]))
+            )
+            for part in data['parts']
+        ]))
+    )
+
+    query_args = (
+        data['data_source'], data['entity_type'],
+        data['granularity']
+    )
+
+    with closing(connect()) as conn:
+        with closing(conn.cursor()) as cursor:
+            cursor.execute(query, query_args)
+
+        conn.commit()
+
+
+def add_parts_to_trend_store_from_json(data):
+    query = (
+        'SELECT trend_directory.add_missing_trend_store_parts('
         'trend_directory.get_trend_store('
         '%s::text, %s::text, %s::interval'
         '), {}'
