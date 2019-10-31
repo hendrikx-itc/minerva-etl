@@ -10,6 +10,7 @@ import dateutil.tz
 
 from minerva.db import connect
 from minerva.trigger.trigger import Trigger
+from minerva.util.tabulate import render_table
 
 
 def setup_command_parser(subparsers):
@@ -21,6 +22,7 @@ def setup_command_parser(subparsers):
 
     setup_create_parser(cmd_subparsers)
     setup_delete_parser(cmd_subparsers)
+    setup_list_parser(cmd_subparsers)
     setup_create_notifications_parser(cmd_subparsers)
 
 
@@ -86,6 +88,35 @@ def delete_trigger_cmd(args):
         conn.autocommit = True
 
         Trigger(args.name).delete(conn)
+
+def setup_list_parser(subparsers):
+    cmd = subparsers.add_parser(
+        'list', help='command for listing triggers'
+    )
+
+    cmd.set_defaults(cmd=list_cmd)
+
+
+def list_cmd(args):
+    query = 'SELECT id, name FROM trigger.rule'
+
+    with closing(connect()) as conn:
+        conn.autocommit = True
+
+        with closing(conn.cursor()) as cursor:
+            cursor.execute(query)
+
+            rows = cursor.fetchall()
+
+    show_rows(['id', 'name'], rows)
+
+
+def show_rows(column_names, rows, show_cmd=print):
+    column_align = "<" * len(column_names)
+    column_sizes = ["max"] * len(column_names)
+
+    for line in render_table(column_names, column_align, column_sizes, rows):
+        show_cmd(line)
 
 
 def setup_create_notifications_parser(subparsers):
