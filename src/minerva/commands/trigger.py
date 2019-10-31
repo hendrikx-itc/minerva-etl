@@ -63,7 +63,7 @@ def create_trigger_from_config(config):
     with closing(connect()) as conn:
         conn.autocommit = True
 
-        print("Creating KPI type")
+        print(" - creating KPI type")
 
         try:
             create_kpi_type(conn, config)
@@ -71,7 +71,7 @@ def create_trigger_from_config(config):
             # Type already exists
             sys.stdout.write('Type exists already\n')
 
-        print("Creating KPI function")
+        print(" - creating KPI function")
 
         try:
             create_kpi_function(conn, config)
@@ -81,11 +81,15 @@ def create_trigger_from_config(config):
 
         #set_fingerprint(conn, config)
 
-        print("Creating rule")
+        print(" - creating rule")
 
         create_rule(conn, config)
 
-        print("Defining notification")
+        print(" - setting thresholds")
+
+        set_thresholds(conn, config)
+
+        print(" - defining notification")
 
         define_notification(conn, config)
 
@@ -200,6 +204,20 @@ def create_rule(conn, config):
             set_notification_store_query,
             (rule_id, config['notification_store'])
         )
+
+
+def set_thresholds(conn, config):
+    function_name = '{}_set_thresholds'.format(config['name'])
+
+    query = 'SELECT trigger_rule."{}"({})'.format(
+        function_name,
+        ','.join(len(config['thresholds']) * ['%s'])
+    )
+
+    query_args = tuple(threshold['value'] for threshold in config['thresholds'])
+
+    with closing(conn.cursor()) as cursor:
+        cursor.execute(query, query_args)
 
 
 def setup_create_notifications_parser(subparsers):
