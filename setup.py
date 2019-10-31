@@ -34,7 +34,8 @@ setup(
         "minerva.storage.trend.test",
         "minerva.storage.attribute",
         "minerva.storage.notification",
-        "minerva.harvest"
+        "minerva.harvest",
+        "minerva.trigger"
     ],
     package_dir={"": "src"},
     entry_points={
