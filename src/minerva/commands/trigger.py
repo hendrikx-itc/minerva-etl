@@ -9,6 +9,7 @@ import dateutil.parser
 import dateutil.tz
 
 from minerva.db import connect
+from minerva.trigger.trigger import Trigger
 
 
 def setup_command_parser(subparsers):
@@ -19,6 +20,7 @@ def setup_command_parser(subparsers):
     cmd_subparsers = cmd.add_subparsers()
 
     setup_create_parser(cmd_subparsers)
+    setup_delete_parser(cmd_subparsers)
     setup_create_notifications_parser(cmd_subparsers)
 
 
@@ -60,164 +62,30 @@ def create_trigger_cmd(args):
 
 
 def create_trigger_from_config(config):
+    trigger = Trigger.from_config(config)
+
     with closing(connect()) as conn:
         conn.autocommit = True
 
-        print(" - creating KPI type")
-
-        try:
-            create_kpi_type(conn, config)
-        except psycopg2.errors.DuplicateObject as exc:
-            # Type already exists
-            sys.stdout.write('Type exists already\n')
-
-        print(" - creating KPI function")
-
-        try:
-            create_kpi_function(conn, config)
-        except psycopg2.errors.DuplicateFunction as exc:
-            # Function already exists
-            sys.stdout.write('Function exists already\n')
-
-        #set_fingerprint(conn, config)
-
-        print(" - creating rule")
-
-        create_rule(conn, config)
-
-        print(" - setting thresholds")
-
-        set_thresholds(conn, config)
-
-        print(" - defining notification")
-
-        define_notification(conn, config)
+        for message in trigger.create(conn):
+            print(message)
 
 
-def create_kpi_type(conn, config):
-    type_name = '{}_kpi'.format(config['name'])
-
-    column_specs = [
-        ('entity_id', 'integer'),
-        ('timestamp', 'timestamp with time zone')
-    ]
-
-    column_specs.extend(
-        (kpi_column['name'], kpi_column['data_type'])
-        for kpi_column in config['kpi_data']
+def setup_delete_parser(subparsers):
+    cmd = subparsers.add_parser(
+        'delete', help='command for deleting triggers'
     )
 
-    columns = [
-        sql.SQL('{{}} {}'.format(data_type)).format(sql.Identifier(name))
-        for name, data_type in column_specs
-    ]
+    cmd.add_argument('name', help='name of trigger')
 
-    columns_part = sql.SQL(', ').join(columns)
-
-    query_parts = [
-        sql.SQL(
-            "CREATE TYPE trigger_rule.{} AS ("
-        ).format(sql.Identifier(type_name)),
-        columns_part,
-        sql.SQL(')')
-    ]
-
-    query = sql.SQL('').join(query_parts)
-
-    with closing(conn.cursor()) as cursor:
-        cursor.execute(query)
+    cmd.set_defaults(cmd=delete_trigger_cmd)
 
 
-def create_kpi_function(conn, config):
-    function_name = '{}_kpi'.format(config['name'])
-    type_name = '{}_kpi'.format(config['name'])
+def delete_trigger_cmd(args):
+    with closing(connect()) as conn:
+        conn.autocommit = True
 
-    query_parts = [
-        sql.SQL(
-            'CREATE FUNCTION trigger_rule.{}(timestamp with time zone)\n'
-            'RETURNS SETOF trigger_rule.{}\n'
-            'AS $trigger$'
-        ).format(sql.Identifier(function_name), sql.Identifier(type_name)),
-        sql.SQL(config['kpi_function']),
-        sql.SQL(
-            '$trigger$ LANGUAGE plpgsql STABLE;'
-        )
-    ]
-
-    query = sql.SQL('').join(query_parts)
-
-    with closing(conn.cursor()) as cursor:
-        cursor.execute(query)
-
-
-def define_notification(conn, config):
-    query = 'SELECT trigger.define_notification(%s, %s)'
-
-    query_args = (
-        config['name'],
-        config['notification']
-    )
-
-    with closing(conn.cursor()) as cursor:
-        cursor.execute(query, query_args)
-
-
-def set_fingerprint(conn, config):
-    query = sql.SQL('SELECT trigger.set_fingerprint({}, {});').format(
-        sql.Literal(config['name']),
-        sql.Literal(config['fingerprint'])
-    )
-
-    with closing(conn.cursor()) as cursor:
-        cursor.execute(query)
-
-
-def create_rule(conn, config):
-    create_query = (
-        "SELECT * "
-        "FROM trigger.create_rule('{}', array[{}]::trigger.threshold_def[]);"
-    ).format(
-        config['name'],
-        ','.join(
-            "('{}', '{}')".format(threshold['name'], threshold['data_type'])
-            for threshold in config['thresholds']
-        )
-    )
-
-    set_notification_store_query = (
-        "UPDATE trigger.rule "
-        "SET notification_store_id = notification_store.id "
-        "FROM notification_directory.notification_store "
-        "JOIN directory.data_source "
-        "ON data_source.id = notification_store.data_source_id "
-        "WHERE rule.id = %s AND data_source.name = %s"
-    )
-
-    with closing(conn.cursor()) as cursor:
-        cursor.execute(create_query)
-
-        row = cursor.fetchone()
-
-        rule_id, _, _, _, _, _ = row
-
-        cursor.execute(
-            set_notification_store_query,
-            (rule_id, config['notification_store'])
-        )
-
-
-def set_thresholds(conn, config):
-    function_name = '{}_set_thresholds'.format(config['name'])
-
-    query = 'SELECT trigger_rule."{}"({})'.format(
-        function_name,
-        ','.join(len(config['thresholds']) * ['%s'])
-    )
-
-    query_args = tuple(threshold['value'] for threshold in config['thresholds'])
-
-    with closing(conn.cursor()) as cursor:
-        cursor.execute(query, query_args)
+        Trigger(args.name).delete(conn)
 
 
 def setup_create_notifications_parser(subparsers):
@@ -241,15 +109,11 @@ def execute_trigger_cmd(args):
     else:
         timestamp = None
 
-    query = "SELECT * FROM trigger.create_notifications(%s, %s)"
-    query_args = (args.trigger, timestamp)
+    trigger = Trigger(args.trigger)
 
     with closing(connect()) as conn:
         conn.autocommit = True
 
-        with closing(conn.cursor()) as cursor:
-            cursor.execute(query, query_args)
+        result = trigger.execute(conn, timestamp)
 
-            row = cursor.fetchone()
-
-            print(row)
+    print(result)
