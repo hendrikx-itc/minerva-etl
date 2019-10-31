@@ -51,6 +51,14 @@ class Trigger:
 
         define_notification(conn, self.config)
 
+        yield " - creating mapping functions"
+
+        create_mapping_functions(conn, self.config)
+
+        yield " - link trend stores"
+
+        link_trend_stores(conn, self.config)
+
     def delete(self, conn):
         query = 'SELECT trigger.delete_rule(%s)'
         query_args = (self.name,)
@@ -136,6 +144,46 @@ def define_notification(conn, config):
 
     with closing(conn.cursor()) as cursor:
         cursor.execute(query, query_args)
+
+def create_mapping_function_query(definition):
+    return (
+        'CREATE FUNCTION trend."{}"(timestamp with time zone) '
+        'RETURNS SETOF timestamp with time zone '
+        'AS $$ {} $$ LANGUAGE sql STABLE;'
+    ).format(definition['name'], definition['source'])
+
+
+def create_mapping_functions(conn, config):
+    queries = [
+        create_mapping_function_query(mapping_function)
+        for mapping_function in config['mapping_functions']
+    ]
+
+    with closing(conn.cursor()) as cursor:
+        for query in queries:
+            try:
+                cursor.execute(query)
+            except:
+                # Function already exists
+                pass
+
+
+def link_trend_stores(conn, config):
+    query = (
+        'INSERT INTO trigger.rule_trend_store_link(rule_id, trend_store_part_id, timestamp_mapping_func) '
+        "SELECT rule.id, trend_store_part.id, '{}(timestamp with time zone)'::regprocedure "
+        'FROM trigger.rule, trend_directory.trend_store_part '
+        'WHERE rule.name = %s AND trend_store_part.name = %s'
+    )
+
+    with closing(conn.cursor()) as cursor:
+        for trend_store_link in config['trend_store_links']:
+            mapping_function = 'trend.{}'.format(trend_store_link['mapping_function'])
+            formatted_query = query.format(mapping_function)
+
+            query_args = (config['name'], trend_store_link['part_name'])
+
+            cursor.execute(formatted_query, query_args)
 
 
 def set_fingerprint(conn, config):
