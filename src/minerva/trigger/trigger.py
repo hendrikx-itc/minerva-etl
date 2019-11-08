@@ -49,7 +49,7 @@ class Trigger:
 
         yield " - defining notification"
 
-        define_notification(conn, self.config)
+        define_notification_message(conn, self.config)
 
         yield " - creating mapping functions"
 
@@ -73,9 +73,9 @@ class Trigger:
         with closing(conn.cursor()) as cursor:
             cursor.execute(query, query_args)
 
-            row = cursor.fetchone()
+            notification_count, = cursor.fetchone()
 
-            return row
+            return notification_count
 
 
 def create_kpi_type(conn, config):
@@ -134,8 +134,8 @@ def create_kpi_function(conn, config):
         cursor.execute(query)
 
 
-def define_notification(conn, config):
-    query = 'SELECT trigger.define_notification(%s, %s)'
+def define_notification_message(conn, config):
+    query = 'SELECT trigger.define_notification_message(%s, %s)'
 
     query_args = (
         config['name'],
@@ -144,6 +144,7 @@ def define_notification(conn, config):
 
     with closing(conn.cursor()) as cursor:
         cursor.execute(query, query_args)
+
 
 def create_mapping_function_query(definition):
     return (

@@ -3,8 +3,6 @@ import argparse
 import sys
 
 import yaml
-import psycopg2
-from psycopg2 import sql
 import dateutil.parser
 import dateutil.tz
 
@@ -89,6 +87,7 @@ def delete_trigger_cmd(args):
 
         Trigger(args.name).delete(conn)
 
+
 def setup_list_parser(subparsers):
     cmd = subparsers.add_parser(
         'list', help='command for listing triggers'
@@ -145,6 +144,6 @@ def execute_trigger_cmd(args):
     with closing(connect()) as conn:
         conn.autocommit = True
 
-        result = trigger.execute(conn, timestamp)
+        notification_count = trigger.execute(conn, timestamp)
 
-    print(result)
+    print("Notifications generated: {}".format(notification_count))
