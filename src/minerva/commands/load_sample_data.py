@@ -1,12 +1,14 @@
 import os
 import sys
 import datetime
+import subprocess
+from itertools import chain
 
 import yaml
 import pytz
 
-import minerva
 from minerva.storage.trend.granularity import str_to_granularity
+from minerva.storage.trend.datapackage import DataPackage
 from minerva.harvest.plugins import get_plugin
 from minerva.db import connect
 from minerva.commands.load_data import create_store_db_context
@@ -23,6 +25,10 @@ def setup_command_parser(subparsers):
         help='root directory of the instance definition'
     )
 
+    cmd.add_argument(
+        'dataset', nargs='?', help='name of the dataset to load'
+    )
+
     cmd.set_defaults(cmd=load_sample_data_cmd)
 
 
@@ -35,12 +41,12 @@ def load_sample_data_cmd(args):
         "Loading sample data from '{}' ...\n".format(instance_root)
     )
 
-    load_sample_data(instance_root)
+    load_sample_data(instance_root, args.dataset)
 
     sys.stdout.write("Done\n")
 
 
-def load_sample_data(instance_root):
+def load_sample_data(instance_root, data_set=None):
     sys.path.append(os.path.join(instance_root, 'sample-data'))
 
     definition_file_path = os.path.join(
@@ -48,14 +54,41 @@ def load_sample_data(instance_root):
     )
 
     with open(definition_file_path) as definition_file:
-        definition = yaml.load(definition_file, Loader=yaml.SafeLoader)
+        definitions = yaml.load(definition_file, Loader=yaml.SafeLoader)
 
-        for name, data_set_config in definition.items():
-            generate_and_load(name, data_set_config)
+        for definition in definitions:
+            definition_type, config = definition.popitem()
+
+            # If the data set is specified, then only generate the specified
+            # data set.
+            if (data_set is None) or (data_set == config['name']):
+                if definition_type == 'native':
+                    generate_and_load(config)
+                elif definition_type == 'command':
+                    cmd_generate_and_load(config)
 
 
-def generate_and_load(name, config):
+def cmd_generate_and_load(config):
+    name = config['name']
+
+    print("Loading dataset '{}'".format(name))
+
+    data_set_generator = __import__(name)
+
+    target_dir = '/tmp'
+
+    for cmd_args in data_set_generator.generate(target_dir):
+        cmd = list(chain(data_set_generator.CMD, cmd_args))
+
+        print(' - executing: {}'.format(' '.join(cmd)))
+
+        subprocess.run(cmd)
+
+
+def generate_and_load(config):
     interval_count = 10
+
+    name = config['name']
 
     print("Loading dataset '{}' of type '{}'".format(
         name, config['data_type']
@@ -90,12 +123,14 @@ def generate_and_load(name, config):
         for timestamp in timestamp_range:
             print(' - {}'.format(timestamp))
 
-            file_path = data_set_generator.generate(target_dir, timestamp, granularity)
+            file_path = data_set_generator.generate(
+                target_dir, timestamp, granularity
+            )
 
             with open(file_path) as data_file:
                 packages_generator = parser.load_packages(data_file, file_path)
 
-                packages = minerva.storage.trend.datapackage.DataPackage.merge_packages(packages_generator)
+                packages = DataPackage.merge_packages(packages_generator)
 
                 for package in packages:
                     try:
