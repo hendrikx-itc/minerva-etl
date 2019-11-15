@@ -372,12 +372,11 @@ class Trend:
 
 
 class GeneratedTrend:
-    def __init__(self, name, data_type, description, expression, stored, extra_data):
+    def __init__(self, name, data_type, description, expression, extra_data):
         self.name = name
         self.data_type = data_type
         self.description = description
         self.expression = expression
-        self.stored = stored
         self.extra_data = extra_data
 
     @staticmethod
@@ -387,19 +386,17 @@ class GeneratedTrend:
             data['data_type'],
             data.get('description', ''),
             data['expression'],
-            data.get('stored', True),
             data.get('extra_data', {})
         )
 
     @staticmethod
     def adapt(generated_trend):
         return AsIs(
-            "({}, {}, {}, {}, {}, {})".format(
+            "({}, {}, {}, {}, {})".format(
                 QuotedString(generated_trend.name),
                 QuotedString(generated_trend.data_type),
                 QuotedString(generated_trend.description),
                 QuotedString(generated_trend.expression),
-                adapt(generated_trend.stored),
                 Json(generated_trend.extra_data)
             )
         )
