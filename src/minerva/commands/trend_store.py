@@ -5,6 +5,9 @@ import sys
 
 import yaml
 import psycopg2
+from psycopg2 import sql
+from psycopg2.extensions import adapt, register_adapter, AsIs, QuotedString, ISQLQuote
+from psycopg2.extras import Json
 
 from minerva.commands import LoadHarvestPlugin, ListPlugins, load_json
 from minerva.db import connect
@@ -333,33 +336,118 @@ def deduce_trend_store_cmd(cmd_parser):
     return cmd
 
 
+class Trend:
+    def __init__(self, name, data_type, description, time_aggregation, entity_aggregation, extra_data):
+        self.name = name
+        self.data_type = data_type
+        self.description = description
+        self.time_aggregation = time_aggregation
+        self.entity_aggregation = entity_aggregation
+        self.extra_data = extra_data
+
+    @staticmethod
+    def from_json(data):
+        return Trend(
+            data['name'],
+            data['data_type'],
+            data.get('description', ''),
+            data['time_aggregation'],
+            data['entity_aggregation'],
+            data.get('extra_data', {})
+        )
+
+
+    @staticmethod
+    def adapt(trend):
+        return AsIs(
+            "({}, {}, {}, {}, {}, {})".format(
+                QuotedString(trend.name),
+                QuotedString(trend.data_type),
+                QuotedString(trend.description),
+                QuotedString(trend.time_aggregation),
+                QuotedString(trend.entity_aggregation),
+                Json(trend.extra_data)
+            )
+        )
+
+
+class GeneratedTrend:
+    def __init__(self, name, data_type, description, expression, stored, extra_data):
+        self.name = name
+        self.data_type = data_type
+        self.description = description
+        self.expression = expression
+        self.stored = stored
+        self.extra_data = extra_data
+
+    @staticmethod
+    def from_json(data):
+        return GeneratedTrend(
+            data['name'],
+            data['data_type'],
+            data.get('description', ''),
+            data['expression'],
+            data.get('stored', True),
+            data.get('extra_data', {})
+        )
+
+    @staticmethod
+    def adapt(generated_trend):
+        return AsIs(
+            "({}, {}, {}, {}, {}, {})".format(
+                QuotedString(generated_trend.name),
+                QuotedString(generated_trend.data_type),
+                QuotedString(generated_trend.description),
+                QuotedString(generated_trend.expression),
+                adapt(generated_trend.stored),
+                Json(generated_trend.extra_data)
+            )
+        )
+
+
+class TrendStorePart:
+    def __init__(self, name, trends, generated_trends):
+        self.name = name
+        self.trends = trends
+        self.generated_trends = generated_trends
+
+    @staticmethod
+    def from_json(data):
+        return TrendStorePart(
+            data['name'],
+            [Trend.from_json(trend) for trend in data['trends']],
+            [
+                GeneratedTrend.from_json(generated_trend)
+                for generated_trend in data.get('generated_trends', [])
+            ]
+        )
+
+    @staticmethod
+    def adapt(trend_store_part):
+        return AsIs(
+            "({}, {}::trend_directory.trend_descr[], {}::trend_directory.generated_trend_descr[])".format(
+                QuotedString(trend_store_part.name),
+                adapt(trend_store_part.trends),
+                adapt(trend_store_part.generated_trends)
+            )
+        )
+
+register_adapter(TrendStorePart, TrendStorePart.adapt)
+register_adapter(GeneratedTrend, GeneratedTrend.adapt)
+register_adapter(Trend, Trend.adapt)
+
+
 def create_trend_store_from_json(data):
+    trend_store_parts = [TrendStorePart.from_json(p) for p in data['parts']]
+
     query = (
         'SELECT trend_directory.create_trend_store('
-        '%s::text, %s::text, %s::interval, %s::interval, {}'
+        '%s::text, %s::text, %s::interval, %s::interval, %s::trend_directory.trend_store_part_descr[]'
         ')'
-    ).format(
-        "ARRAY[{}]::trend_directory.trend_store_part_descr[]".format(','.join([
-            "('{}', {})".format(
-                part['name'],
-                'ARRAY[{}]::trend_directory.trend_descr[]'.format(','.join([
-                    "('{}', '{}', '{}', '{}', '{}')".format(
-                        trend['name'],
-                        trend['data_type'],
-                        trend.get('description', ''),
-                        trend['time_aggregation'],
-                        trend['entity_aggregation']
-                    )
-                    for trend in part['trends']
-                ]))
-            )
-            for part in data['parts']
-        ]))
     )
-
     query_args = (
         data['data_source'], data['entity_type'],
-        data['granularity'], data['partition_size']
+        data['granularity'], data['partition_size'], trend_store_parts
     )
 
     with closing(connect()) as conn:
