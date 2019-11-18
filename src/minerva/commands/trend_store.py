@@ -44,7 +44,6 @@ def setup_command_parser(subparsers):
     setup_change_trends_parser(cmd_subparsers)
     setup_deduce_parser(cmd_subparsers)
     setup_delete_parser(cmd_subparsers)
-    setup_add_trend_parser(cmd_subparsers)
     setup_show_parser(cmd_subparsers)
     setup_list_parser(cmd_subparsers)
     setup_partition_parser(cmd_subparsers)
@@ -467,9 +466,13 @@ class Trend:
             data.get('extra_data', {})
         )
 
-
     @staticmethod
     def adapt(trend):
+        if trend.extra_data is None:
+            extra_data = 'NULL'
+        else:
+            extra_data = Json(trend.extra_data)
+
         return AsIs(
             "({}, {}, {}, {}, {}, {})".format(
                 QuotedString(trend.name),
@@ -477,7 +480,7 @@ class Trend:
                 QuotedString(trend.description),
                 QuotedString(trend.time_aggregation),
                 QuotedString(trend.entity_aggregation),
-                Json(trend.extra_data)
+                extra_data
             )
         )
 
@@ -502,13 +505,23 @@ class GeneratedTrend:
 
     @staticmethod
     def adapt(generated_trend):
+        if generated_trend.extra_data is None:
+            extra_data = 'NULL'
+        else:
+            extra_data = Json(generated_trend.extra_data)
+
+        if generated_trend.description is None:
+            description = 'NULL'
+        else:
+            description = QuotedString(generated_trend.description)
+
         return AsIs(
             "({}, {}, {}, {}, {})".format(
                 QuotedString(generated_trend.name),
                 QuotedString(generated_trend.data_type),
-                QuotedString(generated_trend.description),
-                QuotedString(generated_trend.expression),
-                Json(generated_trend.extra_data)
+                description,
+                QuotedString(str(generated_trend.expression)),
+                extra_data
             )
         )
 
@@ -523,7 +536,10 @@ class TrendStorePart:
     def from_json(data):
         return TrendStorePart(
             data['name'],
-            [Trend.from_json(trend) for trend in data['trends']],
+            [
+                Trend.from_json(trend)
+                for trend in data['trends']
+            ],
             [
                 GeneratedTrend.from_json(generated_trend)
                 for generated_trend in data.get('generated_trends', [])
@@ -539,6 +555,26 @@ class TrendStorePart:
                 adapt(trend_store_part.generated_trends)
             )
         )
+
+
+class TrendStore:
+    def __init__(self, data_source, entity_type, granularity, partition_size, parts):
+        self.data_source = data_source
+        self.entity_type = entity_type
+        self.granularity = granularity
+        self.partition_size = partition_size
+        self.parts = parts
+
+    @staticmethod
+    def from_json(data):
+        return TrendStore(
+            data['data_source'],
+            data['entity_type'],
+            data['granularity'],
+            data['partition_size'],
+            [TrendStorePart.from_json(p) for p in data['parts']]
+        )
+
 
 register_adapter(TrendStorePart, TrendStorePart.adapt)
 register_adapter(GeneratedTrend, GeneratedTrend.adapt)
@@ -572,34 +608,19 @@ def create_trend_store_from_json(data):
 
 
 def add_trends_to_trend_store_from_json(data):
+    trend_store_parts = [TrendStorePart.from_json(p) for p in data['parts']]
+
     query = (
-        'SELECT trend_directory.add_missing_trends('
+        'SELECT trend_directory.add_trends('
         'trend_directory.get_trend_store('
         '%s::text, %s::text, %s::interval'
-        '), {}'
+        '), %s::trend_directory.trend_store_part_descr[]'
         ')'
-    ).format(
-        "ARRAY[{}]::trend_directory.trend_store_part_descr[]".format(','.join([
-            "('{}', {})".format(
-                part['name'],
-                'ARRAY[{}]::trend_directory.trend_descr[]'.format(','.join([
-                    "('{}', '{}', '{}', '{}', '{}')".format(
-                        trend['name'],
-                        trend['data_type'],
-                        trend.get('description', ''),
-                        trend['time_aggregation'],
-                        trend['entity_aggregation']
-                    )
-                    for trend in part['trends']
-                ]))
-            )
-            for part in data['parts']
-        ]))
     )
 
     query_args = (
         data['data_source'], data['entity_type'],
-        data['granularity']
+        data['granularity'], trend_store_parts
     )
 
     with closing(connect()) as conn:
@@ -610,39 +631,20 @@ def add_trends_to_trend_store_from_json(data):
 
 
 def remove_tables_from_trend_store_from_json(data):
+    trend_store_parts = [TrendStorePart.from_json(p) for p in data['parts']]
+
     query = (
         'SELECT trend_directory.remove_extra_trends('
         'trend_directory.get_trend_store('
         '%s::text, %s::text, %s::interval'
-        '), {}'
+        '), %s::trend_directory.trend_store_part_descr[]'
         ')'
-    ).format(
-        "ARRAY[{}]::trend_directory.trend_store_part_descr[]".format(','.join([
-            "('{}', {})".format(
-                part['name'],
-                'ARRAY[{}]::trend_directory.trend_descr[]'.format(','.join([
-                    "('{}', '{}', '{}', '{}', '{}')".format(
-                        trend['name'],
-                        trend['data_type'],
-                        trend.get('description', ''),
-                        trend['time_aggregation'],
-                        trend['entity_aggregation']
-                    )
-                    for trend in part['trends']
-                ]))
-            )
-            for part in data['parts']
-        ]))
     )
 
     query_args = (
         data['data_source'], data['entity_type'],
-        data['granularity']
+        data['granularity'], trend_store_parts
     )
-
-    f = open('/var/log/trendstore.txt', 'a')
-    f.write(query % query_args)
-    f.close()
 
     with closing(connect()) as conn:
         with closing(conn.cursor()) as cursor:
@@ -652,40 +654,20 @@ def remove_tables_from_trend_store_from_json(data):
 
 
 def alter_tables_in_trend_store_from_json(data, force=False):
+    trend_store_parts = [TrendStorePart.from_json(p) for p in data['parts']]
+
     query = (
         'SELECT trend_directory.{}('
         'trend_directory.get_trend_store('
         '%s::text, %s::text, %s::interval'
-        '), {}'
+        '), %s::trend_directory.trend_store_part_descr[]'
         ')'
-    ).format(
-        "change_all_trend_data" if force else "change_trend_data_upward",
-        "ARRAY[{}]::trend_directory.trend_store_part_descr[]".format(','.join([
-            "('{}', {})".format(
-                part['name'],
-                'ARRAY[{}]::trend_directory.trend_descr[]'.format(','.join([
-                    "('{}', '{}', '{}', '{}', '{}')".format(
-                        trend['name'],
-                        trend['data_type'],
-                        trend.get('description', ''),
-                        trend['time_aggregation'],
-                        trend['entity_aggregation']
-                    )
-                    for trend in part['trends']
-                ]))
-            )
-            for part in data['parts']
-        ]))
     )
 
     query_args = (
         data['data_source'], data['entity_type'],
-        data['granularity']
+        data['granularity'], trend_store_parts
     )
-
-    f = open('/var/log/trendstore.txt', 'a')
-    f.write(query % query_args)
-    f.close()
 
     with closing(connect()) as conn:
         with closing(conn.cursor()) as cursor:
@@ -695,40 +677,20 @@ def alter_tables_in_trend_store_from_json(data, force=False):
 
 
 def change_trend_store_from_json(data, force=False):
+    trend_store_parts = [TrendStorePart.from_json(p) for p in data['parts']]
+
     query = (
         'SELECT trend_directory.{}('
         'trend_directory.get_trend_store('
         '%s::text, %s::text, %s::interval'
-        '), {}'
+        '), %s::trend_directory.trend_store_part_descr[]'
         ')'
-    ).format(
-        "change_trendstore_strong" if force else "change_trendstore_weak",
-        "ARRAY[{}]::trend_directory.trend_store_part_descr[]".format(','.join([
-            "('{}', {})".format(
-                part['name'],
-                'ARRAY[{}]::trend_directory.trend_descr[]'.format(','.join([
-                    "('{}', '{}', '{}', '{}', '{}')".format(
-                        trend['name'],
-                        trend['data_type'],
-                        trend.get('description', ''),
-                        trend['time_aggregation'],
-                        trend['entity_aggregation']
-                    )
-                    for trend in part['trends']
-                ]))
-            )
-            for part in data['parts']
-        ]))
     )
 
     query_args = (
         data['data_source'], data['entity_type'],
-        data['granularity']
+        data['granularity'], trend_store_parts
     )
-
-    f = open('/var/log/trendstore.txt', 'a')
-    f.write(query % query_args)
-    f.close()
 
     with closing(connect()) as conn:
         with closing(conn.cursor()) as cursor:
@@ -738,34 +700,19 @@ def change_trend_store_from_json(data, force=False):
 
 
 def add_parts_to_trend_store_from_json(data):
+    trend_store_parts = [TrendStorePart.from_json(p) for p in data['parts']]
+
     query = (
         'SELECT trend_directory.add_missing_trend_store_parts('
         'trend_directory.get_trend_store('
         '%s::text, %s::text, %s::interval'
-        '), {}'
+        '), %s::trend_directory.trend_store_part_descr[]'
         ')'
-    ).format(
-        "ARRAY[{}]::trend_directory.trend_store_part_descr[]".format(','.join([
-            "('{}', {})".format(
-                part['name'],
-                'ARRAY[{}]::trend_directory.trend_descr[]'.format(','.join([
-                    "('{}', '{}', '{}', '{}', '{}')".format(
-                        trend['name'],
-                        trend['data_type'],
-                        trend.get('description', ''),
-                        trend['time_aggregation'],
-                        trend['entity_aggregation']
-                    )
-                    for trend in part['trends']
-                ]))
-            )
-            for part in data['parts']
-        ]))
     )
 
     query_args = (
         data['data_source'], data['entity_type'],
-        data['granularity']
+        data['granularity'], trend_store_parts
     )
 
     with closing(connect()) as conn:
@@ -799,54 +746,6 @@ def delete_trend_store_cmd(args):
             cursor.execute(query, query_args)
 
         conn.commit()
-
-
-def setup_add_trend_parser(subparsers):
-    cmd = subparsers.add_parser(
-        'add-trend', help='add a trend to a trend store'
-    )
-
-    cmd.add_argument('--data-type')
-
-    cmd.add_argument('--trend-name')
-
-    cmd.add_argument('--part-name')
-
-    cmd.add_argument(
-        'trend_store',
-        help='name of the trend store where the trend will be added'
-    )
-
-    cmd.set_defaults(cmd=add_trend_to_trend_store_cmd)
-
-
-def add_trend_to_trend_store_cmd(args):
-    query = (
-        'WITH ts AS (SELECT trend_directory.add_trend_to_trend_store('
-        'trend_store_part, %s::name, %s::text, %s::text'
-        ') as created '
-        'FROM trend_directory.trend_store_part WHERE name = %s) '
-        'SELECT (ts.created).* FROM ts'
-    )
-
-    query_args = (
-        args.trend_name, args.data_type, '', args.trend_store
-    )
-
-    with closing(connect()) as conn:
-        with closing(conn.cursor()) as cursor:
-            cursor.execute(query, query_args)
-
-            result = cursor.fetchone()
-
-        conn.commit()
-
-    (
-        trend_id, trend_store_part_id, name, data_type, extra_data,
-        description
-    ) = result
-
-    print("Created trend '{}'".format(name))
 
 
 def setup_show_parser(subparsers):
