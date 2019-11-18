@@ -39,11 +39,12 @@ def setup_command_parser(subparsers):
 
     setup_create_parser(cmd_subparsers)
     setup_extend_parser(cmd_subparsers)
-    setup_part_parser(cmd_subparsers)
+    setup_remove_parser(cmd_subparsers)
+    setup_alter_trends_parser(cmd_subparsers)
+    setup_change_trends_parser(cmd_subparsers)
     setup_deduce_parser(cmd_subparsers)
     setup_delete_parser(cmd_subparsers)
     setup_add_trend_parser(cmd_subparsers)
-    setup_alter_trend_parser(cmd_subparsers)
     setup_show_parser(cmd_subparsers)
     setup_list_parser(cmd_subparsers)
     setup_partition_parser(cmd_subparsers)
@@ -133,26 +134,6 @@ def setup_extend_parser(subparsers):
     )
 
     cmd.add_argument(
-        '--data-source',
-        help='name of the data source of the trend store'
-    )
-
-    cmd.add_argument(
-        '--entity-type',
-        help='name of the entity type of the trend store'
-    )
-
-    cmd.add_argument(
-        '--granularity',
-        help='granularity of the trend store'
-    )
-
-    cmd.add_argument(
-        '--partition-size',
-        help='partition size of the trend store'
-    )
-
-    cmd.add_argument(
         '--from-json', type=argparse.FileType('r'),
         help='use json description for trend store'
     )
@@ -175,18 +156,6 @@ def add_trends_cmd(args):
             'parts': []
         }
 
-    if args.data_source:
-        trend_store_config['data_source'] = args.data_source
-
-    if args.entity_type:
-        trend_store_config['entity_type'] = args.entity_type
-
-    if args.granularity:
-        trend_store_config['granularity'] = args.granularity
-
-    if args.partition_size:
-        trend_store_config['partition_size'] = args.partition_size
-
     sys.stdout.write(
         "Adding trends to trend store '{}' - '{}' - '{}' ... ".format(
             trend_store_config['data_source'],
@@ -196,7 +165,149 @@ def add_trends_cmd(args):
     )
 
     try:
-        add_tables_to_trend_store_from_json(trend_store_config)
+        add_trends_to_trend_store_from_json(trend_store_config)
+        sys.stdout.write("OK\n")
+    except Exception as exc:
+        sys.stdout.write("Error:\n{}".format(str(exc)))
+        raise exc
+
+
+def setup_remove_parser(subparsers):
+    cmd = subparsers.add_parser(
+        'remove-trends', help='command for removing trends from trend stores'
+    )
+
+    cmd.add_argument(
+        '--from-json', type=argparse.FileType('r'),
+        help='use json description for trend store'
+    )
+
+    cmd.add_argument(
+        '--from-yaml', type=argparse.FileType('r'),
+        help='use yaml description for trend store'
+    )
+
+    cmd.set_defaults(cmd=remove_trends_cmd)
+
+
+def remove_trends_cmd(args):
+    if args.from_json:
+        trend_store_config = json.load(args.from_json)
+    elif args.from_yaml:
+        trend_store_config = yaml.load(args.from_yaml, Loader=yaml.SafeLoader)
+    else:
+        trend_store_config = {
+            'parts': []
+        }
+
+    sys.stdout.write(
+        "Removing trends from trend store '{}' - '{}' - '{}' ... ".format(
+            trend_store_config['data_source'],
+            trend_store_config['entity_type'],
+            trend_store_config['granularity']
+        )
+    )
+
+    try:
+        remove_tables_from_trend_store_from_json(trend_store_config)
+        sys.stdout.write("OK\n")
+    except Exception as exc:
+        sys.stdout.write("Error:\n{}".format(str(exc)))
+        raise exc
+
+
+def setup_alter_trends_parser(subparsers):
+    cmd = subparsers.add_parser(
+        'alter-trends', help='command for changing data types and aggregation types for trends from trend stores'
+    )
+
+    cmd.add_argument(
+        '--from-json', type=argparse.FileType('r'),
+        help='use json description for trend store'
+    )
+
+    cmd.add_argument(
+        '--from-yaml', type=argparse.FileType('r'),
+        help='use yaml description for trend store'
+    )
+
+    cmd.add_argument(
+        '--force', action='store_true',
+        help='change datatype even if the new datatype is less powerful than the old one'
+    )
+
+    cmd.set_defaults(cmd=alter_trends_cmd)
+
+
+def alter_trends_cmd(args):
+    if args.from_json:
+        trend_store_config = json.load(args.from_json)
+    elif args.from_yaml:
+        trend_store_config = yaml.load(args.from_yaml, Loader=yaml.SafeLoader)
+    else:
+        trend_store_config = {
+            'parts': []
+        }
+
+    sys.stdout.write(
+        "Adapting trends in trend store '{}' - '{}' - '{}' ... ".format(
+            trend_store_config['data_source'],
+            trend_store_config['entity_type'],
+            trend_store_config['granularity']
+        )
+    )
+
+    try:
+        alter_tables_in_trend_store_from_json(trend_store_config, force = args.force)
+        sys.stdout.write("OK\n")
+    except Exception as exc:
+        sys.stdout.write("Error:\n{}".format(str(exc)))
+        raise exc
+
+
+def setup_change_trends_parser(subparsers):
+    cmd = subparsers.add_parser(
+        'change', help='change the content of a trendstore to a predefined type'
+    )
+
+    cmd.add_argument(
+        '--from-json', type=argparse.FileType('r'),
+        help='use json description for trend store'
+    )
+
+    cmd.add_argument(
+        '--from-yaml', type=argparse.FileType('r'),
+        help='use yaml description for trend store'
+    )
+
+    cmd.add_argument(
+        '--force', action='store_true',
+        help='change datatype even if the new datatype is less powerful than the old one'
+    )
+
+    cmd.set_defaults(cmd=change_trends_cmd)
+
+
+def change_trends_cmd(args):
+    if args.from_json:
+        trend_store_config = json.load(args.from_json)
+    elif args.from_yaml:
+        trend_store_config = yaml.load(args.from_yaml, Loader=yaml.SafeLoader)
+    else:
+        trend_store_config = {
+            'parts': []
+        }
+
+    sys.stdout.write(
+        "Adapting trends in trend store '{}' - '{}' - '{}' ... ".format(
+            trend_store_config['data_source'],
+            trend_store_config['entity_type'],
+            trend_store_config['granularity']
+        )
+    )
+
+    try:
+        change_trend_store_from_json(trend_store_config, force = args.force)
         sys.stdout.write("OK\n")
     except Exception as exc:
         sys.stdout.write("Error:\n{}".format(str(exc)))
@@ -460,7 +571,7 @@ def create_trend_store_from_json(data):
         conn.commit()
 
 
-def add_tables_to_trend_store_from_json(data):
+def add_trends_to_trend_store_from_json(data):
     query = (
         'SELECT trend_directory.add_missing_trends('
         'trend_directory.get_trend_store('
@@ -490,6 +601,134 @@ def add_tables_to_trend_store_from_json(data):
         data['data_source'], data['entity_type'],
         data['granularity']
     )
+
+    with closing(connect()) as conn:
+        with closing(conn.cursor()) as cursor:
+            cursor.execute(query, query_args)
+
+        conn.commit()
+
+
+def remove_tables_from_trend_store_from_json(data):
+    query = (
+        'SELECT trend_directory.remove_extra_trends('
+        'trend_directory.get_trend_store('
+        '%s::text, %s::text, %s::interval'
+        '), {}'
+        ')'
+    ).format(
+        "ARRAY[{}]::trend_directory.trend_store_part_descr[]".format(','.join([
+            "('{}', {})".format(
+                part['name'],
+                'ARRAY[{}]::trend_directory.trend_descr[]'.format(','.join([
+                    "('{}', '{}', '{}', '{}', '{}')".format(
+                        trend['name'],
+                        trend['data_type'],
+                        trend.get('description', ''),
+                        trend['time_aggregation'],
+                        trend['entity_aggregation']
+                    )
+                    for trend in part['trends']
+                ]))
+            )
+            for part in data['parts']
+        ]))
+    )
+
+    query_args = (
+        data['data_source'], data['entity_type'],
+        data['granularity']
+    )
+
+    f = open('/var/log/trendstore.txt', 'a')
+    f.write(query % query_args)
+    f.close()
+
+    with closing(connect()) as conn:
+        with closing(conn.cursor()) as cursor:
+            cursor.execute(query, query_args)
+
+        conn.commit()
+
+
+def alter_tables_in_trend_store_from_json(data, force=False):
+    query = (
+        'SELECT trend_directory.{}('
+        'trend_directory.get_trend_store('
+        '%s::text, %s::text, %s::interval'
+        '), {}'
+        ')'
+    ).format(
+        "change_all_trend_data" if force else "change_trend_data_upward",
+        "ARRAY[{}]::trend_directory.trend_store_part_descr[]".format(','.join([
+            "('{}', {})".format(
+                part['name'],
+                'ARRAY[{}]::trend_directory.trend_descr[]'.format(','.join([
+                    "('{}', '{}', '{}', '{}', '{}')".format(
+                        trend['name'],
+                        trend['data_type'],
+                        trend.get('description', ''),
+                        trend['time_aggregation'],
+                        trend['entity_aggregation']
+                    )
+                    for trend in part['trends']
+                ]))
+            )
+            for part in data['parts']
+        ]))
+    )
+
+    query_args = (
+        data['data_source'], data['entity_type'],
+        data['granularity']
+    )
+
+    f = open('/var/log/trendstore.txt', 'a')
+    f.write(query % query_args)
+    f.close()
+
+    with closing(connect()) as conn:
+        with closing(conn.cursor()) as cursor:
+            cursor.execute(query, query_args)
+
+        conn.commit()
+
+
+def change_trend_store_from_json(data, force=False):
+    query = (
+        'SELECT trend_directory.{}('
+        'trend_directory.get_trend_store('
+        '%s::text, %s::text, %s::interval'
+        '), {}'
+        ')'
+    ).format(
+        "change_trendstore_strong" if force else "change_trendstore_weak",
+        "ARRAY[{}]::trend_directory.trend_store_part_descr[]".format(','.join([
+            "('{}', {})".format(
+                part['name'],
+                'ARRAY[{}]::trend_directory.trend_descr[]'.format(','.join([
+                    "('{}', '{}', '{}', '{}', '{}')".format(
+                        trend['name'],
+                        trend['data_type'],
+                        trend.get('description', ''),
+                        trend['time_aggregation'],
+                        trend['entity_aggregation']
+                    )
+                    for trend in part['trends']
+                ]))
+            )
+            for part in data['parts']
+        ]))
+    )
+
+    query_args = (
+        data['data_source'], data['entity_type'],
+        data['granularity']
+    )
+
+    f = open('/var/log/trendstore.txt', 'a')
+    f.write(query % query_args)
+    f.close()
 
     with closing(connect()) as conn:
         with closing(conn.cursor()) as cursor:
@@ -608,36 +847,6 @@ def add_trend_to_trend_store_cmd(args):
     ) = result
 
     print("Created trend '{}'".format(name))
-
-
-def setup_alter_trend_parser(subparsers):
-    cmd = subparsers.add_parser(
-        'alter-trend', help='alter a trend of a trend store'
-    )
-
-    cmd.add_argument('--data-type', help='New data type')
-
-    cmd.add_argument('--trend-name', help='New trend name')
-
-    cmd.add_argument(
-        'trend',
-        help='Identifier of the trend to modify <trend_store_part>.<trend_name>'
-    )
-
-    cmd.set_defaults(cmd=alter_trend_cmd)
-
-
-def alter_trend_cmd(_args):
-    query = "SELECT 10"
-    query_args = tuple()
-
-    with closing(connect()) as conn:
-        with closing(conn.cursor()) as cursor:
-            cursor.execute(query, query_args)
-
-            print(cursor.fetchone())
-
-        conn.commit()
 
 
 def setup_show_parser(subparsers):
