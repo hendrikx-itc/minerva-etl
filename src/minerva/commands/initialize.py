@@ -17,6 +17,7 @@ from minerva.commands.notification_store import \
 from minerva.commands.partition import create_partitions_for_trend_store
 from minerva.commands.trigger import create_trigger_from_config
 from minerva.commands.load_sample_data import load_sample_data
+from minerva.commands.relation import DuplicateRelation, define_relation
 
 
 def setup_command_parser(subparsers):
@@ -167,37 +168,6 @@ def define_relations(instance_root):
             define_relation(definition)
         except DuplicateRelation as exc:
             print(exc)
-
-
-class DuplicateRelation(Exception):
-    def __str__(self):
-        return "Duplicate relation"
-
-
-def define_relation(definition):
-    with closing(connect()) as conn:
-        with closing(conn.cursor()) as cursor:
-            try:
-                cursor.execute(create_materialized_view_query(definition))
-            except psycopg2.errors.DuplicateTable:
-                raise DuplicateRelation(definition)
-
-            cursor.execute(register_type_query(definition))
-
-        conn.commit()
-
-
-def create_materialized_view_query(relation):
-    return 'CREATE MATERIALIZED VIEW relation."{}" AS\n{}'.format(
-        relation['name'],
-        relation['query']
-    )
-
-
-def register_type_query(relation):
-    return "SELECT relation_directory.register_type('{}');".format(
-        relation['name']
-    )
 
 
 def execute_sql_file(file_path):

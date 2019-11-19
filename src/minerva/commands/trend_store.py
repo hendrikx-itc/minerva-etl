@@ -57,59 +57,23 @@ def setup_create_parser(subparsers):
     )
 
     cmd.add_argument(
-        '--data-source',
-        help='name of the data source of the new trend store'
+        '--format', choices=['yaml', 'json'], default='yaml',
+        help='format of definition'
     )
 
     cmd.add_argument(
-        '--entity-type',
-        help='name of the entity type of the new trend store'
-    )
-
-    cmd.add_argument(
-        '--granularity',
-        help='granularity of the new trend store'
-    )
-
-    cmd.add_argument(
-        '--partition-size',
-        help='partition size of the new trend store'
-    )
-
-    cmd.add_argument(
-        '--from-json', type=argparse.FileType('r'),
-        help='use json description for trend store'
-    )
-
-    cmd.add_argument(
-        '--from-yaml', type=argparse.FileType('r'),
-        help='use yaml description for trend store'
+        'definition', type=argparse.FileType('r'),
+        help='file containing trend store definition'
     )
 
     cmd.set_defaults(cmd=create_trend_store_cmd)
 
 
 def create_trend_store_cmd(args):
-    if args.from_json:
-        trend_store_config = json.load(args.from_json)
-    elif args.from_yaml:
-        trend_store_config = yaml.load(args.from_yaml, Loader=yaml.SafeLoader)
-    else:
-        trend_store_config = {
-            'parts': []
-        }
-
-    if args.data_source:
-        trend_store_config['data_source'] = args.data_source
-
-    if args.entity_type:
-        trend_store_config['entity_type'] = args.entity_type
-
-    if args.granularity:
-        trend_store_config['granularity'] = args.granularity
-
-    if args.partition_size:
-        trend_store_config['partition_size'] = args.partition_size
+    if args.format == 'json':
+        trend_store_config = json.load(args.definition)
+    elif args.format == 'yaml':
+        trend_store_config = yaml.load(args.definition, Loader=yaml.SafeLoader)
 
     sys.stdout.write(
         "Creating trend store '{}' - '{}' - '{}' ... ".format(
@@ -133,27 +97,23 @@ def setup_extend_parser(subparsers):
     )
 
     cmd.add_argument(
-        '--from-json', type=argparse.FileType('r'),
-        help='use json description for trend store'
+        '--format', choices=['yaml', 'json'], default='yaml',
+        help='format of definition'
     )
 
     cmd.add_argument(
-        '--from-yaml', type=argparse.FileType('r'),
-        help='use yaml description for trend store'
+        'definition', type=argparse.FileType('r'),
+        help='file containing trend store definition'
     )
 
     cmd.set_defaults(cmd=add_trends_cmd)
 
 
 def add_trends_cmd(args):
-    if args.from_json:
-        trend_store_config = json.load(args.from_json)
-    elif args.from_yaml:
-        trend_store_config = yaml.load(args.from_yaml, Loader=yaml.SafeLoader)
-    else:
-        trend_store_config = {
-            'parts': []
-        }
+    if args.format == 'json':
+        trend_store_config = json.load(args.definition)
+    elif args.format == 'yaml':
+        trend_store_config = yaml.load(args.definition, Loader=yaml.SafeLoader)
 
     sys.stdout.write(
         "Adding trends to trend store '{}' - '{}' - '{}' ... ".format(
@@ -177,27 +137,23 @@ def setup_remove_parser(subparsers):
     )
 
     cmd.add_argument(
-        '--from-json', type=argparse.FileType('r'),
-        help='use json description for trend store'
+        '--format', choices=['yaml', 'json'], default='yaml',
+        help='format of definition'
     )
 
     cmd.add_argument(
-        '--from-yaml', type=argparse.FileType('r'),
-        help='use yaml description for trend store'
+        'definition', type=argparse.FileType('r'),
+        help='file containing trend store definition'
     )
 
     cmd.set_defaults(cmd=remove_trends_cmd)
 
 
 def remove_trends_cmd(args):
-    if args.from_json:
-        trend_store_config = json.load(args.from_json)
-    elif args.from_yaml:
-        trend_store_config = yaml.load(args.from_yaml, Loader=yaml.SafeLoader)
-    else:
-        trend_store_config = {
-            'parts': []
-        }
+    if args.format == 'json':
+        trend_store_config = json.load(args.definition)
+    elif args.format == 'yaml':
+        trend_store_config = yaml.load(args.definition, Loader=yaml.SafeLoader)
 
     sys.stdout.write(
         "Removing trends from trend store '{}' - '{}' - '{}' ... ".format(
@@ -221,32 +177,28 @@ def setup_alter_trends_parser(subparsers):
     )
 
     cmd.add_argument(
-        '--from-json', type=argparse.FileType('r'),
-        help='use json description for trend store'
-    )
-
-    cmd.add_argument(
-        '--from-yaml', type=argparse.FileType('r'),
-        help='use yaml description for trend store'
-    )
-
-    cmd.add_argument(
         '--force', action='store_true',
         help='change datatype even if the new datatype is less powerful than the old one'
+    )
+
+    cmd.add_argument(
+        '--format', choices=['yaml', 'json'], default='yaml',
+        help='format of definition'
+    )
+
+    cmd.add_argument(
+        'definition', type=argparse.FileType('r'),
+        help='file containing trend store definition'
     )
 
     cmd.set_defaults(cmd=alter_trends_cmd)
 
 
 def alter_trends_cmd(args):
-    if args.from_json:
-        trend_store_config = json.load(args.from_json)
-    elif args.from_yaml:
-        trend_store_config = yaml.load(args.from_yaml, Loader=yaml.SafeLoader)
-    else:
-        trend_store_config = {
-            'parts': []
-        }
+    if args.format == 'json':
+        trend_store_config = json.load(args.definition)
+    elif args.format == 'yaml':
+        trend_store_config = yaml.load(args.definition, Loader=yaml.SafeLoader)
 
     sys.stdout.write(
         "Adapting trends in trend store '{}' - '{}' - '{}' ... ".format(
@@ -270,32 +222,28 @@ def setup_change_trends_parser(subparsers):
     )
 
     cmd.add_argument(
-        '--from-json', type=argparse.FileType('r'),
-        help='use json description for trend store'
-    )
-
-    cmd.add_argument(
-        '--from-yaml', type=argparse.FileType('r'),
-        help='use yaml description for trend store'
-    )
-
-    cmd.add_argument(
         '--force', action='store_true',
         help='change datatype even if the new datatype is less powerful than the old one'
+    )
+
+    cmd.add_argument(
+        '--format', choices=['yaml', 'json'], default='yaml',
+        help='format of definition'
+    )
+
+    cmd.add_argument(
+        'definition', type=argparse.FileType('r'),
+        help='file containing trend store definition'
     )
 
     cmd.set_defaults(cmd=change_trends_cmd)
 
 
 def change_trends_cmd(args):
-    if args.from_json:
-        trend_store_config = json.load(args.from_json)
-    elif args.from_yaml:
-        trend_store_config = yaml.load(args.from_yaml, Loader=yaml.SafeLoader)
-    else:
-        trend_store_config = {
-            'parts': []
-        }
+    if args.format == 'json':
+        trend_store_config = json.load(args.definition)
+    elif args.format == 'yaml':
+        trend_store_config = yaml.load(args.definition, Loader=yaml.SafeLoader)
 
     sys.stdout.write(
         "Adapting trends in trend store '{}' - '{}' - '{}' ... ".format(
@@ -319,59 +267,23 @@ def setup_part_parser(subparsers):
     )
 
     cmd.add_argument(
-        '--data-source',
-        help='name of the data source of the trend store'
+        '--format', choices=['yaml', 'json'], default='yaml',
+        help='format of definition'
     )
 
     cmd.add_argument(
-        '--entity-type',
-        help='name of the entity type of the trend store'
-    )
-
-    cmd.add_argument(
-        '--granularity',
-        help='granularity of the trend store'
-    )
-
-    cmd.add_argument(
-        '--partition-size',
-        help='partition size of the trend store'
-    )
-
-    cmd.add_argument(
-        '--from-json', type=argparse.FileType('r'),
-        help='use json description for trend store'
-    )
-
-    cmd.add_argument(
-        '--from-yaml', type=argparse.FileType('r'),
-        help='use yaml description for trend store'
+        'definition', type=argparse.FileType('r'),
+        help='file containing trend store definition'
     )
 
     cmd.set_defaults(cmd=add_parts_cmd)
 
 
 def add_parts_cmd(args):
-    if args.from_json:
-        trend_store_config = json.load(args.from_json)
-    elif args.from_yaml:
-        trend_store_config = yaml.load(args.from_yaml, Loader=yaml.SafeLoader)
-    else:
-        trend_store_config = {
-            'parts': []
-        }
-
-    if args.data_source:
-        trend_store_config['data_source'] = args.data_source
-
-    if args.entity_type:
-        trend_store_config['entity_type'] = args.entity_type
-
-    if args.granularity:
-        trend_store_config['granularity'] = args.granularity
-
-    if args.partition_size:
-        trend_store_config['partition_size'] = args.partition_size
+    if args.format == 'json':
+        trend_store_config = json.load(args.definition)
+    elif args.format == 'yaml':
+        trend_store_config = yaml.load(args.definition, Loader=yaml.SafeLoader)
 
     sys.stdout.write(
         "Adding trend store parts to trend store '{}' - '{}' - '{}' ... ".format(
@@ -461,8 +373,8 @@ class Trend:
             data['name'],
             data['data_type'],
             data.get('description', ''),
-            data['time_aggregation'],
-            data['entity_aggregation'],
+            data.get('time_aggregation', 'SUM'),
+            data.get('entity_aggregation', 'SUM'),
             data.get('extra_data', {})
         )
 
