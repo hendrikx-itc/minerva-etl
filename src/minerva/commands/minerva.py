@@ -1,6 +1,7 @@
 import sys
 import argparse
 
+from minerva import __version__
 from minerva.commands import data_source, trend_store, entity_type, load_data, \
     structure, alias, attribute_store, initialize, relation, \
     trigger, load_sample_data, virtual_entity, notification_store
@@ -9,6 +10,11 @@ from minerva.commands import data_source, trend_store, entity_type, load_data, \
 def main():
     parser = argparse.ArgumentParser(
         description='Minerva administration tool set'
+    )
+
+    parser.add_argument(
+        '--version', '-v', action="store_true", default=False,
+        help="show Minerva version"
     )
 
     subparsers = parser.add_subparsers()
@@ -28,6 +34,11 @@ def main():
     notification_store.setup_command_parser(subparsers)
 
     args = parser.parse_args()
+
+    if args.version:
+        print("minerva {}".format(__version__))
+
+        return 0
 
     if 'cmd' not in args:
         parser.print_help()
