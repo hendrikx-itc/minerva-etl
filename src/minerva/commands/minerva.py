@@ -4,7 +4,8 @@ import argparse
 from minerva import __version__
 from minerva.commands import data_source, trend_store, entity_type, load_data, \
     structure, alias, attribute_store, initialize, relation, \
-    trigger, load_sample_data, virtual_entity, notification_store
+    trigger, load_sample_data, virtual_entity, notification_store, \
+    aggregation
 
 
 def main():
@@ -32,6 +33,7 @@ def main():
     load_sample_data.setup_command_parser(subparsers)
     virtual_entity.setup_command_parser(subparsers)
     notification_store.setup_command_parser(subparsers)
+    aggregation.setup_command_parser(subparsers)
 
     args = parser.parse_args()
 
