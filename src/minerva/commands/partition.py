@@ -22,11 +22,16 @@ def create_partitions_for_trend_store(conn, trend_store_id, ahead_interval):
 
         rows = cursor.fetchall()
 
-    for trend_store_part_id, partition_index in rows:
-        create_partition_for_trend_store_part(conn, trend_store_part_id, partition_index)
+    for i, (trend_store_part_id, partition_index) in enumerate(rows):
+        name = create_partition_for_trend_store_part(
+            conn, trend_store_part_id, partition_index
+        )
+
+        yield name, partition_index, i, len(rows)
 
 
-def create_partition_for_trend_store_part(conn, trend_store_part_id, partition_index):
+def create_partition_for_trend_store_part(
+        conn, trend_store_part_id, partition_index):
     query = (
         "SELECT p.name, trend_directory.create_partition(p, %s) "
         "FROM trend_directory.trend_store_part p "
@@ -39,5 +44,4 @@ def create_partition_for_trend_store_part(conn, trend_store_part_id, partition_i
 
         name, p = cursor.fetchone()
 
-        print('{} - {}'.format(name, partition_index))
-
+        return name
