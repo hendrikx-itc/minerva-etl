@@ -90,7 +90,7 @@ def cmd_generate_and_load(config):
 
 
 def generate_and_load(config):
-    interval_count = 10
+    interval_count = 150
 
     name = config['name']
 
@@ -131,7 +131,8 @@ def generate_and_load(config):
 
     with storage_provider() as store:
         for timestamp in timestamp_range:
-            print(' - {}'.format(timestamp))
+            print(' ' * 60, end='\r')
+            print(' - {}'.format(timestamp), end='\r')
 
             file_path = data_set_generator.generate(
                 target_dir, timestamp, granularity
@@ -149,5 +150,5 @@ def generate_and_load(config):
                         # Suppress messages about missing entity types
                         pass
 
-
-
+    print(' ' * 60, end='\r')
+    print('Loaded data for {} intervals'.format(interval_count))
