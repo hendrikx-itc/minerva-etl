@@ -86,10 +86,14 @@ def setup_materialize_parser(subparsers):
         'materialize', help='materialize relations'
     )
 
-    cmd.set_defaults(cmd=materialize_relations)
+    cmd.set_defaults(cmd=materialize_relations_cmd)
 
 
-def materialize_relations(args):
+def materialize_relations_cmd(args):
+    materialize_relations()
+
+
+def materialize_relations():
     query = (
         'SELECT name FROM relation_directory.type'
     )

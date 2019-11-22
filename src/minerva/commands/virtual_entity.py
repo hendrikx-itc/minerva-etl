@@ -25,6 +25,10 @@ def setup_materialize_parser(subparsers):
 
 
 def create_materialize_cmd(args):
+    materialize_virtual_entities()
+
+
+def materialize_virtual_entities():
     get_view_names_query = (
         "SELECT relname "
         "FROM pg_class "

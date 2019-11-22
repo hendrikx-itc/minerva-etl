@@ -2,22 +2,24 @@ import os
 from contextlib import closing
 import sys
 import glob
+import time
 
 import yaml
-import psycopg2.errors
 
 from minerva.db import connect
 
 from minerva.commands.attribute_store import create_attribute_store_from_json, \
     DuplicateAttributeStore
 from minerva.commands.trend_store import create_trend_store_from_json, \
-    DuplicateTrendStore
+    DuplicateTrendStore, materialize_all, process_modified_log
 from minerva.commands.notification_store import \
     create_notification_store_from_json, DuplicateNotificationStore
 from minerva.commands.partition import create_partitions_for_trend_store
 from minerva.commands.trigger import create_trigger_from_config
 from minerva.commands.load_sample_data import load_sample_data
-from minerva.commands.relation import DuplicateRelation, define_relation
+from minerva.commands.relation import DuplicateRelation, define_relation, \
+    materialize_relations
+from minerva.commands.virtual_entity import materialize_virtual_entities
 
 
 def setup_command_parser(subparsers):
@@ -34,6 +36,11 @@ def setup_command_parser(subparsers):
     cmd.add_argument(
         '--load-sample-data', action='store_true', default=False,
         help='generate and load sample data as specified in instance'
+    )
+
+    cmd.add_argument(
+        '--live', action='store_true', default=False,
+        help='live monitoring for materializations after initialization'
     )
 
     cmd.set_defaults(cmd=initialize_cmd)
@@ -59,6 +66,24 @@ def initialize_cmd(args):
     if args.load_sample_data:
         header('Loading sample data')
         load_sample_data(instance_root)
+
+    initialize_derivatives(instance_root)
+
+    if args.live:
+        header('Live monitoring for materializations')
+
+        try:
+            live_monitor()
+        except KeyboardInterrupt:
+            print("Stopped")
+
+
+def live_monitor():
+    while True:
+        process_modified_log(False)
+        materialize_all(False)
+
+        time.sleep(2)
 
 
 def header(title):
@@ -95,6 +120,14 @@ def initialize_instance(instance_root):
 
     header('Creating partitions')
     create_partitions()
+
+
+def initialize_derivatives(instance_root):
+    header('Materializing virtual entities')
+    materialize_virtual_entities()
+
+    header('Materializing relations')
+    materialize_relations()
 
 
 def initialize_attribute_stores(instance_root):

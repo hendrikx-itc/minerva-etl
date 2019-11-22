@@ -847,10 +847,14 @@ def setup_process_modified_log_parser(subparsers):
         help='reset modified log processing state to Id 0'
     )
 
-    cmd.set_defaults(cmd=process_modified_log)
+    cmd.set_defaults(cmd=process_modified_log_cmd)
 
 
-def process_modified_log(args):
+def process_modified_log_cmd(args):
+    process_modified_log(args.reset)
+
+
+def process_modified_log(reset):
     reset_query = (
         "UPDATE trend_directory.modified_log_processing_state "
         "SET last_processed_id = %s "
@@ -867,7 +871,7 @@ def process_modified_log(args):
 
     with closing(connect()) as conn:
         with closing(conn.cursor()) as cursor:
-            if args.reset:
+            if reset:
                 cursor.execute(reset_query, (0,))
 
             cursor.execute(get_position_query)

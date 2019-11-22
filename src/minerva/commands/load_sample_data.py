@@ -13,6 +13,7 @@ from minerva.harvest.plugins import get_plugin
 from minerva.db import connect
 from minerva.commands.load_data import create_store_db_context
 from minerva.directory.entitytype import NoSuchEntityType
+from minerva.commands import ConfigurationError
 
 
 def setup_command_parser(subparsers):
@@ -41,7 +42,10 @@ def load_sample_data_cmd(args):
         "Loading sample data from '{}' ...\n".format(instance_root)
     )
 
-    load_sample_data(instance_root, args.dataset)
+    try:
+        load_sample_data(instance_root, args.dataset)
+    except ConfigurationError as exc:
+        sys.stdout.write('{}\n'.format(str(exc)))
 
     sys.stdout.write("Done\n")
 
@@ -112,6 +116,12 @@ def generate_and_load(config):
     data_source = 'u2020-pm'
 
     plugin = get_plugin(config['data_type'])
+
+    if not plugin:
+        raise ConfigurationError(
+            "No plugin found for data type '{}'".format(config['data_type'])
+        )
+
     parser = plugin.create_parser({})
     storage_provider = create_store_db_context(
         data_source, parser.store_command(), connect
