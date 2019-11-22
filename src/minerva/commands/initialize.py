@@ -115,6 +115,9 @@ def initialize_instance(instance_root):
     header('Initializing materializations')
     define_materializations(instance_root)
 
+    header('Custom SQL')
+    load_custom_sql(instance_root)
+
     header('Initializing triggers')
     define_triggers(instance_root)
 
@@ -145,6 +148,15 @@ def initialize_attribute_stores(instance_root):
             create_attribute_store_from_json(definition)
         except DuplicateAttributeStore as exc:
             print(exc)
+
+    sql_files = glob.glob(
+        os.path.join(instance_root, 'attribute/*.sql')
+    )
+
+    for sql_file_path in sql_files:
+        print(sql_file_path)
+
+        execute_sql_file(sql_file_path)
 
 
 def initialize_trend_stores(instance_root):
@@ -217,6 +229,17 @@ def execute_sql_file(file_path):
 def define_materializations(instance_root):
     definition_files = glob.glob(
         os.path.join(instance_root, 'materialization/*.sql')
+    )
+
+    for definition_file_path in definition_files:
+        print(definition_file_path)
+
+        execute_sql_file(definition_file_path)
+
+
+def load_custom_sql(instance_root):
+    definition_files = glob.glob(
+        os.path.join(instance_root, 'custom/*.sql')
     )
 
     for definition_file_path in definition_files:
