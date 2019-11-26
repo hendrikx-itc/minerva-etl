@@ -19,6 +19,8 @@ def setup_command_parser(subparsers):
     cmd_subparsers = cmd.add_subparsers()
 
     setup_create_parser(cmd_subparsers)
+    setup_enable_parser(cmd_subparsers)
+    setup_disable_parser(cmd_subparsers)
     setup_delete_parser(cmd_subparsers)
     setup_list_parser(cmd_subparsers)
     setup_create_notifications_parser(cmd_subparsers)
@@ -69,6 +71,40 @@ def create_trigger_from_config(config):
 
         for message in trigger.create(conn):
             print(message)
+
+
+def setup_enable_parser(subparsers):
+    cmd = subparsers.add_parser(
+        'enable', help='command for enabling triggers'
+    )
+
+    cmd.add_argument('name', help='name of trigger')
+
+    cmd.set_defaults(cmd=enable_trigger_cmd)
+
+
+def enable_trigger_cmd(args):
+    with closing(connect()) as conn:
+        conn.autocommit = True
+
+        Trigger(args.name).set_enabled(conn, True)
+
+
+def setup_disable_parser(subparsers):
+    cmd = subparsers.add_parser(
+        'disable', help='command for disabling triggers'
+    )
+
+    cmd.add_argument('name', help='name of trigger')
+
+    cmd.set_defaults(cmd=disable_trigger_cmd)
+
+
+def disable_trigger_cmd(args):
+    with closing(connect()) as conn:
+        conn.autocommit = True
+
+        Trigger(args.name).set_enabled(conn, False)
 
 
 def setup_delete_parser(subparsers):

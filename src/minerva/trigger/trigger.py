@@ -66,6 +66,13 @@ class Trigger:
         with closing(conn.cursor()) as cursor:
             cursor.execute(query, query_args)
 
+    def set_enabled(self, conn, enabled: bool):
+        query = 'UPDATE trigger.rule SET enabled = %s WHERE name = %s'
+        query_args = (enabled, self.name)
+
+        with closing(conn.cursor()) as cursor:
+            cursor.execute(query, query_args)
+
     def execute(self, conn, timestamp):
         query = "SELECT * FROM trigger.create_notifications(%s, %s)"
         query_args = (self.name, timestamp)
