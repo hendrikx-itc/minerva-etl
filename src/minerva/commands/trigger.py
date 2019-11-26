@@ -97,7 +97,7 @@ def setup_list_parser(subparsers):
 
 
 def list_cmd(args):
-    query = 'SELECT id, name FROM trigger.rule'
+    query = 'SELECT id, name, enabled FROM trigger.rule'
 
     with closing(connect()) as conn:
         conn.autocommit = True
@@ -107,7 +107,7 @@ def list_cmd(args):
 
             rows = cursor.fetchall()
 
-    show_rows(['id', 'name'], rows)
+    show_rows(['id', 'name', 'enabled'], rows)
 
 
 def show_rows(column_names, rows, show_cmd=print):
