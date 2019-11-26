@@ -954,6 +954,9 @@ def materialize_all(reset):
                 print("{} - {}: {} records".format(name, timestamp, row_count))
             except Exception as e:
                 conn.rollback()
+                print("Error materializing {} ({})".format(
+                    name, materialization_id
+                ))
                 print(str(e))
 
 
