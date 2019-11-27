@@ -132,8 +132,49 @@ def setup_list_parser(subparsers):
     cmd.set_defaults(cmd=list_cmd)
 
 
+def timedelta_to_string(t):
+    ret = []
+
+    days = t.days
+    num_years = int(days / 365)
+
+    if num_years > 0:
+        days -= num_years * 365
+
+        if num_years > 1:
+            ret.append('{:d} years'.format(num_years))
+        else:
+            ret.append('{:d} year'.format(num_years))
+
+    if days > 0:
+        if days > 1:
+            ret.append('{:d} days'.format(days))
+        else:
+            ret.append('{:d} day'.format(days))
+
+    seconds = t.seconds
+    num_hours = int(seconds / 3600)
+
+    if num_hours > 0:
+        seconds -= num_hours * 3600
+
+        if num_hours > 1:
+            ret.append('{:d} hours'.format(num_hours))
+        else:
+            ret.append('{:d} hour'.format(num_hours))
+
+    num_minutes = int(seconds / 60)
+    if num_minutes > 0:
+        if num_minutes > 1:
+            ret.append('{:d} minutes'.format(num_minutes))
+        else:
+            ret.append('{:d} minute'.format(num_minutes))
+
+    return ' '.join(ret)
+
+
 def list_cmd(args):
-    query = 'SELECT id, name, enabled FROM trigger.rule'
+    query = 'SELECT id, name, granularity, enabled FROM trigger.rule'
 
     with closing(connect()) as conn:
         conn.autocommit = True
@@ -143,7 +184,13 @@ def list_cmd(args):
 
             rows = cursor.fetchall()
 
-    show_rows(['id', 'name', 'enabled'], rows)
+    show_rows(
+        ['id', 'name', 'granularity', 'enabled'],
+        [
+            (id, name, timedelta_to_string(granularity), enabled)
+            for id, name, granularity, enabled in rows
+        ]
+    )
 
 
 def show_rows(column_names, rows, show_cmd=print):

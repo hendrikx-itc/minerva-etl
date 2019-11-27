@@ -216,9 +216,10 @@ def create_rule(conn, config):
         )
     )
 
-    set_notification_store_query = (
+    set_properties_query = (
         "UPDATE trigger.rule "
-        "SET notification_store_id = notification_store.id "
+        "SET notification_store_id = notification_store.id, "
+        "granularity = %s "
         "FROM notification_directory.notification_store "
         "JOIN directory.data_source "
         "ON data_source.id = notification_store.data_source_id "
@@ -233,8 +234,8 @@ def create_rule(conn, config):
         rule_id, _, _, _, _, _ = row
 
         cursor.execute(
-            set_notification_store_query,
-            (rule_id, config['notification_store'])
+            set_properties_query,
+            (config['granularity'], rule_id, config['notification_store'])
         )
 
 
