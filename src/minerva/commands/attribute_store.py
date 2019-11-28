@@ -35,6 +35,7 @@ def setup_command_parser(subparsers):
     setup_remove_attribute_parser(cmd_subparsers)
     setup_show_parser(cmd_subparsers)
     setup_list_parser(cmd_subparsers)
+    setup_materialization_parser(cmd_subparsers)
 
 
 def setup_create_parser(subparsers):
@@ -322,3 +323,174 @@ def list_attribute_stores_cmd(args):
             cursor.execute(query, query_args)
 
             show_rows_from_cursor(cursor)
+
+
+def setup_materialization_parser(subparsers):
+    cmd = subparsers.add_parser(
+        'materialization', help='command for managing attribute materialization'
+    )
+
+    cmd_subparsers = cmd.add_subparsers()
+
+    setup_create_materialization_parser(cmd_subparsers)
+    setup_list_materialization_parser(cmd_subparsers)
+    setup_run_materialization_parser(cmd_subparsers)
+
+
+def setup_create_materialization_parser(subparsers):
+    cmd = subparsers.add_parser(
+        'create', help='command for creating attribute materialization'
+    )
+
+    cmd.add_argument(
+        '--format', choices=['yaml', 'json'], default='yaml',
+        help='format of definition'
+    )
+
+    cmd.add_argument(
+        'definition', type=argparse.FileType('r'),
+        help='file containing materialization definition'
+    )
+
+    cmd.set_defaults(cmd=create_materialization_cmd)
+
+
+def create_materialization_cmd(args):
+    print('Create attribute store materialization')
+
+    if args.format == 'json':
+        definition = json.load(args.definition)
+    elif args.format == 'yaml':
+        definition = yaml.load(args.definition, Loader=yaml.SafeLoader)
+
+    view_name = '_{}_{}'.format(
+        definition['attribute_store']['data_source'],
+        definition['attribute_store']['entity_type']
+    )
+
+    query = (
+        'CREATE VIEW attribute."{}" AS {}'
+    ).format(view_name, definition['query'])
+
+    insert_materialization_query = (
+        'INSERT INTO attribute_directory.sampled_view_materialization(attribute_store_id, src_view) '
+        'SELECT attribute_store.id, %s '
+        'FROM attribute_directory.attribute_store '
+        'JOIN directory.data_source ON attribute_store.data_source_id = data_source.id '
+        'JOIN directory.entity_type ON attribute_store.entity_type_id = entity_type.id '
+        'WHERE data_source.name = %s AND entity_type.name = %s'
+    )
+
+    insert_materialization_args = (
+        'attribute."{}"'.format(view_name), 
+        definition['attribute_store']['data_source'],
+        definition['attribute_store']['entity_type']
+    )
+
+    with closing(connect()) as conn:
+        conn.autocommit = True
+
+        with closing(conn.cursor()) as cursor:
+            cursor.execute(query)
+
+            cursor.execute(
+                insert_materialization_query,
+                insert_materialization_args
+            )
+
+
+def setup_list_materialization_parser(subparsers):
+    cmd = subparsers.add_parser(
+        'list', help='command for listing attribute materializations'
+    )
+
+    cmd.set_defaults(cmd=list_materializations_cmd)
+
+
+def list_materializations_cmd(args):
+    query = (
+        "SELECT svm.id, svm.src_view, attribute_store::text "
+        "FROM attribute_directory.sampled_view_materialization svm "
+        "JOIN attribute_directory.attribute_store ON attribute_store.id = svm.attribute_store_id"
+    )
+
+    with closing(connect()) as conn:
+        conn.autocommit = True
+
+        with closing(conn.cursor()) as cursor:
+            cursor.execute(query)
+
+            rows = cursor.fetchall()
+
+    show_rows(
+        ['id', 'src_view', 'attribute_store'],
+        [
+            (id, src_view, attribute_store)
+            for id, src_view, attribute_store in rows
+        ]
+    )
+
+
+def setup_run_materialization_parser(subparsers):
+    cmd = subparsers.add_parser(
+        'run', help='command for running attribute materializations'
+    )
+
+    cmd.add_argument('--id', help='Id of attribute materialization to run')
+
+    cmd.add_argument(
+        '--name',
+        help='Name of target attribute store for which to run a materialization'
+    )
+
+    cmd.add_argument(
+        '--materialize-curr', default=False, action='store_true',
+        help='Update the attribute current pointer table after loading'
+    )
+
+    cmd.set_defaults(cmd=run_materialization_cmd)
+
+
+def run_materialization_cmd(args):
+    query = (
+        "SELECT attribute_store::text, attribute_directory.materialize(svm) "
+        "FROM attribute_directory.sampled_view_materialization svm "
+        "JOIN attribute_directory.attribute_store "
+        "ON attribute_store.id = svm.attribute_store_id "
+    )
+
+    if args.id:
+        query += "WHERE svm.id = %s"
+        query_args = (args.id,)
+    elif args.name:
+        query += "WHERE attribute_store::text = %s"
+        query_args = (args.name,)
+
+    with closing(connect()) as conn:
+        conn.autocommit = True
+
+        with conn.cursor() as cursor:
+            cursor.execute(query, query_args)
+
+            rows = cursor.fetchall()
+
+        for attribute_store, row_count in rows:
+            print('{}: {}'.format(attribute_store, row_count))
+
+            if args.materialize_curr:
+                print('Materializing curr ptr for {}'.format(attribute_store))
+                materialize_curr_ptr(conn, attribute_store)
+
+
+def materialize_curr_ptr(conn, attribute_store: str):
+    materialize_curr_query = (
+        'SELECT '
+        'attribute_directory.materialize_curr_ptr(attribute_store) '
+        'FROM attribute_directory.attribute_store '
+        'WHERE attribute_store::text = %s'
+    )
+
+    with conn.cursor() as cursor:
+        cursor.execute(materialize_curr_query, (attribute_store,))
+
+    conn.commit()
