@@ -355,40 +355,48 @@ def setup_create_materialization_parser(subparsers):
     cmd.set_defaults(cmd=create_materialization_cmd)
 
 
-def create_materialization_cmd(args):
-    print('Create attribute store materialization')
+class SampledViewMaterialization:
+    def __init__(self, attribute_store, query):
+        self.attribute_store = attribute_store
+        self.query = query
 
-    if args.format == 'json':
-        definition = json.load(args.definition)
-    elif args.format == 'yaml':
-        definition = yaml.load(args.definition, Loader=yaml.SafeLoader)
+    def __str__(self):
+        return '{}_{}'.format(
+            self.attribute_store['data_source'],
+            self.attribute_store['entity_type']
+        )
 
-    view_name = '_{}_{}'.format(
-        definition['attribute_store']['data_source'],
-        definition['attribute_store']['entity_type']
-    )
+    @staticmethod
+    def from_json(data):
+        return SampledViewMaterialization(
+            data['attribute_store'],
+            data['query']
+        )
 
-    query = (
-        'CREATE VIEW attribute."{}" AS {}'
-    ).format(view_name, definition['query'])
+    def create(self, conn):
+        view_name = '_{}_{}'.format(
+            self.attribute_store['data_source'],
+            self.attribute_store['entity_type']
+        )
 
-    insert_materialization_query = (
-        'INSERT INTO attribute_directory.sampled_view_materialization(attribute_store_id, src_view) '
-        'SELECT attribute_store.id, %s '
-        'FROM attribute_directory.attribute_store '
-        'JOIN directory.data_source ON attribute_store.data_source_id = data_source.id '
-        'JOIN directory.entity_type ON attribute_store.entity_type_id = entity_type.id '
-        'WHERE data_source.name = %s AND entity_type.name = %s'
-    )
+        query = (
+            'CREATE VIEW attribute."{}" AS {}'
+        ).format(view_name, self.query)
 
-    insert_materialization_args = (
-        'attribute."{}"'.format(view_name), 
-        definition['attribute_store']['data_source'],
-        definition['attribute_store']['entity_type']
-    )
+        insert_materialization_query = (
+            'INSERT INTO attribute_directory.sampled_view_materialization(attribute_store_id, src_view) '
+            'SELECT attribute_store.id, %s '
+            'FROM attribute_directory.attribute_store '
+            'JOIN directory.data_source ON attribute_store.data_source_id = data_source.id '
+            'JOIN directory.entity_type ON attribute_store.entity_type_id = entity_type.id '
+            'WHERE data_source.name = %s AND entity_type.name = %s'
+        )
 
-    with closing(connect()) as conn:
-        conn.autocommit = True
+        insert_materialization_args = (
+            'attribute."{}"'.format(view_name),
+            self.attribute_store['data_source'],
+            self.attribute_store['entity_type']
+        )
 
         with closing(conn.cursor()) as cursor:
             cursor.execute(query)
@@ -399,9 +407,35 @@ def create_materialization_cmd(args):
             )
 
 
+def create_materialization_cmd(args):
+    print('Create attribute store materialization')
+
+    if args.format == 'json':
+        definition = json.load(args.definition)
+    elif args.format == 'yaml':
+        definition = yaml.load(args.definition, Loader=yaml.SafeLoader)
+
+    materialization = SampledViewMaterialization.from_json(definition)
+
+    with closing(connect()) as conn:
+        conn.autocommit = True
+
+        materialization.create(conn)
+
+
 def setup_list_materialization_parser(subparsers):
     cmd = subparsers.add_parser(
         'list', help='command for listing attribute materializations'
+    )
+
+    group = cmd.add_mutually_exclusive_group()
+    group.add_argument(
+        '--name-only', action='store_true', default=False,
+        help='output only names of materializations'
+    )
+    group.add_argument(
+        '--id-only', action='store_true', default=False,
+        help='output only Ids of materializations'
     )
 
     cmd.set_defaults(cmd=list_materializations_cmd)
@@ -422,13 +456,20 @@ def list_materializations_cmd(args):
 
             rows = cursor.fetchall()
 
-    show_rows(
-        ['id', 'src_view', 'attribute_store'],
-        [
-            (id, src_view, attribute_store)
-            for id, src_view, attribute_store in rows
-        ]
-    )
+    if args.name_only:
+        for id, src_view, attribute_store in rows:
+            print(attribute_store)
+    elif args.id_only:
+        for id, src_view, attribute_store in rows:
+            print(id)
+    else:
+        show_rows(
+            ['id', 'src_view', 'attribute_store'],
+            [
+                (id, src_view, attribute_store)
+                for id, src_view, attribute_store in rows
+            ]
+        )
 
 
 def setup_run_materialization_parser(subparsers):

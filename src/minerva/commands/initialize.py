@@ -9,7 +9,7 @@ import yaml
 from minerva.db import connect
 
 from minerva.commands.attribute_store import create_attribute_store_from_json, \
-    DuplicateAttributeStore
+    DuplicateAttributeStore, SampledViewMaterialization
 from minerva.commands.trend_store import create_trend_store_from_json, \
     DuplicateTrendStore, materialize_all, process_modified_log
 from minerva.commands.notification_store import \
@@ -112,8 +112,11 @@ def initialize_instance(instance_root):
     header("Defining relations")
     define_relations(instance_root)
 
-    header('Initializing materializations')
-    define_materializations(instance_root)
+    header('Initializing trend materializations')
+    define_trend_materializations(instance_root)
+
+    header('Initializing attribute materializations')
+    define_attribute_materializations(instance_root)
 
     header('Custom SQL')
     load_custom_sql(instance_root)
@@ -226,7 +229,7 @@ def execute_sql_file(file_path):
             cursor.execute(sql)
 
 
-def define_materializations(instance_root):
+def define_trend_materializations(instance_root):
     definition_files = glob.glob(
         os.path.join(instance_root, 'materialization/*.sql')
     )
@@ -280,3 +283,26 @@ def create_partitions():
 
     print(" " * 60, end='\r')
     print('Created {} partitions'.format(partitions_created))
+
+
+def define_attribute_materializations(instance_root):
+    definition_files = glob.glob(
+        os.path.join(instance_root, 'attribute/materialization/*.yaml')
+    )
+
+    with closing(connect()) as conn:
+        conn.autocommit = True
+
+        for definition_file_path in definition_files:
+            print(definition_file_path)
+
+            with open(definition_file_path) as definition_file:
+                definition = yaml.load(definition_file, Loader=yaml.SafeLoader)
+
+                materialization = SampledViewMaterialization.from_json(
+                    definition
+                )
+
+                print(materialization)
+
+                materialization.create(conn)
