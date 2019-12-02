@@ -823,15 +823,21 @@ def create_partition_cmd(args):
                 rows = cursor.fetchall()
 
             for trend_store_id, in rows:
-                create_partitions_for_trend_store(
-                    conn, trend_store_id, ahead_interval
-                )
+                for name, partition_index, i, num in create_partitions_for_trend_store(
+                        conn, trend_store_id, ahead_interval
+                ):
+                    print(
+                        '{} - {} ({}/{})'.format(name, partition_index, i, num)
+                    )
 
                 conn.commit()
         else:
-            create_partitions_for_trend_store(
+            for name, partition_index, i, num in create_partitions_for_trend_store(
                 conn, args.trend_store, ahead_interval
-            )
+            ):
+                print(
+                    '{} - {} ({}/{})'.format(name, partition_index, i, num)
+                )
 
             conn.commit()
 
