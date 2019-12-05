@@ -185,7 +185,6 @@ class TrendStorePart:
                         self.mark_modified(timestamp, modified)(cursor)
 
             except psycopg2.DatabaseError as exc:
-                print(exc)
                 store_method = {'store_method': 'upsert'}
                 action = {**description, **store_method}
 
@@ -274,8 +273,7 @@ class TrendStorePart:
                 command = create_insertion_command(
                     self.base_table(), column_names, len(values)
                 )
-                values = flatten(values)
-                cursor.execute(command, values)
+                cursor.executemany(command, values)
 
             except psycopg2.DatabaseError as exc:
                 raise translate_postgresql_exception(exc)
@@ -414,11 +412,11 @@ def create_copy_from_query(table, trend_names):
 
 def create_insertion_command(table, column_names, number_of_lines):
     """Return insertion query to be performed when copy fails"""
-    return 'INSERT INTO trend."{0}"({1}) VALUES {2} ON CONFLICT (entity_id, timestamp) DO UPDATE SET {3};'.format(
+    return 'INSERT INTO trend."{0}"({1}) VALUES ({2}) ON CONFLICT (entity_id, timestamp) DO UPDATE SET {3};'.format(
         table.name,
         ",".join(map(quote_ident, column_names)),
-        ", ".join(['({})'.format(",".join('%s' for _ in column_names))] * number_of_lines),
-        ", ".join(create_update_command_parts(column_names))
+        ",".join('%s' for _ in column_names),
+        ",".join(create_update_command_parts(column_names))
     )
 
 
