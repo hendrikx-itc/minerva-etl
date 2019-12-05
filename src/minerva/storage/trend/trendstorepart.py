@@ -273,8 +273,8 @@ class TrendStorePart:
                 command = create_insertion_command(
                     self.base_table(), column_names, len(values)
                 )
-                cursor.executemany(command, values)
 
+                psycopg2.extras.execute_batch(cursor, command, values)
             except psycopg2.DatabaseError as exc:
                 raise translate_postgresql_exception(exc)
 
