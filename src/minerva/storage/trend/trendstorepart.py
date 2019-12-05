@@ -216,6 +216,8 @@ class TrendStorePart:
                         for timestamp in data_package.timestamps():
                             self.mark_modified(timestamp, modified)(cursor)
 
+            conn.commit()
+
         return f
 
     def store_copy_from(self, data_package, modified, job):
