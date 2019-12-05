@@ -264,16 +264,16 @@ class TrendStorePart:
 
             column_names = list(chain(schema.system_columns, trend_names))
 
+            values = [
+                create_value_row(modified, job, row)
+                for row in data_package.refined_rows(cursor)
+            ]
+
+            command = create_insertion_command(
+                self.base_table(), column_names
+            )
+
             try:
-                values = [
-                    create_value_row(modified, job, row)
-                    for row in data_package.refined_rows(cursor)
-                ]
-
-                command = create_insertion_command(
-                    self.base_table(), column_names, len(values)
-                )
-
                 psycopg2.extras.execute_batch(cursor, command, values)
             except psycopg2.DatabaseError as exc:
                 raise translate_postgresql_exception(exc)
@@ -410,21 +410,24 @@ def create_copy_from_query(table, trend_names):
     )
 
 
-def create_insertion_command(table, column_names, number_of_lines):
+def create_insertion_command(table, column_names):
     """Return insertion query to be performed when copy fails"""
-    return 'INSERT INTO trend."{0}"({1}) VALUES ({2}) ON CONFLICT (entity_id, timestamp) DO UPDATE SET {3};'.format(
+    update_parts = [
+        '"{}" = excluded."{}"'.format(column, column)
+        for column in column_names
+        if column not in ('entity_id', 'timestamp', 'created')
+    ]
+
+    return (
+        'INSERT INTO trend."{0}"({1}) '
+        'VALUES ({2}) '
+        'ON CONFLICT (entity_id, timestamp) DO UPDATE SET {3};'
+    ).format(
         table.name,
         ",".join(map(quote_ident, column_names)),
         ",".join('%s' for _ in column_names),
-        ",".join(create_update_command_parts(column_names))
+        ",".join(update_parts)
     )
-
-
-def create_update_command_parts(columns):
-    return [
-        '"{}" = excluded."{}"'.format(column, column)
-        for column in columns if column != 'created'
-    ]
 
 
 def create_copy_from_lines(modified, job, rows, serializers):
