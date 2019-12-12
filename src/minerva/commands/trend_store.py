@@ -115,17 +115,12 @@ def add_trends_cmd(args):
     elif args.format == 'yaml':
         trend_store_config = yaml.load(args.definition, Loader=yaml.SafeLoader)
 
-    sys.stdout.write(
-        "Adding trends to trend store '{}' - '{}' - '{}' ... ".format(
-            trend_store_config['data_source'],
-            trend_store_config['entity_type'],
-            trend_store_config['granularity']
-        )
-    )
-
     try:
-        add_trends_to_trend_store_from_json(trend_store_config)
-        sys.stdout.write("OK\n")
+        result = add_trends_to_trend_store_from_json(trend_store_config)
+        if result:
+            sys.stdout.write("Added trends: %s\n"%result)
+        else:
+            sys.stdout.write("No trends to be added\n")
     except Exception as exc:
         sys.stdout.write("Error:\n{}".format(str(exc)))
         raise exc
@@ -164,9 +159,13 @@ def remove_trends_cmd(args):
     )
 
     try:
-        remove_tables_from_trend_store_from_json(trend_store_config)
-        sys.stdout.write("OK\n")
+        result = remove_trends_from_trend_store_from_json(trend_store_config)
+        if result:
+            sys.stdout.write("Removed trends: %s\n"%result)
+        else:
+            sys.stdout.write("No trends to be removed\n")
     except Exception as exc:
+
         sys.stdout.write("Error:\n{}".format(str(exc)))
         raise exc
 
@@ -444,6 +443,9 @@ class TrendStorePart:
         self.trends = trends
         self.generated_trends = generated_trends
 
+    def __str__(self):
+        return str(TrendStorePart.adapt(self))
+
     @staticmethod
     def from_json(data):
         return TrendStorePart(
@@ -535,14 +537,22 @@ def add_trends_to_trend_store_from_json(data):
         data['granularity'], trend_store_parts
     )
 
+    f = open('/var/log/minerva.txt', 'a')
+    f.write(query % (
+        data['data_source'], data['entity_type'], data['granularity'], [str(x) for x in trend_store_parts]
+    ))
+    f.close()
+
     with closing(connect()) as conn:
         with closing(conn.cursor()) as cursor:
             cursor.execute(query, query_args)
+            result = cursor.fetchone()
 
         conn.commit()
 
+    return ', '.join(str(r) for r in result[0])
 
-def remove_tables_from_trend_store_from_json(data):
+def remove_trends_from_trend_store_from_json(data):
     trend_store_parts = [TrendStorePart.from_json(p) for p in data['parts']]
 
     query = (
@@ -561,8 +571,11 @@ def remove_tables_from_trend_store_from_json(data):
     with closing(connect()) as conn:
         with closing(conn.cursor()) as cursor:
             cursor.execute(query, query_args)
+            result = cursor.fetchall()
 
         conn.commit()
+
+    return str(result)
 
 
 def alter_tables_in_trend_store_from_json(data, force=False):
