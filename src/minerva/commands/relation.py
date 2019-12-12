@@ -18,6 +18,7 @@ def setup_command_parser(subparsers):
 
     setup_create_parser(cmd_subparsers)
     setup_materialize_parser(cmd_subparsers)
+    setup_remove_parser(cmd_subparsers)
 
 
 def setup_create_parser(subparsers):
@@ -114,3 +115,29 @@ def materialize_relations():
                 cursor.execute(materialize_relation_query)
 
                 print("Materialized relation '{}'".format(name))
+
+def setup_remove_parser(subparsers):
+    cmd = subparsers.add_parser(
+        'remove', help='remove a relation'
+    )
+
+    cmd.add_argument('name',
+        help='name of the relation to be removed'
+    )
+
+    cmd.set_defaults(cmd=remove_relation)
+
+
+def remove_relation(args):
+    name = args.name
+    with closing(connect()) as conn:
+        with closing(conn.cursor()) as cursor:
+            cursor.execute(
+                "SELECT relation_directory.remove('{}');".format(name)
+            )
+            result = cursor.fetchone()[0]
+            if result:
+                print("Removed relation '{}'".format(result))
+            else:
+                print("No relation to remove")
+        conn.commit()
