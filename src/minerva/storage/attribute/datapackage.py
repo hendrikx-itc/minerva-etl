@@ -178,7 +178,17 @@ def format_text_value(null_value='\\N'):
         if is_null_value(value):
             return null_value
         else:
-            return value.replace('\t', '\\\t').replace('\n', '\\\n')
+            return value.replace(
+                '\t', '\\\t'
+            ).replace(
+                '\n', '\\\n'
+            ).replace(
+                '{', '_'
+            ).replace(
+                '}', '_'
+            ).replace(
+                '"', '_'
+            )
 
     return fn
 
