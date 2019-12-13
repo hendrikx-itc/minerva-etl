@@ -15,6 +15,8 @@ from functools import partial
 from operator import itemgetter
 from itertools import chain
 from collections import Iterable
+import datetime
+import logging
 
 from minerva.util import compose, expand_args, zipapply
 from minerva.storage import datatype
@@ -208,6 +210,22 @@ def text_array_value_to_string(value):
         raise Exception("Unexpected type '{}'".format(type(value)))
 
 
+def timestamp_to_string(null_value="\\N"):
+    def fn(timestamp_str):
+        if is_null_value(timestamp_str):
+            return null_value
+        else:
+            try:
+                datetime.datetime.strptime(timestamp_str, '%Y-%m-%d %H:%M:%S')
+            except ValueError:
+                logging.debug('Parse error for timestamp: {}'.format(timestamp_str))
+                return null_value
+            else:
+                return timestamp_str
+
+    return fn
+
+
 value_mapper_by_type = {
     "text": format_text_value(),
     "bigint[]": array_value_to_string,
@@ -220,7 +238,7 @@ value_mapper_by_type = {
     "boolean": value_to_string(),
     "real": value_to_string(),
     "double precision": value_to_string(),
-    "timestamp without time zone": value_to_string(),
+    "timestamp without time zone": timestamp_to_string(),
     "numeric": value_to_string()
 }
 
