@@ -378,7 +378,8 @@ TYPE_ORDER = [
     "real",
     "double precision",
     "numeric",
-    "timestamp without time zone",
+# Disable support for timestamp trends and attributes due to issue KPN3GENM-17
+#    "timestamp without time zone",
     "smallint[]",
     "integer[]",
     "text[]",
