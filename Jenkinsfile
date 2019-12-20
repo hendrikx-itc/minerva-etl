@@ -20,7 +20,7 @@ node ('git') {
             sh "rm -rf ${buildDir1804}"
 
             sh './package 1804'
-            publishPackages buildDir1804.toString(), 'common/bionic', 'bionic'
+            publishPackages buildDir1804.toString(), 'common/bionic/stable', 'bionic'
             archiveArtifacts(artifacts: "${buildDir1804}/*")
         }
     }
