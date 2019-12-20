@@ -12,7 +12,7 @@ Vcs-Browser: http://github.com/hendrikx-itc/minerva
 Package: python-minerva
 Section: contrib/python
 Architecture: all
-Depends: ${shlibs:Depends}, ${misc:Depends}
+Depends: ${shlibs:Depends}, ${misc:Depends}, python-setuptools, python-psycopg2, python-tz, python-yaml, python-dateutil, python-configobj, python-pyparsing, python-dbutils
 Description: Minerva Core Library
  The Minerva Core Library provides core functionality for all Python based
  Minerva solutions.
