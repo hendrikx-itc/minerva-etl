@@ -71,11 +71,16 @@ def materialize_attributestores(conn, attributestore_ids):
     print("materializing {} changed attribute stores".format(len(attributestore_ids)))
 
     for attributestore_id in attributestore_ids:
-        count, name = materialize(conn, attributestore_id)
+        try:
+            count, name = materialize(conn, attributestore_id)
+        except Exception as exc:
+            conn.rollback()
 
-        conn.commit()
+            print("failed materializing curr_ptr of attribute store with Id {}: {}".format(attributestore_id, str(exc)))
+        else:
+            conn.commit()
 
-        print("materialized {}: {}".format(name, count))
+            print("materialized {} ({}): {}".format(name, attributestore_id, count))
 
 
 def materialize(conn, attributestore_id):
