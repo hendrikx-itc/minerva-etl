@@ -115,17 +115,12 @@ def add_trends_cmd(args):
     elif args.format == 'yaml':
         trend_store_config = yaml.load(args.definition, Loader=yaml.SafeLoader)
 
-    sys.stdout.write(
-        "Adding trends to trend store '{}' - '{}' - '{}' ... ".format(
-            trend_store_config['data_source'],
-            trend_store_config['entity_type'],
-            trend_store_config['granularity']
-        )
-    )
-
     try:
-        add_trends_to_trend_store_from_json(trend_store_config)
-        sys.stdout.write("OK\n")
+        result = add_trends_to_trend_store_from_json(trend_store_config)
+        if result:
+            sys.stdout.write("Added trends: %s\n"%result)
+        else:
+            sys.stdout.write("No trends to be added\n")
     except Exception as exc:
         sys.stdout.write("Error:\n{}".format(str(exc)))
         raise exc
@@ -155,18 +150,14 @@ def remove_trends_cmd(args):
     elif args.format == 'yaml':
         trend_store_config = yaml.load(args.definition, Loader=yaml.SafeLoader)
 
-    sys.stdout.write(
-        "Removing trends from trend store '{}' - '{}' - '{}' ... ".format(
-            trend_store_config['data_source'],
-            trend_store_config['entity_type'],
-            trend_store_config['granularity']
-        )
-    )
-
     try:
-        remove_tables_from_trend_store_from_json(trend_store_config)
-        sys.stdout.write("OK\n")
+        result = remove_trends_from_trend_store_from_json(trend_store_config)
+        if result:
+            sys.stdout.write("Removed trends: %s\n"%result)
+        else:
+            sys.stdout.write("No trends to be removed.\n")
     except Exception as exc:
+
         sys.stdout.write("Error:\n{}".format(str(exc)))
         raise exc
 
@@ -200,17 +191,12 @@ def alter_trends_cmd(args):
     elif args.format == 'yaml':
         trend_store_config = yaml.load(args.definition, Loader=yaml.SafeLoader)
 
-    sys.stdout.write(
-        "Adapting trends in trend store '{}' - '{}' - '{}' ... ".format(
-            trend_store_config['data_source'],
-            trend_store_config['entity_type'],
-            trend_store_config['granularity']
-        )
-    )
-
     try:
-        alter_tables_in_trend_store_from_json(trend_store_config, force = args.force)
-        sys.stdout.write("OK\n")
+        result = alter_tables_in_trend_store_from_json(trend_store_config, force = args.force)
+        if result:
+            sys.stdout.write("Changed columns: {}\n".format(", ".join(result)))
+        else:
+            sys.stdout.write("No columns were changed.\n")
     except Exception as exc:
         sys.stdout.write("Error:\n{}".format(str(exc)))
         raise exc
@@ -245,17 +231,21 @@ def change_trends_cmd(args):
     elif args.format == 'yaml':
         trend_store_config = yaml.load(args.definition, Loader=yaml.SafeLoader)
 
-    sys.stdout.write(
-        "Adapting trends in trend store '{}' - '{}' - '{}' ... ".format(
-            trend_store_config['data_source'],
-            trend_store_config['entity_type'],
-            trend_store_config['granularity']
-        )
-    )
-
     try:
-        change_trend_store_from_json(trend_store_config, force = args.force)
-        sys.stdout.write("OK\n")
+        result = change_trend_store_from_json(trend_store_config, force = args.force)
+        if result:
+            text = result[0]
+            for part in result[1:]:
+                if text.endswith(':'):
+                    text = text + ' ' + part
+                elif part.endswith(':'):
+                    sys.stdout.write(text + '\n')
+                    text = part
+                else:
+                    text = text + ', ' + part
+            sys.stdout.write(text + '\n')
+        else:
+            sys.stdout.write('No changes were made.')
     except Exception as exc:
         sys.stdout.write("Error:\n{}".format(str(exc)))
         raise exc
@@ -444,6 +434,9 @@ class TrendStorePart:
         self.trends = trends
         self.generated_trends = generated_trends
 
+    def __str__(self):
+        return str(TrendStorePart.adapt(self))
+
     @staticmethod
     def from_json(data):
         return TrendStorePart(
@@ -535,14 +528,22 @@ def add_trends_to_trend_store_from_json(data):
         data['granularity'], trend_store_parts
     )
 
+    f = open('/var/log/minerva.txt', 'a')
+    f.write(query % (
+        data['data_source'], data['entity_type'], data['granularity'], [str(x) for x in trend_store_parts]
+    ))
+    f.close()
+
     with closing(connect()) as conn:
         with closing(conn.cursor()) as cursor:
             cursor.execute(query, query_args)
+            result = cursor.fetchone()
 
         conn.commit()
 
+    return ', '.join(str(r) for r in result[0])
 
-def remove_tables_from_trend_store_from_json(data):
+def remove_trends_from_trend_store_from_json(data):
     trend_store_parts = [TrendStorePart.from_json(p) for p in data['parts']]
 
     query = (
@@ -561,8 +562,14 @@ def remove_tables_from_trend_store_from_json(data):
     with closing(connect()) as conn:
         with closing(conn.cursor()) as cursor:
             cursor.execute(query, query_args)
+            result = cursor.fetchone()
 
         conn.commit()
+
+    if result[0]:
+        return ', '.join(str(r) for r in result[0])
+    else:
+        return None
 
 
 def alter_tables_in_trend_store_from_json(data, force=False):
@@ -573,7 +580,7 @@ def alter_tables_in_trend_store_from_json(data, force=False):
         'trend_directory.get_trend_store('
         '%s::text, %s::text, %s::interval'
         '), %s::trend_directory.trend_store_part_descr[]'
-        ')'
+        ')'.format('change_all_trend_data' if force else 'change_trend_data_upward')
     )
 
     query_args = (
@@ -584,8 +591,14 @@ def alter_tables_in_trend_store_from_json(data, force=False):
     with closing(connect()) as conn:
         with closing(conn.cursor()) as cursor:
             cursor.execute(query, query_args)
+            result = cursor.fetchone()
 
         conn.commit()
+
+    if result and result[0]:
+        return result[0]
+    else:
+        return None
 
 
 def change_trend_store_from_json(data, force=False):
@@ -596,7 +609,7 @@ def change_trend_store_from_json(data, force=False):
         'trend_directory.get_trend_store('
         '%s::text, %s::text, %s::interval'
         '), %s::trend_directory.trend_store_part_descr[]'
-        ')'
+        ')'.format('change_trendstore_strong' if force else 'change_trendstore_weak')
     )
 
     query_args = (
@@ -607,8 +620,14 @@ def change_trend_store_from_json(data, force=False):
     with closing(connect()) as conn:
         with closing(conn.cursor()) as cursor:
             cursor.execute(query, query_args)
+            result = cursor.fetchone()
 
         conn.commit()
+
+    if result and result[0]:
+        return result[0]
+    else:
+        return None
 
 
 def add_parts_to_trend_store_from_json(data):
