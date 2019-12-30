@@ -39,6 +39,10 @@ class Trigger:
 
         create_rule(conn, self.config)
 
+        yield " - setting weight"
+
+        set_weight(conn, self.config)
+
         yield " - setting thresholds"
 
         set_thresholds(conn, self.config)
@@ -260,6 +264,17 @@ def set_condition(conn, config):
     )
 
     query_args = (config['condition'], config['name'])
+
+    with closing(conn.cursor()) as cursor:
+        cursor.execute(query, query_args)
+
+
+def set_weight(conn, config):
+    query = (
+        'SELECT trigger.set_weight(%s::name, %s::text)'
+    )
+
+    query_args = (config['name'], str(config['weight']))
 
     with closing(conn.cursor()) as cursor:
         cursor.execute(query, query_args)
