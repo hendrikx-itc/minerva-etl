@@ -489,15 +489,28 @@ register_adapter(Trend, Trend.adapt)
 def create_trend_store_from_json(data):
     trend_store_parts = [TrendStorePart.from_json(p) for p in data['parts']]
 
-    query = (
-        'SELECT trend_directory.create_trend_store('
-        '%s::text, %s::text, %s::interval, %s::interval, %s::trend_directory.trend_store_part_descr[]'
-        ')'
-    )
-    query_args = (
-        data['data_source'], data['entity_type'],
-        data['granularity'], data['partition_size'], trend_store_parts
-    )
+    if 'retention_period' in data:
+        query = (
+            'SELECT trend_directory.create_trend_store('
+            '%s::text, %s::text, %s::interval, %s::interval, %s::interval, %s::trend_directory.trend_store_part_descr[]'
+            ')'
+        )
+        query_args = (
+            data['data_source'], data['entity_type'],
+            data['granularity'], data['partition_size'],
+            data['retention_period'], trend_store_parts
+        )
+    else:
+        query = (
+            'SELECT trend_directory.create_trend_store('
+            '%s::text, %s::text, %s::interval, %s::interval, null, %s::trend_directory.trend_store_part_descr[]'
+            ')'
+        )
+        query_args = (
+            data['data_source'], data['entity_type'],
+            data['granularity'], data['partition_size'],
+            trend_store_parts
+        )
 
     with closing(connect()) as conn:
         with closing(conn.cursor()) as cursor:
