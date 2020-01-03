@@ -49,6 +49,7 @@ def setup_command_parser(subparsers):
     setup_partition_parser(cmd_subparsers)
     setup_process_modified_log_parser(cmd_subparsers)
     setup_materialize_parser(cmd_subparsers)
+    setup_move_trend_parser(cmd_subparsers)
 
 
 def setup_create_parser(subparsers):
@@ -996,3 +997,53 @@ def materialize(conn, materialization_id, timestamp):
         row_count, = cursor.fetchone()
 
     return row_count
+
+
+def setup_move_trend_parser(subparsers):
+    cmd = subparsers.add_parser(
+        'move-trend', help='command to move a trend to another trend_store_part'
+    )
+
+    cmd.add_argument('datasource', help='data source of trend store')
+    cmd.add_argument('entitytype', help='entity type of trend store')
+    cmd.add_argument('granularity', help='granularity of trend store')
+    cmd.add_argument('trend', help='name of trend')
+    cmd.add_argument('part', help='name of trend store part to move to')
+
+    cmd.set_defaults(cmd=move_trend_cmd)
+
+
+def move_trend_cmd(args):
+    query = (
+        'SELECT trend_directory.move_trend(trend_directory.get_trend_store(%s, %s, %s::interval), %s::name, %s::name)'
+    )
+
+    query_args = (
+        args.datasource, args.entitytype, args.granularity, args.part, args.trend
+    )
+
+    with closing(connect()) as conn:
+        with closing(conn.cursor()) as cursor:
+            cursor.execute(query, query_args)
+            result = cursor.fetchone()[0]
+
+        conn.commit()
+
+    print(result)
+
+
+def delete_trend_store_cmd(args):
+    query = (
+        'SELECT trend_directory.delete_trend_store(%s)'
+    )
+
+    query_args = (
+        args.id,
+    )
+
+    with closing(connect()) as conn:
+        with closing(conn.cursor()) as cursor:
+            cursor.execute(query, query_args)
+
+        conn.commit()
+
