@@ -20,6 +20,7 @@ from minerva.commands.load_sample_data import load_sample_data
 from minerva.commands.relation import DuplicateRelation, define_relation, \
     materialize_relations
 from minerva.commands.virtual_entity import materialize_virtual_entities
+from minerva.commands.trend_materialization import define_materialization
 
 
 def setup_command_parser(subparsers):
@@ -48,7 +49,7 @@ def setup_command_parser(subparsers):
 
 def initialize_cmd(args):
     instance_root = (
-        args.instance_root or os.environ.get('INSTANCE_ROOT') or os.getcwd()
+        args.instance_root or os.environ.get('MINERVA_INSTANCE_ROOT') or os.getcwd()
     )
 
     sys.stdout.write(
@@ -230,14 +231,28 @@ def execute_sql_file(file_path):
 
 
 def define_trend_materializations(instance_root):
-    definition_files = glob.glob(
+    # Load SQL based materializations
+    sql_definition_files = glob.glob(
         os.path.join(instance_root, 'materialization/*.sql')
     )
 
-    for definition_file_path in definition_files:
+    for definition_file_path in sql_definition_files:
         print(definition_file_path)
 
         execute_sql_file(definition_file_path)
+
+    # Load new YAML based materializations
+    yaml_definition_files = glob.glob(
+        os.path.join(instance_root, 'materialization/*.yaml')
+    )
+
+    for definition_file_path in yaml_definition_files:
+        print(definition_file_path)
+
+        with open(definition_file_path) as definition_file:
+            definition = yaml.load(definition_file, Loader=yaml.SafeLoader)
+
+        define_materialization(definition)
 
 
 def load_custom_sql(instance_root):

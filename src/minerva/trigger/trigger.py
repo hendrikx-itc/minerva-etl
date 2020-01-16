@@ -77,6 +77,9 @@ class Trigger:
         with closing(conn.cursor()) as cursor:
             cursor.execute(query, query_args)
 
+    def update_weight(self, conn):
+        set_weight(conn, self.config)
+
     def execute(self, conn, timestamp):
         query = "SELECT * FROM trigger.create_notifications(%s, %s)"
         query_args = (self.name, timestamp)

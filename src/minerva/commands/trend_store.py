@@ -2,6 +2,7 @@ import json
 from contextlib import closing
 import argparse
 import sys
+import datetime
 
 import yaml
 import psycopg2
@@ -912,10 +913,10 @@ def process_modified_log(reset):
 
         conn.commit()
 
+    timestamp_str = datetime.datetime.now()
+
     print(
-        "Processed modified log {} - {}".format(
-            started_at_id, last_processed_id
-        )
+        f"{timestamp_str} Processed modified log {started_at_id} - {last_processed_id}"
     )
 
 

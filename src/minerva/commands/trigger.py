@@ -23,6 +23,7 @@ def setup_command_parser(subparsers):
     setup_disable_parser(cmd_subparsers)
     setup_delete_parser(cmd_subparsers)
     setup_list_parser(cmd_subparsers)
+    setup_update_weight_parser(cmd_subparsers)
     setup_create_notifications_parser(cmd_subparsers)
 
 
@@ -34,10 +35,6 @@ def setup_create_parser(subparsers):
     cmd.add_argument(
         '--from-yaml', type=argparse.FileType('r'),
         help='use yaml description for trend store'
-    )
-
-    cmd.add_argument(
-        '--output-sql', help='output generated sql without executing it'
     )
 
     cmd.set_defaults(cmd=create_trigger_cmd)
@@ -130,6 +127,38 @@ def setup_list_parser(subparsers):
     )
 
     cmd.set_defaults(cmd=list_cmd)
+
+
+def setup_update_weight_parser(subparsers):
+    cmd = subparsers.add_parser(
+        'update-weight', help='command for updating the weight of a trigger from the configuration'
+    )
+
+    cmd.add_argument(
+        '--from-yaml', type=argparse.FileType('r'),
+        help='use yaml description for trend store'
+    )
+
+    cmd.set_defaults(cmd=update_weight_cmd)
+
+
+def update_weight_cmd(args):
+    if args.from_yaml:
+        trigger_config = yaml.load(args.from_yaml, Loader=yaml.SafeLoader)
+    else:
+        sys.stdout.write("No configuration provided\n")
+        return
+
+    sys.stdout.write(
+        "Updating weight of '{}' to:\n - {}".format(trigger_config['name'], trigger_config['weight'])
+    )
+
+    with connect() as conn:
+        conn.autocommit = True
+
+        trigger = Trigger.from_config(trigger_config)
+
+        trigger.update_weight(conn)
 
 
 def timedelta_to_string(t):
