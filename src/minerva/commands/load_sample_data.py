@@ -13,7 +13,7 @@ from minerva.harvest.plugins import get_plugin
 from minerva.db import connect
 from minerva.commands.load_data import create_store_db_context
 from minerva.directory.entitytype import NoSuchEntityType
-from minerva.commands import ConfigurationError
+from minerva.commands import ConfigurationError, INSTANCE_ROOT_VARIABLE
 
 
 def setup_command_parser(subparsers):
@@ -35,7 +35,7 @@ def setup_command_parser(subparsers):
 
 def load_sample_data_cmd(args):
     instance_root = (
-        args.instance_root or os.environ.get('INSTANCE_ROOT') or os.getcwd()
+        args.instance_root or os.environ.get(INSTANCE_ROOT_VARIABLE) or os.getcwd()
     )
 
     sys.stdout.write(

@@ -7,7 +7,7 @@ from collections import OrderedDict
 
 import yaml
 
-from minerva.commands import ConfigurationError
+from minerva.commands import ConfigurationError, INSTANCE_ROOT_VARIABLE
 
 
 def setup_command_parser(subparsers):
@@ -40,7 +40,7 @@ def setup_entity_parser(subparsers):
 
 
 def entity_aggregation(args):
-    instance_root = os.environ.get('INSTANCE_ROOT') or os.getcwd()
+    instance_root = os.environ.get(INSTANCE_ROOT_VARIABLE) or os.getcwd()
 
     with open(args.definition) as definition_file:
         if args.format == 'json':
@@ -422,7 +422,7 @@ def setup_time_parser(subparsers):
 
 
 def time_aggregation(args):
-    instance_root = os.environ.get('INSTANCE_ROOT') or os.getcwd()
+    instance_root = os.environ.get(INSTANCE_ROOT_VARIABLE) or os.getcwd()
 
     with open(args.definition) as definition_file:
         if args.format == 'json':
