@@ -6,7 +6,7 @@ from minerva.harvest.plugins import iter_entry_points, \
     get_plugin as get_harvest_plugin
 
 
-INSTANCE_ROOT_VARIABLE='MINERVA_INSTANCE_ROOT'
+INSTANCE_ROOT_VARIABLE = 'MINERVA_INSTANCE_ROOT'
 
 
 class ConfigurationError(Exception):
