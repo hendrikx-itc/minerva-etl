@@ -2,9 +2,9 @@ import os
 from contextlib import closing
 import sys
 import glob
-import time
 
 import yaml
+from minerva.commands.live_monitor import live_monitor
 
 from minerva.db import connect
 
@@ -12,7 +12,7 @@ from minerva.commands import INSTANCE_ROOT_VARIABLE
 from minerva.commands.attribute_store import create_attribute_store_from_json, \
     DuplicateAttributeStore, SampledViewMaterialization
 from minerva.commands.trend_store import create_trend_store_from_json, \
-    DuplicateTrendStore, materialize_all, process_modified_log
+    DuplicateTrendStore
 from minerva.commands.notification_store import \
     create_notification_store_from_json, DuplicateNotificationStore
 from minerva.commands.partition import create_partitions_for_trend_store
@@ -78,14 +78,6 @@ def initialize_cmd(args):
             live_monitor()
         except KeyboardInterrupt:
             print("Stopped")
-
-
-def live_monitor():
-    while True:
-        process_modified_log(False)
-        materialize_all(False)
-
-        time.sleep(2)
 
 
 def header(title):
