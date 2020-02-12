@@ -224,17 +224,7 @@ def execute_sql_file(file_path):
 
 
 def define_trend_materializations(instance_root):
-    # Load SQL based materializations
-    sql_definition_files = glob.glob(
-        os.path.join(instance_root, 'materialization/*.sql')
-    )
-
-    for definition_file_path in sql_definition_files:
-        print(definition_file_path)
-
-        execute_sql_file(definition_file_path)
-
-    # Load new YAML based materializations
+    # Load YAML based materializations
     yaml_definition_files = glob.glob(
         os.path.join(instance_root, 'materialization/*.yaml')
     )
