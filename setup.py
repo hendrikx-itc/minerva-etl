@@ -42,5 +42,6 @@ setup(
         'console_scripts': [
             'minerva = minerva.commands.minerva:main'
         ]
-    }
+    },
+    include_package_data=True
 )

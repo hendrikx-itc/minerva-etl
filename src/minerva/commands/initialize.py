@@ -8,7 +8,7 @@ from minerva.commands.live_monitor import live_monitor
 
 from minerva.db import connect
 
-from minerva.commands import INSTANCE_ROOT_VARIABLE
+from minerva.instance import INSTANCE_ROOT_VARIABLE
 from minerva.commands.attribute_store import create_attribute_store_from_json, \
     DuplicateAttributeStore, SampledViewMaterialization
 from minerva.commands.trend_store import create_trend_store_from_json, \
@@ -91,6 +91,9 @@ def header(title):
 
 
 def initialize_instance(instance_root):
+    header('Custom pre-init SQL')
+    load_custom_pre_init_sql(instance_root)
+
     header("Initializing attribute stores")
     initialize_attribute_stores(instance_root)
 
@@ -112,14 +115,14 @@ def initialize_instance(instance_root):
     header('Initializing attribute materializations')
     define_attribute_materializations(instance_root)
 
-    header('Custom SQL')
-    load_custom_sql(instance_root)
-
     header('Initializing triggers')
     define_triggers(instance_root)
 
     header('Creating partitions')
     create_partitions()
+
+    header('Custom post-init SQL')
+    load_custom_post_init_sql(instance_root)
 
 
 def initialize_derivatives(instance_root):
@@ -159,7 +162,7 @@ def initialize_attribute_stores(instance_root):
 def initialize_trend_stores(instance_root):
     definition_files = glob.glob(os.path.join(instance_root, 'trend/*.yaml'))
 
-    for definition_file_path in definition_files:
+    for definition_file_path in sorted(definition_files):
         print(definition_file_path)
 
         with open(definition_file_path) as definition_file:
@@ -238,12 +241,27 @@ def define_trend_materializations(instance_root):
         define_materialization(definition)
 
 
-def load_custom_sql(instance_root):
-    definition_files = glob.glob(
-        os.path.join(instance_root, 'custom/*.sql')
+def load_custom_pre_init_sql(instance_root):
+    glob_pattern = os.path.join(
+        instance_root, 'custom/pre-init/**/*.sql'
     )
 
-    for definition_file_path in definition_files:
+    definition_files = glob.glob(glob_pattern, recursive=True)
+
+    for definition_file_path in sorted(definition_files):
+        print(definition_file_path)
+
+        execute_sql_file(definition_file_path)
+
+
+def load_custom_post_init_sql(instance_root):
+    glob_pattern = os.path.join(
+        instance_root, 'custom/post-init/**/*.sql'
+    )
+
+    definition_files = glob.glob(glob_pattern, recursive=True)
+
+    for definition_file_path in sorted(definition_files):
         print(definition_file_path)
 
         execute_sql_file(definition_file_path)

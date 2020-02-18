@@ -1,0 +1,3 @@
+git+https://github.com/hendrikx-itc/python-minerva-etl
+jinja2
+psycopg2 >= 2.8

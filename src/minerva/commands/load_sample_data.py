@@ -13,7 +13,8 @@ from minerva.harvest.plugins import get_plugin
 from minerva.db import connect
 from minerva.commands.load_data import create_store_db_context
 from minerva.directory.entitytype import NoSuchEntityType
-from minerva.commands import ConfigurationError, INSTANCE_ROOT_VARIABLE
+from minerva.commands import ConfigurationError
+from minerva.instance import INSTANCE_ROOT_VARIABLE
 
 
 def setup_command_parser(subparsers):

@@ -7,7 +7,8 @@ from collections import OrderedDict
 
 import yaml
 
-from minerva.commands import ConfigurationError, INSTANCE_ROOT_VARIABLE
+from minerva.instance import MinervaInstance
+from minerva.commands import ConfigurationError
 
 
 def setup_command_parser(subparsers):
@@ -37,24 +38,6 @@ def setup_entity_parser(subparsers):
     )
 
     cmd.set_defaults(cmd=entity_aggregation)
-
-
-class MinervaInstance:
-    def __init__(self, root):
-        self.root = root
-
-    def materialization_file_path(self, name):
-        return os.path.join(
-            self.root, 'materialization', f'{name}.yaml'
-        )
-
-    def trend_store_file_path(self, name):
-        return os.path.join(
-            self.root, 'trend', f'{name}.yaml'
-        )
-
-    def make_relative(self, path):
-        return os.path.relpath(path, self.root)
 
 
 class AggregationContext:
@@ -153,9 +136,7 @@ class TimeAggregationContext(AggregationContext):
 
 
 def entity_aggregation(args):
-    instance_root = os.environ.get(INSTANCE_ROOT_VARIABLE) or os.getcwd()
-
-    instance = MinervaInstance(instance_root)
+    instance = MinervaInstance.load()
 
     aggregation_context = EntityAggregationContext(
         instance, args.definition, args.format
@@ -523,9 +504,7 @@ def setup_time_parser(subparsers):
 
 
 def time_aggregation(args):
-    instance_root = os.environ.get(INSTANCE_ROOT_VARIABLE) or os.getcwd()
-
-    instance = MinervaInstance(instance_root)
+    instance = MinervaInstance.load()
 
     aggregation_context = TimeAggregationContext(
         instance, args.definition, args.format
@@ -536,7 +515,7 @@ def time_aggregation(args):
     aggregate_data = define_aggregate_trend_store(aggregation_context)
 
     aggregate_trend_store_file_path = os.path.join(
-        instance_root,
+        instance.root,
         'trend',
         '{}.yaml'.format(aggregation_context.definition['time_aggregation']['name'])
     )

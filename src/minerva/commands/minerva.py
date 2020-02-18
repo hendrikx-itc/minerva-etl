@@ -5,7 +5,7 @@ from minerva import __version__
 from minerva.commands import data_source, trend_store, entity_type, load_data, \
     structure, alias, attribute_store, initialize, relation, \
     trigger, load_sample_data, virtual_entity, notification_store, \
-    aggregation, live_monitor, trend_materialization
+    aggregation, live_monitor, trend_materialization, quick_start
 
 
 def main():
@@ -36,6 +36,7 @@ def main():
     aggregation.setup_command_parser(subparsers)
     live_monitor.setup_command_parser(subparsers)
     trend_materialization.setup_command_parser(subparsers)
+    quick_start.setup_command_parser(subparsers)
 
     args = parser.parse_args()
 

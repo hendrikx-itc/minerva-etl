@@ -6,15 +6,13 @@ import datetime
 
 import yaml
 import psycopg2
-from psycopg2 import sql
-from psycopg2.extensions import adapt, register_adapter, AsIs, QuotedString, ISQLQuote
-from psycopg2.extras import Json
 
 from minerva.commands import LoadHarvestPlugin, ListPlugins, load_json
 from minerva.db import connect
 from minerva.harvest.trend_config_deducer import deduce_config
 from minerva.util.tabulate import render_table
 from minerva.commands.partition import create_partitions_for_trend_store
+from minerva.instance import TrendStorePart
 
 
 class DuplicateTrendStore(Exception):
@@ -349,144 +347,6 @@ def deduce_trend_store_cmd(cmd_parser):
     return cmd
 
 
-class Trend:
-    def __init__(self, name, data_type, description, time_aggregation, entity_aggregation, extra_data):
-        self.name = name
-        self.data_type = data_type
-        self.description = description
-        self.time_aggregation = time_aggregation
-        self.entity_aggregation = entity_aggregation
-        self.extra_data = extra_data
-
-    @staticmethod
-    def from_json(data):
-        return Trend(
-            data['name'],
-            data['data_type'],
-            data.get('description', ''),
-            data.get('time_aggregation', 'SUM'),
-            data.get('entity_aggregation', 'SUM'),
-            data.get('extra_data', {})
-        )
-
-    @staticmethod
-    def adapt(trend):
-        if trend.extra_data is None:
-            extra_data = 'NULL'
-        else:
-            extra_data = Json(trend.extra_data)
-
-        return AsIs(
-            "({}, {}, {}, {}, {}, {})".format(
-                QuotedString(trend.name),
-                QuotedString(trend.data_type),
-                QuotedString(trend.description),
-                QuotedString(trend.time_aggregation),
-                QuotedString(trend.entity_aggregation),
-                extra_data
-            )
-        )
-
-
-class GeneratedTrend:
-    def __init__(self, name, data_type, description, expression, extra_data):
-        self.name = name
-        self.data_type = data_type
-        self.description = description
-        self.expression = expression
-        self.extra_data = extra_data
-
-    @staticmethod
-    def from_json(data):
-        return GeneratedTrend(
-            data['name'],
-            data['data_type'],
-            data.get('description', ''),
-            data['expression'],
-            data.get('extra_data', {})
-        )
-
-    @staticmethod
-    def adapt(generated_trend):
-        if generated_trend.extra_data is None:
-            extra_data = 'NULL'
-        else:
-            extra_data = Json(generated_trend.extra_data)
-
-        if generated_trend.description is None:
-            description = 'NULL'
-        else:
-            description = QuotedString(generated_trend.description)
-
-        return AsIs(
-            "({}, {}, {}, {}, {})".format(
-                QuotedString(generated_trend.name),
-                QuotedString(generated_trend.data_type),
-                description,
-                QuotedString(str(generated_trend.expression)),
-                extra_data
-            )
-        )
-
-
-class TrendStorePart:
-    def __init__(self, name, trends, generated_trends):
-        self.name = name
-        self.trends = trends
-        self.generated_trends = generated_trends
-
-    def __str__(self):
-        return str(TrendStorePart.adapt(self))
-
-    @staticmethod
-    def from_json(data):
-        return TrendStorePart(
-            data['name'],
-            [
-                Trend.from_json(trend)
-                for trend in data['trends']
-            ],
-            [
-                GeneratedTrend.from_json(generated_trend)
-                for generated_trend in data.get('generated_trends', [])
-            ]
-        )
-
-    @staticmethod
-    def adapt(trend_store_part):
-        return AsIs(
-            "({}, {}::trend_directory.trend_descr[], {}::trend_directory.generated_trend_descr[])".format(
-                QuotedString(trend_store_part.name),
-                adapt(trend_store_part.trends),
-                adapt(trend_store_part.generated_trends)
-            )
-        )
-
-
-class TrendStore:
-    def __init__(self, data_source, entity_type, granularity, partition_size, parts):
-        self.data_source = data_source
-        self.entity_type = entity_type
-        self.granularity = granularity
-        self.partition_size = partition_size
-        self.parts = parts
-
-    @staticmethod
-    def from_json(data):
-        return TrendStore(
-            data['data_source'],
-            data['entity_type'],
-            data['granularity'],
-            data['partition_size'],
-            [TrendStorePart.from_json(p) for p in data['parts']]
-        )
-
-
-register_adapter(TrendStorePart, TrendStorePart.adapt)
-register_adapter(GeneratedTrend, GeneratedTrend.adapt)
-register_adapter(Trend, Trend.adapt)
-
-
 def create_trend_store_from_json(data):
     trend_store_parts = [TrendStorePart.from_json(p) for p in data['parts']]
 
@@ -543,6 +403,7 @@ def add_trends_to_trend_store_from_json(data):
         conn.commit()
 
     return ', '.join(str(r) for r in result[0])
+
 
 def remove_trends_from_trend_store_from_json(data):
     trend_store_parts = [TrendStorePart.from_json(p) for p in data['parts']]
