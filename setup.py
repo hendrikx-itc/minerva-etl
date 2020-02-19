@@ -29,6 +29,7 @@ setup(
         "minerva.db",
         "minerva.system",
         "minerva.directory",
+        "minerva.instance",
         "minerva.storage",
         "minerva.storage.trend",
         "minerva.storage.trend.test",
