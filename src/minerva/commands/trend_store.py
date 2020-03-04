@@ -389,12 +389,6 @@ def add_trends_to_trend_store_from_json(data):
         data['granularity'], trend_store_parts
     )
 
-    f = open('/var/log/minerva.txt', 'a')
-    f.write(query % (
-        data['data_source'], data['entity_type'], data['granularity'], [str(x) for x in trend_store_parts]
-    ))
-    f.close()
-
     with closing(connect()) as conn:
         with closing(conn.cursor()) as cursor:
             cursor.execute(query, query_args)
