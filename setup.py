@@ -19,7 +19,7 @@ setup(
     license="GPL",
     install_requires=[
         "pytz", "psycopg2>=2.8", "PyYAML", "configobj",
-        "python-dateutil", "pyparsing"
+        "python-dateutil", "pyparsing", "jinja2"
     ],
     packages=[
         "minerva",
@@ -41,7 +41,7 @@ setup(
     package_dir={"": "src"},
     entry_points={
         'console_scripts': [
-            'minerva = minerva.commands.minerva:main'
+            'minerva = minerva.commands.minerva_cli:main'
         ]
     },
     include_package_data=True

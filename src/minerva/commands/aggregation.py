@@ -7,7 +7,7 @@ from collections import OrderedDict
 
 import yaml
 
-from minerva.instance import MinervaInstance
+from minerva.instance import MinervaInstance, TrendStore, TrendStorePart, Trend, GeneratedTrend
 from minerva.commands import ConfigurationError
 
 
@@ -41,6 +41,9 @@ def setup_entity_parser(subparsers):
 
 
 class AggregationContext:
+    instance: MinervaInstance
+    source_definition: TrendStore
+
     def __init__(self, instance, aggregation_file_path, file_format):
         self.instance = instance
         self.aggregation_file_path = aggregation_file_path
@@ -75,7 +78,7 @@ class AggregationContext:
         )
 
         relative_source_definition_path = self.instance.make_relative(
-            self.source_definition_file_path
+            self.definition['entity_aggregation']['source']
         )
 
         return (
@@ -92,16 +95,9 @@ class AggregationContext:
 
 class EntityAggregationContext(AggregationContext):
     def load_source_definition(self):
-        self.source_definition_file_path = os.path.join(
-            self.instance.root,
-            'trend',
-            '{}.yaml'.format(self.definition['entity_aggregation']['source'])
+        self.source_definition = self.instance.load_trend_store(
+            self.definition['entity_aggregation']['source']
         )
-
-        with open(self.source_definition_file_path) as source_definition_file:
-            self.source_definition = ordered_load(
-                source_definition_file, Loader=yaml.SafeLoader
-            )
 
     def configuration_check(self):
         # Check if the relation matches the aggregation
@@ -118,18 +114,35 @@ class EntityAggregationContext(AggregationContext):
             )
 
 
+class AggregationPart:
+    name: str
+    source: str
+
+
+class TimeAggregation:
+    source: TrendStore
+    name: str
+    data_source: str
+    entity_type: str
+    granularity: str
+    mapping_function: str
+    parts: List[AggregationPart]
+
+    def __init__(self):
+        self.source = None
+        self.name = None
+        self.data_source = None
+        self.entity_type = None
+        self.granularity = None
+        self.mapping_function = None
+        self.parts = []
+
+
 class TimeAggregationContext(AggregationContext):
     def load_source_definition(self):
-        self.source_definition_file_path = os.path.join(
-            self.instance.root,
-            'trend',
-            '{}.yaml'.format(self.definition['time_aggregation']['source'])
+        self.source_definition = self.instance.load_trend_store(
+            self.definition['time_aggregation']['source']
         )
-
-        with open(self.source_definition_file_path) as source_definition_file:
-            self.source_definition = ordered_load(
-                source_definition_file, Loader=yaml.SafeLoader
-            )
 
     def configuration_check(self):
         pass
@@ -144,7 +157,7 @@ def entity_aggregation(args):
 
     write_entity_aggregations(aggregation_context)
 
-    aggregate_trend_store_definition = define_aggregate_trend_store(
+    aggregate_trend_store = define_aggregate_trend_store(
         aggregation_context
     )
 
@@ -162,7 +175,7 @@ def entity_aggregation(args):
         out_file.write(aggregation_context.generated_file_header())
 
         ordered_dump(
-            aggregate_trend_store_definition, stream=out_file, Dumper=yaml.SafeDumper,
+            aggregate_trend_store.to_json(), stream=out_file, Dumper=yaml.SafeDumper,
             indent=2
         )
 
@@ -228,19 +241,16 @@ def write_entity_aggregations(aggregation_context: EntityAggregationContext) -> 
     """
     Generate and write aggregations for all parts of the trend store
 
-    :param instance_root: Path of root directory of the Minerva instance
-    :param data: Source trend store definition
-    :param part_name_mapping: A function for mapping part name to aggregate part
-     name
+    :param aggregation_context: Complete context for entity aggregation to write
     :return: None
     """
     definition = aggregation_context.definition['entity_aggregation']
 
-    for part in aggregation_context.source_definition['parts']:
+    for part in aggregation_context.source_definition.parts:
         dest_part = next(
             dest_part
             for dest_part in definition['parts']
-            if dest_part['source'] == part['name']
+            if dest_part['source'] == part.name
         )
 
         aggregation = define_part_entity_aggregation(
@@ -262,7 +272,7 @@ def write_entity_aggregations(aggregation_context: EntityAggregationContext) -> 
             )
 
 
-def define_part_entity_aggregation(data, relation, name):
+def define_part_entity_aggregation(part: TrendStorePart, relation, name):
     mapping_function = 'trend.mapping_id'
 
     return OrderedDict([
@@ -273,23 +283,19 @@ def define_part_entity_aggregation(data, relation, name):
         ('reprocessing_period', '3 days'),
         ('sources', [
             OrderedDict([
-                ('trend_store_part', data['name']),
+                ('trend_store_part', part.name),
                 ('mapping_function', mapping_function)
             ])
         ]),
-        ('view', SqlSrc(aggregate_view_sql(data, relation, name))),
-        ('fingerprint_function', SqlSrc(define_fingerprint_sql(data, name)))
+        ('view', SqlSrc(aggregate_view_sql(part, relation))),
+        ('fingerprint_function', SqlSrc(define_fingerprint_sql(part)))
     ])
 
 
-def aggregate_view_sql(data, relation, name):
+def aggregate_view_sql(part: TrendStorePart, relation) -> str:
     trend_columns = [
-        '  {}("{}") AS "{}"'.format(
-            trend['entity_aggregation'],
-            trend['name'],
-            trend['name']
-        )
-        for trend in data['trends']
+        f'  {trend.entity_aggregation}("{trend.name}") AS "{trend.name}"'
+        for trend in part.trends
     ]
 
     query_parts = [
@@ -304,7 +310,7 @@ def aggregate_view_sql(data, relation, name):
     )
 
     query_parts.extend([
-        '\nFROM trend."{}" t\n'.format(data['name']),
+        '\nFROM trend."{}" t\n'.format(part.name),
         'JOIN relation."{}" r ON t.entity_id = r.source_id\n'.format(relation),
         'GROUP BY timestamp, r.target_id;\n'
     ])
@@ -312,7 +318,7 @@ def aggregate_view_sql(data, relation, name):
     return ''.join(query_parts)
 
 
-def define_view_materialization_sql(data, name):
+def define_view_materialization_sql(data, name) -> List[str]:
     return [
         'SELECT trend_directory.define_view_materialization(\n',
         "    id, '30m'::interval, '5m'::interval, '3 days'::interval, 'trend._{}'::regclass\n".format(name),
@@ -322,14 +328,12 @@ def define_view_materialization_sql(data, name):
     ]
 
 
-def define_fingerprint_sql(data, name):
-    src_name = data['name']
-
+def define_fingerprint_sql(src_part: TrendStorePart):
     return (
-        f'SELECT modified.last, format(\'{{"{src_name}": "%s"}}\', modified.last)::jsonb\n'
+        f'SELECT modified.last, format(\'{{"{src_part.name}": "%s"}}\', modified.last)::jsonb\n'
         'FROM trend_directory.modified\n'
         'JOIN trend_directory.trend_store_part ttsp ON ttsp.id = modified.trend_store_part_id\n'
-        f"WHERE ttsp::name = '{src_name}' AND modified.timestamp = $1;\n"
+        f"WHERE ttsp::name = '{src_part.name}' AND modified.timestamp = $1;\n"
     )
 
 
@@ -360,32 +364,30 @@ PARTITION_SIZE_MAPPING = {
 }
 
 
-def define_aggregate_trend_store(aggregation_context):
+def define_aggregate_trend_store(aggregation_context) -> TrendStore:
     if 'entity_aggregation' in aggregation_context.definition:
         definition = aggregation_context.definition['entity_aggregation']
     else:
         definition = aggregation_context.definition['time_aggregation']
 
-    data = aggregation_context.source_definition
+    src_trend_store = aggregation_context.source_definition
 
     if definition.get('data_source') is None:
-        target_data_source = data['data_source']
+        target_data_source = src_trend_store.data_source
     else:
         target_data_source = definition.get('data_source')
 
     if definition.get('granularity') is None:
-        target_granularity = data['granularity']
+        target_granularity = src_trend_store.granularity
     else:
         target_granularity = definition.get('granularity')
 
     if definition.get('entity_type') is None:
-        target_entity_type = data['entity_type']
+        target_entity_type = src_trend_store.entity_type
     else:
         target_entity_type = definition.get('entity_type')
 
-    source_parts = data['parts']
-
-    def get_target_part_for(source_part_name):
+    def get_target_part_for(source_part_name: str):
         try:
             return next(
                 target_part
@@ -397,67 +399,88 @@ def define_aggregate_trend_store(aggregation_context):
                 "No definition found for source part '{}'".format(source_part_name)
             )
 
-    parts = [
-        define_aggregate_part(
-            part,
-            get_target_part_for(part['name'])
-        ) for part in source_parts
+    aggregate_parts = []
+
+    for aggregate_part_def in definition['parts']:
+        if 'source' in aggregate_part_def:
+            src_part = next(
+                part
+                for part in src_trend_store.parts
+                if part.name == aggregate_part_def['source']
+            )
+
+            aggregate_part = define_aggregate_part(src_part, aggregate_part_def)
+
+            aggregate_parts.append(aggregate_part)
+        else:
+            aggregate_part = TrendStorePart.from_json(aggregate_part_def)
+
+            aggregate_parts.append(aggregate_part)
+
+    return TrendStore(
+        target_data_source,
+        target_entity_type,
+        target_granularity,
+        PARTITION_SIZE_MAPPING[target_granularity],
+        aggregate_parts
+    )
+
+
+def define_aggregate_part(data: TrendStorePart, definition):
+    trends = [
+        define_aggregate_trend(trend) for trend in data.trends
     ]
 
-    aggregate_data = OrderedDict([
-        ('data_source', target_data_source),
-        ('entity_type', target_entity_type),
-        ('granularity', target_granularity),
-        ('partition_size', PARTITION_SIZE_MAPPING[target_granularity]),
-        ('parts', parts)
-    ])
-
-    return aggregate_data
-
-
-def define_aggregate_part(data, definition):
-    trends = [
-        define_aggregate_trend(trend) for trend in data['trends']
+    added_generated_trends = [
+        GeneratedTrend(
+            generated_trend_def['name'],
+            generated_trend_def['data_type'],
+            generated_trend_def.get('description'),
+            generated_trend_def['expression'],
+            generated_trend_def.get('extra_data')
+        )
+        for generated_trend_def in definition.get('generated_trends', [])
     ]
 
     generated_trends = list(chain(
-        data.get('generated_trends', []),
-        definition.get('generated_trends', [])
+        data.generated_trends,
+        added_generated_trends
     ))
 
     # If there is no samples column, we add one
-    if not len([trend for trend in trends if trend['name'] == 'samples']):
-        trends.insert(0, OrderedDict([
-            ('name', 'samples'),
-            ('data_type', 'smallint'),
-            ('time_aggregation', 'sum'),
-            ('entity_aggregation', 'sum'),
-            ('extra_data', {})
-        ]))
-        
-    items = [
-        ('name', definition['name']),
-        ('trends', trends)
-    ]
+    if not len([trend for trend in trends if trend.name == 'samples']):
+        trends.insert(
+            0,
+            Trend(
+                name='samples',
+                data_type='smallint',
+                description='Number of source records',
+                time_aggregation='sum',
+                entity_aggregation='sum',
+                extra_data={}
+            )
+        )
 
-    if generated_trends:
-        items.append(('generated_trends', generated_trends))
-
-    return OrderedDict(items)
+    return TrendStorePart(
+        definition['name'],
+        trends,
+        generated_trends
+    )
 
 
 def aggregate_data_type(data_type):
     return AGGREGATE_DATA_TYPE_MAPPING.get(data_type, data_type)
 
 
-def define_aggregate_trend(data):
-    return OrderedDict([
-        ('name', data['name']),
-        ('data_type', aggregate_data_type(data['data_type'])),
-        ('time_aggregation', data['time_aggregation']),
-        ('entity_aggregation', data['entity_aggregation']),
-        ('extra_data', data['extra_data'])
-    ])
+def define_aggregate_trend(data: Trend):
+    return Trend(
+        data.name,
+        aggregate_data_type(data.data_type),
+        '',
+        data.time_aggregation,
+        data.entity_aggregation,
+        data.extra_data
+    )
 
 
 def part_name_mapper_entity(
@@ -512,7 +535,7 @@ def time_aggregation(args):
 
     write_time_aggregations(aggregation_context)
 
-    aggregate_data = define_aggregate_trend_store(aggregation_context)
+    aggregate_trend_store = define_aggregate_trend_store(aggregation_context)
 
     aggregate_trend_store_file_path = os.path.join(
         instance.root,
@@ -525,7 +548,7 @@ def time_aggregation(args):
     ))
 
     with open(aggregate_trend_store_file_path, 'w') as out_file:
-        ordered_dump(aggregate_data, out_file, indent=2)
+        ordered_dump(aggregate_trend_store.to_json(), out_file, indent=2)
 
 
 def part_name_mapper_time(new_suffix):
@@ -546,7 +569,7 @@ def part_name_mapper_time(new_suffix):
 
 
 def write_time_aggregations(
-        aggregation_context
+        aggregation_context: TimeAggregationContext
 ) -> List[str]:
     """
     Define the aggregations for all parts of the trend store
@@ -556,44 +579,47 @@ def write_time_aggregations(
      name
     :return: Lines of SQL
     """
-    for part in aggregation_context.source_definition['parts']:
-        try:
-            dest_part = next(
-                dest_part
-                for dest_part in aggregation_context.definition['time_aggregation']['parts']
-                if dest_part['source'] == part['name']
-            )
-        except StopIteration:
-            raise ConfigurationError(
-                "No definition found for source part '{}'".format(part['name'])
-            )
+    for agg_part in aggregation_context.definition['time_aggregation']['parts']:
+        if 'source' in agg_part:
+            try:
+                source_part = next(
+                    part
+                    for part in aggregation_context.source_definition.parts
+                    if agg_part['source'] == part.name
+                )
+            except StopIteration:
+                raise ConfigurationError(
+                    "No source definition found for aggregation part '{}'(source: {})".format(
+                        agg_part['name'], agg_part['source']
+                    )
+                )
 
-        materialization_file_path = aggregation_context.instance.materialization_file_path(dest_part['name'])
+            materialization_file_path = aggregation_context.instance.materialization_file_path(agg_part['name'])
 
-        print(
-            "Writing materialization to '{}'".format(materialization_file_path)
-        )
-
-        mapping_function = aggregation_context.definition['time_aggregation']['mapping_function']
-        target_granularity = aggregation_context.definition['time_aggregation']['granularity']
-
-        aggregate_definition = define_part_time_aggregation(
-            part, aggregation_context.source_definition['granularity'], mapping_function,
-            target_granularity, dest_part['name']
-        )
-
-        with open(materialization_file_path, 'w') as out_file:
-            ordered_dump(
-                aggregate_definition, stream=out_file, Dumper=yaml.SafeDumper,
-                indent=2
+            print(
+                "Writing materialization to '{}'".format(materialization_file_path)
             )
 
+            mapping_function = aggregation_context.definition['time_aggregation']['mapping_function']
+            target_granularity = aggregation_context.definition['time_aggregation']['granularity']
 
-def define_part_time_aggregation(part_data: Dict, source_granularity, mapping_function, target_granularity, name) -> OrderedDict:
+            aggregate_definition = define_part_time_aggregation(
+                source_part, aggregation_context.source_definition.granularity, mapping_function,
+                target_granularity, agg_part['name']
+            )
+
+            with open(materialization_file_path, 'w') as out_file:
+                ordered_dump(
+                    aggregate_definition, stream=out_file, Dumper=yaml.SafeDumper,
+                    indent=2
+                )
+
+
+def define_part_time_aggregation(source_part: TrendStorePart, source_granularity, mapping_function, target_granularity, name) -> OrderedDict:
     """
     Use the source part definition to generate the aggregation SQL.
 
-    :param part_data:
+    :param source_part:
     :param name: Name of the aggregate part use for the function name, etc.
     :return: Lines of SQL
     """
@@ -605,12 +631,12 @@ def define_part_time_aggregation(part_data: Dict, source_granularity, mapping_fu
         ('reprocessing_period', '3 days'),
         ('sources', [
             OrderedDict([
-                ('trend_store_part', part_data['name']),
+                ('trend_store_part', source_part.name),
                 ('mapping_function', mapping_function)
             ])
         ]),
-        ('function', aggregate_function(part_data, target_granularity)),
-        ('fingerprint_function', SqlSrc(fingerprint_function_sql(part_data, source_granularity, target_granularity)))
+        ('function', aggregate_function(source_part, target_granularity)),
+        ('fingerprint_function', SqlSrc(fingerprint_function_sql(source_part, source_granularity, target_granularity)))
     ])
 
 
@@ -620,24 +646,22 @@ class SqlSrc(str):
         return dumper.represent_scalar('tag:yaml.org,2002:str', data, style='|')
 
 
-def aggregate_function(part_data, target_granularity):
-    trends = part_data['trends']
-
+def aggregate_function(part_data: TrendStorePart, target_granularity):
     trend_columns = [
         '  "{}" {}'.format(
-            trend['name'],
-            aggregate_data_type(trend['data_type'])
+            trend.name,
+            aggregate_data_type(trend.data_type)
         )
-        for trend in trends
+        for trend in part_data.trends
     ]
 
     trend_column_expressions = [
         '      {}(t."{}") AS "{}"'.format(
-            trend['time_aggregation'],
-            trend['name'],
-            trend['name']
+            trend.time_aggregation,
+            trend.name,
+            trend.name
         )
-        for trend in trends
+        for trend in part_data.trends
     ]
 
     column_expressions = [
@@ -660,7 +684,7 @@ def aggregate_function(part_data, target_granularity):
         '    SELECT\n' +
         ',\n'.join(expr for expr in column_expressions) +
         '\n' +
-        '    FROM trend."{}" AS t\n'.format(part_data['name']) +
+        '    FROM trend."{}" AS t\n'.format(part_data.name) +
         '    WHERE $1 < timestamp AND timestamp <= $2\n' +
         '    GROUP BY entity_id\n' +
         "$query$ USING $1 - interval '{}', $1;\n".format(target_granularity) +
@@ -696,9 +720,7 @@ def define_trend_store_link(part_name, mapping_function, target_name):
 
 
 def fingerprint_function_sql(
-        part_data, source_granularity, target_granularity: str) -> str:
-    part_name = part_data['name']
-
+        part_data: TrendStorePart, source_granularity: str, target_granularity: str) -> str:
     return (
         "SELECT max(modified.last), format('{%s}', string_agg(format('\"%s\":\"%s\"', t, modified.last), ','))::jsonb\n"
         f"FROM generate_series($1 - interval '{target_granularity}' + interval '{source_granularity}', $1, interval '{source_granularity}') t\n"
@@ -706,6 +728,6 @@ def fingerprint_function_sql(
         '  SELECT timestamp, last\n'
         '  FROM trend_directory.trend_store_part part\n'
         '  JOIN trend_directory.modified ON modified.trend_store_part_id = part.id\n'
-        f'  WHERE part.name = \'{part_name}\'\n'
+        f'  WHERE part.name = \'{part_data.name}\'\n'
         ') modified ON modified.timestamp = t;\n'
     )

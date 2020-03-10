@@ -1,4 +1,6 @@
 import os
+from typing import List
+from collections import OrderedDict
 
 from psycopg2.extensions import adapt, register_adapter, AsIs, QuotedString
 from psycopg2.extras import Json
@@ -29,6 +31,16 @@ class Trend:
             data.get('extra_data', {})
         )
 
+    def to_json(self):
+        return OrderedDict([
+            ('name', self.name),
+            ('data_type', self.data_type),
+            ('description', self.description),
+            ('time_aggregation', self.time_aggregation),
+            ('entity_aggregation', self.entity_aggregation),
+            ('extra_data', self.extra_data)
+        ])
+
     @staticmethod
     def adapt(trend):
         if trend.extra_data is None:
@@ -49,6 +61,12 @@ class Trend:
 
 
 class GeneratedTrend:
+    name: str
+    data_type: str
+    description: str
+    expression: str
+    extra_data: dict
+
     def __init__(self, name, data_type, description, expression, extra_data):
         self.name = name
         self.data_type = data_type
@@ -65,6 +83,22 @@ class GeneratedTrend:
             data['expression'],
             data.get('extra_data', {})
         )
+
+    def to_json(self):
+        items = [
+            ('name', self.name),
+            ('data_type', self.data_type)
+        ]
+
+        if self.description is not None:
+            items.append(('description', self.description))
+
+        items.append(('expression', self.expression))
+
+        if self.extra_data is not None:
+            items.append(('extra_data', self.extra_data))
+
+        return OrderedDict(items)
 
     @staticmethod
     def adapt(generated_trend):
@@ -90,7 +124,11 @@ class GeneratedTrend:
 
 
 class TrendStorePart:
-    def __init__(self, name, trends, generated_trends):
+    name: str
+    trends: List[Trend]
+    generated_trends: List[Trend]
+
+    def __init__(self, name: str, trends: List[Trend], generated_trends: List[GeneratedTrend]):
         self.name = name
         self.trends = trends
         self.generated_trends = generated_trends
@@ -112,6 +150,13 @@ class TrendStorePart:
             ]
         )
 
+    def to_json(self):
+        return OrderedDict([
+            ('name', self.name),
+            ('trends', [trend.to_json() for trend in self.trends]),
+            ('generated_trends', [generated_trend.to_json() for generated_trend in self.generated_trends])
+        ])
+
     @staticmethod
     def adapt(trend_store_part):
         return AsIs(
@@ -124,6 +169,12 @@ class TrendStorePart:
 
 
 class TrendStore:
+    data_source: str
+    entity_type: str
+    granularity: str
+    partition_size: str
+    parts: List[TrendStorePart]
+
     def __init__(self, data_source, entity_type, granularity, partition_size, parts):
         self.data_source = data_source
         self.entity_type = entity_type
@@ -141,6 +192,15 @@ class TrendStore:
             [TrendStorePart.from_json(p) for p in data['parts']]
         )
 
+    def to_json(self):
+        return OrderedDict([
+            ('data_source', self.data_source),
+            ('entity_type', self.entity_type),
+            ('granularity', self.granularity),
+            ('partition_size', self.granularity),
+            ('parts', [part.to_json() for part in self.parts])
+        ])
+
 
 register_adapter(TrendStorePart, TrendStorePart.adapt)
 register_adapter(GeneratedTrend, GeneratedTrend.adapt)
@@ -148,7 +208,9 @@ register_adapter(Trend, Trend.adapt)
 
 
 class MinervaInstance:
-    def __init__(self, root):
+    root: str
+
+    def __init__(self, root: str):
         self.root = root
 
     @staticmethod
@@ -157,20 +219,20 @@ class MinervaInstance:
 
         return MinervaInstance(instance_root)
 
-    def materialization_file_path(self, name):
+    def materialization_file_path(self, name: str):
         return os.path.join(
             self.root, 'materialization', f'{name}.yaml'
         )
 
-    def trend_store_file_path(self, name):
+    def trend_store_file_path(self, name: str):
         return os.path.join(
             self.root, 'trend', f'{name}.yaml'
         )
 
-    def make_relative(self, path):
+    def make_relative(self, path: str):
         return os.path.relpath(path, self.root)
 
-    def load_trend_store(self, name):
+    def load_trend_store(self, name: str) -> TrendStore:
         file_path = self.trend_store_file_path(name)
 
         with open(file_path) as definition_file:
