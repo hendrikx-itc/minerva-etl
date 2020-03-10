@@ -280,6 +280,7 @@ def define_triggers(instance_root):
 
 
 def create_partitions():
+    partitions_to_create = 2
     partitions_created = 0
     query = "SELECT id FROM trend_directory.trend_store"
 
@@ -292,7 +293,7 @@ def create_partitions():
             rows = cursor.fetchall()
 
         for trend_store_id, in rows:
-            for name, partition_index, i, num in create_partitions_for_trend_store(conn, trend_store_id, '1 day'):
+            for name, partition_index, i, num in create_partitions_for_trend_store(conn, trend_store_id, '1 day', partitions_to_create):
                 print(' ' * 60, end='\r')
                 print('{} - {} ({}/{})'.format(name, partition_index, i, num), end="\r")
                 partitions_created += 1
