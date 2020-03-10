@@ -197,7 +197,7 @@ class TrendStore:
             ('data_source', self.data_source),
             ('entity_type', self.entity_type),
             ('granularity', self.granularity),
-            ('partition_size', self.granularity),
+            ('partition_size', self.partition_size),
             ('parts', [part.to_json() for part in self.parts])
         ])
 
