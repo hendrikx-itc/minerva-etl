@@ -387,18 +387,6 @@ def define_aggregate_trend_store(aggregation_context) -> TrendStore:
     else:
         target_entity_type = definition.get('entity_type')
 
-    def get_target_part_for(source_part_name: str):
-        try:
-            return next(
-                target_part
-                for target_part in definition['parts']
-                if target_part['source'] == source_part_name
-            )
-        except StopIteration:
-            raise ConfigurationError(
-                "No definition found for source part '{}'".format(source_part_name)
-            )
-
     aggregate_parts = []
 
     for aggregate_part_def in definition['parts']:

@@ -3,6 +3,7 @@ from contextlib import closing
 import argparse
 import sys
 import datetime
+from typing import List, BinaryIO
 
 import yaml
 import psycopg2
@@ -12,7 +13,7 @@ from minerva.db import connect
 from minerva.harvest.trend_config_deducer import deduce_config
 from minerva.util.tabulate import render_table
 from minerva.commands.partition import create_partitions_for_trend_store
-from minerva.instance import TrendStorePart
+from minerva.instance import TrendStorePart, TrendStore
 
 
 class DuplicateTrendStore(Exception):
@@ -37,7 +38,8 @@ def setup_command_parser(subparsers):
     cmd_subparsers = cmd.add_subparsers()
 
     setup_create_parser(cmd_subparsers)
-    setup_extend_parser(cmd_subparsers)
+    setup_add_trends_parser(cmd_subparsers)
+    setup_add_parts_parser(cmd_subparsers)
     setup_remove_parser(cmd_subparsers)
     setup_alter_trends_parser(cmd_subparsers)
     setup_change_trends_parser(cmd_subparsers)
@@ -90,7 +92,7 @@ def create_trend_store_cmd(args):
         raise exc
 
 
-def setup_extend_parser(subparsers):
+def setup_add_trends_parser(subparsers):
     cmd = subparsers.add_parser(
         'add-trends', help='command for adding trends to trend stores'
     )
@@ -123,6 +125,33 @@ def add_trends_cmd(args):
     except Exception as exc:
         sys.stdout.write("Error:\n{}".format(str(exc)))
         raise exc
+
+
+def setup_add_parts_parser(subparsers):
+    cmd = subparsers.add_parser(
+        'add-parts', help='command for adding parts to trend stores'
+    )
+
+    cmd.add_argument(
+        '--format', choices=['yaml', 'json'], default='yaml',
+        help='format of definition (default is yaml)'
+    )
+
+    cmd.add_argument(
+        'definition', type=argparse.FileType('r'),
+        help='file containing trend store definition'
+    )
+
+    cmd.set_defaults(cmd=add_parts_cmd)
+
+
+def load_trend_store(in_file: BinaryIO, file_format: str) -> TrendStore:
+    if file_format == 'json':
+        trend_store_def = json.load(in_file)
+    elif file_format == 'yaml':
+        trend_store_def = yaml.load(in_file, Loader=yaml.SafeLoader)
+
+    return TrendStore.from_json(trend_store_def)
 
 
 def setup_remove_parser(subparsers):
@@ -250,44 +279,24 @@ def change_trends_cmd(args):
         raise exc
 
 
-def setup_part_parser(subparsers):
-    cmd = subparsers.add_parser(
-        'add-parts', help='command for adding trend store parts to trend stores'
-    )
-
-    cmd.add_argument(
-        '--format', choices=['yaml', 'json'], default='yaml',
-        help='format of definition'
-    )
-
-    cmd.add_argument(
-        'definition', type=argparse.FileType('r'),
-        help='file containing trend store definition'
-    )
-
-    cmd.set_defaults(cmd=add_parts_cmd)
-
-
 def add_parts_cmd(args):
-    if args.format == 'json':
-        trend_store_config = json.load(args.definition)
-    elif args.format == 'yaml':
-        trend_store_config = yaml.load(args.definition, Loader=yaml.SafeLoader)
+    trend_store = load_trend_store(args.definition, args.format)
 
     sys.stdout.write(
         "Adding trend store parts to trend store '{}' - '{}' - '{}' ... ".format(
-            trend_store_config['data_source'],
-            trend_store_config['entity_type'],
-            trend_store_config['granularity']
+            trend_store.data_source,
+            trend_store.entity_type,
+            trend_store.granularity
         )
     )
 
     try:
-        add_parts_to_trend_store_from_json(trend_store_config)
-        sys.stdout.write("OK\n")
+        add_parts_to_trend_store_from_json(trend_store)
     except Exception as exc:
         sys.stdout.write("Error:\n{}".format(str(exc)))
         raise exc
+
+    sys.stdout.write("OK\n")
 
 
 def setup_deduce_parser(subparsers):
@@ -348,7 +357,7 @@ def deduce_trend_store_cmd(cmd_parser):
 
 
 def create_trend_store_from_json(data):
-    trend_store_parts = [TrendStorePart.from_json(p) for p in data['parts']]
+    trend_store = TrendStore.from_json(data)
 
     query = (
         'SELECT trend_directory.create_trend_store('
@@ -356,8 +365,8 @@ def create_trend_store_from_json(data):
         ')'
     )
     query_args = (
-        data['data_source'], data['entity_type'],
-        data['granularity'], data['partition_size'], trend_store_parts
+        trend_store.data_source, trend_store.entity_type,
+        trend_store.granularity, trend_store.partition_size, trend_store.parts
     )
 
     with closing(connect()) as conn:
@@ -366,8 +375,8 @@ def create_trend_store_from_json(data):
                 cursor.execute(query, query_args)
             except psycopg2.errors.UniqueViolation as exc:
                 raise DuplicateTrendStore(
-                    data['data_source'], data['entity_type'],
-                    data['granularity']
+                    trend_store.data_source, trend_store.entity_type,
+                    trend_store.granularity
                 )
 
         conn.commit()
@@ -397,6 +406,23 @@ def add_trends_to_trend_store_from_json(data):
         conn.commit()
 
     return ', '.join(str(r) for r in result[0])
+
+
+def add_parts_to_trend_store(trend_store: TrendStore) -> List[str]:
+    query = (
+        'SELECT unnest(trend_directory.get_trend_store_parts(trend_store.id)) '
+        'FROM trend_directory.trend_store '
+        'WHERE data_source = %s AND entity_type = %s AND granularity = %s'
+    )
+    query_args = (trend_store.data_source, trend_store.entity_type, trend_store.granularity)
+
+    print(query)
+
+    with connect() as conn:
+        with conn.cursor() as cursor:
+            cursor.execute(query, query_args)
+
+            print(cursor.fetchall())
 
 
 def remove_trends_from_trend_store_from_json(data):
@@ -457,9 +483,7 @@ def alter_tables_in_trend_store_from_json(data, force=False):
         return None
 
 
-def change_trend_store_from_json(data, force=False):
-    trend_store_parts = [TrendStorePart.from_json(p) for p in data['parts']]
-
+def change_trend_store_from_json(trend_store: TrendStore, force=False):
     query = (
         'SELECT trend_directory.{}('
         'trend_directory.get_trend_store('
@@ -469,8 +493,8 @@ def change_trend_store_from_json(data, force=False):
     )
 
     query_args = (
-        data['data_source'], data['entity_type'],
-        data['granularity'], trend_store_parts
+        trend_store.data_source, trend_store.entity_type,
+        trend_store.granularity, trend_store.parts
     )
 
     with closing(connect()) as conn:
@@ -486,9 +510,7 @@ def change_trend_store_from_json(data, force=False):
         return None
 
 
-def add_parts_to_trend_store_from_json(data):
-    trend_store_parts = [TrendStorePart.from_json(p) for p in data['parts']]
-
+def add_parts_to_trend_store_from_json(trend_store: TrendStore):
     query = (
         'SELECT trend_directory.add_missing_trend_store_parts('
         'trend_directory.get_trend_store('
@@ -498,8 +520,8 @@ def add_parts_to_trend_store_from_json(data):
     )
 
     query_args = (
-        data['data_source'], data['entity_type'],
-        data['granularity'], trend_store_parts
+        trend_store.data_source, trend_store.entity_type,
+        trend_store.granularity, trend_store.parts
     )
 
     with closing(connect()) as conn:
