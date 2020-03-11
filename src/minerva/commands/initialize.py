@@ -45,6 +45,11 @@ def setup_command_parser(subparsers):
         help='live monitoring for materializations after initialization'
     )
 
+    cmd.add_argument(
+        '--num-partitions',
+        help='number of partitions to create (default is full retention period)'
+    )
+
     cmd.set_defaults(cmd=initialize_cmd)
 
 
@@ -60,7 +65,7 @@ def initialize_cmd(args):
     )
 
     try:
-        initialize_instance(instance_root)
+        initialize_instance(instance_root, args.num_partitions)
     except Exception as exc:
         sys.stdout.write("Error:\n{}".format(str(exc)))
         raise exc
@@ -90,7 +95,7 @@ def header(title):
     print('')
 
 
-def initialize_instance(instance_root):
+def initialize_instance(instance_root, num_partitions):
     header('Custom pre-init SQL')
     load_custom_pre_init_sql(instance_root)
 
@@ -119,7 +124,7 @@ def initialize_instance(instance_root):
     define_triggers(instance_root)
 
     header('Creating partitions')
-    create_partitions()
+    create_partitions(num_partitions)
 
     header('Custom post-init SQL')
     load_custom_post_init_sql(instance_root)
@@ -279,8 +284,7 @@ def define_triggers(instance_root):
             create_trigger_from_config(definition)
 
 
-def create_partitions():
-    partitions_to_create = 2
+def create_partitions(num_partitions):
     partitions_created = 0
     query = "SELECT id FROM trend_directory.trend_store"
 
@@ -293,7 +297,7 @@ def create_partitions():
             rows = cursor.fetchall()
 
         for trend_store_id, in rows:
-            for name, partition_index, i, num in create_partitions_for_trend_store(conn, trend_store_id, '1 day', partitions_to_create):
+            for name, partition_index, i, num in create_partitions_for_trend_store(conn, trend_store_id, '1 day', num_partitions):
                 print(' ' * 60, end='\r')
                 print('{} - {} ({}/{})'.format(name, partition_index, i, num), end="\r")
                 partitions_created += 1
