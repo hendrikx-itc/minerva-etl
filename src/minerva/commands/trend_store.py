@@ -3,10 +3,11 @@ from contextlib import closing
 import argparse
 import sys
 import datetime
-from typing import List, BinaryIO
+from typing import BinaryIO, Generator
 
 import yaml
 import psycopg2
+from psycopg2.extensions import adapt
 
 from minerva.commands import LoadHarvestPlugin, ListPlugins, load_json
 from minerva.db import connect
@@ -283,20 +284,27 @@ def add_parts_cmd(args):
     trend_store = load_trend_store(args.definition, args.format)
 
     sys.stdout.write(
-        "Adding trend store parts to trend store '{}' - '{}' - '{}' ... ".format(
+        "Adding trend store parts to trend store '{}' - '{}' - '{}' ... \n".format(
             trend_store.data_source,
             trend_store.entity_type,
             trend_store.granularity
         )
     )
 
+    parts_added = 0
+
     try:
-        add_parts_to_trend_store_from_json(trend_store)
+        for added_part_name in add_parts_to_trend_store(trend_store):
+            sys.stdout.write(f' - added {added_part_name}\n')
+            parts_added += 1
     except Exception as exc:
         sys.stdout.write("Error:\n{}".format(str(exc)))
         raise exc
 
-    sys.stdout.write("OK\n")
+    if parts_added:
+        sys.stdout.write(f"Done: Added {parts_added} parts\n")
+    else:
+        sys.stdout.write("Done: Nothing to add\n")
 
 
 def setup_deduce_parser(subparsers):
@@ -408,23 +416,6 @@ def add_trends_to_trend_store_from_json(data):
     return ', '.join(str(r) for r in result[0])
 
 
-def add_parts_to_trend_store(trend_store: TrendStore) -> List[str]:
-    query = (
-        'SELECT unnest(trend_directory.get_trend_store_parts(trend_store.id)) '
-        'FROM trend_directory.trend_store '
-        'WHERE data_source = %s AND entity_type = %s AND granularity = %s'
-    )
-    query_args = (trend_store.data_source, trend_store.entity_type, trend_store.granularity)
-
-    print(query)
-
-    with connect() as conn:
-        with conn.cursor() as cursor:
-            cursor.execute(query, query_args)
-
-            print(cursor.fetchall())
-
-
 def remove_trends_from_trend_store_from_json(data):
     trend_store_parts = [TrendStorePart.from_json(p) for p in data['parts']]
 
@@ -510,23 +501,48 @@ def change_trend_store_from_json(trend_store: TrendStore, force=False):
         return None
 
 
-def add_parts_to_trend_store_from_json(trend_store: TrendStore):
+def add_parts_to_trend_store(trend_store: TrendStore) -> Generator[str, None, None]:
     query = (
-        'SELECT trend_directory.add_missing_trend_store_parts('
-        'trend_directory.get_trend_store('
-        '%s::text, %s::text, %s::interval'
-        '), %s::trend_directory.trend_store_part_descr[]'
-        ')'
+        'select tsp.name '
+        'from trend_directory.trend_store ts '
+        'join directory.data_source ds on ds.id = ts.data_source_id '
+        'join directory.entity_type et on et.id = ts.entity_type_id '
+        'join trend_directory.trend_store_part tsp on tsp.trend_store_id = ts.id '
+        'where ds.name = %s and et.name = %s and ts.granularity = %s::interval'
     )
 
-    query_args = (
-        trend_store.data_source, trend_store.entity_type,
-        trend_store.granularity, trend_store.parts
-    )
+    query_args = (trend_store.data_source, trend_store.entity_type, trend_store.granularity)
 
     with closing(connect()) as conn:
         with closing(conn.cursor()) as cursor:
             cursor.execute(query, query_args)
+
+            trend_store_part_names = [name for name, in cursor.fetchall()]
+
+            missing_parts = [part for part in trend_store.parts if part.name not in trend_store_part_names]
+
+            for missing_part in missing_parts:
+                add_part_query = (
+                    'select trend_directory.initialize_trend_store_part('
+                    'trend_directory.define_trend_store_part(ts.id, %s, {}::trend_directory.trend_descr[], {}::trend_directory.generated_trend_descr[])'
+                    ') '
+                    'from trend_directory.trend_store ts '
+                    'join directory.data_source ds on ds.id = ts.data_source_id '
+                    'join directory.entity_type et on et.id = ts.entity_type_id '
+                    'where ds.name = %s and et.name = %s and ts.granularity = %s::interval'
+                ).format(
+                    adapt(missing_part.trends),
+                    adapt(missing_part.generated_trends)
+                )
+
+                add_part_query_args = (
+                    missing_part.name, trend_store.data_source,
+                    trend_store.entity_type, trend_store.granularity
+                )
+
+                cursor.execute(add_part_query, add_part_query_args)
+
+                yield missing_part.name
 
         conn.commit()
 
