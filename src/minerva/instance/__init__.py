@@ -169,6 +169,7 @@ class TrendStorePart:
 
 
 class TrendStore:
+    title: str
     data_source: str
     entity_type: str
     granularity: str
@@ -176,6 +177,7 @@ class TrendStore:
     parts: List[TrendStorePart]
 
     def __init__(self, data_source, entity_type, granularity, partition_size, parts):
+        self.title = None
         self.data_source = data_source
         self.entity_type = entity_type
         self.granularity = granularity
@@ -184,7 +186,7 @@ class TrendStore:
 
     @staticmethod
     def from_json(data):
-        return TrendStore(
+        trend_store = TrendStore(
             data['data_source'],
             data['entity_type'],
             data['granularity'],
@@ -192,8 +194,13 @@ class TrendStore:
             [TrendStorePart.from_json(p) for p in data['parts']]
         )
 
+        trend_store.title = data.get('title')
+
+        return trend_store
+
     def to_json(self):
         return OrderedDict([
+            ('title', self.title),
             ('data_source', self.data_source),
             ('entity_type', self.entity_type),
             ('granularity', self.granularity),
