@@ -225,8 +225,15 @@ class MinervaInstance:
         )
 
     def trend_store_file_path(self, name: str):
+        base_name, ext = os.path.splitext(name)
+
+        if not ext:
+            file_name = f'{name}.yaml'
+        else:
+            file_name = name
+
         return os.path.join(
-            self.root, 'trend', f'{name}.yaml'
+            self.root, 'trend', file_name
         )
 
     def make_relative(self, path: str):
@@ -239,3 +246,18 @@ class MinervaInstance:
             definition = yaml.load(definition_file, Loader=yaml.SafeLoader)
 
         return TrendStore.from_json(definition)
+
+    def list_trend_stores(self):
+        trend_store_dir = os.path.join(self.root, 'trend')
+
+        return [
+            f
+            for f in os.listdir(trend_store_dir)
+            if os.path.isfile(os.path.join(trend_store_dir, f))
+        ]
+
+    def load_trend_stores(self):
+        return [
+            self.load_trend_store(name)
+            for name in self.list_trend_stores()
+        ]
