@@ -1,6 +1,7 @@
 import os
 from typing import List
 from collections import OrderedDict
+from pathlib import Path
 
 from psycopg2.extensions import adapt, register_adapter, AsIs, QuotedString
 from psycopg2.extras import Json
@@ -255,13 +256,11 @@ class MinervaInstance:
         return TrendStore.from_json(definition)
 
     def list_trend_stores(self):
-        trend_store_dir = os.path.join(self.root, 'trend')
+        trend_store_dir = Path(self.root, 'trend')
 
-        return [
-            f
-            for f in os.listdir(trend_store_dir)
-            if os.path.isfile(os.path.join(trend_store_dir, f))
-        ]
+        trend_store_files = [path.relative_to(trend_store_dir) for path in trend_store_dir.rglob('*.yaml')]
+
+        return trend_store_files
 
     def load_trend_stores(self):
         return [

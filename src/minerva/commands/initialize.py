@@ -2,6 +2,7 @@ import os
 from contextlib import closing
 import sys
 import glob
+from pathlib import Path
 
 import yaml
 from minerva.commands.live_monitor import live_monitor
@@ -154,6 +155,9 @@ def initialize_attribute_stores(instance_root):
         except DuplicateAttributeStore as exc:
             print(exc)
 
+    # Attribute-store-like views can be used for quick attribute
+    # transformations or combinations. These views can be defined using plain
+    # SQL.
     sql_files = glob.glob(
         os.path.join(instance_root, 'attribute/*.sql')
     )
@@ -165,7 +169,7 @@ def initialize_attribute_stores(instance_root):
 
 
 def initialize_trend_stores(instance_root):
-    definition_files = glob.glob(os.path.join(instance_root, 'trend/*.yaml'))
+    definition_files = Path(instance_root, 'trend').rglob('*.yaml')
 
     for definition_file_path in sorted(definition_files):
         print(definition_file_path)
@@ -180,7 +184,7 @@ def initialize_trend_stores(instance_root):
 
 
 def initialize_notification_stores(instance_root):
-    definition_files = glob.glob(os.path.join(instance_root, 'notification/*.yaml'))
+    definition_files = Path(instance_root, 'notification').rglob('*.yaml')
 
     for definition_file_path in definition_files:
         print(definition_file_path)
