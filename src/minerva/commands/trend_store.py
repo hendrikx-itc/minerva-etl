@@ -706,6 +706,7 @@ def setup_partition_parser(subparsers):
     )
 
     cmd_subparsers = cmd.add_subparsers()
+
     create_parser = cmd_subparsers.add_parser(
         'create', help='create partitions for trend store'
     )
@@ -721,6 +722,49 @@ def setup_partition_parser(subparsers):
     )
 
     create_parser.set_defaults(cmd=create_partition_cmd)
+
+    remove_old_parser = cmd_subparsers.add_parser(
+        'remove-old', help='remove old partitions'
+    )
+
+    remove_old_parser.set_defaults(cmd=remove_old_partitions_cmd)
+
+
+def remove_old_partitions_cmd(args):
+    partition_count_query = (
+        'select count(*) from trend_directory.partition'
+    )
+
+    old_partitions_query = (
+        'select p.id, p.name '
+        'from trend_directory.partition p '
+        'join trend_directory.trend_store_part tsp on tsp.id = p.trend_store_part_id '
+        'join trend_directory.trend_store ts on ts.id = tsp.trend_store_id '
+        'where p.to < now() - retention_period '
+        'order by p.name'
+    )
+
+    removed_partitions = 0
+
+    with connect() as conn:
+        with conn.cursor() as cursor:
+            cursor.execute(partition_count_query)
+            total_partitions, = cursor.fetchone()
+
+            cursor.execute(old_partitions_query)
+
+            rows = cursor.fetchall()
+
+            conn.commit()
+
+            for partition_id, partition_name in rows:
+                cursor.execute(f'drop table trend_partition."{partition_name}"')
+                cursor.execute(f'delete from trend_directory.partition where id = %s', (partition_id,))
+                conn.commit()
+                removed_partitions += 1
+                print(partition_name)
+
+    print(f'\nRemoved {removed_partitions} of {total_partitions} partitions')
 
 
 def create_partition_cmd(args):
