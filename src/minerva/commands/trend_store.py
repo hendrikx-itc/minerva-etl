@@ -755,18 +755,21 @@ def remove_old_partitions_cmd(args):
 
             rows = cursor.fetchall()
 
-            print(f'Found {len(rows)} of {total_partitions} partitions to be removed\n')
+            print(f'Found {len(rows)} of {total_partitions} partitions to be removed')
 
             conn.commit()
 
-            for partition_id, partition_name, data_from, data_to in rows:
-                cursor.execute(f'drop table trend_partition."{partition_name}"')
-                cursor.execute(f'delete from trend_directory.partition where id = %s', (partition_id,))
-                conn.commit()
-                removed_partitions += 1
-                print(f' - {partition_name} ({data_from} - {data_to})')
+            if len(rows) > 0:
+                print()
 
-    print(f'\nRemoved {removed_partitions} of {total_partitions} partitions')
+                for partition_id, partition_name, data_from, data_to in rows:
+                    cursor.execute(f'drop table trend_partition."{partition_name}"')
+                    cursor.execute(f'delete from trend_directory.partition where id = %s', (partition_id,))
+                    conn.commit()
+                    removed_partitions += 1
+                    print(f' - {partition_name} ({data_from} - {data_to})')
+
+                print(f'\nRemoved {removed_partitions} of {total_partitions} partitions')
 
 
 def create_partition_cmd(args):
