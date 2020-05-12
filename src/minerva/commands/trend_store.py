@@ -755,7 +755,7 @@ def remove_old_partitions_cmd(args):
 
             rows = cursor.fetchall()
 
-            print(f'Found {len(rows)} of {total_partitions} partitions to be removed')
+            print(f'Found {len(rows)} of {total_partitions} partitions to be removed\n')
 
             conn.commit()
 
