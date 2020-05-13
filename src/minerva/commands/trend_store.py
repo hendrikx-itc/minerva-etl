@@ -727,6 +727,11 @@ def setup_partition_parser(subparsers):
         'remove-old', help='remove old partitions'
     )
 
+    remove_old_parser.add_argument(
+        '--pretend', action='store_true',
+        default=False, help='do not actually delete partitions'
+    )
+
     remove_old_parser.set_defaults(cmd=remove_old_partitions_cmd)
 
 
@@ -763,13 +768,17 @@ def remove_old_partitions_cmd(args):
                 print()
 
                 for partition_id, partition_name, data_from, data_to in rows:
-                    cursor.execute(f'drop table trend_partition."{partition_name}"')
-                    cursor.execute(f'delete from trend_directory.partition where id = %s', (partition_id,))
-                    conn.commit()
+                    if not args.pretend:
+                        cursor.execute(f'drop table trend_partition."{partition_name}"')
+                        cursor.execute(f'delete from trend_directory.partition where id = %s', (partition_id,))
+                        conn.commit()
                     removed_partitions += 1
                     print(f' - {partition_name} ({data_from} - {data_to})')
 
-                print(f'\nRemoved {removed_partitions} of {total_partitions} partitions')
+                if args.pretend:
+                    print(f'\nWould have removed {removed_partitions} of {total_partitions} partitions')
+                else:
+                    print(f'\nRemoved {removed_partitions} of {total_partitions} partitions')
 
 
 def create_partition_cmd(args):
