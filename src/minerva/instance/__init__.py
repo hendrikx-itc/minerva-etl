@@ -222,12 +222,19 @@ class MinervaInstance:
         self.root = root
 
     @staticmethod
-    def load():
-        instance_root = os.environ.get(INSTANCE_ROOT_VARIABLE) or os.getcwd()
-
-        return MinervaInstance(instance_root)
+    def load(instance_root=None):
+        """
+        Load a Minerva instance with the specified root, or using the path in
+        default environment variable, or the current working directory.
+        """
+        return MinervaInstance(
+            instance_root or os.environ.get(INSTANCE_ROOT_VARIABLE) or os.getcwd()
+        )
 
     def materialization_file_path(self, name: str):
+        """
+        Return a full file path from the provided materialization name.
+        """
         return os.path.join(
             self.root, 'materialization', f'{name}.yaml'
         )
