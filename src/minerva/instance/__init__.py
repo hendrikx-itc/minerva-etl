@@ -185,6 +185,9 @@ class TrendStore:
         self.partition_size = partition_size
         self.parts = parts
 
+    def __str__(self):
+        return f'{self.data_source} - {self.entity_type} - {self.granularity}'
+
     @staticmethod
     def from_json(data):
         trend_store = TrendStore(
