@@ -13,7 +13,7 @@ from minerva.commands import LoadHarvestPlugin, ListPlugins, load_json
 from minerva.db import connect
 from minerva.harvest.trend_config_deducer import deduce_config
 from minerva.util.tabulate import render_table
-from minerva.commands.partition import create_partitions_for_trend_store
+from minerva.commands.partition import create_partitions_for_trend_store, create_specific_partitions_for_trend_store
 from minerva.instance import TrendStorePart, TrendStore
 
 
@@ -723,6 +723,21 @@ def setup_partition_parser(subparsers):
 
     create_parser.set_defaults(cmd=create_partition_cmd)
 
+    create_for_timestamp_parser = cmd_subparsers.add_parser(
+        'create-for-timestamp', help='create partitions for specific timestamp'
+    )
+
+    create_for_timestamp_parser.add_argument(
+        '--trend-store', type=int,
+        help='Id of trend store for which to create partitions'
+    )
+
+    create_for_timestamp_parser.add_argument(
+        'timestamp', help='timestamp to create partitions for'
+    )
+
+    create_for_timestamp_parser.set_defaults(cmd=create_partition_for_timestamp_cmd)
+
     remove_old_parser = cmd_subparsers.add_parser(
         'remove-old', help='remove old partitions'
     )
@@ -812,6 +827,26 @@ def create_partition_cmd(args):
 
             conn.commit()
 
+
+def create_partition_for_timestamp_cmd(args):
+    print(f'Creating partitions for timestamp {args.timestamp}')
+
+    query = 'SELECT id FROM trend_directory.trend_store'
+
+    with closing(connect()) as conn:
+        if args.trend_store is None:
+            with closing(conn.cursor()) as cursor:
+                cursor.execute(query)
+
+                rows = cursor.fetchall()
+
+            for trend_store_id, in rows:
+                for name, partition_index, i, num in create_specific_partitions_for_trend_store(conn, trend_store_id, args.timestamp):
+                    print(
+                        '{} - {} ({}/{})'.format(name, partition_index, i, num)
+                    )
+        else:
+            print('no')
 
 def setup_process_modified_log_parser(subparsers):
     cmd = subparsers.add_parser(

@@ -1,5 +1,34 @@
 from contextlib import closing
 
+import psycopg2.errors
+
+
+def create_specific_partitions_for_trend_store(conn, trend_store_id, timestamp):
+    query = (
+        "SELECT part.id, trend_directory.timestamp_to_index(partition_size, %s) "
+        "FROM trend_directory.trend_store ts "
+        "JOIN trend_directory.trend_store_part part ON part.trend_store_id = ts.id "
+        "WHERE ts.id = %s"
+    )
+
+    with conn.cursor() as cursor:
+        cursor.execute(query, (timestamp, trend_store_id))
+
+        rows = cursor.fetchall()
+        
+    for i, (trend_store_part_id, partition_index) in enumerate(rows):
+        try:
+            name = create_partition_for_trend_store_part(
+                conn, trend_store_part_id, partition_index
+            )
+
+            conn.commit()
+
+            yield name, partition_index, i + 1, len(rows)
+        except PartitionExistsError as e:
+            conn.rollback()
+            pass
+
 
 def create_partitions_for_trend_store(conn, trend_store_id, ahead_interval, partition_count=None):
     """
@@ -48,6 +77,12 @@ def create_partitions_for_trend_store(conn, trend_store_id, ahead_interval, part
         yield name, partition_index, i, len(rows)
 
 
+class PartitionExistsError(Exception):
+    def __init__(self, trend_store_part_id, partition_index):
+        self.trend_store_part_id = trend_store_part_id
+        self.partition_index = partition_index
+
+
 def create_partition_for_trend_store_part(
         conn, trend_store_part_id, partition_index):
     query = (
@@ -58,7 +93,10 @@ def create_partition_for_trend_store_part(
     args = (partition_index, trend_store_part_id)
 
     with closing(conn.cursor()) as cursor:
-        cursor.execute(query, args)
+        try:
+            cursor.execute(query, args)
+        except psycopg2.errors.DuplicateTable:
+            raise PartitionExistsError(trend_store_part_id, partition_index)
 
         name, p = cursor.fetchone()
 
