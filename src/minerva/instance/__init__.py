@@ -22,7 +22,7 @@ class Trend:
         self.extra_data = extra_data
 
     @staticmethod
-    def from_json(data):
+    def from_dict(data: dict):
         return Trend(
             data['name'],
             data['data_type'],
@@ -32,7 +32,7 @@ class Trend:
             data.get('extra_data', {})
         )
 
-    def to_json(self):
+    def to_dict(self) -> OrderedDict:
         return OrderedDict([
             ('name', self.name),
             ('data_type', self.data_type),
@@ -76,7 +76,7 @@ class GeneratedTrend:
         self.extra_data = extra_data
 
     @staticmethod
-    def from_json(data):
+    def from_dict(data: dict):
         return GeneratedTrend(
             data['name'],
             data['data_type'],
@@ -85,7 +85,7 @@ class GeneratedTrend:
             data.get('extra_data', {})
         )
 
-    def to_json(self):
+    def to_dict(self) -> OrderedDict:
         items = [
             ('name', self.name),
             ('data_type', self.data_type)
@@ -138,24 +138,24 @@ class TrendStorePart:
         return str(TrendStorePart.adapt(self))
 
     @staticmethod
-    def from_json(data):
+    def from_dict(data: dict):
         return TrendStorePart(
             data['name'],
             [
-                Trend.from_json(trend)
+                Trend.from_dict(trend)
                 for trend in data['trends']
             ],
             [
-                GeneratedTrend.from_json(generated_trend)
+                GeneratedTrend.from_dict(generated_trend)
                 for generated_trend in data.get('generated_trends', [])
             ]
         )
 
-    def to_json(self):
+    def to_dict(self) -> OrderedDict:
         return OrderedDict([
             ('name', self.name),
-            ('trends', [trend.to_json() for trend in self.trends]),
-            ('generated_trends', [generated_trend.to_json() for generated_trend in self.generated_trends])
+            ('trends', [trend.to_dict() for trend in self.trends]),
+            ('generated_trends', [generated_trend.to_dict() for generated_trend in self.generated_trends])
         ])
 
     @staticmethod
@@ -189,27 +189,27 @@ class TrendStore:
         return f'{self.data_source} - {self.entity_type} - {self.granularity}'
 
     @staticmethod
-    def from_json(data):
+    def from_dict(data: dict):
         trend_store = TrendStore(
             data['data_source'],
             data['entity_type'],
             data['granularity'],
             data['partition_size'],
-            [TrendStorePart.from_json(p) for p in data['parts']]
+            [TrendStorePart.from_dict(p) for p in data['parts']]
         )
 
         trend_store.title = data.get('title')
 
         return trend_store
 
-    def to_json(self):
+    def to_dict(self) -> OrderedDict:
         return OrderedDict([
             ('title', self.title),
             ('data_source', self.data_source),
             ('entity_type', self.entity_type),
             ('granularity', self.granularity),
             ('partition_size', self.partition_size),
-            ('parts', [part.to_json() for part in self.parts])
+            ('parts', [part.to_dict() for part in self.parts])
         ])
 
 
@@ -227,7 +227,7 @@ class Attribute:
         self.data_type = data_type
 
     @staticmethod
-    def from_json(data: dict):
+    def from_dict(data: dict):
         attribute = Attribute(
             data['name'],
             data['data_type']
@@ -235,7 +235,7 @@ class Attribute:
 
         return attribute
 
-    def to_json(self):
+    def to_dict(self) -> OrderedDict:
         return OrderedDict([
             ('name', self.name),
             ('data_type', self.data_type)
@@ -256,11 +256,11 @@ class AttributeStore:
         return f'{self.data_source}_{self.entity_type}'
 
     @staticmethod
-    def from_json(data):
+    def from_dict(data: dict):
         attribute_store = AttributeStore(
             data['data_source'],
             data['entity_type'],
-            [Attribute.from_json(a) for a in data['attributes']]
+            [Attribute.from_dict(a) for a in data['attributes']]
         )
 
         return attribute_store
@@ -323,7 +323,7 @@ class MinervaInstance:
         with open(file_path) as definition_file:
             definition = yaml.load(definition_file, Loader=yaml.SafeLoader)
 
-        return TrendStore.from_json(definition)
+        return TrendStore.from_dict(definition)
 
     def load_attribute_store(self, name: str) -> AttributeStore:
         file_path = self.attribute_store_file_path(name)
@@ -332,7 +332,7 @@ class MinervaInstance:
             definition = yaml.load(definition_file, Loader=yaml.SafeLoader)
 
         try:
-            return AttributeStore.from_json(definition)
+            return AttributeStore.from_dict(definition)
         except Exception as e:
             print(f'Error loading attribute store {name}: {e}')
 

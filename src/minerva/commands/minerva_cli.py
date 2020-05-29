@@ -2,6 +2,7 @@ import sys
 import argparse
 
 from minerva import __version__
+from minerva.error import ConfigurationError
 from minerva.commands import data_source, trend_store, entity_type, load_data, \
     structure, alias, attribute_store, initialize, relation, \
     trigger, load_sample_data, virtual_entity, notification_store, \
@@ -50,7 +51,10 @@ def main():
 
         return 0
     else:
-        return args.cmd(args)
+        try:
+            return args.cmd(args)
+        except ConfigurationError as e:
+            print(f'Configuration error: {e}')
 
 
 if __name__ == '__main__':
