@@ -247,6 +247,24 @@ class AttributeStore:
     entity_type: str
     attributes: List[Attribute]
 
+    def __init__(self, data_source, entity_type, attributes):
+        self.data_source = data_source
+        self.entity_type = entity_type
+        self.attributes = attributes
+
+    def __str__(self):
+        return f'{self.data_source}_{self.entity_type}'
+
+    @staticmethod
+    def from_json(data):
+        attribute_store = AttributeStore(
+            data['data_source'],
+            data['entity_type'],
+            [Attribute.from_json(a) for a in data['attributes']]
+        )
+
+        return attribute_store
+
 
 class MinervaInstance:
     root: str
@@ -284,6 +302,18 @@ class MinervaInstance:
             self.root, 'trend', file_name
         )
 
+    def attribute_store_file_path(self, name: str):
+        base_name, ext = os.path.splitext(name)
+
+        if not ext:
+            file_name = f'{name}.yaml'
+        else:
+            file_name = name
+
+        return os.path.join(
+            self.root, 'attribute', file_name
+        )
+
     def make_relative(self, path: str):
         return os.path.relpath(path, self.root)
 
@@ -295,12 +325,33 @@ class MinervaInstance:
 
         return TrendStore.from_json(definition)
 
+    def load_attribute_store(self, name: str) -> AttributeStore:
+        file_path = self.attribute_store_file_path(name)
+
+        with open(file_path) as definition_file:
+            definition = yaml.load(definition_file, Loader=yaml.SafeLoader)
+
+        try:
+            return AttributeStore.from_json(definition)
+        except Exception as e:
+            print(f'Error loading attribute store {name}: {e}')
+
     def list_trend_stores(self):
         trend_store_dir = Path(self.root, 'trend')
 
         trend_store_files = [path.relative_to(trend_store_dir) for path in trend_store_dir.rglob('*.yaml')]
 
         return trend_store_files
+
+    def list_attribute_stores(self):
+        attribute_store_dir = Path(self.root, 'attribute')
+
+        attribute_store_files = [
+            path.relative_to(attribute_store_dir)
+            for path in attribute_store_dir.glob('*.yaml')
+        ]
+
+        return attribute_store_files
 
     def load_trend_stores(self):
         return [

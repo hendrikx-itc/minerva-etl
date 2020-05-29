@@ -8,6 +8,7 @@ import yaml
 
 from minerva.db import connect
 from minerva.util.tabulate import render_table
+from minerva.instance import MinervaInstance
 
 
 class DuplicateAttributeStore(Exception):
@@ -35,6 +36,7 @@ def setup_command_parser(subparsers):
     setup_remove_attribute_parser(cmd_subparsers)
     setup_show_parser(cmd_subparsers)
     setup_list_parser(cmd_subparsers)
+    setup_list_config_parser(cmd_subparsers)
     setup_materialization_parser(cmd_subparsers)
 
 
@@ -299,10 +301,29 @@ def show_attribute_store_cmd(args):
 
 def setup_list_parser(subparsers):
     cmd = subparsers.add_parser(
-        'list', help='list attribute stores'
+        'list', help='list attribute stores in database'
     )
 
     cmd.set_defaults(cmd=list_attribute_stores_cmd)
+
+
+def setup_list_config_parser(subparsers):
+    cmd = subparsers.add_parser(
+        'list-config', help='list attribute stores in configuration'
+    )
+
+    cmd.set_defaults(cmd=list_config_attribute_stores_cmd)
+    
+
+def list_config_attribute_stores_cmd(args):
+    instance = MinervaInstance.load()
+
+    attribute_stores = instance.load_attribute_stores()
+
+    print('Attribute stores in instance configuration:')
+
+    for attribute_store in attribute_stores:
+        print(f' - {attribute_store}')
 
 
 def list_attribute_stores_cmd(args):
