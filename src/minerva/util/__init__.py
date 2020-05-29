@@ -372,9 +372,11 @@ def string_fns(fns):
 
     return f
 
+
 def flatten(lists):
     """
     :param lists: iterable of lists
-    :return: list consisting of all elements from the lists in the iterable order
+    :return: list consisting of all elements from the lists in the iterable
+    order
     """
     return [item for sublist in lists for item in sublist]

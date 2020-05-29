@@ -4,8 +4,7 @@ import psycopg2.errorcodes
 
 from minerva.directory.basetypes import Tag, TagGroup
 
-from minerva.db.util import create_temp_table, drop_table, \
-    create_copy_from_file
+from minerva.db.util import create_copy_from_file
 
 SCHEMA = "directory"
 
@@ -14,14 +13,12 @@ class NoSuchTagError(Exception):
     """
     Exception raised when no matching Tag is found.
     """
-    pass
 
 
 class NoSuchTagGroupError(Exception):
     """
     Exception raised when no matching TagGroup is found.
     """
-    pass
 
 
 def tag_entities(conn, tag_links):
@@ -220,11 +217,3 @@ def get_tags_for_entity_id(conn, entity_id):
                 ]
         else:
             return []
-
-
-class Tag:
-    def __init__(self, id, name, group_id, description):
-        self.id = id
-        self.name = name
-        self.description = description
-        self.group_id = group_id

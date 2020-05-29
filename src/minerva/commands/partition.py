@@ -15,7 +15,7 @@ def create_specific_partitions_for_trend_store(conn, trend_store_id, timestamp):
         cursor.execute(query, (timestamp, trend_store_id))
 
         rows = cursor.fetchall()
-        
+ 
     for i, (trend_store_part_id, partition_index) in enumerate(rows):
         try:
             name = create_partition_for_trend_store_part(
@@ -27,7 +27,6 @@ def create_specific_partitions_for_trend_store(conn, trend_store_id, timestamp):
             yield name, partition_index, i + 1, len(rows)
         except PartitionExistsError as e:
             conn.rollback()
-            pass
 
 
 def create_partitions_for_trend_store(conn, trend_store_id, ahead_interval, partition_count=None):

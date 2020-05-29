@@ -10,7 +10,8 @@ from minerva.commands.live_monitor import live_monitor
 from minerva.db import connect
 
 from minerva.instance import INSTANCE_ROOT_VARIABLE
-from minerva.commands.attribute_store import create_attribute_store_from_json, \
+from minerva.commands.attribute_store import \
+    create_attribute_store_from_json, \
     DuplicateAttributeStore, SampledViewMaterialization
 from minerva.commands.trend_store import create_trend_store_from_json, \
     DuplicateTrendStore
@@ -56,7 +57,9 @@ def setup_command_parser(subparsers):
 
 def initialize_cmd(args):
     instance_root = (
-        args.instance_root or os.environ.get(INSTANCE_ROOT_VARIABLE) or os.getcwd()
+        args.instance_root
+        or os.environ.get(INSTANCE_ROOT_VARIABLE)
+        or os.getcwd()
     )
 
     sys.stdout.write(

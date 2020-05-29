@@ -7,7 +7,6 @@ import psycopg2
 import yaml
 
 from minerva.db import connect
-from minerva.util.tabulate import render_table
 
 
 class DuplicateNotificationStore(Exception):
@@ -15,8 +14,8 @@ class DuplicateNotificationStore(Exception):
         self.data_source = data_source
 
     def __str__(self):
-        return 'Duplicate notification store {}, {}'.format(
-            self.data_source,
+        return 'Duplicate notification store {}'.format(
+            self.data_source
         )
 
 

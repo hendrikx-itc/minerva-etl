@@ -80,4 +80,3 @@ class DataSource:
                 return DataSource(*cursor.fetchone())
 
         return f
-

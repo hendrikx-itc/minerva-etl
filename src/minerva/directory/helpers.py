@@ -2,7 +2,6 @@
 """
 Helper functions for the directory schema.
 """
-from contextlib import closing
 import re
 
 from psycopg2 import sql
@@ -16,12 +15,16 @@ MATCH_ALL = re.compile(".*")
 
 
 def dns_to_entity_ids(cursor, dns):
-    return aliases_to_entity_ids(cursor, 'dn', dns, entity_type_name_from_dn(dns[0]))
+    return aliases_to_entity_ids(
+        cursor, 'dn', dns, entity_type_name_from_dn(dns[0])
+    )
 
 
 @translate_postgresql_exceptions
 def aliases_to_entity_ids(cursor, namespace: str, aliases: list, entity_type: str):
-    cursor.callproc("alias_directory.aliases_to_entity_ids", (namespace, aliases, entity_type))
+    cursor.callproc(
+        "alias_directory.aliases_to_entity_ids", (namespace, aliases, entity_type)
+    )
 
     return list(map(fst, cursor.fetchall()))
 

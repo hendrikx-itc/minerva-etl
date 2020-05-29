@@ -1,11 +1,3 @@
-import json
-from contextlib import closing
-import argparse
-
-from minerva.db import connect
-from minerva.util.tabulate import render_table
-
-
 def setup_command_parser(subparsers):
     cmd = subparsers.add_parser(
         'structure', help='command for dumping or loading Minerva structure'

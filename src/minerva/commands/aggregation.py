@@ -7,7 +7,8 @@ from collections import OrderedDict
 
 import yaml
 
-from minerva.instance import MinervaInstance, TrendStore, TrendStorePart, Trend, GeneratedTrend
+from minerva.instance import MinervaInstance, TrendStore, TrendStorePart, \
+    Trend, GeneratedTrend
 from minerva.commands import ConfigurationError
 
 

@@ -10,7 +10,7 @@ from minerva.storage.trend.trendstore import NoSuchTrendStore
 from minerva.util import compose, k
 from minerva.directory import DataSource
 import minerva.storage.trend.datapackage
-import minerva.storage.attribute.datapackage
+from minerva.storage.attribute.datapackage import DataPackage
 from minerva.directory.entitytype import NoSuchEntityType
 from minerva.harvest.fileprocessor import process_file
 from minerva.db import connect, connect_logging
@@ -147,7 +147,7 @@ def load_data_cmd(cmd_parser, stop_on_missing_entity_type=False):
                     )
 
                     if args.merge_packages:
-                        packages = minerva.storage.trend.datapackage.DataPackage.merge_packages(packages_generator)
+                        packages = DataPackage.merge_packages(packages_generator)
                     else:
                         packages = packages_generator
 

@@ -1,5 +1,4 @@
 from contextlib import closing
-import logging
 
 from psycopg2 import sql
 

@@ -13,7 +13,8 @@ from minerva.commands import LoadHarvestPlugin, ListPlugins, load_json
 from minerva.db import connect
 from minerva.harvest.trend_config_deducer import deduce_config
 from minerva.util.tabulate import render_table
-from minerva.commands.partition import create_partitions_for_trend_store, create_specific_partitions_for_trend_store
+from minerva.commands.partition import create_partitions_for_trend_store, \
+    create_specific_partitions_for_trend_store
 from minerva.instance import TrendStorePart, TrendStore
 
 
@@ -119,8 +120,9 @@ def add_trends_cmd(args):
 
     try:
         result = add_trends_to_trend_store_from_json(trend_store_config)
+
         if result:
-            sys.stdout.write("Added trends: %s\n"%result)
+            sys.stdout.write(f"Added trends: {result}\n")
         else:
             sys.stdout.write("No trends to be added\n")
     except Exception as exc:
@@ -182,7 +184,7 @@ def remove_trends_cmd(args):
     try:
         result = remove_trends_from_trend_store_from_json(trend_store_config)
         if result:
-            sys.stdout.write("Removed trends: %s\n"%result)
+            sys.stdout.write(f"Removed trends: {result}\n")
         else:
             sys.stdout.write("No trends to be removed.\n")
     except Exception as exc:
@@ -193,7 +195,8 @@ def remove_trends_cmd(args):
 
 def setup_alter_trends_parser(subparsers):
     cmd = subparsers.add_parser(
-        'alter-trends', help='command for changing data types and aggregation types for trends from trend stores'
+        'alter-trends',
+        help='command for changing data types and aggregation types for trends from trend stores'
     )
 
     cmd.add_argument(
@@ -221,7 +224,10 @@ def alter_trends_cmd(args):
         trend_store_config = yaml.load(args.definition, Loader=yaml.SafeLoader)
 
     try:
-        result = alter_tables_in_trend_store_from_json(trend_store_config, force = args.force)
+        result = alter_tables_in_trend_store_from_json(
+            trend_store_config, force=args.force
+        )
+
         if result:
             sys.stdout.write("Changed columns: {}\n".format(", ".join(result)))
         else:
@@ -261,7 +267,10 @@ def change_trends_cmd(args):
         trend_store_config = yaml.load(args.definition, Loader=yaml.SafeLoader)
 
     try:
-        result = change_trend_store_from_json(trend_store_config, force = args.force)
+        result = change_trend_store_from_json(
+            trend_store_config, force=args.force
+        )
+
         if result:
             text = result[0]
             for part in result[1:]:
@@ -785,7 +794,7 @@ def remove_old_partitions_cmd(args):
                 for partition_id, partition_name, data_from, data_to in rows:
                     if not args.pretend:
                         cursor.execute(f'drop table trend_partition."{partition_name}"')
-                        cursor.execute(f'delete from trend_directory.partition where id = %s', (partition_id,))
+                        cursor.execute('delete from trend_directory.partition where id = %s', (partition_id,))
                         conn.commit()
                     removed_partitions += 1
                     print(f' - {partition_name} ({data_from} - {data_to})')
@@ -797,35 +806,40 @@ def remove_old_partitions_cmd(args):
 
 
 def create_partition_cmd(args):
-    query = 'SELECT id FROM trend_directory.trend_store'
-
     ahead_interval = args.ahead_interval or '1 day'
 
     with closing(connect()) as conn:
         if args.trend_store is None:
-            with closing(conn.cursor()) as cursor:
-                cursor.execute(query)
-
-                rows = cursor.fetchall()
-
-            for trend_store_id, in rows:
-                for name, partition_index, i, num in create_partitions_for_trend_store(
-                        conn, trend_store_id, ahead_interval
-                ):
-                    print(
-                        '{} - {} ({}/{})'.format(name, partition_index, i, num)
-                    )
-
-                conn.commit()
+            create_partitions_for_all_trend_stores(conn, ahead_interval)
         else:
-            for name, partition_index, i, num in create_partitions_for_trend_store(
+            create_partitions_for_one_trend_store(
                 conn, args.trend_store, ahead_interval
-            ):
-                print(
-                    '{} - {} ({}/{})'.format(name, partition_index, i, num)
-                )
+            )
 
-            conn.commit()
+
+def create_partitions_for_one_trend_store(conn, trend_store_id, ahead_interval):
+    for name, partition_index, i, num in create_partitions_for_trend_store(
+        conn, trend_store_id, ahead_interval
+    ):
+        print(
+            '{} - {} ({}/{})'.format(name, partition_index, i, num)
+        )
+
+    conn.commit()
+
+
+def create_partitions_for_all_trend_stores(conn, ahead_interval):
+    query = 'SELECT id FROM trend_directory.trend_store'
+
+    with closing(conn.cursor()) as cursor:
+        cursor.execute(query)
+
+        rows = cursor.fetchall()
+
+    for trend_store_id, in rows:
+        create_partitions_for_one_trend_store(
+            conn, trend_store_id, ahead_interval
+        )
 
 
 def create_partition_for_timestamp_cmd(args):
@@ -847,6 +861,7 @@ def create_partition_for_timestamp_cmd(args):
                     )
         else:
             print('no')
+
 
 def setup_process_modified_log_parser(subparsers):
     cmd = subparsers.add_parser(
