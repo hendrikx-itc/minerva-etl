@@ -218,6 +218,36 @@ register_adapter(GeneratedTrend, GeneratedTrend.adapt)
 register_adapter(Trend, Trend.adapt)
 
 
+class Attribute:
+    name: str
+    data_type: str
+
+    def __init__(self, name, data_type):
+        self.name = name
+        self.data_type = data_type
+
+    @staticmethod
+    def from_json(data: dict):
+        attribute = Attribute(
+            data['name'],
+            data['data_type']
+        )
+
+        return attribute
+
+    def to_json(self):
+        return OrderedDict([
+            ('name', self.name),
+            ('data_type', self.data_type)
+        ])
+
+
+class AttributeStore:
+    data_source: str
+    entity_type: str
+    attributes: List[Attribute]
+
+
 class MinervaInstance:
     root: str
 
@@ -276,4 +306,10 @@ class MinervaInstance:
         return [
             self.load_trend_store(name)
             for name in self.list_trend_stores()
+        ]
+
+    def load_attribute_stores(self):
+        return [
+            self.load_attribute_store(name)
+            for name in self.list_attribute_stores()
         ]
