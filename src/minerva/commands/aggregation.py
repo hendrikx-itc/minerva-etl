@@ -156,7 +156,11 @@ def entity_aggregation(args):
         instance, args.definition, args.format
     )
 
-    write_entity_aggregations(aggregation_context)
+    try:
+        write_entity_aggregations(aggregation_context)
+    except ConfigurationError as exc:
+        print("Error generating aggregation: {}".format(exc))
+        return 1
 
     aggregate_trend_store = define_aggregate_trend_store(
         aggregation_context
@@ -248,11 +252,14 @@ def write_entity_aggregations(aggregation_context: EntityAggregationContext) -> 
     definition = aggregation_context.definition['entity_aggregation']
 
     for part in aggregation_context.source_definition.parts:
-        dest_part = next(
-            dest_part
-            for dest_part in definition['parts']
-            if dest_part['source'] == part.name
-        )
+        try:
+            dest_part = next(
+                dest_part
+                for dest_part in definition['parts']
+                if dest_part['source'] == part.name
+            )
+        except StopIteration:
+            raise ConfigurationError("Could not find aggregation definition for source part '{}' in '{}'".format(part.name, aggregation_context.aggregation_file_path))
 
         aggregation = define_part_entity_aggregation(
             part,

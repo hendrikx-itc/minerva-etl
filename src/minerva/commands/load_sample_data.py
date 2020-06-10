@@ -3,6 +3,8 @@ import sys
 import datetime
 import subprocess
 from itertools import chain
+from pathlib import Path
+from importlib import import_module
 
 import yaml
 import pytz
@@ -54,11 +56,11 @@ def load_sample_data_cmd(args):
 def load_sample_data(instance_root, data_set=None):
     sys.path.append(os.path.join(instance_root, 'sample-data'))
 
-    definition_file_path = os.path.join(
+    definition_file_path = Path(
         instance_root, 'sample-data/definition.yaml'
     )
 
-    with open(definition_file_path) as definition_file:
+    with definition_file_path.open() as definition_file:
         definitions = yaml.load(definition_file, Loader=yaml.SafeLoader)
 
         for definition in definitions:
@@ -78,13 +80,11 @@ def cmd_generate_and_load(config):
 
     print("Loading dataset '{}'".format(name))
 
-    data_set_generator = __import__(name)
+    data_set_generator = import_module(name)
 
     target_dir = '/tmp'
 
-    for cmd_args in data_set_generator.generate(target_dir):
-        cmd = list(chain(data_set_generator.CMD, cmd_args))
-
+    for cmd in data_set_generator.generate(target_dir):
         print(' - executing: {}'.format(' '.join(cmd)))
 
         subprocess.run(cmd)
