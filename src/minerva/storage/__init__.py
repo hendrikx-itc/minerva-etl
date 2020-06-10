@@ -2,6 +2,7 @@
 Provides access and a location for storage class logic like 'trend',
 'attribute', etc..
 """
+from minerva.storage.trend.datapackage import DataPackage
 
 
 class StoreCmd:
@@ -22,7 +23,7 @@ class Engine:
     code from the database-unaware logic.
     """
     @staticmethod
-    def store_cmd(package):
+    def store_cmd(package: DataPackage) -> StoreCmd:
         """
         Return a StoreCmd-like object.
 
@@ -30,12 +31,8 @@ class Engine:
 
         engine = SomeEngineSubclass()
 
-        cmd = engine.store(package)
+        cmd = engine.store_cmd(package)
 
         cmd(data_source)(conn)
-
-        :param package: :class:`DataPackageBase
-        <minerva.storage.trend.datapackage.DataPackageBase>` sub-class instance
-        :return: :class:`StoreCmd`-like object
         """
         raise NotImplementedError()

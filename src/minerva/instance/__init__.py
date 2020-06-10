@@ -1,8 +1,9 @@
 import os
-from typing import List
+from typing import List, Generator, Union
 from collections import OrderedDict
 from pathlib import Path
 
+from minerva.commands import ConfigurationError, ordered_yaml_dump
 from psycopg2.extensions import adapt, register_adapter, AsIs, QuotedString
 from psycopg2.extras import Json
 
@@ -127,7 +128,7 @@ class GeneratedTrend:
 class TrendStorePart:
     name: str
     trends: List[Trend]
-    generated_trends: List[Trend]
+    generated_trends: List[GeneratedTrend]
 
     def __init__(self, name: str, trends: List[Trend], generated_trends: List[GeneratedTrend]):
         self.name = name
@@ -170,7 +171,7 @@ class TrendStorePart:
 
 
 class TrendStore:
-    title: str
+    title: Union[str, None]
     data_source: str
     entity_type: str
     granularity: str
@@ -189,7 +190,28 @@ class TrendStore:
         return f'{self.data_source} - {self.entity_type} - {self.granularity}'
 
     @staticmethod
+    def verify_data(data: dict):
+        """
+        Verify if data contains a valid trend store definition and raise exception if it doesn't
+
+        :param data:
+        :return:
+        """
+        if data is None:
+            raise ConfigurationError('None is not a valid trend store definition')
+
+        required_attributes = [
+            'data_source', 'entity_type', 'granularity', 'partition_size', 'parts'
+        ]
+
+        for attribute_name in required_attributes:
+            if attribute_name not in data:
+                raise ConfigurationError("Attribute '{attribute_name}' missing from trend store definition")
+
+    @staticmethod
     def from_dict(data: dict):
+        TrendStore.verify_data(data)
+
         trend_store = TrendStore(
             data['data_source'],
             data['entity_type'],
@@ -221,16 +243,25 @@ register_adapter(Trend, Trend.adapt)
 class Attribute:
     name: str
     data_type: str
+    unit: str
+    description: str
+    extra_data: dict
 
-    def __init__(self, name, data_type):
+    def __init__(self, name, data_type, unit, description, extra_data):
         self.name = name
         self.data_type = data_type
+        self.unit = unit
+        self.description = description
+        self.extra_data = extra_data
 
     @staticmethod
     def from_dict(data: dict):
         attribute = Attribute(
             data['name'],
-            data['data_type']
+            data['data_type'],
+            data.get('unit'),
+            data.get('description'),
+            data.get('extra_data')
         )
 
         return attribute
@@ -238,7 +269,10 @@ class Attribute:
     def to_dict(self) -> OrderedDict:
         return OrderedDict([
             ('name', self.name),
-            ('data_type', self.data_type)
+            ('data_type', self.data_type),
+            ('unit', self.unit),
+            ('description', self.description),
+            ('extra_data', self.extra_data)
         ])
 
 
@@ -265,6 +299,13 @@ class AttributeStore:
 
         return attribute_store
 
+    def to_dict(self) -> OrderedDict:
+        return OrderedDict([
+            ('data_source', self.data_source),
+            ('entity_type', self.entity_type),
+            ('attributes', [attribute.to_dict() for attribute in self.attributes])
+        ])
+
 
 class MinervaInstance:
     root: str
@@ -290,7 +331,7 @@ class MinervaInstance:
             self.root, 'materialization', f'{name}.yaml'
         )
 
-    def trend_store_file_path(self, name: str):
+    def trend_store_file_path(self, name: str) -> Path:
         base_name, ext = os.path.splitext(name)
 
         if not ext:
@@ -298,9 +339,7 @@ class MinervaInstance:
         else:
             file_name = name
 
-        return os.path.join(
-            self.root, 'trend', file_name
-        )
+        return Path(self.root, 'trend', file_name)
 
     def attribute_store_file_path(self, name: str):
         base_name, ext = os.path.splitext(name)
@@ -310,17 +349,24 @@ class MinervaInstance:
         else:
             file_name = name
 
-        return os.path.join(
+        return Path(
             self.root, 'attribute', file_name
         )
 
     def make_relative(self, path: str):
         return os.path.relpath(path, self.root)
 
-    def load_trend_store(self, name: str) -> TrendStore:
+    def load_trend_store_by_name(self, name: str) -> TrendStore:
         file_path = self.trend_store_file_path(name)
 
-        with open(file_path) as definition_file:
+        return self.load_trend_store_from_file(file_path)
+
+    @staticmethod
+    def load_trend_store_from_file(file_path: Path) -> TrendStore:
+        """
+        Load and return trend store from the provided path
+        """
+        with file_path.open() as definition_file:
             definition = yaml.load(definition_file, Loader=yaml.SafeLoader)
 
         return TrendStore.from_dict(definition)
@@ -328,39 +374,58 @@ class MinervaInstance:
     def load_attribute_store(self, name: str) -> AttributeStore:
         file_path = self.attribute_store_file_path(name)
 
-        with open(file_path) as definition_file:
-            definition = yaml.load(definition_file, Loader=yaml.SafeLoader)
-
         try:
-            return AttributeStore.from_dict(definition)
+            return self.load_attribute_store_from_file(file_path)
         except Exception as e:
             print(f'Error loading attribute store {name}: {e}')
 
-    def list_trend_stores(self):
-        trend_store_dir = Path(self.root, 'trend')
+    def save_attribute_store(self, attribute_store: AttributeStore) -> Path:
+        """
+        Save the attribute store in the instance directory and return the path
+        of the saved file.
+        :param attribute_store: attribute store to save
+        :return: path of the saved file
+        """
+        out_file_path = self.attribute_store_file_path(attribute_store.entity_type)
 
-        trend_store_files = [path.relative_to(trend_store_dir) for path in trend_store_dir.rglob('*.yaml')]
+        with open(out_file_path, 'w') as out_file:
+            ordered_yaml_dump(attribute_store.to_dict(), out_file)
 
-        return trend_store_files
+        return out_file_path
 
-    def list_attribute_stores(self):
-        attribute_store_dir = Path(self.root, 'attribute')
+    @staticmethod
+    def load_attribute_store_from_file(file_path: Path) -> AttributeStore:
+        with file_path.open() as definition_file:
+            definition = yaml.load(definition_file, Loader=yaml.SafeLoader)
 
-        attribute_store_files = [
-            path.relative_to(attribute_store_dir)
-            for path in attribute_store_dir.glob('*.yaml')
-        ]
+        return AttributeStore.from_dict(definition)
 
-        return attribute_store_files
+    def list_trend_stores(self) -> List[Path]:
+        """
+        Return list of trend store file paths in the instance trend directory
+        """
+        return list(Path(self.root, 'trend').rglob('*.yaml'))
 
-    def load_trend_stores(self):
-        return [
-            self.load_trend_store(name)
-            for name in self.list_trend_stores()
-        ]
+    def list_attribute_stores(self) -> List[Path]:
+        """
+        Return list of attribute store file paths in the instance attribute directory
+        """
+        return list(Path(self.root, 'attribute').glob('*.yaml'))
 
-    def load_attribute_stores(self):
-        return [
-            self.load_attribute_store(name)
-            for name in self.list_attribute_stores()
-        ]
+    def load_trend_stores(self) -> Generator[TrendStore, None, None]:
+        """
+        Return generator that loads and returns all trend stores
+        """
+        return (
+            self.load_trend_store_from_file(path)
+            for path in self.list_trend_stores()
+        )
+
+    def load_attribute_stores(self) -> Generator[AttributeStore, None, None]:
+        """
+        Return generator that loads and returns all attribute stores
+        """
+        return (
+            self.load_attribute_store_from_file(path)
+            for path in self.list_attribute_stores()
+        )

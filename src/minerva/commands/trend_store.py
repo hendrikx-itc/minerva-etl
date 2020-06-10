@@ -9,13 +9,13 @@ import yaml
 import psycopg2
 from psycopg2.extensions import adapt
 
-from minerva.commands import LoadHarvestPlugin, ListPlugins, load_json
+from minerva.commands import LoadHarvestPlugin, ListPlugins, load_json, ConfigurationError
 from minerva.db import connect
 from minerva.harvest.trend_config_deducer import deduce_config
 from minerva.util.tabulate import render_table
 from minerva.commands.partition import create_partitions_for_trend_store, \
     create_specific_partitions_for_trend_store
-from minerva.instance import TrendStorePart, TrendStore
+from minerva.instance import TrendStorePart, TrendStore, MinervaInstance
 
 
 class DuplicateTrendStore(Exception):
@@ -49,6 +49,7 @@ def setup_command_parser(subparsers):
     setup_delete_parser(cmd_subparsers)
     setup_show_parser(cmd_subparsers)
     setup_list_parser(cmd_subparsers)
+    setup_list_config_parser(cmd_subparsers)
     setup_partition_parser(cmd_subparsers)
     setup_process_modified_log_parser(cmd_subparsers)
     setup_materialize_parser(cmd_subparsers)
@@ -72,11 +73,23 @@ def setup_create_parser(subparsers):
     cmd.set_defaults(cmd=create_trend_store_cmd)
 
 
+def load_definition(in_file: BinaryIO, file_format: str) -> dict:
+    """
+    Load definition data in one of the supported formats (YAML, JSON)
+    :param in_file: Path of the file to load
+    :param file_format: Format of the data
+    :return: dict
+    """
+    if file_format == 'json':
+        return json.load(in_file)
+    elif file_format == 'yaml':
+        return yaml.load(in_file, Loader=yaml.SafeLoader)
+    else:
+        raise ConfigurationError('Unsupported format: {format}')
+
+
 def create_trend_store_cmd(args):
-    if args.format == 'json':
-        trend_store_config = json.load(args.definition)
-    elif args.format == 'yaml':
-        trend_store_config = yaml.load(args.definition, Loader=yaml.SafeLoader)
+    trend_store_config = load_definition(args.definition, args.format)
 
     sys.stdout.write(
         "Creating trend store '{}' - '{}' - '{}' ... ".format(
@@ -87,7 +100,7 @@ def create_trend_store_cmd(args):
     )
 
     try:
-        create_trend_store_from_json(trend_store_config)
+        create_trend_store(trend_store_config)
         sys.stdout.write("OK\n")
     except Exception as exc:
         sys.stdout.write("Error:\n{}".format(str(exc)))
@@ -113,13 +126,10 @@ def setup_add_trends_parser(subparsers):
 
 
 def add_trends_cmd(args):
-    if args.format == 'json':
-        trend_store_config = json.load(args.definition)
-    elif args.format == 'yaml':
-        trend_store_config = yaml.load(args.definition, Loader=yaml.SafeLoader)
+    trend_store = load_trend_store(args.definition, args.format)
 
     try:
-        result = add_trends_to_trend_store_from_json(trend_store_config)
+        result = add_trends_to_trend_store(trend_store)
 
         if result:
             sys.stdout.write(f"Added trends: {result}\n")
@@ -149,12 +159,9 @@ def setup_add_parts_parser(subparsers):
 
 
 def load_trend_store(in_file: BinaryIO, file_format: str) -> TrendStore:
-    if file_format == 'json':
-        trend_store_def = json.load(in_file)
-    elif file_format == 'yaml':
-        trend_store_def = yaml.load(in_file, Loader=yaml.SafeLoader)
+    trend_store_def = load_definition(in_file, file_format)
 
-    return TrendStore.from_json(trend_store_def)
+    return TrendStore.from_dict(trend_store_def)
 
 
 def setup_remove_parser(subparsers):
@@ -176,13 +183,10 @@ def setup_remove_parser(subparsers):
 
 
 def remove_trends_cmd(args):
-    if args.format == 'json':
-        trend_store_config = json.load(args.definition)
-    elif args.format == 'yaml':
-        trend_store_config = yaml.load(args.definition, Loader=yaml.SafeLoader)
+    trend_store_definition = load_trend_store(args.definition, args.format)
 
     try:
-        result = remove_trends_from_trend_store_from_json(trend_store_config)
+        result = remove_trends_from_trend_store(trend_store_definition)
         if result:
             sys.stdout.write(f"Removed trends: {result}\n")
         else:
@@ -196,12 +200,13 @@ def remove_trends_cmd(args):
 def setup_alter_trends_parser(subparsers):
     cmd = subparsers.add_parser(
         'alter-trends',
-        help='command for changing data types and aggregation types for trends from trend stores'
+        help='command for changing data types and aggregation types for trends from trend stores'  # noqa: disable=E501
     )
 
     cmd.add_argument(
         '--force', action='store_true',
-        help='change datatype even if the new datatype is less powerful than the old one'
+        help='change datatype even if the new datatype is less powerful than the old one'  # noqa: disable=E501
+
     )
 
     cmd.add_argument(
@@ -218,10 +223,7 @@ def setup_alter_trends_parser(subparsers):
 
 
 def alter_trends_cmd(args):
-    if args.format == 'json':
-        trend_store_config = json.load(args.definition)
-    elif args.format == 'yaml':
-        trend_store_config = yaml.load(args.definition, Loader=yaml.SafeLoader)
+    trend_store_config = load_definition(args.definition, args.format)
 
     try:
         result = alter_tables_in_trend_store_from_json(
@@ -239,12 +241,12 @@ def alter_trends_cmd(args):
 
 def setup_change_trends_parser(subparsers):
     cmd = subparsers.add_parser(
-        'change', help='change the content of a trendstore to a predefined type'
+        'change', help='change the content of a trendstore to a predefined type'  # noqa: disable=E501
     )
 
     cmd.add_argument(
         '--force', action='store_true',
-        help='change datatype even if the new datatype is less powerful than the old one'
+        help='change datatype even if the new datatype is less powerful than the old one'  # noqa: disable=E501
     )
 
     cmd.add_argument(
@@ -261,15 +263,10 @@ def setup_change_trends_parser(subparsers):
 
 
 def change_trends_cmd(args):
-    if args.format == 'json':
-        trend_store_config = json.load(args.definition)
-    elif args.format == 'yaml':
-        trend_store_config = yaml.load(args.definition, Loader=yaml.SafeLoader)
+    trend_store = load_trend_store(args.definition, args.format)
 
     try:
-        result = change_trend_store_from_json(
-            trend_store_config, force=args.force
-        )
+        result = change_trend_store(trend_store, force=args.force)
 
         if result:
             text = result[0]
@@ -293,7 +290,7 @@ def add_parts_cmd(args):
     trend_store = load_trend_store(args.definition, args.format)
 
     sys.stdout.write(
-        "Adding trend store parts to trend store '{}' - '{}' - '{}' ... \n".format(
+        "Adding trend store parts to trend store '{}' - '{}' - '{}' ... \n".format(  # noqa: disable=E501
             trend_store.data_source,
             trend_store.entity_type,
             trend_store.granularity
@@ -373,35 +370,33 @@ def deduce_trend_store_cmd(cmd_parser):
     return cmd
 
 
-def create_trend_store_from_json(data):
-    trend_store = TrendStore.from_json(data)
-
+def create_trend_store(trend_store_definition: TrendStore):
     query = (
         'SELECT trend_directory.create_trend_store('
-        '%s::text, %s::text, %s::interval, %s::interval, %s::trend_directory.trend_store_part_descr[]'
+        '%s::text, %s::text, %s::interval, %s::interval, '
+        '%s::trend_directory.trend_store_part_descr[]'
         ')'
     )
     query_args = (
-        trend_store.data_source, trend_store.entity_type,
-        trend_store.granularity, trend_store.partition_size, trend_store.parts
+        trend_store_definition.data_source, trend_store_definition.entity_type,
+        trend_store_definition.granularity, trend_store_definition.partition_size,
+        trend_store_definition.parts
     )
 
     with closing(connect()) as conn:
         with closing(conn.cursor()) as cursor:
             try:
                 cursor.execute(query, query_args)
-            except psycopg2.errors.UniqueViolation as exc:
+            except psycopg2.errors.UniqueViolation:
                 raise DuplicateTrendStore(
-                    trend_store.data_source, trend_store.entity_type,
-                    trend_store.granularity
+                    trend_store_definition.data_source, trend_store_definition.entity_type,
+                    trend_store_definition.granularity
                 )
 
         conn.commit()
 
 
-def add_trends_to_trend_store_from_json(data):
-    trend_store_parts = [TrendStorePart.from_json(p) for p in data['parts']]
-
+def add_trends_to_trend_store(trend_store_definition: TrendStore):
     query = (
         'SELECT trend_directory.add_trends('
         'trend_directory.get_trend_store('
@@ -411,8 +406,10 @@ def add_trends_to_trend_store_from_json(data):
     )
 
     query_args = (
-        data['data_source'], data['entity_type'],
-        data['granularity'], trend_store_parts
+        trend_store_definition.data_source,
+        trend_store_definition.entity_type,
+        trend_store_definition.granularity,
+        trend_store_definition.parts
     )
 
     with closing(connect()) as conn:
@@ -425,9 +422,7 @@ def add_trends_to_trend_store_from_json(data):
     return ', '.join(str(r) for r in result[0])
 
 
-def remove_trends_from_trend_store_from_json(data):
-    trend_store_parts = [TrendStorePart.from_json(p) for p in data['parts']]
-
+def remove_trends_from_trend_store(trend_store_definition: TrendStore):
     query = (
         'SELECT trend_directory.remove_extra_trends('
         'trend_directory.get_trend_store('
@@ -437,8 +432,10 @@ def remove_trends_from_trend_store_from_json(data):
     )
 
     query_args = (
-        data['data_source'], data['entity_type'],
-        data['granularity'], trend_store_parts
+        trend_store_definition.data_source,
+        trend_store_definition.entity_type,
+        trend_store_definition.granularity,
+        trend_store_definition.parts
     )
 
     with closing(connect()) as conn:
@@ -454,20 +451,23 @@ def remove_trends_from_trend_store_from_json(data):
         return None
 
 
-def alter_tables_in_trend_store_from_json(data, force=False):
-    trend_store_parts = [TrendStorePart.from_json(p) for p in data['parts']]
-
+def alter_tables_in_trend_store_from_json(trend_store_definition: TrendStore, force=False):
     query = (
         'SELECT trend_directory.{}('
         'trend_directory.get_trend_store('
         '%s::text, %s::text, %s::interval'
         '), %s::trend_directory.trend_store_part_descr[]'
-        ')'.format('change_all_trend_data' if force else 'change_trend_data_upward')
+        ')'.format(
+            'change_all_trend_data'
+            if force else 'change_trend_data_upward'
+         )
     )
 
     query_args = (
-        data['data_source'], data['entity_type'],
-        data['granularity'], trend_store_parts
+        trend_store_definition.data_source,
+        trend_store_definition.entity_type,
+        trend_store_definition.granularity,
+        trend_store_definition.parts
     )
 
     with closing(connect()) as conn:
@@ -483,13 +483,16 @@ def alter_tables_in_trend_store_from_json(data, force=False):
         return None
 
 
-def change_trend_store_from_json(trend_store: TrendStore, force=False):
+def change_trend_store(trend_store: TrendStore, force=False):
     query = (
         'SELECT trend_directory.{}('
         'trend_directory.get_trend_store('
         '%s::text, %s::text, %s::interval'
         '), %s::trend_directory.trend_store_part_descr[]'
-        ')'.format('change_trendstore_strong' if force else 'change_trendstore_weak')
+        ')'.format(
+            'change_trendstore_strong'
+            if force else 'change_trendstore_weak'
+        )
     )
 
     query_args = (
@@ -510,17 +513,22 @@ def change_trend_store_from_json(trend_store: TrendStore, force=False):
         return None
 
 
-def add_parts_to_trend_store(trend_store: TrendStore) -> Generator[str, None, None]:
+def add_parts_to_trend_store(
+        trend_store: TrendStore) -> Generator[str, None, None]:
     query = (
         'select tsp.name '
         'from trend_directory.trend_store ts '
         'join directory.data_source ds on ds.id = ts.data_source_id '
         'join directory.entity_type et on et.id = ts.entity_type_id '
-        'join trend_directory.trend_store_part tsp on tsp.trend_store_id = ts.id '
+        'join trend_directory.trend_store_part tsp '
+        'on tsp.trend_store_id = ts.id '
         'where ds.name = %s and et.name = %s and ts.granularity = %s::interval'
     )
 
-    query_args = (trend_store.data_source, trend_store.entity_type, trend_store.granularity)
+    query_args = (
+        trend_store.data_source, trend_store.entity_type,
+        trend_store.granularity
+    )
 
     with closing(connect()) as conn:
         with closing(conn.cursor()) as cursor:
@@ -528,12 +536,19 @@ def add_parts_to_trend_store(trend_store: TrendStore) -> Generator[str, None, No
 
             trend_store_part_names = [name for name, in cursor.fetchall()]
 
-            missing_parts = [part for part in trend_store.parts if part.name not in trend_store_part_names]
+            missing_parts = [
+                part
+                for part in trend_store.parts
+                if part.name not in trend_store_part_names
+            ]
 
             for missing_part in missing_parts:
                 add_part_query = (
                     'select trend_directory.initialize_trend_store_part('
-                    'trend_directory.define_trend_store_part(ts.id, %s, {}::trend_directory.trend_descr[], {}::trend_directory.generated_trend_descr[])'
+                    'trend_directory.define_trend_store_part('
+                    'ts.id, %s, {}::trend_directory.trend_descr[],'
+                    '{}::trend_directory.generated_trend_descr[]'
+                    ')'
                     ') '
                     'from trend_directory.trend_store ts '
                     'join directory.data_source ds on ds.id = ts.data_source_id '
@@ -682,7 +697,7 @@ def show_trend_store_cmd(args):
 
 def setup_list_parser(subparsers):
     cmd = subparsers.add_parser(
-        'list', help='list trend stores'
+        'list', help='list trend stores from database'
     )
 
     cmd.set_defaults(cmd=list_trend_stores_cmd)
@@ -707,6 +722,23 @@ def list_trend_stores_cmd(_args):
             cursor.execute(query, query_args)
 
             show_rows_from_cursor(cursor)
+
+
+def setup_list_config_parser(subparsers):
+    cmd = subparsers.add_parser(
+        'list-config', help='list trend stores from configuration'
+    )
+
+    cmd.set_defaults(cmd=list_config_trend_stores_cmd)
+
+
+def list_config_trend_stores_cmd(args):
+    instance = MinervaInstance.load()
+
+    trend_stores = instance.list_trend_stores()
+
+    for trend_store in trend_stores:
+        print(trend_store)
 
 
 def setup_partition_parser(subparsers):

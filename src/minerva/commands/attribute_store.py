@@ -8,7 +8,7 @@ import yaml
 
 from minerva.db import connect
 from minerva.util.tabulate import render_table
-from minerva.instance import MinervaInstance
+from minerva.instance import MinervaInstance, AttributeStore
 
 
 class DuplicateAttributeStore(Exception):
@@ -98,15 +98,15 @@ def create_attribute_store_cmd(args):
     )
 
     try:
-        create_attribute_store_from_json(attribute_store_config)
+        create_attribute_store(attribute_store_config)
         sys.stdout.write("OK\n")
     except DuplicateAttributeStore as exc:
-        sys.stdout.write(exc)
+        sys.stdout.write(str(exc))
     except Exception as exc:
         sys.stdout.write("Error:\n{}".format(exc))
 
 
-def create_attribute_store_from_json(data):
+def create_attribute_store(attribute_store: AttributeStore):
     query = (
         'SELECT attribute_directory.create_attribute_store('
         '%s::text, %s::text, {}'
@@ -114,16 +114,16 @@ def create_attribute_store_from_json(data):
     ).format(
         'ARRAY[{}]::attribute_directory.attribute_descr[]'.format(','.join([
             "('{}', '{}', '{}')".format(
-                attribute['name'],
-                attribute['data_type'],
-                attribute.get('description', '')
+                attribute.name,
+                attribute.data_type,
+                ''
             )
-            for attribute in data['attributes']
+            for attribute in attribute_store.attributes
         ]))
     )
 
     query_args = (
-        data['data_source'], data['entity_type']
+        attribute_store.data_source, attribute_store.entity_type
     )
 
     with closing(connect()) as conn:
@@ -132,7 +132,7 @@ def create_attribute_store_from_json(data):
                 cursor.execute(query, query_args)
             except psycopg2.errors.UniqueViolation as exc:
                 raise DuplicateAttributeStore(
-                    data['data_source'], data['entity_type']
+                    attribute_store.data_source, attribute_store.entity_type
                 ) from exc
 
         conn.commit()

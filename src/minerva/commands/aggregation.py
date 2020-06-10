@@ -96,7 +96,7 @@ class AggregationContext:
 
 class EntityAggregationContext(AggregationContext):
     def load_source_definition(self):
-        self.source_definition = self.instance.load_trend_store(
+        self.source_definition = self.instance.load_trend_store_by_name(
             self.definition['entity_aggregation']['source']
         )
 
@@ -141,7 +141,7 @@ class TimeAggregation:
 
 class TimeAggregationContext(AggregationContext):
     def load_source_definition(self):
-        self.source_definition = self.instance.load_trend_store(
+        self.source_definition = self.instance.load_trend_store_by_name(
             self.definition['time_aggregation']['source']
         )
 

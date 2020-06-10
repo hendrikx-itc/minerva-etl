@@ -153,7 +153,9 @@ class AttributeStore:
 
     @staticmethod
     def get(id_: int):
-        """Load and return attribute store by its Id.
+        """
+        Load and return attribute store by its Id.
+
         :param id_: Unique database ID of the attribute store
         """
         def f(cursor):

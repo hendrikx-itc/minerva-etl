@@ -9,11 +9,11 @@ from minerva.commands.live_monitor import live_monitor
 
 from minerva.db import connect
 
-from minerva.instance import INSTANCE_ROOT_VARIABLE
+from minerva.instance import INSTANCE_ROOT_VARIABLE, TrendStore, MinervaInstance
 from minerva.commands.attribute_store import \
-    create_attribute_store_from_json, \
+    create_attribute_store, \
     DuplicateAttributeStore, SampledViewMaterialization
-from minerva.commands.trend_store import create_trend_store_from_json, \
+from minerva.commands.trend_store import create_trend_store, \
     DuplicateTrendStore
 from minerva.commands.notification_store import \
     create_notification_store_from_json, DuplicateNotificationStore
@@ -143,18 +143,13 @@ def initialize_derivatives(instance_root):
 
 
 def initialize_attribute_stores(instance_root):
-    definition_files = glob.glob(
-        os.path.join(instance_root, 'attribute/*.yaml')
-    )
+    instance = MinervaInstance.load(instance_root)
 
-    for definition_file_path in definition_files:
-        print(definition_file_path)
-
-        with open(definition_file_path) as definition_file:
-            definition = yaml.load(definition_file, Loader=yaml.SafeLoader)
+    for attribute_store in instance.load_attribute_stores():
+        print(attribute_store)
 
         try:
-            create_attribute_store_from_json(definition)
+            create_attribute_store(attribute_store)
         except DuplicateAttributeStore as exc:
             print(exc)
 
@@ -172,16 +167,11 @@ def initialize_attribute_stores(instance_root):
 
 
 def initialize_trend_stores(instance_root):
-    definition_files = Path(instance_root, 'trend').rglob('*.yaml')
+    instance = MinervaInstance.load(instance_root)
 
-    for definition_file_path in sorted(definition_files):
-        print(definition_file_path)
-
-        with open(definition_file_path) as definition_file:
-            definition = yaml.load(definition_file, Loader=yaml.SafeLoader)
-
+    for trend_store in instance.load_trend_stores():
         try:
-            create_trend_store_from_json(definition)
+            create_trend_store(trend_store)
         except DuplicateTrendStore as exc:
             print(exc)
 
@@ -192,7 +182,7 @@ def initialize_notification_stores(instance_root):
     for definition_file_path in definition_files:
         print(definition_file_path)
 
-        with open(definition_file_path) as definition_file:
+        with definition_file_path.open() as definition_file:
             definition = yaml.load(definition_file, Loader=yaml.SafeLoader)
 
         try:
@@ -304,7 +294,11 @@ def create_partitions(num_partitions):
             rows = cursor.fetchall()
 
         for trend_store_id, in rows:
-            for name, partition_index, i, num in create_partitions_for_trend_store(conn, trend_store_id, '1 day', num_partitions):
+            partitions_generator = create_partitions_for_trend_store(
+                conn, trend_store_id, '1 day', num_partitions
+            )
+
+            for name, partition_index, i, num in partitions_generator:
                 print(' ' * 60, end='\r')
                 print('{} - {} ({}/{})'.format(name, partition_index, i, num), end="\r")
                 partitions_created += 1

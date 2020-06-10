@@ -1,6 +1,9 @@
 import json
 import sys
 import argparse
+from collections import OrderedDict
+
+import yaml
 
 from minerva.harvest.plugins import iter_entry_points, \
     get_plugin as get_harvest_plugin
@@ -48,3 +51,25 @@ class LoadHarvestPlugin(argparse.Action):
 def load_json(path):
     with open(path) as config_file:
         return json.load(config_file)
+
+
+class SqlSrc(str):
+    @staticmethod
+    def representer(dumper, data):
+        return dumper.represent_scalar('tag:yaml.org,2002:str', data, style='|')
+
+
+def ordered_yaml_dump(data, stream=None, Dumper=yaml.Dumper, **kwds):
+    class OrderedDumper(Dumper):
+        pass
+
+    def _dict_representer(dumper, data: OrderedDict):
+        return dumper.represent_mapping(
+            yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG,
+            data.items()
+        )
+
+    OrderedDumper.add_representer(OrderedDict, _dict_representer)
+    OrderedDumper.add_representer(SqlSrc, SqlSrc.representer)
+
+    return yaml.dump(data, stream, OrderedDumper, **kwds)
