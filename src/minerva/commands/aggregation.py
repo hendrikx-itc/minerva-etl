@@ -176,11 +176,11 @@ def entity_aggregation(args):
         aggregate_trend_store_file_path
     ))
 
-    with open(aggregate_trend_store_file_path, 'w') as out_file:
+    with aggregate_trend_store_file_path.open('w') as out_file:
         out_file.write(aggregation_context.generated_file_header())
 
         ordered_dump(
-            aggregate_trend_store.to_json(), stream=out_file, Dumper=yaml.SafeDumper,
+            aggregate_trend_store.to_dict(), stream=out_file, Dumper=yaml.SafeDumper,
             indent=2
         )
 
@@ -242,6 +242,22 @@ def load_relation(instance_root: str, relation: str) -> Dict:
         return yaml.load(yaml_file, Loader=yaml.SafeLoader)
 
 
+def translate_source_part_name(aggregation_context: EntityAggregationContext, name: str) -> str:
+    definition = aggregation_context.definition['entity_aggregation']
+    granularity = aggregation_context.source_definition.granularity
+
+    data_source = definition['data_source']
+    entity_type = definition['entity_type']
+
+    pattern = f'_([^_]+)_{granularity}$'
+
+    m = re.search(pattern, name)
+
+    part_specific_name = m.group(1)
+
+    return f'{data_source}_{entity_type}_{part_specific_name}_{granularity}'
+
+
 def write_entity_aggregations(aggregation_context: EntityAggregationContext) -> None:
     """
     Generate and write aggregations for all parts of the trend store
@@ -259,7 +275,12 @@ def write_entity_aggregations(aggregation_context: EntityAggregationContext) -> 
                 if dest_part['source'] == part.name
             )
         except StopIteration:
-            raise ConfigurationError("Could not find aggregation definition for source part '{}' in '{}'".format(part.name, aggregation_context.aggregation_file_path))
+            # Mapping definition is not found, so do a default mapping based
+            # on naming rules defined in function translate_source_part_name
+            dest_part = {
+                'source': part.name,
+                'name': translate_source_part_name(aggregation_context, part.name)
+            }
 
         aggregation = define_part_entity_aggregation(
             part,
