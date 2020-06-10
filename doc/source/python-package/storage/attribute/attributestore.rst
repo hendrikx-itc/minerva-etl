@@ -1,6 +1,8 @@
 :mod:`minerva.storage.attribute.attributestore` --- attributestore Module
 =========================================================================
 
+.. py:currentmodule:: minerva.storage.attribute.attributestore
+
 .. module:: minerva.storage.attribute.attributestore
 
 .. autoclass:: AttributeStore

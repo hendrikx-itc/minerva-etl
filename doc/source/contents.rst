@@ -9,11 +9,9 @@ Contents:
 
 .. toctree::
    :maxdepth: 2
-   :numbered:
    :glob:
 
    python-package/index
-   database-schema/index
 
 Indices and tables
 ==================

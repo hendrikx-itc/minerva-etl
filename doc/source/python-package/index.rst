@@ -9,7 +9,6 @@ Contents:
 
 .. toctree::
    :maxdepth: 2
-   :numbered:
 
    directory/directory
    directory/helpers
@@ -20,15 +19,13 @@ Contents:
    storage/attribute/datapackage
    storage/attribute/attribute
    storage/attribute/attributestore
+   storage/attribute/rawdatapackage
    storage/notification/index
    storage/notification/record
    storage/notification/package
    storage/notification/notificationstore
+   storage/notification/types
    system/system
-   system/jobqueue
-   xmldochandler/xmldochandler
-   xmlschemaparser/xmlschemaparser
-   schemacontextbuilder/schemacontextbuilder
    util/util
 
    scripts/index
