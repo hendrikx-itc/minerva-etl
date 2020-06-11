@@ -430,7 +430,7 @@ def define_aggregate_trend_store(aggregation_context) -> TrendStore:
 
             aggregate_parts.append(aggregate_part)
         else:
-            aggregate_part = TrendStorePart.from_json(aggregate_part_def)
+            aggregate_part = TrendStorePart.from_dict(aggregate_part_def)
 
             aggregate_parts.append(aggregate_part)
 
@@ -565,7 +565,7 @@ def time_aggregation(args):
     ))
 
     with open(aggregate_trend_store_file_path, 'w') as out_file:
-        ordered_dump(aggregate_trend_store.to_json(), out_file, indent=2)
+        ordered_dump(aggregate_trend_store.to_dict(), out_file, indent=2)
 
 
 def part_name_mapper_time(new_suffix):
