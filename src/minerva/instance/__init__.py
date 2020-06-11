@@ -3,7 +3,7 @@ from typing import List, Generator, Union
 from collections import OrderedDict
 from pathlib import Path
 
-from minerva.commands import ConfigurationError, ordered_yaml_dump
+from minerva.commands import ordered_yaml_dump, ConfigurationError
 from psycopg2.extensions import adapt, register_adapter, AsIs, QuotedString
 from psycopg2.extras import Json
 
@@ -11,6 +11,10 @@ import yaml
 
 
 INSTANCE_ROOT_VARIABLE = 'MINERVA_INSTANCE_ROOT'
+
+
+class DefinitionError(Exception):
+    pass
 
 
 class Trend:
@@ -198,7 +202,7 @@ class TrendStore:
         :return:
         """
         if data is None:
-            raise ConfigurationError('None is not a valid trend store definition')
+            raise DefinitionError('None is not a valid trend store definition')
 
         required_attributes = [
             'data_source', 'entity_type', 'granularity', 'partition_size', 'parts'
@@ -206,7 +210,7 @@ class TrendStore:
 
         for attribute_name in required_attributes:
             if attribute_name not in data:
-                raise ConfigurationError("Attribute '{attribute_name}' missing from trend store definition")
+                raise DefinitionError("Attribute '{attribute_name}' missing from trend store definition")
 
     @staticmethod
     def from_dict(data: dict):
@@ -369,7 +373,10 @@ class MinervaInstance:
         with file_path.open() as definition_file:
             definition = yaml.load(definition_file, Loader=yaml.SafeLoader)
 
-        return TrendStore.from_dict(definition)
+        try:
+            return TrendStore.from_dict(definition)
+        except DefinitionError as exc:
+            raise ConfigurationError(f"Could not load trend store from '{file_path}': {exc}")
 
     def load_attribute_store(self, name: str) -> AttributeStore:
         file_path = self.attribute_store_file_path(name)

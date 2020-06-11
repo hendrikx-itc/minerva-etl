@@ -1,4 +1,4 @@
-from typing import Dict, List
+from typing import Dict, List, Union
 import os
 import json
 import re
@@ -162,9 +162,13 @@ def entity_aggregation(args):
         print("Error generating aggregation: {}".format(exc))
         return 1
 
-    aggregate_trend_store = define_aggregate_trend_store(
-        aggregation_context
-    )
+    try:
+        aggregate_trend_store = define_aggregate_trend_store(
+            aggregation_context
+        )
+    except ConfigurationError as exc:
+        print("Error generating target trend store: {}".format(exc))
+        return 1
 
     base_name = aggregation_context.definition['entity_aggregation']['name']
 
@@ -393,7 +397,7 @@ PARTITION_SIZE_MAPPING = {
 }
 
 
-def define_aggregate_trend_store(aggregation_context) -> TrendStore:
+def define_aggregate_trend_store(aggregation_context: Union[EntityAggregationContext, TimeAggregationContext]) -> TrendStore:
     if 'entity_aggregation' in aggregation_context.definition:
         definition = aggregation_context.definition['entity_aggregation']
     else:
@@ -420,11 +424,18 @@ def define_aggregate_trend_store(aggregation_context) -> TrendStore:
 
     for aggregate_part_def in definition['parts']:
         if 'source' in aggregate_part_def:
-            src_part = next(
-                part
-                for part in src_trend_store.parts
-                if part.name == aggregate_part_def['source']
-            )
+            try:
+                src_part = next(
+                    part
+                    for part in src_trend_store.parts
+                    if part.name == aggregate_part_def['source']
+                )
+            except StopIteration:
+                raise ConfigurationError(
+                    "Could not find part definition '{}' in source trend store '{}'".format(
+                        aggregate_part_def['source'], definition['source']
+                    )
+                )
 
             aggregate_part = define_aggregate_part(src_part, aggregate_part_def)
 
@@ -585,16 +596,11 @@ def part_name_mapper_time(new_suffix):
     return map_part_name
 
 
-def write_time_aggregations(
-        aggregation_context: TimeAggregationContext
-) -> List[str]:
+def write_time_aggregations(aggregation_context: TimeAggregationContext):
     """
     Define the aggregations for all parts of the trend store
 
-    :param source_definition:
-    :param part_name_mapping: A function for mapping part name to aggregate part
-     name
-    :return: Lines of SQL
+    :param aggregation_context:
     """
     for agg_part in aggregation_context.definition['time_aggregation']['parts']:
         if 'source' in agg_part:
@@ -633,13 +639,6 @@ def write_time_aggregations(
 
 
 def define_part_time_aggregation(source_part: TrendStorePart, source_granularity, mapping_function, target_granularity, name) -> OrderedDict:
-    """
-    Use the source part definition to generate the aggregation SQL.
-
-    :param source_part:
-    :param name: Name of the aggregate part use for the function name, etc.
-    :return: Lines of SQL
-    """
     return OrderedDict([
         ('target_trend_store_part', name),
         ('enabled', True),
