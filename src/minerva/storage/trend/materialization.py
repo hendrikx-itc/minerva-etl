@@ -158,7 +158,10 @@ class ViewMaterialization(Materialization):
         self.set_attributes(conn)
 
     def create_view(self, conn):
-        create_view_query = f'CREATE VIEW trend."{self.view_name}" AS {self.view}'
+        create_view_query = sql.SQL('CREATE VIEW {} AS {}').format(
+            sql.Identifier('trend', self.view_name),
+            sql.SQL(self.view)
+        )
 
         with conn.cursor() as cursor:
             cursor.execute(create_view_query)
@@ -181,7 +184,7 @@ class ViewMaterialization(Materialization):
             self.processing_delay,
             self.stability_delay,
             self.reprocessing_period,
-            f'trend.{self.view_name}',
+            f'trend."{self.view_name}"',
             self.target_trend_store_part
         )
 
