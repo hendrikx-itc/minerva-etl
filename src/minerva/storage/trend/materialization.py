@@ -9,7 +9,7 @@ def from_config(config):
 
 
 class Materialization:
-    def __init__(self, target_trend_store_part):
+    def __init__(self, target_trend_store_part: str):
         self.target_trend_store_part = target_trend_store_part
         self.enabled = False
         self.processing_delay = None
@@ -69,24 +69,27 @@ class Materialization:
         with conn.cursor() as cursor:
             cursor.execute(unlink_trend_store_query, unlink_trend_store_args)
 
+    def fingerprint_function_name(self) -> str:
+        return f'{self.target_trend_store_part}_fingerprint'
+
     def create_fingerprint_function(self, conn):
-        create_fingerprint_function_query = (
-            'CREATE FUNCTION trend."{}"(timestamp with time zone) RETURNS trend_directory.fingerprint AS $$'
+        create_fingerprint_function_query = sql.SQL(
+            'CREATE FUNCTION {}(timestamp with time zone) RETURNS trend_directory.fingerprint AS $$'
             '{}'
             '$$ LANGUAGE sql STABLE'
         ).format(
-            '{}_fingerprint'.format(self.target_trend_store_part),
-            self.fingerprint_function
+            sql.Identifier('trend', self.fingerprint_function_name()),
+            sql.SQL(self.fingerprint_function)
         )
 
         with conn.cursor() as cursor:
             cursor.execute(create_fingerprint_function_query)
 
     def drop_fingerprint_function(self, conn):
-        drop_fingerprint_function_query = (
-            'DROP FUNCTION trend."{}"(timestamp with time zone)'
+        drop_fingerprint_function_query = sql.SQL(
+            'DROP FUNCTION {}(timestamp with time zone)'
         ).format(
-            '{}_fingerprint'.format(self.target_trend_store_part)
+            sql.Identifier('trend', self.fingerprint_function_name())
         )
 
         with conn.cursor() as cursor:
@@ -117,17 +120,16 @@ class Materialization:
 
 
 class ViewMaterialization(Materialization):
-    def __init__(self, target_trend_store_part):
+    def __init__(self, target_trend_store_part: str):
         Materialization.__init__(self, target_trend_store_part)
 
         self.view = None
 
-    @property
-    def view_name(self):
-        return "_{}".format(self.target_trend_store_part)
+    def view_name(self) -> str:
+        return f'_{self.target_trend_store_part}'
 
     @staticmethod
-    def from_config(config):
+    def from_config(config: dict):
         materialization = ViewMaterialization(config['target_trend_store_part'])
         materialization.enabled = config['enabled']
         materialization.processing_delay = config['processing_delay']
@@ -159,7 +161,7 @@ class ViewMaterialization(Materialization):
 
     def create_view(self, conn):
         create_view_query = sql.SQL('CREATE VIEW {} AS {}').format(
-            sql.Identifier('trend', self.view_name),
+            sql.Identifier('trend', self.view_name()),
             sql.SQL(self.view)
         )
 
@@ -167,7 +169,11 @@ class ViewMaterialization(Materialization):
             cursor.execute(create_view_query)
 
     def drop_view(self, conn):
-        create_view_query = f'DROP VIEW trend."{self.view_name}"'
+        create_view_query = sql.SQL(
+            'DROP VIEW {}'
+        ).format(
+            sql.Identifier('trend', self.view_name())
+        )
 
         with conn.cursor() as cursor:
             cursor.execute(create_view_query)
@@ -184,7 +190,7 @@ class ViewMaterialization(Materialization):
             self.processing_delay,
             self.stability_delay,
             self.reprocessing_period,
-            f'trend."{self.view_name}"',
+            f'trend."{self.view_name()}"',
             self.target_trend_store_part
         )
 
@@ -196,13 +202,13 @@ DEFAULT_FUNCTION_LANGUAGE = 'plpgsql'
 
 
 class FunctionMaterialization(Materialization):
-    def __init__(self, target_trend_store_part):
+    def __init__(self, target_trend_store_part: str):
         Materialization.__init__(self, target_trend_store_part)
 
         self.function = None
 
     @staticmethod
-    def from_config(config):
+    def from_config(config: dict):
         materialization = FunctionMaterialization(config['target_trend_store_part'])
         materialization.enabled = config['enabled']
         materialization.processing_delay = config['processing_delay']
@@ -233,25 +239,25 @@ class FunctionMaterialization(Materialization):
         self.set_attributes(conn)
 
     def create_function(self, conn):
-        create_function_query = (
-            'CREATE FUNCTION trend."{function_name}"(timestamp with time zone) RETURNS {return_type} AS $$ '
-            '{function_src}'
-            '$$ LANGUAGE {function_language} STABLE'
+        create_function_query = sql.SQL(
+            'CREATE FUNCTION {}(timestamp with time zone) RETURNS {} AS $$ '
+            '{}'
+            '$$ LANGUAGE {} STABLE'
         ).format(
-            function_name=self.target_trend_store_part,
-            return_type=self.function['return_type'],
-            function_src=self.function['src'],
-            function_language=self.function.get('language', DEFAULT_FUNCTION_LANGUAGE)
+            sql.Identifier('trend', self.target_trend_store_part),
+            sql.SQL(self.function['return_type']),
+            sql.SQL(self.function['src']),
+            sql.SQL(self.function.get('language', DEFAULT_FUNCTION_LANGUAGE))
         )
 
         with conn.cursor() as cursor:
             cursor.execute(create_function_query)
 
     def drop_function(self, conn):
-        drop_function_query = (
-            'DROP FUNCTION trend."{function_name}"(timestamp with time zone)'
+        drop_function_query = sql.SQL(
+            'DROP FUNCTION {}"(timestamp with time zone)'
         ).format(
-            function_name=self.target_trend_store_part
+            sql.Identifier('trend', self.target_trend_store_part)
         )
 
         with conn.cursor() as cursor:
@@ -269,7 +275,7 @@ class FunctionMaterialization(Materialization):
             self.processing_delay,
             self.stability_delay,
             self.reprocessing_period,
-            f'trend.{self.target_trend_store_part}(timestamp with time zone)',
+            f'trend."{self.target_trend_store_part}"(timestamp with time zone)',
             self.target_trend_store_part
         )
 
