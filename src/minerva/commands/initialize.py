@@ -9,7 +9,7 @@ from minerva.commands.live_monitor import live_monitor
 
 from minerva.db import connect
 
-from minerva.instance import INSTANCE_ROOT_VARIABLE, TrendStore, MinervaInstance
+from minerva.instance import INSTANCE_ROOT_VARIABLE, MinervaInstance
 from minerva.commands.attribute_store import \
     create_attribute_store, \
     DuplicateAttributeStore, SampledViewMaterialization
@@ -49,7 +49,7 @@ def setup_command_parser(subparsers):
 
     cmd.add_argument(
         '--num-partitions',
-        help='number of partitions to create (default is full retention period)'
+        help='number of partitions to create (default is full retention period)'  # noqa: E501
     )
 
     cmd.set_defaults(cmd=initialize_cmd)
@@ -170,6 +170,7 @@ def initialize_trend_stores(instance_root):
     instance = MinervaInstance.load(instance_root)
 
     for trend_store in instance.load_trend_stores():
+        print(trend_store)
         try:
             create_trend_store(trend_store)
         except DuplicateTrendStore as exc:
@@ -203,7 +204,9 @@ def define_virtual_entities(instance_root):
 
 
 def define_relations(instance_root):
-    definition_files = glob.glob(os.path.join(instance_root, 'relation/*.yaml'))
+    definition_files = glob.glob(os.path.join(
+        instance_root, 'relation/*.yaml')
+    )
 
     for definition_file_path in definition_files:
         print(definition_file_path)
@@ -300,7 +303,12 @@ def create_partitions(num_partitions):
 
             for name, partition_index, i, num in partitions_generator:
                 print(' ' * 60, end='\r')
-                print('{} - {} ({}/{})'.format(name, partition_index, i, num), end="\r")
+                print(
+                    '{} - {} ({}/{})'.format(
+                        name, partition_index, i, num
+                    ),
+                    end="\r"
+                )
                 partitions_created += 1
 
     print(" " * 60, end='\r')

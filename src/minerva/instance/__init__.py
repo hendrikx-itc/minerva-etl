@@ -1,4 +1,5 @@
 import os
+from io import TextIOBase
 from typing import List, Generator, Union
 from collections import OrderedDict
 from pathlib import Path
@@ -366,17 +367,17 @@ class MinervaInstance:
         return self.load_trend_store_from_file(file_path)
 
     @staticmethod
-    def load_trend_store_from_file(file_path: Path) -> TrendStore:
+    def load_trend_store_from_file(file: Union[Path, TextIOBase]) -> TrendStore:
         """
         Load and return trend store from the provided path
         """
-        with file_path.open() as definition_file:
-            definition = yaml.load(definition_file, Loader=yaml.SafeLoader)
+        if isinstance(file, Path):
+            with file.open() as definition_file:
+                definition = yaml.load(definition_file, Loader=yaml.SafeLoader)
+        elif isinstance(file, TextIOBase):
+            definition = yaml.load(file, Loader=yaml.SafeLoader)
 
-        try:
-            return TrendStore.from_dict(definition)
-        except DefinitionError as exc:
-            raise ConfigurationError(f"Could not load trend store from '{file_path}': {exc}")
+        return TrendStore.from_dict(definition)
 
     def load_attribute_store(self, name: str) -> AttributeStore:
         file_path = self.attribute_store_file_path(name)

@@ -7,7 +7,6 @@ from typing import BinaryIO, Generator
 
 import yaml
 import psycopg2
-from psycopg2.extensions import adapt
 
 from minerva.commands import LoadHarvestPlugin, ListPlugins, load_json, ConfigurationError
 from minerva.db import connect
@@ -89,19 +88,21 @@ def load_definition(in_file: BinaryIO, file_format: str) -> dict:
 
 
 def create_trend_store_cmd(args):
-    trend_store_config = load_definition(args.definition, args.format)
+    trend_store = MinervaInstance.load_trend_store_from_file(args.definition)
 
     sys.stdout.write(
         "Creating trend store '{}' - '{}' - '{}' ... ".format(
-            trend_store_config['data_source'],
-            trend_store_config['entity_type'],
-            trend_store_config['granularity']
+            trend_store.data_source,
+            trend_store.entity_type,
+            trend_store.granularity
         )
     )
 
     try:
-        create_trend_store(trend_store_config)
+        create_trend_store(trend_store)
         sys.stdout.write("OK\n")
+    except DuplicateTrendStore as exc:
+        print("Could not create trend store: {}".format(exc))
     except Exception as exc:
         sys.stdout.write("Error:\n{}".format(str(exc)))
         raise exc
@@ -616,6 +617,13 @@ def show_rows(column_names, rows, show_cmd=print):
 
 
 def show_rows_from_cursor(cursor, show_cmd=print):
+    """
+    Take the results from a query executed on a cursor and show them in a
+    table with the field names as column names.
+    :param cursor: Psycopg2 cursor where a query has been executed
+    :param show_cmd: function that writes the lines
+    :return:
+    """
     show_rows(
         [c.name for c in cursor.description],
         cursor.fetchall(),
