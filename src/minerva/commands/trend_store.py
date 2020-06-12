@@ -546,21 +546,19 @@ def add_parts_to_trend_store(
                 add_part_query = (
                     'select trend_directory.initialize_trend_store_part('
                     'trend_directory.define_trend_store_part('
-                    'ts.id, %s, {}::trend_directory.trend_descr[],'
-                    '{}::trend_directory.generated_trend_descr[]'
+                    'ts.id, %s, %s::trend_directory.trend_descr[],'
+                    '%s::trend_directory.generated_trend_descr[]'
                     ')'
                     ') '
                     'from trend_directory.trend_store ts '
                     'join directory.data_source ds on ds.id = ts.data_source_id '
                     'join directory.entity_type et on et.id = ts.entity_type_id '
                     'where ds.name = %s and et.name = %s and ts.granularity = %s::interval'
-                ).format(
-                    adapt(missing_part.trends),
-                    adapt(missing_part.generated_trends)
                 )
 
                 add_part_query_args = (
-                    missing_part.name, trend_store.data_source,
+                    missing_part.name, missing_part.trends,
+                    missing_part.generated_trends, trend_store.data_source,
                     trend_store.entity_type, trend_store.granularity
                 )
 
