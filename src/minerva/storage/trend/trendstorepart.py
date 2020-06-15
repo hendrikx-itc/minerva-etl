@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from __future__ import annotations
 from datetime import datetime
 from contextlib import closing
 from itertools import chain
@@ -15,7 +16,7 @@ from minerva.storage.trend.trend import Trend, NoSuchTrendError
 
 from minerva.db.error import NoCopyInProgress, \
     translate_postgresql_exception, translate_postgresql_exceptions
-from minerva.util import compose, zip_apply, first, flatten
+from minerva.util import compose, zip_apply, first
 
 LARGE_BATCH_THRESHOLD = 10
 
@@ -42,7 +43,7 @@ class TrendStorePart:
         return self.base_table_name()
 
     @staticmethod
-    def get_trends(cursor, trend_store_part_id):
+    def get_trends(cursor, trend_store_part_id) -> List[Trend]:
         query = (
             "SELECT id, name, data_type, trend_store_part_id, description "
             "FROM trend_directory.table_trend "
@@ -82,7 +83,7 @@ class TrendStorePart:
 
         return f
 
-    def base_table_name(self):
+    def base_table_name(self) -> str:
         """
         Return the base/parent table name.
 
@@ -90,10 +91,10 @@ class TrendStorePart:
         """
         return self.name
 
-    def base_table(self):
+    def base_table(self) -> Table:
         return Table("trend", self.base_table_name())
 
-    def get_copy_serializers(self, trend_names):
+    def get_copy_serializers(self, trend_names: List[str]):
         trend_by_name = {t.name: t for t in self.trends}
 
         def get_serializer_by_trend_name(name):

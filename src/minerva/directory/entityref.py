@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+from typing import Tuple
+
 from minerva.directory.helpers import aliases_to_entity_ids, \
     dns_to_entity_ids, names_to_entity_ids
 from minerva.directory.distinguishedname import entity_type_name_from_dn
@@ -33,13 +35,15 @@ class EntityIdRef(EntityRef):
     """
     A reference to an entity by its Id.
     """
-    def __init__(self, entity_id):
+    entity_id: int
+
+    def __init__(self, entity_id: int):
         self.entity_id = entity_id
 
-    def to_argument(self):
+    def to_argument(self) -> Tuple[str, int]:
         return "%s", self.entity_id
 
-    def get_entity_type(self, cursor):
+    def get_entity_type(self, cursor) -> EntityType:
         return EntityType.get_by_entity_id(self.entity_id)(cursor)
 
     @classmethod
@@ -54,14 +58,16 @@ class EntityDnRef(EntityRef):
     """
     A reference to an entity by its distinguished name.
     """
+    dn: str
+    alias: str
 
     def __init__(self, dn):
         self.alias = self.dn = dn
 
-    def to_argument(self):
+    def to_argument(self) -> Tuple[str, str]:
         return "(directory.dn_to_entity(%s)).id", self.dn
 
-    def get_entity_type(self, cursor):
+    def get_entity_type(self, cursor) -> EntityType:
         return EntityType.get_by_name(
             entity_type_name_from_dn(self.dn))(cursor)
 

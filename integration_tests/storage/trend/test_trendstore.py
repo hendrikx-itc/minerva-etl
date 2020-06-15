@@ -9,11 +9,11 @@ from minerva.directory import EntityType, DataSource
 from minerva.test import connect, clear_database
 from minerva.storage import datatype
 from minerva.storage.trend.trendstore import TimestampEquals
-from minerva.storage.trend.trendstore import TableTrendStore, \
+from minerva.storage.trend.trendstore import TrendStore, \
     TrendStorePart
 from minerva.storage.trend.trend import Trend
 from minerva.storage.trend.granularity import create_granularity
-from minerva.storage.trend.datapackage import DefaultPackage
+from minerva.storage.trend.datapackage import DataPackage, DataPackageType
 from minerva.db.util import get_column_names, table_exists
 
 
@@ -32,23 +32,23 @@ class TestStoreTrend(unittest.TestCase):
             data_source = DataSource.create("test-source", '')(cursor)
             entity_type = EntityType.create("test_type", '')(cursor)
 
-            trend_store = TableTrendStore.create(TableTrendStore.Descriptor(
+            trend_store = TrendStore.create(TrendStore.Descriptor(
                 data_source, entity_type, granularity, [], partition_size
             ))(cursor)
 
-        assert isinstance(trend_store, TableTrendStore)
+        assert isinstance(trend_store, TrendStore)
 
         assert trend_store.id is not None
 
     def test_create_trend_store_with_trends(self):
-        granularity = create_granularity("900")
+        granularity = create_granularity("900s")
         partition_size = 3600
 
         with closing(self.conn.cursor()) as cursor:
             data_source = DataSource.create("test-source", '')(cursor)
             entity_type = EntityType.create("test_type", '')(cursor)
 
-            trend_store = TableTrendStore.create(TableTrendStore.Descriptor(
+            trend_store = TrendStore.create(TrendStore.Descriptor(
                 data_source, entity_type, granularity,
                 [
                     TrendStorePart.Descriptor(
@@ -65,7 +65,7 @@ class TestStoreTrend(unittest.TestCase):
                 ], partition_size
             ))(cursor)
 
-        self.assertIsInstance(trend_store, TableTrendStore)
+        self.assertIsInstance(trend_store, TrendStore)
 
         self.assertIsNotNone(trend_store.id)
 
@@ -84,7 +84,7 @@ class TestStoreTrend(unittest.TestCase):
             data_source = DataSource.create("test-source", '')(cursor)
             entity_type = EntityType.create("test_type", '')(cursor)
 
-            trend_store = TableTrendStore.create(TableTrendStore.Descriptor(
+            trend_store = TrendStore.create(TrendStore.Descriptor(
                 data_source, entity_type, granularity, [
                     TrendStorePart.Descriptor(
                         'test-trend-store_part1', [])
@@ -115,7 +115,7 @@ class TestStoreTrend(unittest.TestCase):
             data_source = DataSource.create("test-source", '')(cursor)
             entity_type = EntityType.create("test_type", '')(cursor)
 
-            TableTrendStore.create(TableTrendStore.Descriptor(
+            TrendStore.create(TrendStore.Descriptor(
                 data_source, entity_type, granularity,
                 [
                     TrendStorePart.Descriptor(
@@ -132,7 +132,7 @@ class TestStoreTrend(unittest.TestCase):
                 ], partition_size
             ))(cursor)
 
-            trend_store = TableTrendStore.get(
+            trend_store = TrendStore.get(
                 data_source, entity_type, granularity
             )(cursor)
 
@@ -162,7 +162,7 @@ class TestStoreTrend(unittest.TestCase):
                 ])
             ]
 
-            trend_store = TableTrendStore.create(TableTrendStore.Descriptor(
+            trend_store = TrendStore.create(TrendStore.Descriptor(
                 data_source, entity_type, granularity,
                 parts,
                 partition_size
@@ -177,7 +177,9 @@ class TestStoreTrend(unittest.TestCase):
             ('Network=G1,Node=001', ('42', 'foo'))
         ]
 
-        package = DefaultPackage(granularity, timestamp, trend_names, rows)
+        data_package_type = DataPackageType()
+
+        package = DataPackage(granularity, timestamp, trend_names, rows)
 
         trend_store.store(package)(self.conn)
 

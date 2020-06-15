@@ -3,7 +3,9 @@
 Helper functions for the directory schema.
 """
 import re
+from typing import List
 
+from minerva.directory import Entity, EntityType
 from psycopg2 import sql
 
 from minerva.util import identity, k, fst
@@ -14,14 +16,14 @@ from minerva.directory.distinguishedname import entity_type_name_from_dn
 MATCH_ALL = re.compile(".*")
 
 
-def dns_to_entity_ids(cursor, dns):
+def dns_to_entity_ids(cursor, dns: List[str]) -> List[int]:
     return aliases_to_entity_ids(
         cursor, 'dn', dns, entity_type_name_from_dn(dns[0])
     )
 
 
 @translate_postgresql_exceptions
-def aliases_to_entity_ids(cursor, namespace: str, aliases: list, entity_type: str):
+def aliases_to_entity_ids(cursor, namespace: str, aliases: list, entity_type: str) -> List[int]:
     cursor.callproc(
         "alias_directory.aliases_to_entity_ids", (namespace, aliases, entity_type)
     )
@@ -29,7 +31,7 @@ def aliases_to_entity_ids(cursor, namespace: str, aliases: list, entity_type: st
     return list(map(fst, cursor.fetchall()))
 
 
-def names_to_entity_ids(cursor, entity_type: str, names: list):
+def names_to_entity_ids(cursor, entity_type: str, names: list) -> List[int]:
     """
     Map names to entity ID's, create any missing entities, and return the
     corresponding entity ID's.
@@ -64,7 +66,7 @@ def names_to_entity_ids(cursor, entity_type: str, names: list):
     return entity_ids
 
 
-def create_entities_from_names(cursor, entity_type: str, names: list):
+def create_entities_from_names(cursor, entity_type: str, names: list) -> List[int]:
     entity_ids = []
 
     insert_query = sql.SQL(
@@ -98,9 +100,9 @@ class NoSuchRelationTypeError(Exception):
     pass
 
 
-def get_child_ids(cursor, base_entity, entity_type):
+def get_child_ids(cursor, base_entity: Entity, entity_type: EntityType) -> List[int]:
     """
-    Return child ids for entitytype related to base_entity.
+    Return child ids for entity_type related to base_entity.
     """
     query = (
         "SELECT id FROM directory.entity "

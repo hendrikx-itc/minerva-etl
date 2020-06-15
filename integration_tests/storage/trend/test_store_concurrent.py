@@ -12,8 +12,8 @@ from minerva.directory import EntityType, DataSource
 from minerva.test import connect, with_conn, clear_database
 from minerva.storage import datatype
 from minerva.storage.trend.granularity import create_granularity
-from minerva.storage.trend.datapackage import DefaultPackage
-from minerva.storage.trend.trendstore import TableTrendStore
+from minerva.storage.trend.datapackage import DataPackage
+from minerva.storage.trend.trendstore import TrendStore
 from minerva.storage.trend.trend import Trend
 
 
@@ -71,14 +71,14 @@ def test_store_concurrent(conn):
 
     granularity = create_granularity("900")
 
-    data_package = DefaultPackage(
+    data_package = DataPackage(
         granularity, timestamp, trend_names, rows
     )
 
     with closing(conn.cursor()) as cursor:
         data_source = DataSource.from_name("test-source")(cursor)
         entity_type = EntityType.from_name("test_type")(cursor)
-        trend_store = TableTrendStore.create(TableTrendStore.Descriptor(
+        trend_store = TrendStore.create(TrendStore.Descriptor(
             'test-trend-store', data_source, entity_type, granularity, [
                 Trend.Descriptor('c1', datatype.registry['smallint'], ''),
                 Trend.Descriptor('c2', datatype.registry['smallint'], ''),

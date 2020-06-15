@@ -3,17 +3,27 @@ from datetime import datetime
 import unittest
 
 import pytz
+from minerva.storage.trend.datapackage import DataPackageType, DataPackage
 
 from minerva.test import connect, clear_database
 from minerva.directory import DataSource, EntityType
 from minerva.storage.trend.granularity import create_granularity
 from minerva.storage.trend.trend import Trend
 from minerva.storage import datatype
-from minerva.storage.trend.trendstore import TableTrendStore
+from minerva.storage.trend.trendstore import TrendStore
 from minerva.storage.trend.trendstorepart import TrendStorePart
 from minerva.storage.trend.engine import TrendEngine
-from minerva.storage.trend.datapackage import \
-    refined_package_type_for_entity_type
+from minerva.directory.entityref import EntityIdRef
+from minerva.util import k
+
+
+def refined_package_type_for_entity_type(type_name: str) -> DataPackageType:
+    def identifier():
+        return None
+
+    get_entity_type_name = k(type_name)
+
+    return DataPackageType(identifier, EntityIdRef, get_entity_type_name)
 
 
 class TestEngine(unittest.TestCase):
@@ -50,13 +60,13 @@ class TestEngine(unittest.TestCase):
         ]
     
         timestamp = pytz.utc.localize(datetime(2013, 1, 2, 10, 45, 0))
-        granularity = create_granularity("900")
+        granularity = create_granularity("900s")
     
         with closing(self.conn.cursor()) as cursor:
             data_source = DataSource.from_name("test-src009")(cursor)
             entity_type = EntityType.from_name("test-type001")(cursor)
     
-            trend_store = TableTrendStore.create(TableTrendStore.Descriptor(
+            trend_store = TrendStore.create(TrendStore.Descriptor(
                 data_source, entity_type, granularity,
                 [trend_store_part_descr], 86400
             ))(cursor)
@@ -64,9 +74,12 @@ class TestEngine(unittest.TestCase):
             trend_store.partition('test-trend-store', timestamp).create(cursor)
     
             self.conn.commit()
+
+            data_package_type = refined_package_type_for_entity_type('test-type001')
     
             store_cmd = TrendEngine.store_cmd(
-                refined_package_type_for_entity_type('test-type001')(
+                DataPackage(
+                    data_package_type,
                     granularity, timestamp, trend_names, data_rows
                 )
             )
@@ -107,7 +120,7 @@ class TestEngine(unittest.TestCase):
         trend_names = ['x', 'y']
     
         timestamp = pytz.utc.localize(datetime(2013, 1, 2, 10, 45, 0))
-        granularity = create_granularity("900")
+        granularity = create_granularity("900s")
     
         with closing(self.conn.cursor()) as cursor:
             data_source = DataSource.from_name("test-src009")(cursor)
@@ -119,7 +132,7 @@ class TestEngine(unittest.TestCase):
                 )
             ]
     
-            trend_store = TableTrendStore.create(TableTrendStore.Descriptor(
+            trend_store = TrendStore.create(TrendStore.Descriptor(
                 data_source, entity_type, granularity,
                 parts, 86400
             ))(cursor)

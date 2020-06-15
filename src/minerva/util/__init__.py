@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 import datetime
+from typing import Optional, Any, Iterable, Callable, List
+
 from time import sleep
 from operator import itemgetter, attrgetter, eq
 from itertools import repeat, groupby
@@ -314,7 +316,7 @@ def pack_args(fn):
 make_tuple = pack_args(tuple)
 
 
-def if_set(v, f):
+def if_set(v, f: Callable[[Any], Any]):
     """
     If `v` is set (not None) return the result of f(v). Otherwise return None.
     """
@@ -324,21 +326,21 @@ def if_set(v, f):
         return f(v)
 
 
-def lines(sep="\n", lines=""):
+def lines(sep="\n", lines="") -> List[str]:
     """
     Split string on line separators and return list with lines.
     """
     return lines.split(sep)
 
 
-def unlines(lines):
+def unlines(lines: Iterable[str]) -> str:
     """
     Join lines with a newline character in between.
     """
     return "\n".join(lines)
 
 
-def show(value):
+def show(value: Any):
     """Write value to stdout."""
     print(str(value))
 
@@ -347,7 +349,7 @@ def grouped_by(iterable, key):
     return groupby(sorted(iterable, key=key), key)
 
 
-def merge_dicts(x: dict, y: dict):
+def merge_dicts(x: Optional[dict], y: Optional[dict]) -> dict:
     if x is None:
         return y
     elif y is None:

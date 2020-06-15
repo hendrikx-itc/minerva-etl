@@ -4,7 +4,7 @@ from pytz import timezone
 
 from minerva.test import with_conn
 
-from minerva_db import clear_database
+from minerva.test.minerva_db import clear_database
 
 from minerva import directory
 from minerva.directory import existence

@@ -5,6 +5,7 @@ from datetime import datetime
 
 from pytz import timezone
 
+from minerva.db.error import DataTypeMismatch
 from minerva.storage.trend import datapackage
 from minerva.storage.trend.trendstorepart import TrendStorePart
 from minerva.util import first
@@ -13,7 +14,7 @@ from minerva.storage.generic import extract_data_types
 from minerva.directory.datasource import DataSource
 from minerva.directory.entitytype import EntityType
 from minerva.test import connect, clear_database, row_count
-from minerva.storage.trend.trendstore import TableTrendStore
+from minerva.storage.trend.trendstore import TrendStore
 from minerva.storage.trend.granularity import create_granularity
 
 SCHEMA = 'trend'
@@ -48,14 +49,14 @@ class TestStoreTrend(unittest.TestCase):
         curr_timezone = timezone("Europe/Amsterdam")
         data_types = extract_data_types(data_rows)
         timestamp = curr_timezone.localize(datetime(2013, 1, 2, 10, 45, 0))
-        granularity = create_granularity("900")
+        granularity = create_granularity("900s")
         modified = curr_timezone.localize(datetime.now())
 
         with closing(self.conn.cursor()) as cursor:
             data_source = DataSource.from_name("test-src009")(cursor)
             entity_type = EntityType.from_name("test-type001")(cursor)
 
-            trend_store = TableTrendStore.create(TableTrendStore.Descriptor(
+            trend_store = TrendStore.create(TrendStore.Descriptor(
                 data_source, entity_type, granularity, [
                     TrendStorePart.Descriptor('test_store', [])
                 ], 86400
@@ -96,12 +97,12 @@ class TestStoreTrend(unittest.TestCase):
         curr_timezone = timezone("Europe/Amsterdam")
         timestamp = curr_timezone.localize(datetime(2013, 1, 2, 10, 45, 0))
         modified = curr_timezone.localize(datetime.now())
-        granularity = create_granularity("900")
+        granularity = create_granularity('900s')
 
         with closing(self.conn.cursor()) as cursor:
             data_source = DataSource.from_name("test-src010")(cursor)
             entity_type = EntityType.from_name("test-type002")(cursor)
-            trend_store = TableTrendStore.create(TableTrendStore.Descriptor(
+            trend_store = TrendStore.create(TrendStore.Descriptor(
                 data_source, entity_type, granularity, [
                     TrendStorePart.Descriptor('test_store', [])
                 ], 86400
@@ -111,7 +112,7 @@ class TestStoreTrend(unittest.TestCase):
             partition.check_columns_exist(trend_names, data_types)(cursor)
             table = partition.table()
 
-            with self.assertRaises(DataTypeMismatch) as cm:
+            with self.assertRaises(DataTypeMismatch):
                 store_copy_from(
                     self.conn, SCHEMA, table.name, trend_names, timestamp,
                     modified, data_rows
@@ -183,13 +184,13 @@ class TestStoreTrend(unittest.TestCase):
 
         update_data_rows = [(10023, ('10023', '0.9919', '17'))]
         timestamp = curr_timezone.localize(datetime.now())
-        granularity = create_granularity("900")
+        granularity = create_granularity("900s")
 
         with closing(self.conn.cursor()) as cursor:
             data_source = DataSource.from_name("test-src009")(cursor)
             entity_type = EntityType.from_name("test-type001")(cursor)
 
-            trend_store = TableTrendStore.create(TableTrendStore.Descriptor(
+            trend_store = TrendStore.create(TrendStore.Descriptor(
                 data_source, entity_type, granularity, [
                     TrendStorePart.Descriptor('test-store', [])
                 ], 86400
@@ -234,13 +235,13 @@ class TestStoreTrend(unittest.TestCase):
         data_types = extract_data_types(data_rows)
         update_data_rows = [(10023, ("10023", "0.5555", "17"))]
         timestamp = datetime.now()
-        granularity = create_granularity("900")
+        granularity = create_granularity("900s")
 
         with closing(self.conn.cursor()) as cursor:
             data_source = DataSource.from_name("test-src009")(cursor)
             entity_type = EntityType.from_name("test-type001")(cursor)
 
-            trend_store = TableTrendStore.create(TableTrendStore.Descriptor(
+            trend_store = TrendStore.create(TrendStore.Descriptor(
                 data_source, entity_type, granularity, [
                     TrendStorePart.Descriptor('test-store', [])
                 ], 86400
@@ -256,7 +257,7 @@ class TestStoreTrend(unittest.TestCase):
 
         trend_store.store(self.conn, SCHEMA, table.name, trend_names, timestamp, data_rows)
 
-        store(self.conn, SCHEMA, table.name, trend_names, timestamp, update_data_rows)
+        trend_store.store(self.conn, SCHEMA, table.name, trend_names, timestamp, update_data_rows)
         self.conn.commit()
 
         query = table.select([Column("modified"), Column("CCR")])

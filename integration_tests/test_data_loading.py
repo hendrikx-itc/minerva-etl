@@ -13,9 +13,9 @@ from minerva.storage.trend.trendstorepart import TrendStorePart
 from minerva.test import connect, clear_database
 from minerva.directory import EntityType, DataSource
 from minerva.storage.trend.granularity import create_granularity
-from minerva.storage.trend.trendstore import TableTrendStore
+from minerva.storage.trend.trendstore import TrendStore
 from minerva.storage.trend.trend import Trend
-from minerva.storage.trend.datapackage import DefaultPackage
+from minerva.storage.trend.datapackage import DataPackage
 from minerva.storage import datatype
 from minerva.util import merge_dicts
 
@@ -80,7 +80,7 @@ class TestStoreTrend(unittest.TestCase):
             data_source = DataSource.create("test-source", '')(cursor)
             entity_type = EntityType.create("test_type", '')(cursor)
     
-            trend_store = TableTrendStore.create(TableTrendStore.Descriptor(
+            trend_store = TrendStore.create(TrendStore.Descriptor(
                 data_source, entity_type, granularity,
                 [table_trend_store_part_descr], 3600
             ))(cursor)
@@ -89,7 +89,7 @@ class TestStoreTrend(unittest.TestCase):
     
         self.conn.commit()
     
-        data_package = DefaultPackage(
+        data_package = DataPackage(
             granularity,
             timestamp,
             [d['name'] for d in data_descr],
@@ -185,7 +185,7 @@ class TestStoreTrend(unittest.TestCase):
             data_source = DataSource.create("test-source", '')(cursor)
             entity_type = EntityType.create("test_type", '')(cursor)
     
-            trend_store = TableTrendStore.create(TableTrendStore.Descriptor(
+            trend_store = TrendStore.create(TrendStore.Descriptor(
                 data_source, entity_type, granularity,
                 [table_trend_store_part], 3600
             ))(cursor)
@@ -194,7 +194,7 @@ class TestStoreTrend(unittest.TestCase):
     
         self.conn.commit()
     
-        data_package = DefaultPackage(
+        data_package = DataPackage(
             granularity,
             timestamp,
             [d['name'] for d in data_descr],

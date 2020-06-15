@@ -1,6 +1,7 @@
 from contextlib import closing
 from operator import contains
 from functools import partial
+from typing import Callable, Any
 
 from minerva.util import k, identity
 from minerva.directory import EntityType, NoSuchEntityType
@@ -25,7 +26,7 @@ class TrendEngine(Engine):
         return TrendEngine.make_store_cmd(TrendEngine.pass_through)(package, description)
 
     @staticmethod
-    def make_store_cmd(transform_package):
+    def make_store_cmd(transform_package) -> Callable[[DataPackage, str], Callable[[Any], None]]:
         """
         Return a function to bind a data source to the store command.
 

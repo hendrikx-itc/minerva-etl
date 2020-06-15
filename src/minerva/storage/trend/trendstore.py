@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
+from __future__ import annotations
 from contextlib import closing
 from typing import List, Callable, Any
+
+from psycopg2.extensions import cursor
 
 from minerva.db.query import Column, Eq, ands
 
@@ -12,12 +15,16 @@ from minerva.util import string_fns
 
 
 class NoSuchTrendStore(Exception):
-    def __init__(self, data_source, entity_type, granularity):
+    data_source: DataSource
+    entity_type: EntityType
+    granularity: Granularity
+
+    def __init__(self, data_source: DataSource, entity_type: EntityType, granularity: Granularity):
         self.data_source = data_source
         self.entity_type = entity_type
         self.granularity = granularity
 
-    def __str__(self):
+    def __str__(self) -> str:
         return 'No such trend store {}, {}, {}'.format(
             self.data_source.name,
             self.entity_type.name,
@@ -78,7 +85,7 @@ class TrendStore:
         self._trend_part_mapping = None
 
     @staticmethod
-    def create(descriptor: Descriptor):
+    def create(descriptor: Descriptor) -> Callable[[cursor], TrendStore]:
         def f(cursor):
             parts_sql = "ARRAY[{}]::trend_directory.trend_store_part_descr[]".format(
                 ','.join([

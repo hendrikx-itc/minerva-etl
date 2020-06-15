@@ -59,7 +59,7 @@ class Boolean(DataType):
     def __init__(self):
         DataType.__init__(self, 'boolean')
 
-    def string_parser_config(self, config):
+    def string_parser_config(self, config: Optional[dict]) -> dict:
         if config is None:
             return self.default_parser_config
         else:
@@ -96,13 +96,13 @@ class Boolean(DataType):
 
         return parse
 
-    def string_serializer_config(self, config):
+    def string_serializer_config(self, config: Optional[dict]) -> dict:
         if config is not None:
             return merge_dicts(self.default_serializer_config, config)
         else:
             return self.default_serializer_config
 
-    def string_serializer(self, config=None):
+    def string_serializer(self, config: Optional[dict] = None) -> Callable[[Optional[bool]], str]:
         config = self.string_serializer_config(config)
 
         def serialize(value) -> str:
@@ -115,7 +115,7 @@ class Boolean(DataType):
 
         return serialize
 
-    def deduce_parser_config(self, value):
+    def deduce_parser_config(self, value) -> Optional[dict]:
         if not isinstance(value, str):
             return None
         elif value in self.bool_set:
@@ -233,7 +233,7 @@ class Timestamp(DataType):
     def __init__(self):
         DataType.__init__(self, 'timestamp')
 
-    def string_parser_config(self, config: dict=None) -> dict:
+    def string_parser_config(self, config: Optional[dict]=None) -> dict:
         if config is None:
             return self.default_parser_config
         else:
