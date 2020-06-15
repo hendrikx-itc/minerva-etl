@@ -5,6 +5,7 @@ from collections import OrderedDict
 
 import yaml
 
+from minerva.util.tabulate import render_table
 from minerva.harvest.plugins import iter_entry_points, \
     get_plugin as get_harvest_plugin
 
@@ -73,3 +74,26 @@ def ordered_yaml_dump(data, stream=None, Dumper=yaml.Dumper, **kwds):
     OrderedDumper.add_representer(SqlSrc, SqlSrc.representer)
 
     return yaml.dump(data, stream, OrderedDumper, **kwds)
+
+
+def show_rows(column_names, rows, show_cmd=print):
+    column_align = "<" * len(column_names)
+    column_sizes = ["max"] * len(column_names)
+
+    for line in render_table(column_names, column_align, column_sizes, rows):
+        show_cmd(line)
+
+
+def show_rows_from_cursor(cursor, show_cmd=print):
+    """
+    Take the results from a query executed on a cursor and show them in a
+    table with the field names as column names.
+    :param cursor: Psycopg2 cursor where a query has been executed
+    :param show_cmd: function that writes the lines
+    :return:
+    """
+    show_rows(
+        [c.name for c in cursor.description],
+        cursor.fetchall(),
+        show_cmd
+    )

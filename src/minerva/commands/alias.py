@@ -2,7 +2,7 @@ from contextlib import closing
 
 from minerva.db import connect
 from minerva.db.error import translate_postgresql_exceptions, UniqueViolation
-from minerva.util.tabulate import render_table
+from minerva.commands import show_rows_from_cursor
 
 
 def setup_command_parser(subparsers):
@@ -32,7 +32,7 @@ def setup_create_parser(subparsers):
 def create_alias_cmd(args):
     try:
         translate_postgresql_exceptions(create_alias)(args.name)
-    except UniqueViolation as exc:
+    except UniqueViolation:
         print("an alias with the name '{}' already exists".format(args.name))
         return 1
 
@@ -92,19 +92,7 @@ def setup_list_parser(subparsers):
     cmd.set_defaults(cmd=list_aliases_cmd)
 
 
-def show_rows(column_names, rows):
-    column_align = "<" * len(column_names)
-    column_sizes = ["max"] * len(column_names)
-
-    for line in render_table(column_names, column_align, column_sizes, rows):
-        print(line)
-
-
-def show_rows_from_cursor(cursor):
-    show_rows([c.name for c in cursor.description], cursor.fetchall())
-
-
-def list_aliases_cmd(args):
+def list_aliases_cmd(_args):
     query = (
         'SELECT id, name '
         'FROM alias_directory.alias_type'

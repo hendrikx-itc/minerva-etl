@@ -7,8 +7,8 @@ import psycopg2
 import yaml
 
 from minerva.db import connect
-from minerva.util.tabulate import render_table
 from minerva.instance import MinervaInstance, AttributeStore
+from minerva.commands import show_rows_from_cursor, show_rows, ConfigurationError
 
 
 class DuplicateAttributeStore(Exception):
@@ -260,18 +260,6 @@ def setup_show_parser(subparsers):
     cmd.set_defaults(cmd=show_attribute_store_cmd)
 
 
-def show_rows(column_names, rows):
-    column_align = "<" * len(column_names)
-    column_sizes = ["max"] * len(column_names)
-
-    for line in render_table(column_names, column_align, column_sizes, rows):
-        print(line)
-
-
-def show_rows_from_cursor(cursor):
-    show_rows([c.name for c in cursor.description], cursor.fetchall())
-
-
 def show_attribute_store_cmd(args):
     query = (
         'SELECT '
@@ -315,7 +303,7 @@ def setup_list_config_parser(subparsers):
     cmd.set_defaults(cmd=list_config_attribute_stores_cmd)
     
 
-def list_config_attribute_stores_cmd(args):
+def list_config_attribute_stores_cmd(_args):
     instance = MinervaInstance.load()
 
     attribute_stores = instance.load_attribute_stores()
@@ -326,7 +314,7 @@ def list_config_attribute_stores_cmd(args):
         print(f' - {attribute_store}')
 
 
-def list_attribute_stores_cmd(args):
+def list_attribute_stores_cmd(_args):
     query = (
         'SELECT '
         'atts::text as attribute_store, '
@@ -435,6 +423,8 @@ def create_materialization_cmd(args):
         definition = json.load(args.definition)
     elif args.format == 'yaml':
         definition = yaml.load(args.definition, Loader=yaml.SafeLoader)
+    else:
+        raise ConfigurationError(f"Unsupported format '{args.format}'")
 
     materialization = SampledViewMaterialization.from_json(definition)
 
@@ -478,17 +468,17 @@ def list_materializations_cmd(args):
             rows = cursor.fetchall()
 
     if args.name_only:
-        for id, src_view, attribute_store in rows:
+        for id_, src_view, attribute_store in rows:
             print(attribute_store)
     elif args.id_only:
-        for id, src_view, attribute_store in rows:
-            print(id)
+        for id_, src_view, attribute_store in rows:
+            print(id_)
     else:
         show_rows(
             ['id', 'src_view', 'attribute_store'],
             [
-                (id, src_view, attribute_store)
-                for id, src_view, attribute_store in rows
+                (id_, src_view, attribute_store)
+                for id_, src_view, attribute_store in rows
             ]
         )
 
@@ -527,6 +517,8 @@ def run_materialization_cmd(args):
     elif args.name:
         query += "WHERE attribute_store::text = %s"
         query_args = (args.name,)
+    else:
+        query_args = tuple()
 
     with closing(connect()) as conn:
         conn.autocommit = True

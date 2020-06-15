@@ -8,7 +8,7 @@ import dateutil.tz
 
 from minerva.db import connect
 from minerva.trigger.trigger import Trigger
-from minerva.util.tabulate import render_table
+from minerva.commands import show_rows
 
 
 def setup_command_parser(subparsers):
@@ -202,7 +202,7 @@ def timedelta_to_string(t):
     return ' '.join(ret)
 
 
-def list_cmd(args):
+def list_cmd(_args):
     query = 'SELECT id, name, granularity, enabled FROM trigger.rule'
 
     with closing(connect()) as conn:
@@ -216,18 +216,10 @@ def list_cmd(args):
     show_rows(
         ['id', 'name', 'granularity', 'enabled'],
         [
-            (id, name, timedelta_to_string(granularity), enabled)
-            for id, name, granularity, enabled in rows
+            (id_, name, timedelta_to_string(granularity), enabled)
+            for id_, name, granularity, enabled in rows
         ]
     )
-
-
-def show_rows(column_names, rows, show_cmd=print):
-    column_align = "<" * len(column_names)
-    column_sizes = ["max"] * len(column_names)
-
-    for line in render_table(column_names, column_align, column_sizes, rows):
-        show_cmd(line)
 
 
 def setup_create_notifications_parser(subparsers):

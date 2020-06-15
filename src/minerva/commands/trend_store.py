@@ -8,13 +8,13 @@ from typing import BinaryIO, Generator
 import yaml
 import psycopg2
 
-from minerva.commands import LoadHarvestPlugin, ListPlugins, load_json, ConfigurationError
+from minerva.commands import LoadHarvestPlugin, ListPlugins, load_json, \
+    ConfigurationError, show_rows_from_cursor
 from minerva.db import connect
 from minerva.harvest.trend_config_deducer import deduce_config
-from minerva.util.tabulate import render_table
 from minerva.commands.partition import create_partitions_for_trend_store, \
     create_specific_partitions_for_trend_store
-from minerva.instance import TrendStorePart, TrendStore, MinervaInstance
+from minerva.instance import TrendStore, MinervaInstance
 
 
 class DuplicateTrendStore(Exception):
@@ -606,29 +606,6 @@ def setup_show_parser(subparsers):
     )
 
     cmd.set_defaults(cmd=show_trend_store_cmd)
-
-
-def show_rows(column_names, rows, show_cmd=print):
-    column_align = "<" * len(column_names)
-    column_sizes = ["max"] * len(column_names)
-
-    for line in render_table(column_names, column_align, column_sizes, rows):
-        show_cmd(line)
-
-
-def show_rows_from_cursor(cursor, show_cmd=print):
-    """
-    Take the results from a query executed on a cursor and show them in a
-    table with the field names as column names.
-    :param cursor: Psycopg2 cursor where a query has been executed
-    :param show_cmd: function that writes the lines
-    :return:
-    """
-    show_rows(
-        [c.name for c in cursor.description],
-        cursor.fetchall(),
-        show_cmd
-    )
 
 
 def show_trend_store_cmd(args):
