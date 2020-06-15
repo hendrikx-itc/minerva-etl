@@ -152,7 +152,7 @@ class TrendStore:
     @staticmethod
     def from_record(record) -> Callable[[Any], Any]:
         """
-        Return function that can instantiate a TableTrendStore from a
+        Return function that can instantiate a TrendStore from a
         trend_store type record.
         :param record: An iterable that represents a trend_store record
         :return: function that creates and returns TrendStore object

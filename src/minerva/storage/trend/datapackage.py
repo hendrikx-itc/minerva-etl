@@ -88,7 +88,7 @@ class DataPackage:
         value_getters, filtered_trend_descriptors = zip(*[
             (itemgetter(index), trend_descriptor)
             for index, trend_descriptor in enumerate(self.trend_descriptors)
-            if fn(trend_descriptor.trend_name)
+            if fn(trend_descriptor.name)
         ])
 
         return DataPackage(

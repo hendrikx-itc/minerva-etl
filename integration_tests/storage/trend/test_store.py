@@ -16,7 +16,7 @@ from minerva.directory import DataSource, EntityType
 from minerva.storage import datatype
 from minerva.storage.trend.datapackage import \
     refined_package_type_for_entity_type
-from minerva.storage.trend.trendstore import TableTrendStore
+from minerva.storage.trend.trendstore import TrendStore
 from minerva.storage.trend.trend import Trend, NoSuchTrendError
 from minerva.storage.trend.partitioning import Partitioning
 from minerva.storage.trend.granularity import create_granularity
@@ -69,7 +69,7 @@ class TestStore(unittest.TestCase):
             data_source = DataSource.from_name("test-src009")(cursor)
             entity_type = EntityType.from_name("test-type001")(cursor)
 
-            trend_store = TableTrendStore.create(TableTrendStore.Descriptor(
+            trend_store = TrendStore.create(TrendStore.Descriptor(
                 data_source, entity_type, granularity,
                 [trend_store_part_descr], 86400
             ))(cursor)
@@ -118,7 +118,7 @@ class TestStore(unittest.TestCase):
             data_source = DataSource.from_name("test-src010")(cursor)
             entity_type = EntityType.from_name("test-type002")(cursor)
 
-            trend_store = TableTrendStore.create(TableTrendStore.Descriptor(
+            trend_store = TrendStore.create(TrendStore.Descriptor(
                 data_source, entity_type, granularity,
                 [TrendStorePart.Descriptor(
                     'test-trend-store', trend_descriptors
@@ -165,7 +165,7 @@ class TestStore(unittest.TestCase):
             data_source = DataSource.from_name("test-src009")(cursor)
             entity_type = EntityType.from_name("test-type001")(cursor)
 
-            trend_store = TableTrendStore.create(TableTrendStore.Descriptor(
+            trend_store = TrendStore.create(TrendStore.Descriptor(
                 data_source, entity_type, granularity,
                 [TrendStorePart.Descriptor(
                     'test-trend-store', trend_descriptors
@@ -227,8 +227,8 @@ class TestStore(unittest.TestCase):
             data_source = DataSource.from_name("test-src009")(cursor)
             entity_type = EntityType.from_name("test-type001")(cursor)
 
-            trend_store = TableTrendStore.create(
-                TableTrendStore.Descriptor(
+            trend_store = TrendStore.create(
+                TrendStore.Descriptor(
                     data_source, entity_type,
                     granularity, [TrendStorePart.Descriptor(
                         'test-trend-store', trend_descriptors
@@ -297,7 +297,7 @@ class TestStore(unittest.TestCase):
             data_source = DataSource.from_name("test-src009")(cursor)
             entity_type = EntityType.from_name("test-type001")(cursor)
 
-            trend_store = TableTrendStore.create(TableTrendStore.Descriptor(
+            trend_store = TrendStore.create(TrendStore.Descriptor(
                 data_source, entity_type,
                 granularity, [TrendStorePart.Descriptor(
                     'test-trend-store', trend_descriptors
@@ -370,7 +370,7 @@ class TestStore(unittest.TestCase):
             data_source = DataSource.from_name("test-src009")(cursor)
             entity_type = EntityType.from_name("test-type001")(cursor)
 
-            trend_store = TableTrendStore.create(TableTrendStore.Descriptor(
+            trend_store = TrendStore.create(TrendStore.Descriptor(
                 data_source, entity_type, granularity,
                 [TrendStorePart.Descriptor(
                     'test-trend-store', trend_descriptors
@@ -433,7 +433,7 @@ class TestStore(unittest.TestCase):
             data_source = DataSource.from_name("test-src009")(cursor)
             entity_type = EntityType.from_name("test-type001")(cursor)
 
-            trend_store = TableTrendStore.create(TableTrendStore.Descriptor(
+            trend_store = TrendStore.create(TrendStore.Descriptor(
                 data_source, entity_type, granularity,
                 [TrendStorePart.Descriptor(
                     'test-trend-store', trend_descriptors
@@ -485,8 +485,8 @@ class TestStore(unittest.TestCase):
             data_source = DataSource.create("test-source", '')(cursor)
             entity_type = EntityType.create("test_type", '')(cursor)
 
-            create_trend_store = TableTrendStore.create(
-                TableTrendStore.Descriptor(
+            create_trend_store = TrendStore.create(
+                TrendStore.Descriptor(
                     data_source, entity_type, granularity,
                     [TrendStorePart.Descriptor('test-trend-store', [])],
                     partition_size
@@ -495,7 +495,7 @@ class TestStore(unittest.TestCase):
 
             trend_store = create_trend_store(cursor)
 
-        assert isinstance(trend_store, TableTrendStore)
+        assert isinstance(trend_store, TrendStore)
 
         assert trend_store.id is not None
 
@@ -508,7 +508,7 @@ class TestStore(unittest.TestCase):
             data_source = DataSource.create("test-source", '')(cursor)
             entity_type = EntityType.create("test_type", '')(cursor)
 
-            trend_store = TableTrendStore.create(TableTrendStore.Descriptor(
+            trend_store = TrendStore.create(TrendStore.Descriptor(
                 data_source, entity_type, granularity,
                 [TrendStorePart.Descriptor('test-trend-store', [])],
                 partition_size
@@ -532,13 +532,13 @@ class TestStore(unittest.TestCase):
             entity_type = EntityType.create("test_type", '')(cursor)
             granularity = create_granularity('900 seconds')
 
-            TableTrendStore.create(TableTrendStore.Descriptor(
+            TrendStore.create(TrendStore.Descriptor(
                 data_source, entity_type, granularity,
                 [TrendStorePart.Descriptor('test-trend-store', [])],
                 partition_size
             ))(cursor)
 
-            trend_store = TableTrendStore.get(
+            trend_store = TrendStore.get(
                 data_source, entity_type, granularity
             )(cursor)
 
@@ -567,7 +567,7 @@ class TestStore(unittest.TestCase):
             data_source = DataSource.create("test-source", '')(cursor)
             entity_type = EntityType.create("test_type", '')(cursor)
 
-            trend_store = TableTrendStore.create(TableTrendStore.Descriptor(
+            trend_store = TrendStore.create(TrendStore.Descriptor(
                 data_source, entity_type, granularity,
                 [TrendStorePart.Descriptor(
                     'test-trend-store', trend_descriptors
@@ -614,7 +614,7 @@ class TestStore(unittest.TestCase):
             data_source = DataSource.create("test-source", '')(cursor)
             entity_type = EntityType.create("test_type", '')(cursor)
 
-            trend_store = TableTrendStore.create(TableTrendStore.Descriptor(
+            trend_store = TrendStore.create(TrendStore.Descriptor(
                 data_source, entity_type, granularity,
                 [TrendStorePart.Descriptor(
                     'test-trend-store', trend_descriptors
@@ -679,7 +679,7 @@ class TestStore(unittest.TestCase):
             data_source = DataSource.create("test-source", '')(cursor)
             entity_type = EntityType.create("test_type", '')(cursor)
 
-            trend_store = TableTrendStore.create(TableTrendStore.Descriptor(
+            trend_store = TrendStore.create(TrendStore.Descriptor(
                 data_source, entity_type, granularity,
                 [
                     TrendStorePart.Descriptor(
@@ -781,7 +781,7 @@ class TestStore(unittest.TestCase):
             data_source = DataSource.create("test-source", '')(cursor)
             entity_type = EntityType.create("test_type", '')(cursor)
 
-            trend_store = TableTrendStore.create(TableTrendStore.Descriptor(
+            trend_store = TrendStore.create(TrendStore.Descriptor(
                 data_source, entity_type, granularity,
                 [
                     TrendStorePart.Descriptor(
@@ -856,7 +856,7 @@ class TestStore(unittest.TestCase):
             entity_type = EntityType.create("test_type", '')(cursor)
             granularity = create_granularity('900 seconds')
 
-            trend_store = TableTrendStore.create(TableTrendStore.Descriptor(
+            trend_store = TrendStore.create(TrendStore.Descriptor(
                 data_source, entity_type, granularity,
                 [
                     TrendStorePart.Descriptor(
@@ -920,7 +920,7 @@ class TestStore(unittest.TestCase):
             partition_size = 3600
             retention_period = 86400 * 7
 
-            trend_store_descr = TableTrendStore.Descriptor(
+            trend_store_descr = TrendStore.Descriptor(
                 data_set.data_source, data_set.entity_type,
                 data_set.granularity, [
                     TrendStorePart.Descriptor('test-store', [])
@@ -928,9 +928,9 @@ class TestStore(unittest.TestCase):
             )
 
             with closing(self.conn.cursor()) as cursor:
-                trend_store = TableTrendStore.create(trend_store_descr)(cursor)
+                trend_store = TrendStore.create(trend_store_descr)(cursor)
 
-            self.assertIsInstance(trend_store, TableTrendStore)
+            self.assertIsInstance(trend_store, TrendStore)
 
             self.assertIsNotNone(trend_store.id)
 
@@ -938,7 +938,7 @@ class TestStore(unittest.TestCase):
         with with_data_context(self.conn, TestData) as data_set:
             partition_size = 3600
 
-            trend_store_descr = TableTrendStore.Descriptor(
+            trend_store_descr = TrendStore.Descriptor(
                 data_set.data_source, data_set.entity_type,
                 data_set.granularity,
                 [TrendStorePart.Descriptor('test_store', [])],
@@ -946,7 +946,7 @@ class TestStore(unittest.TestCase):
             )
 
             with closing(self.conn.cursor()) as cursor:
-                trend_store = TableTrendStore.create(trend_store_descr)(cursor)
+                trend_store = TrendStore.create(trend_store_descr)(cursor)
 
                 self.assertIsNotNone(trend_store.id)
 
@@ -963,16 +963,16 @@ class TestStore(unittest.TestCase):
             partition_size = 3600
 
             with closing(self.conn.cursor()) as cursor:
-                trend_store_descr = TableTrendStore.Descriptor(
+                trend_store_descr = TrendStore.Descriptor(
                     data_set.data_source, data_set.entity_type,
                     data_set.granularity, [
                         TrendStorePart.Descriptor('test_store', [])
                     ], partition_size
                 )
 
-                TableTrendStore.create(trend_store_descr)(cursor)
+                TrendStore.create(trend_store_descr)(cursor)
 
-                trend_store = TableTrendStore.get(
+                trend_store = TrendStore.get(
                     data_set.data_source, data_set.entity_type,
                     data_set.granularity
                 )(cursor)
@@ -988,14 +988,14 @@ class TestStore(unittest.TestCase):
             partition_size = 86400
 
             with closing(self.conn.cursor()) as cursor:
-                trend_store_descr = TableTrendStore.Descriptor(
+                trend_store_descr = TrendStore.Descriptor(
                     data_set.data_source, data_set.entity_type,
                     data_set.granularity, [
                         TrendStorePart.Descriptor('test_store', [])
                     ], partition_size
                 )
 
-                trend_store = TableTrendStore.create(trend_store_descr)(cursor)
+                trend_store = TrendStore.create(trend_store_descr)(cursor)
 
             self.conn.commit()
 
@@ -1022,7 +1022,7 @@ class TestStore(unittest.TestCase):
         with with_data_context(self.conn, TestData) as dataset:
             partition_size = 86400
 
-            trend_store_descr = TableTrendStore.Descriptor(
+            trend_store_descr = TrendStore.Descriptor(
                 dataset.data_source, dataset.entity_type,
                 dataset.granularity, [
                     TrendStorePart.Descriptor('test_store', [])
@@ -1030,7 +1030,7 @@ class TestStore(unittest.TestCase):
             )
 
             with closing(self.conn.cursor()) as cursor:
-                trend_store = TableTrendStore.create(trend_store_descr)(cursor)
+                trend_store = TrendStore.create(trend_store_descr)(cursor)
 
             self.conn.commit()
 
@@ -1078,7 +1078,7 @@ class TestStore(unittest.TestCase):
                 datetime.datetime(2013, 4, 25, 9, 45)
             )
 
-            trend_store_descr = TableTrendStore.Descriptor(
+            trend_store_descr = TrendStore.Descriptor(
                 dataset.data_source, dataset.entity_type,
                 dataset.granularity, [
                     TrendStorePart.Descriptor('TestStore', [])
@@ -1086,7 +1086,7 @@ class TestStore(unittest.TestCase):
             )
 
             with closing(self.conn.cursor()) as cursor:
-                trend_store = TableTrendStore.create(trend_store_descr)(cursor)
+                trend_store = TrendStore.create(trend_store_descr)(cursor)
                 trend_store.partition('TestStore', timestamp).create(cursor)
 
             self.conn.commit()

@@ -12,6 +12,8 @@ class TestTrendStore(unittest.TestCase):
             data_source=DataSource(1, 'test-source', 'description'),
             entity_type=EntityType(11, 'TestType', 'description'),
             granularity=create_granularity('1 day'),
+            partition_size=86400,
+            retention_period='30 days',
         )
 
         self.assertIsNotNone(trend_store)

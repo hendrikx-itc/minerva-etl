@@ -30,7 +30,7 @@ class TrendEngine(Engine):
         """
         Return a function to bind a data source to the store command.
 
-        :param transform_package: (TableTrendStore) -> (DataPackage)
+        :param transform_package: (TrendStore) -> (DataPackage)
         -> DataPackage
         """
         def cmd(package: DataPackage, description: str):

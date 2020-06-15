@@ -224,7 +224,7 @@ def filter_trend_package(entity_filter, trend_filter, package):
 
         filtered_rows.append(trend_filtered_row)
 
-    return minerva.storage.trend.datapackage.DefaultPackage(
+    return minerva.storage.trend.datapackage.DataPackage(
         package.granularity, package.timestamp, filtered_trend_names,
         filtered_rows
     )
