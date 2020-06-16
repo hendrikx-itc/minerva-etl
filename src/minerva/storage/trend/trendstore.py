@@ -85,7 +85,7 @@ class TrendStore:
         self._trend_part_mapping = None
 
     @staticmethod
-    def create(descriptor: Descriptor) -> Callable[[extensions.cursor], TrendStore]:
+    def create(descriptor: Descriptor) -> Callable[[extensions.cursor], 'TrendStore']:
         def f(cursor):
             args = (
                 descriptor.data_source.name,
@@ -134,7 +134,7 @@ class TrendStore:
         return self
 
     @staticmethod
-    def from_record(record) -> Callable[[extensions.cursor], TrendStore]:
+    def from_record(record) -> Callable[[extensions.cursor], 'TrendStore']:
         """
         Return function that can instantiate a TrendStore from a
         trend_store type record.
