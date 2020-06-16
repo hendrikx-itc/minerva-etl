@@ -3,13 +3,14 @@ from __future__ import annotations
 from datetime import datetime
 from contextlib import closing
 from itertools import chain
-from typing import List, Callable, Any
+from typing import List, Callable, Any, Tuple, Iterable
 
 import psycopg2
 import psycopg2.extras
+from psycopg2.extensions import adapt, register_adapter, AsIs, QuotedString
 
-from minerva.db.util import create_temp_table_from, quote_ident, create_file
-from minerva.storage import datatype
+from minerva.db.util import quote_ident, create_file
+from minerva.storage import datatype, DataPackage
 from minerva.db.query import Table
 from minerva.storage.trend import schema
 from minerva.storage.trend.trend import Trend, NoSuchTrendError
@@ -21,16 +22,26 @@ from minerva.util import compose, zip_apply, first
 LARGE_BATCH_THRESHOLD = 10
 
 
+class PartitionExistsError(Exception):
+    def __init__(self, trend_store_part_id, partition_index):
+        self.trend_store_part_id = trend_store_part_id
+        self.partition_index = partition_index
+
+
 class TrendStorePart:
     id_: int
     name: str
     trends: List[Trend]
 
     class Descriptor:
+        name: str
+        trend_descriptors: List[Trend.Descriptor]
+
         def __init__(
                 self, name: str, trend_descriptors: List[Trend.Descriptor]):
             self.name = name
             self.trend_descriptors = trend_descriptors
+            self.generated_trend_descriptors = list()
 
     def __init__(
             self, id_: int, trend_store, name: str, trends: List[Trend]):
@@ -94,7 +105,7 @@ class TrendStorePart:
     def base_table(self) -> Table:
         return Table("trend", self.base_table_name())
 
-    def get_copy_serializers(self, trend_names: List[str]):
+    def get_copy_serializers(self, trend_names: Iterable[str]):
         trend_by_name = {t.name: t for t in self.trends}
 
         def get_serializer_by_trend_name(name):
@@ -221,11 +232,9 @@ class TrendStorePart:
 
         return f
 
-    def store_copy_from(self, data_package, modified, job):
+    def store_copy_from(self, data_package: DataPackage, modified: datetime, job):
         """
         Store the data using the PostgreSQL specific COPY FROM command
-
-        :param data_package: A DataPackage object
         """
 
         def f(cursor):
@@ -283,28 +292,8 @@ class TrendStorePart:
 
         return f
 
-    def store_update(self, data_package, modified):
-        def f(cursor):
-            table = self.base_table()
-
-            tmp_table = create_temp_table_from(cursor, table)
-
-            self._store_copy_from(tmp_table, data_package, modified)(cursor)
-
-            # Update existing records
-            self._update_existing_from_tmp(
-                tmp_table, table, data_package.trend_names, modified
-            )(cursor)
-
-            # Fill in missing records
-            self._copy_missing_from_tmp(
-                tmp_table, table, data_package.trend_names
-            )(cursor)
-
-        return f
-
     @staticmethod
-    def _update_existing_from_tmp(tmp_table, table, column_names, modified):
+    def _update_existing_from_tmp(tmp_table: Table, table: Table, column_names: List[str], modified: datetime):
         def f(cursor):
             set_columns = ", ".join(
                 '"{0}"={1}."{0}"'.format(name, tmp_table.render())
@@ -328,7 +317,7 @@ class TrendStorePart:
         return f
 
     @staticmethod
-    def _copy_missing_from_tmp(tmp_table, table, column_names):
+    def _copy_missing_from_tmp(tmp_table: Table, table: Table, column_names: List[str]):
         """
         Store the data using the PostgreSQL specific COPY FROM command and a
         temporary table. The temporary table is joined against the target table
@@ -402,8 +391,40 @@ class TrendStorePart:
 
         return f
 
+    def create_partition(self, conn, partition_index):
+        query = (
+            "SELECT p.name, trend_directory.create_partition(p, %s) "
+            "FROM trend_directory.trend_store_part p "
+            "WHERE p.id = %s"
+        )
+        args = (partition_index, self.id)
 
-def create_copy_from_query(table, trend_names):
+        with closing(conn.cursor()) as cursor:
+            try:
+                cursor.execute(query, args)
+            except psycopg2.errors.DuplicateTable:
+                raise PartitionExistsError(self.id, partition_index)
+
+            name, p = cursor.fetchone()
+
+            return name
+
+
+def adapt_trend_store_part(trend_store_part: TrendStorePart.Descriptor):
+    """Return psycopg2 compatible representation of `trend_store_part`."""
+    return AsIs(
+        "({}, {}::trend_directory.trend_descr[], {}::trend_directory.generated_trend_descr[])".format(
+            QuotedString(trend_store_part.name),
+            adapt(trend_store_part.trend_descriptors),
+            adapt(trend_store_part.generated_trend_descriptors),
+        )
+    )
+
+
+register_adapter(TrendStorePart.Descriptor, adapt_trend_store_part)
+
+
+def create_copy_from_query(table: Table, trend_names: List[str]):
     """Return SQL query that can be used in the COPY FROM command."""
     column_names = chain(schema.system_columns, trend_names)
 
@@ -413,7 +434,7 @@ def create_copy_from_query(table, trend_names):
     )
 
 
-def create_insertion_command(table, column_names):
+def create_insertion_command(table: Table, column_names: List[str]):
     """Return insertion query to be performed when copy fails"""
     update_parts = [
         '"{}" = excluded."{}"'.format(column, column)
@@ -433,7 +454,10 @@ def create_insertion_command(table, column_names):
     )
 
 
-def create_copy_from_lines(modified, job, rows, serializers):
+DataPackageRow = Tuple[int, datetime, List[Any]]
+
+
+def create_copy_from_lines(modified: datetime, job: int, rows: List[DataPackageRow], serializers: List):
     map_values = zip_apply(serializers)
 
     return (
@@ -452,7 +476,7 @@ def create_copy_from_lines(modified, job, rows, serializers):
     )
 
 
-def create_value_row(modified, job, row):
+def create_value_row(modified: datetime, job: int, row: DataPackageRow):
     (entity_id, timestamp, values) = row
     return [str(entity_id), timestamp, modified, job] + list(values)
 
@@ -460,7 +484,7 @@ def create_value_row(modified, job, row):
 create_copy_from_file = compose(create_file, create_copy_from_lines)
 
 
-def get_timestamp(cursor):
+def get_timestamp(cursor) -> datetime:
     cursor.execute("SELECT NOW()")
 
     return first(cursor.fetchone())

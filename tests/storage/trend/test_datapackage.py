@@ -6,6 +6,7 @@ import unittest
 
 import pytz
 from minerva.directory.entityref import EntityIdRef
+from minerva.storage import datatype
 
 from minerva.storage.trend.granularity import create_granularity
 from minerva.storage.trend.datapackage import DataPackage, DataPackageType
@@ -27,9 +28,9 @@ class TestDataPackage(unittest.TestCase):
         granularity = create_granularity("900s")
         timestamp = "2013-05-28 12:00:00"
         trends = [
-            Trend.Descriptor('counter_a', 'integer', ''),
-            Trend.Descriptor('counter_b', 'numeric', ''),
-            Trend.Descriptor('counter_c', 'integer', ''),
+            Trend.Descriptor('counter_a', datatype.registry['integer'], ''),
+            Trend.Descriptor('counter_b', datatype.registry['numeric'], ''),
+            Trend.Descriptor('counter_c', datatype.registry['integer'], ''),
         ]
 
         rows = [
@@ -57,9 +58,9 @@ class TestDataPackage(unittest.TestCase):
         timestamp = "2013-05-28 12:00:00"
 
         trends = [
-            Trend.Descriptor('counter_a', 'integer', ''),
-            Trend.Descriptor('counter_b', 'numeric', ''),
-            Trend.Descriptor('counter_c', 'integer', ''),
+            Trend.Descriptor('counter_a', datatype.registry['integer'], ''),
+            Trend.Descriptor('counter_b', datatype.registry['numeric'], ''),
+            Trend.Descriptor('counter_c', datatype.registry['integer'], ''),
         ]
         rows = [
             (
@@ -82,8 +83,8 @@ class TestDataPackage(unittest.TestCase):
         )
 
         trends = [
-            Trend.Descriptor('counter_d', 'integer', ''),
-            Trend.Descriptor('counter_e', 'numeric', '')
+            Trend.Descriptor('counter_d', datatype.registry['integer'], ''),
+            Trend.Descriptor('counter_e', datatype.registry['numeric'], '')
         ]
 
         rows = [
@@ -116,9 +117,9 @@ class TestDataPackage(unittest.TestCase):
         timestamp = pytz.utc.localize(datetime(2015, 2, 25, 10, 0, 0))
 
         trends = [
-            Trend.Descriptor('x', 'integer', ''),
-            Trend.Descriptor('y', 'integer', ''),
-            Trend.Descriptor('z', 'integer', '')
+            Trend.Descriptor('x', datatype.registry['integer'], ''),
+            Trend.Descriptor('y', datatype.registry['integer'], ''),
+            Trend.Descriptor('z', datatype.registry['integer'], '')
         ]
 
         package = DataPackage(
@@ -145,11 +146,11 @@ class TestDataPackage(unittest.TestCase):
         data_package_type = refined_package_type_for_entity_type('Node')
         timestamp = pytz.utc.localize(datetime(2015, 2, 25, 10, 0, 0))
         trends = [
-            Trend.Descriptor('a', 'integer', ''),
-            Trend.Descriptor('b', 'integer', ''),
-            Trend.Descriptor('c', 'integer', ''),
-            Trend.Descriptor('d', 'integer', ''),
-            Trend.Descriptor('e', 'integer', ''),
+            Trend.Descriptor('a', datatype.registry['integer'], ''),
+            Trend.Descriptor('b', datatype.registry['integer'], ''),
+            Trend.Descriptor('c', datatype.registry['integer'], ''),
+            Trend.Descriptor('d', datatype.registry['integer'], ''),
+            Trend.Descriptor('e', datatype.registry['integer'], ''),
         ]
 
         package = DataPackage(

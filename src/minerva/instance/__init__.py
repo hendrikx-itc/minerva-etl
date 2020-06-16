@@ -394,7 +394,7 @@ class MinervaInstance:
         :param attribute_store: attribute store to save
         :return: path of the saved file
         """
-        out_file_path = self.attribute_store_file_path(attribute_store.entity_type)
+        out_file_path = self.attribute_store_file_path(str(attribute_store))
 
         with open(out_file_path, 'w') as out_file:
             ordered_yaml_dump(attribute_store.to_dict(), out_file)

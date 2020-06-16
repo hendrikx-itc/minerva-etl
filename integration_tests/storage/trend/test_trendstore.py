@@ -8,13 +8,13 @@ import pytz
 from minerva.directory import EntityType, DataSource
 from minerva.test import connect, clear_database
 from minerva.storage import datatype
-from minerva.storage.trend.trendstore import TimestampEquals
 from minerva.storage.trend.trendstore import TrendStore, \
     TrendStorePart
 from minerva.storage.trend.trend import Trend
 from minerva.storage.trend.granularity import create_granularity
 from minerva.storage.trend.datapackage import DataPackage, DataPackageType
 from minerva.db.util import get_column_names, table_exists
+from minerva.test.trend import refined_package_type_for_entity_type
 
 
 class TestStoreTrend(unittest.TestCase):
@@ -25,7 +25,7 @@ class TestStoreTrend(unittest.TestCase):
         self.conn.close()
 
     def test_create_trend_store(self):
-        granularity = create_granularity("900")
+        granularity = create_granularity("900s")
         partition_size = 3600
 
         with closing(self.conn.cursor()) as cursor:
@@ -77,7 +77,7 @@ class TestStoreTrend(unittest.TestCase):
         self.assertIn('y', column_names)
 
     def test_create_trend_store_with_children(self):
-        granularity = create_granularity("900")
+        granularity = create_granularity("900s")
         partition_size = 3600
 
         with closing(self.conn.cursor()) as cursor:
@@ -99,17 +99,9 @@ class TestStoreTrend(unittest.TestCase):
 
             part = trend_store.part_by_name['test-trend-store_part1']
 
-            partition = part.partition(timestamp)
-
-            partition.create(cursor)
-
-            self.assertTrue(table_exists(
-                cursor, 'trend_partition', 'test-trend-store_part1_379958'
-            ), 'partition table should exist')
-
     def test_get(self):
-        granularity = create_granularity("900")
-        partition_size = 3600
+        granularity = create_granularity("900s")
+        partition_size = datetime.timedelta(seconds=3600)
 
         with closing(self.conn.cursor()) as cursor:
             data_source = DataSource.create("test-source", '')(cursor)
@@ -143,7 +135,7 @@ class TestStoreTrend(unittest.TestCase):
             self.assertEqual(len(trend_store.parts), 1)
 
     def test_retrieve(self):
-        granularity = create_granularity("900")
+        granularity = create_granularity("900s")
         partition_size = 3600
         timestamp = pytz.utc.localize(datetime.datetime(2015, 1, 10, 12, 0))
 
@@ -168,20 +160,23 @@ class TestStoreTrend(unittest.TestCase):
                 partition_size
             ))(cursor)
 
-            trend_store.partition('test-store', timestamp).create(cursor)
-
         self.conn.commit()
 
-        trend_names = ['counter1', 'counter2']
+        trends = [
+            Trend.Descriptor('counter1', datatype.registry['integer'], ''),
+            Trend.Descriptor('counter2', datatype.registry['text'], ''),
+        ]
         rows = [
-            ('Network=G1,Node=001', ('42', 'foo'))
+            ('Network=G1,Node=001', timestamp, ('42', 'foo'))
         ]
 
-        data_package_type = DataPackageType()
+        data_package_type = refined_package_type_for_entity_type('Node')
 
-        package = DataPackage(granularity, timestamp, trend_names, rows)
+        package = DataPackage(data_package_type, granularity, trends, rows)
 
-        trend_store.store(package)(self.conn)
+        description = 'from-test'
+
+        trend_store.store(package, description)(self.conn)
 
         with closing(self.conn.cursor()) as cursor:
             trend_store.retrieve(['counter1']).execute(cursor)

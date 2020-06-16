@@ -5,14 +5,23 @@ import pytz
 
 from minerva.directory import DataSource, EntityType, Entity
 from minerva.storage import datatype
+from minerva.storage.trend.datapackage import DataPackageType
 from minerva.storage.trend.trendstorepart import TrendStorePart
 from minerva.storage.trend.test import DataSet
 from minerva.storage.trend.granularity import create_granularity
-from minerva.storage.trend.datapackage import \
-    refined_package_type_for_entity_type
 from minerva.storage.trend.trend import Trend
 from minerva.storage.trend.trendstore import TrendStore
-from minerva.storage.trend.trendstore import TrendStore
+from minerva.directory.entityref import EntityIdRef
+from minerva.util import k
+
+
+def refined_package_type_for_entity_type(type_name: str) -> DataPackageType:
+    def identifier():
+        return None
+
+    get_entity_type_name = k(type_name)
+
+    return DataPackageType(identifier, EntityIdRef, get_entity_type_name)
 
 
 class TestSetQtr(DataSet):

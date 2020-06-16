@@ -3,6 +3,9 @@ import unittest
 from contextlib import closing
 from datetime import datetime
 
+from minerva.storage import DataPackage, datatype
+from minerva.storage.trend.trend import Trend
+from minerva.test.trend import refined_package_type_for_entity_type
 from pytz import timezone
 
 from minerva.db.error import DataTypeMismatch
@@ -30,7 +33,12 @@ class TestStoreTrend(unittest.TestCase):
         self.conn.close()
 
     def test_store_copy_from_1(self):
-        trend_names = ['CellID', 'CCR', 'CCRatts', 'Drops']
+        trends = [
+            Trend.Descriptor('CellID', datatype.registry['integer'], ''),
+            Trend.Descriptor('CCR', datatype.registry['numeric'], ''),
+            Trend.Descriptor('CCRatts', datatype.registry['integer'], ''),
+            Trend.Descriptor('Drops', datatype.registry['integer'], ''),
+        ]
 
         data_rows = [
             (10023, ('10023', '0.9919', '2105', '17')),
@@ -61,22 +69,17 @@ class TestStoreTrend(unittest.TestCase):
                     TrendStorePart.Descriptor('test_store', [])
                 ], 86400
             ))(cursor)
-            partition = trend_store.partition('test_store', timestamp)
 
-            table = partition.table()
+            data_package_type = refined_package_type_for_entity_type('Cell')
 
-            partition.create(cursor)
-
-            partition.check_columns_exist(trend_names, data_types)(cursor)
-
-            T = datapackage.refined_package_type_for_entity_type('Cell')
-
-            data_package = T(granularity, timestamp, trend_names, data_rows)
+            data_package = DataPackage(data_package_type, granularity, trends, data_rows)
 
             part = trend_store.part_by_name['test_store']
             part.store_copy_from(data_package, modified)(self.conn)
 
             self.conn.commit()
+
+            table = Table('trend', part.name)
 
             self.assertEqual(row_count(cursor, table), 11)
 
@@ -107,12 +110,11 @@ class TestStoreTrend(unittest.TestCase):
                     TrendStorePart.Descriptor('test_store', [])
                 ], 86400
             ))(cursor)
-            partition = trend_store.partition(timestamp)
-            partition.create(cursor)
-            partition.check_columns_exist(trend_names, data_types)(cursor)
-            table = partition.table()
+
+            table = Table('trend', 'test_store')
 
             with self.assertRaises(DataTypeMismatch):
+                trend_store.parts[0].store_copy_from()
                 store_copy_from(
                     self.conn, SCHEMA, table.name, trend_names, timestamp,
                     modified, data_rows
@@ -195,13 +197,8 @@ class TestStoreTrend(unittest.TestCase):
                     TrendStorePart.Descriptor('test-store', [])
                 ], 86400
             ))(cursor)
-            partition = trend_store.partition('test-store', timestamp)
 
-            table = partition.table()
-
-            partition.create(cursor)
-
-            partition.check_columns_exist(trend_names, data_types)(cursor)
+            table = Table('trend', 'test-store')
 
             trend_store.store(self.conn, SCHEMA, table.name, trend_names, timestamp, data_rows)
             time.sleep(1)
@@ -247,13 +244,7 @@ class TestStoreTrend(unittest.TestCase):
                 ], 86400
             ))(cursor)
 
-            partition = trend_store.partition('test-store', timestamp)
-
-            table = partition.table()
-
-            partition.create(cursor)
-
-            partition.check_columns_exist(trend_names, data_types)(cursor)
+            table = Table('trend', 'test-store')
 
         trend_store.store(self.conn, SCHEMA, table.name, trend_names, timestamp, data_rows)
 

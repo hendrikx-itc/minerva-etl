@@ -1,16 +1,17 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 from contextlib import closing
-from typing import List, Callable, Any
+from datetime import timedelta
+from typing import List, Callable
 
-from psycopg2.extensions import cursor
+from psycopg2 import extensions
 
 from minerva.db.query import Column, Eq, ands
 
 from minerva.storage.trend import schema
 from minerva.directory import DataSource, EntityType
 from minerva.storage.trend.granularity import create_granularity, Granularity
-from minerva.storage.trend.trendstorepart import TrendStorePart
+from minerva.storage.trend.trendstorepart import TrendStorePart, PartitionExistsError
 from minerva.util import string_fns
 
 
@@ -38,20 +39,20 @@ class TrendStore:
         entity_type: EntityType
         granularity: Granularity
         parts: List[TrendStorePart.Descriptor]
-        partition_size: int
+        partition_size: timedelta
 
         def __init__(
                 self, data_source: DataSource, entity_type: EntityType,
                 granularity: Granularity,
                 parts: List[TrendStorePart.Descriptor],
-                partition_size: int):
+                partition_size: timedelta):
             self.data_source = data_source
             self.entity_type = entity_type
             self.granularity = granularity
             self.parts = parts
             self.partition_size = partition_size
 
-    partition_size: int
+    partition_size: timedelta
     parts: List[TrendStorePart]
 
     column_names = [
@@ -73,7 +74,7 @@ class TrendStore:
 
     def __init__(
             self, id_: int, data_source: DataSource, entity_type: EntityType,
-            granularity: Granularity, partition_size: int, retention_period):
+            granularity: Granularity, partition_size: timedelta, retention_period):
         self.id = id_
         self.data_source = data_source
         self.entity_type = entity_type
@@ -85,37 +86,21 @@ class TrendStore:
         self._trend_part_mapping = None
 
     @staticmethod
-    def create(descriptor: Descriptor) -> Callable[[cursor], TrendStore]:
+    def create(descriptor: Descriptor) -> Callable[[extensions.cursor], TrendStore]:
         def f(cursor):
-            parts_sql = "ARRAY[{}]::trend_directory.trend_store_part_descr[]".format(
-                ','.join([
-                    "('{}', {})".format(
-                        part.name,
-                        'ARRAY[{}]::trend_directory.trend_descr[]'.format(
-                            ','.join([
-                                "('{}', '{}', '')".format(
-                                    trend_descriptor.name,
-                                    trend_descriptor.data_type.name,
-                                    ''
-                                )
-                                for trend_descriptor in part.trend_descriptors
-                            ]))
-                    )
-                    for part in descriptor.parts
-                ]))
-
             args = (
                 descriptor.data_source.name,
                 descriptor.entity_type.name,
                 str(descriptor.granularity),
-                descriptor.partition_size
+                f'{descriptor.partition_size}s',
+                descriptor.parts,
             )
 
             query = (
                 "SELECT * FROM trend_directory.create_trend_store("
-                "%s, %s, %s, %s, {parts}"
+                "%s, %s, %s::interval, %s::interval, %s::trend_directory.trend_store_part_descr[]"
                 ")"
-            ).format(parts=parts_sql)
+            )
 
             cursor.execute(query, args)
 
@@ -123,7 +108,7 @@ class TrendStore:
 
         return f
 
-    def load_parts(self, cursor):
+    def load_parts(self, cursor) -> 'TrendStore':
         query = (
             "SELECT id, trend_store_id, name "
             "FROM trend_directory.trend_store_part "
@@ -150,14 +135,14 @@ class TrendStore:
         return self
 
     @staticmethod
-    def from_record(record) -> Callable[[Any], Any]:
+    def from_record(record) -> Callable[[extensions.cursor], TrendStore]:
         """
         Return function that can instantiate a TrendStore from a
         trend_store type record.
         :param record: An iterable that represents a trend_store record
         :return: function that creates and returns TrendStore object
         """
-        def f(cursor):
+        def f(cursor: extensions.cursor) -> TrendStore:
             (
                 trend_store_id, entity_type_id, data_source_id,
                 granularity_str, partition_size, retention_period
@@ -175,8 +160,8 @@ class TrendStore:
         return f
 
     @classmethod
-    def get(cls, data_source, entity_type, granularity):
-        def f(cursor):
+    def get(cls, data_source: DataSource, entity_type: EntityType, granularity: Granularity):
+        def query_db(cursor: extensions.cursor):
             args = data_source.id, entity_type.id, str(granularity)
 
             cls.get_query.execute(cursor, args)
@@ -187,13 +172,16 @@ class TrendStore:
                         cursor.rowcount
                     )
                 )
-            elif cursor.rowcount == 1:
+
+            if cursor.rowcount < 1:
+                return None
+            else:
                 return TrendStore.from_record(cursor.fetchone())(cursor)
 
-        return f
+        return query_db
 
     @classmethod
-    def get_by_id(cls, id_):
+    def get_by_id(cls, id_: int):
         def f(conn):
             args = (id_,)
 
@@ -205,9 +193,9 @@ class TrendStore:
 
         return f
 
-    def save(self, cursor):
+    def save(self, cursor: extensions.cursor) -> 'TrendStore':
         args = (
-            self.data_source.id, self.entity_type.id, self.granularity.name,
+            self.data_source.id, self.entity_type.id, self.granularity,
             self.partition_size, self.id
         )
 
@@ -255,3 +243,21 @@ class TrendStore:
             cursor.execute(query, args)
 
         return f
+
+    def create_partitions_for_timestamp(self, conn, timestamp):
+        query = (
+            "SELECT trend_directory.timestamp_to_index(partition_size, %s) "
+            "FROM trend_directory.trend_store ts "
+            "WHERE ts.id = %s"
+        )
+
+        with conn.cursor() as cursor:
+            cursor.execute(query, (timestamp, self.id))
+
+            partition_index, = cursor.fetchone()
+
+        for part in self.parts:
+            try:
+                part.create_partition(conn, partition_index)
+            except PartitionExistsError:
+                conn.rollback()

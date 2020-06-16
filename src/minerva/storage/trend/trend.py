@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
+from typing import Optional
+
 from minerva.storage import datatype
-from psycopg2.extensions import adapt, register_adapter, ISQLQuote
+from psycopg2.extras import Json
+from psycopg2.extensions import adapt, register_adapter
 
 
 class NoSuchTrendError(Exception):
@@ -12,23 +15,26 @@ class Trend:
         name: str
         data_type: datatype.DataType
         description: str
+        time_aggregation: str
+        entity_aggregation: str
+        extra_data: dict
 
-        def __init__(self, name, data_type, description):
-            """
-
-            :param name: str
-            :param data_type: DataType
-            :param description: str
-            :return: TrendDescriptor
-            """
+        def __init__(self, name: str, data_type: datatype.DataType, description: str, extra_data: Optional[dict]=None):
             self.name = name
             self.data_type = data_type
             self.description = description
+            self.time_aggregation = 'SUM'
+            self.entity_aggregation = 'SUM'
+
+            if extra_data is None:
+                self.extra_data = {}
+            else:
+                self.extra_data = extra_data
 
         def to_dict(self):
             return {
                 'name': self.name,
-                'data_type': self.data_type,
+                'data_type': self.data_type.name,
                 'description': self.description
             }
 
@@ -62,12 +68,20 @@ class Trend:
         return f
 
 
-def adapt_trend_descriptor(trend_descriptor):
-    """Return psycopg2 compatible representation of `attribute`."""
+def adapt_trend_descriptor(trend_descriptor: Trend.Descriptor):
+    """Return psycopg2 compatible representation of `trend_descriptor`."""
+    if trend_descriptor.extra_data is None:
+        extra_data = None
+    else:
+        extra_data = Json(trend_descriptor.extra_data)
+
     return adapt((
         trend_descriptor.name,
         trend_descriptor.data_type.name,
-        trend_descriptor.description
+        trend_descriptor.description,
+        trend_descriptor.time_aggregation,
+        trend_descriptor.entity_aggregation,
+        extra_data,
     ))
 
 

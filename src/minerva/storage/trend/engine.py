@@ -3,8 +3,10 @@ from operator import contains
 from functools import partial
 from typing import Callable, Any
 
+from psycopg2.extensions import connection
+
 from minerva.util import k, identity
-from minerva.directory import EntityType, NoSuchEntityType
+from minerva.directory import EntityType, NoSuchEntityType, DataSource
 from minerva.storage import Engine
 from minerva.storage.trend.trendstore import TrendStore, \
     NoSuchTrendStore
@@ -26,7 +28,7 @@ class TrendEngine(Engine):
         return TrendEngine.make_store_cmd(TrendEngine.pass_through)(package, description)
 
     @staticmethod
-    def make_store_cmd(transform_package) -> Callable[[DataPackage, str], Callable[[Any], None]]:
+    def make_store_cmd(transform_package) -> Callable[[DataPackage, str], Callable[[DataSource], Callable[[connection], None]]]:
         """
         Return a function to bind a data source to the store command.
 
@@ -34,7 +36,7 @@ class TrendEngine(Engine):
         -> DataPackage
         """
         def cmd(package: DataPackage, description: str):
-            def bind_data_source(data_source):
+            def bind_data_source(data_source: DataSource):
                 def execute(conn):
                     trend_store = trend_store_for_package(
                         data_source, package
@@ -70,8 +72,8 @@ class TrendEngine(Engine):
         return f
 
 
-def trend_store_for_package(data_source, package: DataPackage):
-    def f(conn):
+def trend_store_for_package(data_source: DataSource, package: DataPackage):
+    def f(conn) -> TrendStore:
         entity_type_name = package.entity_type_name()
 
         with closing(conn.cursor()) as cursor:
