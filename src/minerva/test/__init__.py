@@ -45,6 +45,10 @@ def with_conn(*setup_functions):
 def clear_database(conn):
     with conn.cursor() as cursor:
         cursor.execute("DELETE FROM trend_directory.table_trend CASCADE")
+        cursor.execute(
+            "SELECT trend_directory.delete_trend_store(id) "
+            "FROM trend_directory.trend_store"
+        )
         cursor.execute("DELETE FROM trend_directory.trend_store CASCADE")
         cursor.execute("DELETE FROM directory.data_source CASCADE")
         remove_entity_types(conn)
@@ -61,10 +65,16 @@ def remove_entity_types(conn):
         names = [name for name, in cursor.fetchall()]
 
         for name in names:
-            cursor.execute('DROP FUNCTION entity."{}"'.format(f'get_{name}'))
-            cursor.execute('DROP FUNCTION entity."{}"'.format(f'create_{name}'))
-            cursor.execute('DROP FUNCTION entity."{}"'.format(f'to_{name}'))
-            print(name)
+            cursor.execute(
+                'DROP FUNCTION IF EXISTS entity."{}"'.format(f'get_{name}')
+            )
+            cursor.execute(
+                'DROP FUNCTION IF EXISTS entity."{}"'.format(f'create_{name}')
+            )
+            cursor.execute(
+                'DROP FUNCTION IF EXISTS entity."{}"'.format(f'to_{name}')
+            )
+
 
 @contextmanager
 def with_data_context(conn, test_set):

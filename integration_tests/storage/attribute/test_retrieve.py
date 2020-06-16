@@ -39,6 +39,9 @@ class TestRetrieve(unittest.TestCase):
             entity_type = EntityType.from_name("UtranCell")(cursor)
             data_source = DataSource.from_name("integration-test")(cursor)
 
+            print(entity_type.id)
+            print(data_source.id)
+
             data_types = [
                 datatype.registry[name]
                 for name in ["text", "real", "smallint"]

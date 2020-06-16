@@ -9,7 +9,6 @@ from minerva.test.trend import refined_package_type_for_entity_type
 from pytz import timezone
 
 from minerva.db.error import DataTypeMismatch
-from minerva.storage.trend import datapackage
 from minerva.storage.trend.trendstorepart import TrendStorePart
 from minerva.util import first
 from minerva.db.query import Table, Column, Call, Eq
@@ -130,62 +129,23 @@ class TestStoreTrend(unittest.TestCase):
 
             self.assertEqual(max_modified, modified)
 
-    def test_store_using_tmp(self):
-        table = Table(SCHEMA, 'storage_tmp_test_table')
-        trend_names = ['CellID', 'CCR', 'RadioFail', 'RFOldHo', 'AbisFailCall']
-
-        data_rows = [
-            (10023, ('10023', '0.9919', '10', '3', '3')),
-            (10047, ('10047', '0.9963', '11', '5', '0')),
-            (10048, ('10048', '0.9935', '12', '3', '0')),
-            (10049, ('10049', '0.9939', '20', '3', '4')),
-            (10050, ('10050', '0.9940', '18', '3', '0')),
-            (10051, ('10051', '0.9944', '17', '2', '2')),
-            (10052, ('10052', '0.9889', '18', '2', '0')),
-            (10053, ('10053', '0.9920', '15', '3', '1')),
-            (10023, ('10023', '0.9931', '9', '0', '1')),
-            (10085, ('10085', '0.9987', '3', '0', '0')),
-            (10086, ('10086', '0.9972', '3', '2', '0'))
-        ]
-
-        data_types = extract_data_types(data_rows)
-
-        with closing(self.conn.cursor()) as cursor:
-            table.drop().if_exists().execute(cursor)
-
-            create_trend_table(
-                self.conn, SCHEMA, table.name, trend_names, data_types
-            )
-            curr_timezone = timezone("Europe/Amsterdam")
-            timestamp = curr_timezone.localize(datetime(2013, 1, 2, 10, 45, 0))
-            modified = curr_timezone.localize(datetime.now())
-            store_using_tmp(
-                self.conn, SCHEMA, table.name, trend_names, timestamp,
-                modified, data_rows
-            )
-
-            self.conn.commit()
-
-            self.assertEqual(row_count(cursor, table), 10)
-
-            table.select(Call("max", Column("modified"))).execute(cursor)
-
-            max_modified = first(cursor.fetchone())
-
-            self.assertEqual(max_modified, modified)
-
     def test_update_modified_column(self):
         curr_timezone = timezone("Europe/Amsterdam")
 
-        trend_names = ['CellID', 'CCR', 'Drops']
-        data_rows = [
-            (10023, ('10023', '0.9919', '17')),
-            (10047, ('10047', '0.9963', '18'))
+        trends = [
+            Trend.Descriptor('CellID', datatype.registry['integer'], ''),
+            Trend.Descriptor('CCR', datatype.registry['numeric'], ''),
+            Trend.Descriptor('DROPS', datatype.registry['integer'], ''),
         ]
-        data_types = extract_data_types(data_rows)
 
-        update_data_rows = [(10023, ('10023', '0.9919', '17'))]
         timestamp = curr_timezone.localize(datetime.now())
+
+        data_rows = [
+            (10023, timestamp, ('10023', '0.9919', '17')),
+            (10047, timestamp, ('10047', '0.9963', '18'))
+        ]
+
+        update_data_rows = [(10023, timestamp, ('10023', '0.9919', '17'))]
         granularity = create_granularity("900s")
 
         with closing(self.conn.cursor()) as cursor:
@@ -200,9 +160,19 @@ class TestStoreTrend(unittest.TestCase):
 
             table = Table('trend', 'test-store')
 
-            trend_store.store(self.conn, SCHEMA, table.name, trend_names, timestamp, data_rows)
+            data_package_type = refined_package_type_for_entity_type('Node')
+            data_package = DataPackage(
+                data_package_type, granularity, trends, data_rows
+            )
+
+            description = 'from-test'
+
+            trend_store.store(data_package, description)(self.conn)
             time.sleep(1)
-            trend_store.store(self.conn, SCHEMA, table.name, trend_names, timestamp, update_data_rows)
+            data_package = DataPackage(
+                data_package_type, granularity, trends, update_data_rows
+            )
+            trend_store.store(data_package, description)(self.conn)
             self.conn.commit()
 
             query = table.select([Column("modified")])
