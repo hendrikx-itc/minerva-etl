@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-from __future__ import annotations
 from contextlib import closing
 from datetime import timedelta
 from typing import List, Callable
