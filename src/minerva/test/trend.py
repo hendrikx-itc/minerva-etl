@@ -11,7 +11,7 @@ from minerva.storage.trend.test import DataSet
 from minerva.storage.trend.granularity import create_granularity
 from minerva.storage.trend.trend import Trend
 from minerva.storage.trend.trendstore import TrendStore
-from minerva.directory.entityref import EntityIdRef
+from minerva.directory.entityref import EntityIdRef, EntityRef, entity_name_ref_class
 from minerva.util import k
 
 
@@ -21,7 +21,11 @@ def refined_package_type_for_entity_type(type_name: str) -> DataPackageType:
 
     get_entity_type_name = k(type_name)
 
-    return DataPackageType(identifier, EntityIdRef, get_entity_type_name)
+    return DataPackageType(
+        identifier,
+        entity_name_ref_class(type_name),
+        get_entity_type_name
+    )
 
 
 class TestSetQtr(DataSet):

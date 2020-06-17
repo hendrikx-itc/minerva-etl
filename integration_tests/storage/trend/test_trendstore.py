@@ -12,9 +12,7 @@ from minerva.storage.trend.trendstore import TrendStore, \
     TrendStorePart
 from minerva.storage.trend.trend import Trend
 from minerva.storage.trend.granularity import create_granularity
-from minerva.storage.trend.datapackage import DataPackage, DataPackageType
-from minerva.db.util import get_column_names, table_exists
-from minerva.test.trend import refined_package_type_for_entity_type
+from minerva.db.util import get_column_names
 
 
 class TestStoreTrend(unittest.TestCase):
@@ -26,7 +24,7 @@ class TestStoreTrend(unittest.TestCase):
 
     def test_create_trend_store(self):
         granularity = create_granularity("900s")
-        partition_size = 3600
+        partition_size = datetime.timedelta(seconds=3600)
 
         with closing(self.conn.cursor()) as cursor:
             data_source = DataSource.create("test-source", '')(cursor)
@@ -42,7 +40,7 @@ class TestStoreTrend(unittest.TestCase):
 
     def test_create_trend_store_with_trends(self):
         granularity = create_granularity("900s")
-        partition_size = 3600
+        partition_size = datetime.timedelta(seconds=3600)
 
         with closing(self.conn.cursor()) as cursor:
             data_source = DataSource.create("test-source", '')(cursor)
@@ -78,7 +76,7 @@ class TestStoreTrend(unittest.TestCase):
 
     def test_create_trend_store_with_children(self):
         granularity = create_granularity("900s")
-        partition_size = 3600
+        partition_size = datetime.timedelta(seconds=3600)
 
         with closing(self.conn.cursor()) as cursor:
             data_source = DataSource.create("test-source", '')(cursor)
@@ -133,74 +131,3 @@ class TestStoreTrend(unittest.TestCase):
             assert trend_store.id is not None, "trend_store.id is None"
 
             self.assertEqual(len(trend_store.parts), 1)
-
-    def test_retrieve(self):
-        granularity = create_granularity("900s")
-        partition_size = 3600
-        timestamp = pytz.utc.localize(datetime.datetime(2015, 1, 10, 12, 0))
-
-        with closing(self.conn.cursor()) as cursor:
-            data_source = DataSource.create("test-source", '')(cursor)
-            entity_type = EntityType.create("test_type", '')(cursor)
-
-            parts = [
-                TrendStorePart.Descriptor('test-store', [
-                    Trend.Descriptor(
-                        'counter1', datatype.registry['integer'], ''
-                    ),
-                    Trend.Descriptor(
-                        'counter2', datatype.registry['text'], ''
-                    )
-                ])
-            ]
-
-            trend_store = TrendStore.create(TrendStore.Descriptor(
-                data_source, entity_type, granularity,
-                parts,
-                partition_size
-            ))(cursor)
-
-        self.conn.commit()
-
-        trends = [
-            Trend.Descriptor('counter1', datatype.registry['integer'], ''),
-            Trend.Descriptor('counter2', datatype.registry['text'], ''),
-        ]
-        rows = [
-            ('Network=G1,Node=001', timestamp, ('42', 'foo'))
-        ]
-
-        data_package_type = refined_package_type_for_entity_type('Node')
-
-        package = DataPackage(data_package_type, granularity, trends, rows)
-
-        description = 'from-test'
-
-        trend_store.store(package, description)(self.conn)
-
-        with closing(self.conn.cursor()) as cursor:
-            trend_store.retrieve(['counter1']).execute(cursor)
-
-            rows = cursor.fetchall()
-
-        self.assertEqual(len(rows), 1)
-
-        with closing(self.conn.cursor()) as cursor:
-            trend_store.retrieve(['counter1']).timestamp(
-                TimestampEquals(timestamp)
-            ).execute(cursor)
-
-            rows = cursor.fetchall()
-
-        self.assertEqual(len(rows), 1)
-
-        with closing(self.conn.cursor()) as cursor:
-            trend_store.retrieve(['counter1']).timestamp(
-                TimestampEquals(
-                    pytz.utc.localize(datetime.datetime(2015, 1, 10, 13, 0))
-                )
-            ).execute(cursor)
-
-            rows = cursor.fetchall()
-
-        self.assertEqual(len(rows), 0)

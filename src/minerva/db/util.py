@@ -2,6 +2,7 @@
 from functools import partial
 from contextlib import closing
 from io import StringIO
+from typing import Iterable
 
 from minerva.util.tabulate import render_table
 from minerva.db.query import Table
@@ -39,7 +40,7 @@ def create_copy_from_lines(tuples, formats):
     )
 
 
-def create_file(lines):
+def create_file(lines: Iterable[str]):
     copy_from_file = StringIO()
 
     copy_from_file.writelines(lines)

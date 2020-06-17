@@ -1,7 +1,10 @@
 # -*- coding: utf-8 -*-
+from typing import Callable
+
 from minerva.error import ConfigurationError
 
 import psycopg2.extras
+import psycopg2.extensions
 
 
 def connect_logging(logger, **kwargs):
@@ -30,3 +33,6 @@ def connect(**kwargs):
     except psycopg2.OperationalError as exc:
         raise ConfigurationError(exc)
 
+
+CursorDbAction = Callable[[psycopg2.extensions.cursor], None]
+ConnDbAction = Callable[[psycopg2.extensions.connection], None]

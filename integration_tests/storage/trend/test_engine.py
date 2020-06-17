@@ -33,45 +33,47 @@ class TestEngine(unittest.TestCase):
             'test-trend-store', trend_descriptors
         )
 
-        trend_names = [t.name for t in trend_descriptors]
-    
+        timestamp = pytz.utc.localize(datetime(2013, 1, 2, 10, 45, 0))
+
         data_rows = [
-            (10023, (10023, 2105)),
-            (10047, (10047, 4906)),
-            (10048, (10048, 2448)),
-            (10049, (10049, 5271)),
-            (10050, (10050, 3693)),
-            (10051, (10051, 3753)),
-            (10052, (10052, 2168)),
-            (10053, (10053, 2372)),
-            (10085, (10085, 2282)),
-            (10086, (10086, 1763)),
-            (10087, (10087, 1453))
+            (10023, timestamp, (10023, 2105)),
+            (10047, timestamp, (10047, 4906)),
+            (10048, timestamp, (10048, 2448)),
+            (10049, timestamp, (10049, 5271)),
+            (10050, timestamp, (10050, 3693)),
+            (10051, timestamp, (10051, 3753)),
+            (10052, timestamp, (10052, 2168)),
+            (10053, timestamp, (10053, 2372)),
+            (10085, timestamp, (10085, 2282)),
+            (10086, timestamp, (10086, 1763)),
+            (10087, timestamp, (10087, 1453))
         ]
     
-        timestamp = pytz.utc.localize(datetime(2013, 1, 2, 10, 45, 0))
         granularity = create_granularity("900s")
-    
-        with closing(self.conn.cursor()) as cursor:
+        partition_size = timedelta(seconds=86400)
+        entity_type_name = "test-type001"
+
+        with self.conn.cursor() as cursor:
             data_source = DataSource.from_name("test-src009")(cursor)
-            entity_type = EntityType.from_name("test-type001")(cursor)
-    
+            entity_type = EntityType.from_name(entity_type_name)(cursor)
+
             trend_store = TrendStore.create(TrendStore.Descriptor(
                 data_source, entity_type, granularity,
-                [trend_store_part_descr], 86400
+                [trend_store_part_descr], partition_size
             ))(cursor)
-    
-            trend_store.partition('test-trend-store', timestamp).create(cursor)
-    
+
+            trend_store.create_partitions_for_timestamp(self.conn, timestamp)
+
             self.conn.commit()
 
-            data_package_type = refined_package_type_for_entity_type('test-type001')
+            data_package_type = refined_package_type_for_entity_type(entity_type_name)
     
             store_cmd = TrendEngine.store_cmd(
                 DataPackage(
                     data_package_type,
-                    granularity, timestamp, trend_names, data_rows
-                )
+                    granularity, trend_descriptors, data_rows
+                ),
+                {'job': 'test-job'}
             )
     
             store_cmd(data_source)(self.conn)
@@ -139,7 +141,7 @@ class TestEngine(unittest.TestCase):
 
             store_cmd = TrendEngine.make_store_cmd(
                 TrendEngine.filter_existing_trends
-            )(data_package, 'test-job')
+            )(data_package, {'job': 'test-job'})
     
             store_cmd(data_source)(self.conn)
     

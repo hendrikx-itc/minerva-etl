@@ -23,7 +23,7 @@ class Engine:
     code from the database-unaware logic.
     """
     @staticmethod
-    def store_cmd(package: DataPackage) -> StoreCmd:
+    def store_cmd(package: DataPackage, description: dict) -> StoreCmd:
         """
         Return a StoreCmd-like object.
 

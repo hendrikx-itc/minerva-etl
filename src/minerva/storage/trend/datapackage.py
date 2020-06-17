@@ -121,14 +121,14 @@ class DataPackage:
         )
 
         for key, group in grouped_value_getters:
-            keys, value_getters, trend_names = zip(*list(group))
+            keys, value_getters, trend_descriptors = zip(*list(group))
 
             yield (
                 key,
                 DataPackage(
                     self.data_package_type,
                     self.granularity,
-                    trend_names,
+                    trend_descriptors,
                     [
                         (entity_ref, timestamp, tuple(g(values) for g in value_getters))
                         for entity_ref, timestamp, values in self.rows

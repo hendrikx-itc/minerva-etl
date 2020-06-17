@@ -43,54 +43,57 @@ class TestStore(unittest.TestCase):
             'test-trend-store', trend_descriptors
         )
 
-        trend_names = [t.name for t in trend_descriptors]
+        timestamp = pytz.utc.localize(datetime.datetime(2013, 1, 2, 10, 45, 0))
 
         data_rows = [
-            (10023, (10023, 0.9919, 2105, 17)),
-            (10047, (10047, 0.9963, 4906, 18)),
-            (10048, (10048, 0.9935, 2448, 16)),
-            (10049, (10049, 0.9939, 5271, 32)),
-            (10050, (10050, 0.9940, 3693, 22)),
-            (10051, (10051, 0.9944, 3753, 21)),
-            (10052, (10052, 0.9889, 2168, 24)),
-            (10053, (10053, 0.9920, 2372, 19)),
-            (10085, (10085, 0.9987, 2282, 3)),
-            (10086, (10086, 0.9972, 1763, 5)),
-            (10087, (10087, 0.9931, 1453, 10))
+            (10023, timestamp, (10023, 0.9919, 2105, 17)),
+            (10047, timestamp, (10047, 0.9963, 4906, 18)),
+            (10048, timestamp, (10048, 0.9935, 2448, 16)),
+            (10049, timestamp, (10049, 0.9939, 5271, 32)),
+            (10050, timestamp, (10050, 0.9940, 3693, 22)),
+            (10051, timestamp, (10051, 0.9944, 3753, 21)),
+            (10052, timestamp, (10052, 0.9889, 2168, 24)),
+            (10053, timestamp, (10053, 0.9920, 2372, 19)),
+            (10085, timestamp, (10085, 0.9987, 2282, 3)),
+            (10086, timestamp, (10086, 0.9972, 1763, 5)),
+            (10087, timestamp, (10087, 0.9931, 1453, 10))
         ]
 
-        timestamp = pytz.utc.localize(datetime.datetime(2013, 1, 2, 10, 45, 0))
+        partition_size = timedelta(seconds=86400)
         granularity = create_granularity("900s")
         modified = pytz.utc.localize(datetime.datetime.now())
+        entity_type_name = "test-type001"
 
-        data_package_type = refined_package_type_for_entity_type('Node')
+        data_package_type = refined_package_type_for_entity_type(entity_type_name)
 
         data_package = DataPackage(data_package_type, granularity, trend_descriptors, data_rows)
 
-        job = 'test-job'
-
         with closing(self.conn.cursor()) as cursor:
             data_source = DataSource.from_name("test-src009")(cursor)
-            entity_type = EntityType.from_name("test-type001")(cursor)
+            entity_type = EntityType.from_name(entity_type_name)(cursor)
 
             trend_store = TrendStore.create(TrendStore.Descriptor(
                 data_source, entity_type, granularity,
-                [trend_store_part_descr], 86400
+                [trend_store_part_descr], partition_size
             ))(cursor)
+
+            trend_store.create_partitions_for_timestamp(self.conn, timestamp)
 
             table = Table('trend', trend_store_part_descr.name)
 
             trend_store_part = trend_store.parts[0]
 
-            trend_store_part.store_copy_from(data_package, modified, job)(cursor)
+            job_id = 42
+
+            trend_store_part.store_copy_from(data_package, modified, job_id)(cursor)
 
             self.assertEqual(row_count(cursor, table), 11)
 
-            table.select(Call("max", Column("modified"))).execute(cursor)
+            table.select(Call("max", Column("job_id"))).execute(cursor)
 
-            max_modified, = cursor.fetchone()
+            max_job_id, = cursor.fetchone()
 
-            self.assertEqual(max_modified, modified)
+            self.assertEqual(max_job_id, job_id)
 
     def test_store_copy_from_2(self):
         trend_descriptors = [
@@ -105,167 +108,37 @@ class TestStore(unittest.TestCase):
             ),
         ]
 
-        trend_names = [t.name for t in trend_descriptors]
-
-        data_rows = [
-            (10023, (0.9919, 2105, 17))
-        ]
-
-        timestamp = pytz.utc.localize(datetime.datetime(2013, 1, 2, 10, 45, 0))
-        modified = pytz.utc.localize(datetime.datetime.now())
-        granularity = create_granularity("900")
-
-        with closing(self.conn.cursor()) as cursor:
-            data_source = DataSource.from_name("test-src010")(cursor)
-            entity_type = EntityType.from_name("test-type002")(cursor)
-
-            trend_store = TrendStore.create(TrendStore.Descriptor(
-                data_source, entity_type, granularity,
-                [TrendStorePart.Descriptor(
-                    'test-trend-store', trend_descriptors
-                )], 86400
-            ))(cursor)
-            partition = trend_store.partition(timestamp)
-            partition.create(cursor)
-
-            with self.assertRaises(DataTypeMismatch) as cm:
-                trend_store.store_copy_from(
-                    refined_package_type_for_entity_type('Node')(
-                        granularity, timestamp, trend_names, data_rows
-                    ),
-                    modified
-                )(cursor)
-
-    def test_store_using_tmp(self):
-        granularity = create_granularity(900)
-
-        trend_descriptors = [
-            Trend.Descriptor('CellID', datatype.registry['smallint'], ''),
-            Trend.Descriptor('CCR', datatype.registry['double precision'], ''),
-            Trend.Descriptor('RadioFail', datatype.registry['smallint'], ''),
-            Trend.Descriptor('RFOldHo', datatype.registry['smallint'], ''),
-            Trend.Descriptor('AbisFailCall', datatype.registry['smallint'], ''),
-        ]
-
-        trend_names = [t.name for t in trend_descriptors]
-
         timestamp = pytz.utc.localize(datetime.datetime(2013, 1, 2, 10, 45, 0))
 
         data_rows = [
-            (10023, timestamp, (10023, 0.9919, 10, 3, 3)),
-            (10047, timestamp, (10047, 0.9963, 11, 5, 0)),
-            (10048, timestamp, (10048, 0.9935, 12, 3, 0)),
-            (10049, timestamp, (10049, 0.9939, 20, 3, 4)),
-            (10050, timestamp, (10050, 0.9940, 18, 3, 0)),
-            (10051, timestamp, (10051, 0.9944, 17, 2, 2)),
-            (10052, timestamp, (10052, 0.9889, 18, 2, 0)),
-            (10053, timestamp, (10053, 0.9920, 15, 3, 1)),
-            (10085, timestamp, (10085, 0.9987, 3, 0, 0)),
-            (10086, timestamp, (10086, 0.9972, 3, 2, 0))
+            (10023, timestamp, (0.9919, 2105, 17))
         ]
 
-        with closing(self.conn.cursor()) as cursor:
-            data_source = DataSource.from_name("test-src009")(cursor)
-            entity_type = EntityType.from_name("test-type001")(cursor)
-
-            trend_store = TrendStore.create(TrendStore.Descriptor(
-                data_source, entity_type, granularity,
-                [TrendStorePart.Descriptor(
-                    'test-trend-store', trend_descriptors
-                )], 86400
-            ))(cursor)
-
-            self.conn.commit()
-
-            table = Table('trend', 'test-trend-store')
-
-            modified = pytz.utc.localize(datetime.datetime.now())
-
-            trend_store.store_update(
-                refined_package_type_for_entity_type('Node')(
-                    granularity, timestamp, trend_names, data_rows
-                ),
-                modified
-            )(cursor)
-
-            self.conn.commit()
-
-            self.assertEqual(row_count(cursor, table), 10)
-
-            table.select(Call("max", Column("modified"))).execute(cursor)
-
-            max_modified, = cursor.fetchone()
-
-            self.assertEqual(max_modified, modified)
-
-    def test_store_insert_rows(self):
         granularity = create_granularity("900s")
+        partition_size = timedelta(seconds=86400)
+        entity_type_name = "test-type002"
 
-        trend_descriptors = [
-            Trend.Descriptor('CellID', datatype.registry['smallint'], ''),
-            Trend.Descriptor('CCR', datatype.registry['double precision'], ''),
-            Trend.Descriptor('Drops', datatype.registry['smallint'], ''),
-        ]
+        data_package_type = refined_package_type_for_entity_type(entity_type_name)
+        data_package = DataPackage(
+            data_package_type, granularity, trend_descriptors, data_rows
+        )
 
-        trend_names = [t.name for t in trend_descriptors]
+        with self.conn.cursor() as cursor:
+            data_source = DataSource.from_name("test-src010")(cursor)
+            entity_type = EntityType.from_name(entity_type_name)(cursor)
 
-        data_rows = [
-            (10023, (10023, 0.9919, 17)),
-            (10047, (10047, 0.9963, 18))
-        ]
+            trend_store = TrendStore.create(TrendStore.Descriptor(
+                data_source, entity_type, granularity,
+                [TrendStorePart.Descriptor(
+                    'test-trend-store', trend_descriptors
+                )], partition_size
+            ))(cursor)
 
-        modified = pytz.utc.localize(datetime.datetime.now())
-        time1 = pytz.utc.localize(datetime.datetime(2013, 1, 2, 10, 45, 0))
-        time2 = time1 - timedelta(days=1)
+        trend_store.create_partitions_for_timestamp(self.conn, timestamp)
+        self.conn.commit()
 
-        with closing(self.conn.cursor()) as cursor:
-            data_source = DataSource.from_name("test-src009")(cursor)
-            entity_type = EntityType.from_name("test-type001")(cursor)
-
-            trend_store = TrendStore.create(
-                TrendStore.Descriptor(
-                    data_source, entity_type,
-                    granularity, [TrendStorePart.Descriptor(
-                        'test-trend-store', trend_descriptors
-                    )], 86400 * 7
-                )
-            )(cursor)
-
-            partition = trend_store.partition(time1)
-
-            table = partition.table()
-
-            table.drop().if_exists().execute(cursor)
-
-            partition.create(cursor)
-
-            trend_store.store_batch_insert(
-                refined_package_type_for_entity_type('Node')(
-                    granularity, time1, trend_names, data_rows
-                ), modified
-            )(cursor)
-            self.conn.commit()
-
-            self.assertEqual(row_count(cursor, table), 2)
-
-            trend_store.store_batch_insert(
-                refined_package_type_for_entity_type('Node')(
-                    granularity, time2, trend_names, data_rows
-                ), modified
-            )(cursor)
-            self.conn.commit()
-
-            self.assertEqual(row_count(cursor, table), 4)
-
-            self.conn.commit()
-
-            self.assertEqual(row_count(cursor, table), 4)
-
-            table.select(Call("max", Column("modified"))).execute(cursor)
-
-            max_modified, = cursor.fetchone()
-
-            self.assertEqual(max_modified, modified)
+        with self.assertRaises(DataTypeMismatch) as cm:
+            trend_store.store(data_package, {'job': 'test-job'})(self.conn)
 
     def test_update_modified_column(self):
         trend_descriptors = [
@@ -274,71 +147,74 @@ class TestStore(unittest.TestCase):
             Trend.Descriptor('Drops', datatype.registry['smallint'], ''),
         ]
 
-        trend_names = [t.name for t in trend_descriptors]
+        timestamp = pytz.utc.localize(datetime.datetime.now())
 
         data_rows = [
-            (10023, (10023, 0.9919, 17)),
-            (10047, (10047, 0.9963, 18))
+            (10023, timestamp, (10023, 0.9919, 17)),
+            (10047, timestamp, (10047, 0.9963, 18))
         ]
 
         update_data_rows = [
-            (10023, (10023, 0.9919, 17))
+            (10023, timestamp, (10023, 0.9919, 17))
         ]
 
-        timestamp = pytz.utc.localize(datetime.datetime.now())
-        granularity = create_granularity("900")
+        granularity = create_granularity("900s")
+        partition_size = timedelta(seconds=86400)
+        entity_type_name = "test-type001"
 
-        with closing(self.conn.cursor()) as cursor:
+        with self.conn.cursor() as cursor:
             data_source = DataSource.from_name("test-src009")(cursor)
-            entity_type = EntityType.from_name("test-type001")(cursor)
+            entity_type = EntityType.from_name(entity_type_name)(cursor)
 
             trend_store = TrendStore.create(TrendStore.Descriptor(
                 data_source, entity_type,
                 granularity, [TrendStorePart.Descriptor(
                     'test-trend-store', trend_descriptors
-                )], 86400
+                )], partition_size
             ))(cursor)
+
+            trend_store.create_partitions_for_timestamp(self.conn, timestamp)
 
             self.conn.commit()
 
-            partition = trend_store.partition(timestamp)
+            table = Table('trend', 'test-trend-store')
 
-            table = partition.table()
+            data_package_type = refined_package_type_for_entity_type(entity_type_name)
 
-            partition.create(cursor)
+            data_package = DataPackage(data_package_type, granularity, trend_descriptors, data_rows)
 
             trend_store.store(
-                refined_package_type_for_entity_type('Node')(
-                    granularity, timestamp, trend_names, data_rows
-                )
-            ).run(self.conn)
+                data_package, {'job': 'test-job'}
+            )(self.conn)
 
             time.sleep(1)
 
+            data_package = DataPackage(data_package_type, granularity, trend_descriptors, update_data_rows)
+
             trend_store.store(
-                refined_package_type_for_entity_type('Node')(
-                    granularity, timestamp, trend_names, update_data_rows
-                )
-            ).run(self.conn)
+                data_package, {'job': 'test-job'}
+            )(self.conn)
             self.conn.commit()
 
-            query = table.select([Column("modified")])
+            query = table.select([Column("job_id")])
 
             query.execute(cursor)
             modified_list = [modified for modified in cursor.fetchall()]
             self.assertNotEqual(modified_list[0], modified_list[1])
 
-            table.select(Call("max", Column("modified"))).execute(cursor)
+            table.select(Call("max", Column("job_id"))).execute(cursor)
 
-            max_modified, = cursor.fetchone()
+            max_job_id, = cursor.fetchone()
 
-            modified_table.select(Column("end")).where_(
-                Eq(Column("table_trend_store_id"), trend_store.id)
+            trend_store_part = trend_store.part_by_name['test-trend-store']
+
+            modified_table.select(Column("last")).where_(
+                Eq(Column("trend_store_part_id"), trend_store_part.id)
             ).execute(cursor)
 
             end, = cursor.fetchone()
 
-            self.assertEqual(end, max_modified)
+            self.assertEqual(end, max_job_id)
 
     def test_update(self):
         trend_descriptors = [
@@ -347,53 +223,55 @@ class TestStore(unittest.TestCase):
             Trend.Descriptor("Drops", datatype.registry['smallint'], '')
         ]
 
-        trend_names = [t.name for t in trend_descriptors]
+        timestamp = datetime.datetime.now()
 
         data_rows = [
-            (10023, (10023, 0.9919, 17)),
-            (10047, (10047, 0.9963, 18))
+            (10023, timestamp, (10023, 0.9919, 17)),
+            (10047, timestamp, (10047, 0.9963, 18)),
         ]
 
         update_data_rows = [
-            (10023, (10023, 0.5555, 17))
+            (10023, timestamp, (10023, 0.5555, 17)),
         ]
 
-        timestamp = datetime.datetime.now()
         granularity = create_granularity("900s")
+        partition_size = timedelta(seconds=86400)
+        entity_type_name = "test-type001"
 
-        with closing(self.conn.cursor()) as cursor:
+        with self.conn.cursor() as cursor:
             data_source = DataSource.from_name("test-src009")(cursor)
-            entity_type = EntityType.from_name("test-type001")(cursor)
+            entity_type = EntityType.from_name(entity_type_name)(cursor)
 
             trend_store = TrendStore.create(TrendStore.Descriptor(
                 data_source, entity_type, granularity,
                 [TrendStorePart.Descriptor(
                     'test-trend-store', trend_descriptors
-                )], 86400
-                ))(cursor)
+                )], partition_size
+            ))(cursor)
 
-            partition = trend_store.partition(timestamp)
-            partition.create(cursor)
+        trend_store.create_partitions_for_timestamp(self.conn, timestamp)
 
-            table = partition.table()
+        table = Table('trend', 'test-trend-store')
 
-        trend_store.store(
-            refined_package_type_for_entity_type('Node')(
-                granularity, timestamp, trend_names, data_rows
-            )
-        ).run(self.conn)
+        data_package_type = refined_package_type_for_entity_type(entity_type_name)
+
+        data_package = DataPackage(data_package_type, granularity, trend_descriptors, data_rows)
 
         trend_store.store(
-            refined_package_type_for_entity_type('Node')(
-                granularity, timestamp, trend_names, update_data_rows
-            )
-        ).run(self.conn)
+            data_package, {'job': 'test-job'}
+        )(self.conn)
+
+        data_package = DataPackage(data_package_type, granularity, trend_descriptors, update_data_rows)
+
+        trend_store.store(
+            data_package, {'job': 'test-job'}
+        )(self.conn)
 
         self.conn.commit()
 
-        query = table.select([Column("modified"), Column("CCR")])
+        query = table.select([Column("job_id"), Column("CCR")])
 
-        with closing(self.conn.cursor()) as cursor:
+        with self.conn.cursor() as cursor:
             query.execute(cursor)
             rows = cursor.fetchall()
 
@@ -405,62 +283,69 @@ class TestStore(unittest.TestCase):
         timestamp = pytz.utc.localize(datetime.datetime(2013, 1, 2, 10, 45, 0))
         entity_ids = range(1023, 1023 + 100)
 
-        trend_descriptors = [
+        trend_descriptors_a = [
             Trend.Descriptor("CellID", datatype.registry['smallint'], ''),
             Trend.Descriptor("CCR", datatype.registry['double precision'], ''),
-            Trend.Descriptor("Drops", datatype.registry['smallint'], '')
+            Trend.Descriptor("Drops", datatype.registry['smallint'], ''),
         ]
-
-        trend_names_a = ["CellID", "CCR", "Drops"]
 
         data_rows_a = [
-            (i, (10023, 0.9919, 17))
+            (i, timestamp, (10023, 0.9919, 17))
             for i in entity_ids
         ]
 
-        trend_names_b = ["CellID", "Drops"]
+        trend_descriptors_b = [
+            Trend.Descriptor("CellID", datatype.registry['smallint'], ''),
+            Trend.Descriptor("Drops", datatype.registry['smallint'], ''),
+        ]
         data_rows_b = [
-            (i, (10023, 19))
+            (i, timestamp, (10023, 19))
             for i in entity_ids
         ]
+
+        entity_type_name = "test-type001"
+        partition_size = timedelta(seconds=86400)
 
         with closing(self.conn.cursor()) as cursor:
             data_source = DataSource.from_name("test-src009")(cursor)
-            entity_type = EntityType.from_name("test-type001")(cursor)
+            entity_type = EntityType.from_name(entity_type_name)(cursor)
 
             trend_store = TrendStore.create(TrendStore.Descriptor(
                 data_source, entity_type, granularity,
                 [TrendStorePart.Descriptor(
-                    'test-trend-store', trend_descriptors
-                )], 86400
+                    'test-trend-store', trend_descriptors_a
+                )], partition_size
             ))(cursor)
 
-            partition = trend_store.partition(timestamp)
-            partition.create(cursor)
+            trend_store.create_partitions_for_timestamp(self.conn, timestamp)
 
-            table = partition.table()
+            table = Table('trend', 'test-trend-store')
 
             self.conn.commit()
 
+        data_package_type = refined_package_type_for_entity_type(entity_type_name)
+
+        data_package = DataPackage(data_package_type, granularity, trend_descriptors_a, data_rows_a)
+
         trend_store.store(
-            refined_package_type_for_entity_type('Node')(
-                granularity, timestamp, trend_names_a, data_rows_a
-            )
-        ).run(self.conn)
+            data_package,
+            {'job': 'test-job-a'}
+        )(self.conn)
         time.sleep(0.2)
 
-        check_columns = list(map(Column, ["modified", "Drops"]))
+        check_columns = list(map(Column, ["job_id", "Drops"]))
         query = table.select(check_columns)
 
         with closing(self.conn.cursor()) as cursor:
             query.execute(cursor)
             row_before = cursor.fetchone()
 
+        data_package = DataPackage(data_package_type, granularity, trend_descriptors_b, data_rows_b)
+
         trend_store.store(
-            refined_package_type_for_entity_type('Node')(
-                granularity, timestamp, trend_names_b, data_rows_b
-            )
-        ).run(self.conn)
+            data_package,
+            {'job': 'test-job-b'}
+        )(self.conn)
 
         query = table.select(check_columns)
 
@@ -474,7 +359,7 @@ class TestStore(unittest.TestCase):
     def test_create_trend_store(self):
         granularity = create_granularity('900 seconds')
 
-        partition_size = 3600
+        partition_size = timedelta(seconds=3600)
 
         with closing(self.conn.cursor()) as cursor:
             data_source = DataSource.create("test-source", '')(cursor)
@@ -497,7 +382,7 @@ class TestStore(unittest.TestCase):
     def test_create_trend_store_with_children(self):
         granularity = create_granularity('900 seconds')
 
-        partition_size = 3600
+        partition_size = timedelta(seconds=3600)
 
         with closing(self.conn.cursor()) as cursor:
             data_source = DataSource.create("test-source", '')(cursor)
@@ -515,12 +400,10 @@ class TestStore(unittest.TestCase):
                 datetime.datetime(2013, 5, 6, 14, 45)
             )
 
-            partition = trend_store.partition(timestamp)
-
-            partition.create(cursor)
+            trend_store.create_partitions_for_timestamp(self.conn, timestamp)
 
     def test_get_trend_store(self):
-        partition_size = 3600
+        partition_size = timedelta(seconds=3600)
 
         with closing(self.conn.cursor()) as cursor:
             data_source = DataSource.create("test-source", '')(cursor)
@@ -544,7 +427,7 @@ class TestStore(unittest.TestCase):
     def test_store_copy_from(self):
         granularity = create_granularity('900 seconds')
 
-        partition_size = 86400
+        partition_size = timedelta(seconds=86400)
 
         trend_descriptors = [
             Trend.Descriptor('a', datatype.registry['smallint'], ''),
@@ -558,9 +441,11 @@ class TestStore(unittest.TestCase):
             datetime.datetime(2013, 4, 25, 9, 45)
         )
 
-        with closing(self.conn.cursor()) as cursor:
+        entity_type_name = "test_type"
+
+        with self.conn.cursor() as cursor:
             data_source = DataSource.create("test-source", '')(cursor)
-            entity_type = EntityType.create("test_type", '')(cursor)
+            entity_type = EntityType.create(entity_type_name, '')(cursor)
 
             trend_store = TrendStore.create(TrendStore.Descriptor(
                 data_source, entity_type, granularity,
@@ -569,196 +454,29 @@ class TestStore(unittest.TestCase):
                 )], partition_size
             ))(cursor)
 
-            trend_store.partition(timestamp).create(cursor)
+        trend_store.create_partitions_for_timestamp(self.conn, timestamp)
 
         self.conn.commit()
 
         def make_row(index):
-            return 1234 + index, [1, 2, 3 + index]
+            return 1234 + index, timestamp, [1, 2, 3 + index]
 
         rows = list(map(make_row, range(100)))
 
-        data_package = refined_package_type_for_entity_type('Node')(
-            granularity, timestamp, trend_names, rows
-        )
+        data_package_type = refined_package_type_for_entity_type(entity_type_name)
 
-        transaction = trend_store.store(data_package)
-        transaction.run(self.conn)
+        data_package = DataPackage(data_package_type, granularity, trend_descriptors, rows)
 
-        transaction = trend_store.store(data_package)
-        transaction.run(self.conn)
+        transaction = trend_store.store(data_package, {'job': 'test-job'})
+        transaction(self.conn)
+
+        transaction = trend_store.store(data_package, {'job': 'test-job'})
+        transaction(self.conn)
 
     def test_store_copy_from_missing_column(self):
         granularity = create_granularity('900 seconds')
 
-        partition_size = 86400
-
-        trend_descriptors = [
-            Trend.Descriptor('a', datatype.registry['smallint'], ''),
-            Trend.Descriptor('b', datatype.registry['smallint'], ''),
-            Trend.Descriptor('c', datatype.registry['smallint'], '')
-        ]
-
-        trend_names = [t.name for t in trend_descriptors]
-
-        timestamp = pytz.utc.localize(
-            datetime.datetime(2013, 4, 25, 9, 45)
-        )
-
-        with closing(self.conn.cursor()) as cursor:
-            data_source = DataSource.create("test-source", '')(cursor)
-            entity_type = EntityType.create("test_type", '')(cursor)
-
-            trend_store = TrendStore.create(TrendStore.Descriptor(
-                data_source, entity_type, granularity,
-                [TrendStorePart.Descriptor(
-                    'test-trend-store', trend_descriptors
-                )], partition_size
-            ))(cursor)
-
-            trend_store.partition(timestamp).create(cursor)
-
-        self.conn.commit()
-
-        rows = [
-            (1234 + index, [1, 2, 3 + index])
-            for index in range(100)
-        ]
-
-        data_package = refined_package_type_for_entity_type('Node')(
-            granularity, timestamp, trend_names, rows
-        )
-
-        transaction = trend_store.store(data_package)
-        transaction.run(self.conn)
-
-        # Store second part with one column extra
-
-        timestamp = pytz.utc.localize(
-            datetime.datetime(2013, 4, 25, 10, 00)
-        )
-
-        trends = ["a", "b", "c", "d"]
-
-        def make_row_y(index):
-            return 1234 + index, [1, 2, 3, 4 + index]
-
-        rows = list(map(make_row_y, range(100)))
-
-        data_package = refined_package_type_for_entity_type('Node')(
-            granularity, timestamp, trends, rows
-        )
-
-        with self.assertRaises(NoSuchTrendError) as cm:
-            transaction = trend_store.store(data_package)
-            transaction.run(self.conn)
-
-    def test_store(self):
-        granularity = create_granularity('900 seconds')
-
-        partition_size = 86400
-
-        trend_descriptors = [
-            Trend.Descriptor('a', datatype.registry['smallint'], ''),
-            Trend.Descriptor('b', datatype.registry['smallint'], ''),
-            Trend.Descriptor('c', datatype.registry['smallint'], '')
-        ]
-
-        trend_names = [t.name for t in trend_descriptors]
-
-        timestamp = pytz.utc.localize(
-            datetime.datetime(2013, 4, 25, 9, 45)
-        )
-
-        with closing(self.conn.cursor()) as cursor:
-            data_source = DataSource.create("test-source", '')(cursor)
-            entity_type = EntityType.create("test_type", '')(cursor)
-
-            trend_store = TrendStore.create(TrendStore.Descriptor(
-                data_source, entity_type, granularity,
-                [
-                    TrendStorePart.Descriptor(
-                        'test-trend-store', trend_descriptors
-                    )
-                ], partition_size
-            ))(cursor)
-
-            trend_store.partition(timestamp).create(cursor)
-
-        self.conn.commit()
-
-        rows = [
-            (1234, [1, 2, 3]),
-            (2345, [4, 5, 6])
-        ]
-
-        data_package = refined_package_type_for_entity_type('Node')(
-            granularity, timestamp, trend_names, rows
-        )
-
-        transaction = trend_store.store(data_package)
-        transaction.run(self.conn)
-
-        table = trend_store.partition(timestamp).table()
-
-        condition = And(
-            Eq(Column("entity_id"), 2345),
-            Eq(Column("timestamp"), timestamp)
-        )
-
-        query = table.select(Column("c")).where_(condition)
-
-        with closing(self.conn.cursor()) as cursor:
-            query.execute(cursor)
-
-            c, = cursor.fetchone()
-
-        self.assertEqual(c, 6)
-
-        rows = [
-            (1234, [1, 2, 3]),
-            (2345, [4, 5, 7])
-        ]
-
-        data_package = refined_package_type_for_entity_type('Node')(
-            granularity, timestamp, trend_names, rows
-        )
-
-        transaction = trend_store.store(data_package)
-        transaction.run(self.conn)
-
-        with closing(self.conn.cursor()) as cursor:
-            query.execute(cursor)
-
-            c, = cursor.fetchone()
-
-        self.assertEqual(c, 7)
-
-    def test_generate_index(self):
-        granularity = create_granularity('900 seconds')
-
-        partition_size = 86400
-
-        start = pytz.utc.localize(datetime.datetime(2013, 4, 25, 9, 45))
-        end = pytz.utc.localize(datetime.datetime(2013, 4, 27, 9, 45))
-
-        partitioning = Partitioning(partition_size)
-
-        for timestamp in granularity.range(start, end):
-            partition_index = partitioning.index(timestamp)
-
-            args = partition_size, timestamp
-
-            with closing(self.conn.cursor()) as cursor:
-                cursor.callproc("trend_directory.timestamp_to_index", args)
-
-                postgresql_partition_index, = cursor.fetchone()
-
-            self.assertEqual(postgresql_partition_index, partition_index)
-
-    def test_store_alter_column(self):
-        granularity = create_granularity('900 seconds')
-        partition_size = 86400
+        partition_size = timedelta(seconds=86400)
 
         trend_descriptors = [
             Trend.Descriptor('a', datatype.registry['smallint'], ''),
@@ -766,15 +484,83 @@ class TestStore(unittest.TestCase):
             Trend.Descriptor('c', datatype.registry['smallint'], ''),
         ]
 
-        trend_names = [t.name for t in trend_descriptors]
+        timestamp = pytz.utc.localize(
+            datetime.datetime(2013, 4, 25, 9, 45)
+        )
+
+        entity_type_name = "test_type"
+
+        with self.conn.cursor() as cursor:
+            data_source = DataSource.create("test-source", '')(cursor)
+            entity_type = EntityType.create(entity_type_name, '')(cursor)
+
+            trend_store = TrendStore.create(TrendStore.Descriptor(
+                data_source, entity_type, granularity,
+                [TrendStorePart.Descriptor(
+                    'test-trend-store', trend_descriptors
+                )], partition_size
+            ))(cursor)
+
+            trend_store.create_partitions_for_timestamp(self.conn, timestamp)
+
+        self.conn.commit()
+
+        rows = [
+            (1234 + index, timestamp, [1, 2, 3 + index])
+            for index in range(100)
+        ]
+
+        data_package_type = refined_package_type_for_entity_type(entity_type_name)
+
+        data_package = DataPackage(data_package_type, granularity, trend_descriptors, rows)
+
+        transaction = trend_store.store(data_package, {})
+        transaction(self.conn)
+
+        # Store second part with one column extra
 
         timestamp = pytz.utc.localize(
-            datetime.datetime(2013, 4, 25, 11, 00)
+            datetime.datetime(2013, 4, 25, 10, 00)
         )
+
+        trend_descriptors = [
+            Trend.Descriptor('a', datatype.registry['smallint'], ''),
+            Trend.Descriptor('b', datatype.registry['smallint'], ''),
+            Trend.Descriptor('c', datatype.registry['smallint'], ''),
+            Trend.Descriptor('d', datatype.registry['smallint'], ''),
+        ]
+
+        def make_row_y(index):
+            return 1234 + index, timestamp, [1, 2, 3, 4 + index]
+
+        rows = list(map(make_row_y, range(100)))
+
+        data_package = DataPackage(data_package_type, granularity, trend_descriptors, rows)
+
+        with self.assertRaises(NoSuchTrendError) as cm:
+            transaction = trend_store.store(data_package, {})
+            transaction(self.conn)
+
+    def test_store(self):
+        granularity = create_granularity('900 seconds')
+
+        partition_size = timedelta(seconds=86400)
+
+        trend_descriptors = [
+            Trend.Descriptor('a', datatype.registry['smallint'], ''),
+            Trend.Descriptor('b', datatype.registry['smallint'], ''),
+            Trend.Descriptor('c', datatype.registry['smallint'], ''),
+        ]
+
+        timestamp = pytz.utc.localize(
+            datetime.datetime(2013, 4, 25, 9, 45)
+        )
+
+        entity_type_name = "test_type"
 
         with closing(self.conn.cursor()) as cursor:
             data_source = DataSource.create("test-source", '')(cursor)
-            entity_type = EntityType.create("test_type", '')(cursor)
+            entity_type = EntityType.create(entity_type_name, '')(cursor)
 
             trend_store = TrendStore.create(TrendStore.Descriptor(
                 data_source, entity_type, granularity,
@@ -785,23 +571,23 @@ class TestStore(unittest.TestCase):
                 ], partition_size
             ))(cursor)
 
-            trend_store.partition(timestamp).create(cursor)
+            trend_store.create_partitions_for_timestamp(self.conn, timestamp)
 
         self.conn.commit()
 
         rows = [
-            (1234, [1, 2, 3]),
-            (2345, [4, 5, 6])
+            (1234, timestamp, [1, 2, 3]),
+            (2345, timestamp, [4, 5, 6]),
         ]
 
-        data_package = refined_package_type_for_entity_type('Node')(
-            granularity, timestamp, trend_names, rows
-        )
+        data_package_type = refined_package_type_for_entity_type(entity_type_name)
 
-        transaction = trend_store.store(data_package)
-        transaction.run(self.conn)
+        data_package = DataPackage(data_package_type, granularity, trend_descriptors, rows)
 
-        table = trend_store.partition(timestamp).table()
+        transaction = trend_store.store(data_package, {})
+        transaction(self.conn)
+
+        table = Table('trend', 'test-trend-store')
 
         condition = And(
             Eq(Column("entity_id"), 2345),
@@ -810,7 +596,7 @@ class TestStore(unittest.TestCase):
 
         query = table.select(Column("c")).where_(condition)
 
-        with closing(self.conn.cursor()) as cursor:
+        with self.conn.cursor() as cursor:
             query.execute(cursor)
 
             c, = cursor.fetchone()
@@ -818,26 +604,25 @@ class TestStore(unittest.TestCase):
         self.assertEqual(c, 6)
 
         rows = [
-            (2345, [4, 5, "2013-04-25 11:00:00"])
+            (1234, timestamp, [1, 2, 3]),
+            (2345, timestamp, [4, 5, 7]),
         ]
 
-        data_package = refined_package_type_for_entity_type('Node')(
-            granularity, timestamp, trend_names, rows
-        )
+        data_package = DataPackage(data_package_type, granularity, trend_descriptors, rows)
 
-        with self.assertRaises(DataTypeMismatch) as cm:
-            transaction = trend_store.store(data_package)
-            transaction.run(self.conn)
+        transaction = trend_store.store(data_package, {})
+        transaction(self.conn)
 
-        with closing(self.conn.cursor()) as cursor:
+        with self.conn.cursor() as cursor:
             query.execute(cursor)
 
             c, = cursor.fetchone()
 
-        self.assertEqual(c, datetime.datetime(2013, 4, 25, 11, 0, 0))
+        self.assertEqual(c, 7)
 
     def test_store_ignore_column(self):
-        partition_size = 86400
+        partition_size = timedelta(seconds=86400)
+        granularity = create_granularity('900 seconds')
 
         trend_descriptors = [
             Trend.Descriptor('x', datatype.registry['smallint'], ''),
@@ -845,11 +630,11 @@ class TestStore(unittest.TestCase):
         ]
 
         timestamp = pytz.utc.localize(datetime.datetime(2013, 4, 25, 10, 45))
+        entity_type_name = "test_type"
 
-        with closing(self.conn.cursor()) as cursor:
+        with self.conn.cursor() as cursor:
             data_source = DataSource.create("test-source", '')(cursor)
-            entity_type = EntityType.create("test_type", '')(cursor)
-            granularity = create_granularity('900 seconds')
+            entity_type = EntityType.create(entity_type_name, '')(cursor)
 
             trend_store = TrendStore.create(TrendStore.Descriptor(
                 data_source, entity_type, granularity,
@@ -860,27 +645,33 @@ class TestStore(unittest.TestCase):
                 ], partition_size
             ))(cursor)
 
-            trend_store.partition(timestamp).create(cursor)
+        trend_store.create_partitions_for_timestamp(self.conn, timestamp)
 
         self.conn.commit()
 
-        data_package = refined_package_type_for_entity_type('Node')(
-            granularity,
-            timestamp,
-            ['x', 'y', 'z'],
-            [
-                (1234, [1, 2, 3]),
-                (2345, [4, 5, 6])
-            ]
-        )
+        data_package_type = refined_package_type_for_entity_type(entity_type_name)
 
-        trend_names = [t.name for t in trend_store.trends]
+        trend_descriptors = [
+            Trend.Descriptor('x', datatype.registry['smallint'], ''),
+            Trend.Descriptor('y', datatype.registry['smallint'], ''),
+            Trend.Descriptor('z', datatype.registry['smallint'], ''),
+        ]
+
+        rows = [
+            (1234, timestamp, [1, 2, 3]),
+            (2345, timestamp, [4, 5, 6])
+        ]
+
+        data_package = DataPackage(data_package_type, granularity, trend_descriptors, rows)
+
+        part = trend_store.part_by_name['test-trend-store']
+        trend_names = [t.name for t in part.trends]
 
         transaction = trend_store.store(
-            data_package.filter_trends(partial(contains, set(trend_names)))
+            data_package.filter_trends(partial(contains, set(trend_names))), {}
         )
 
-        transaction.run(self.conn)
+        transaction(self.conn)
 
 
 def row_count(cursor, table):
@@ -889,259 +680,3 @@ def row_count(cursor, table):
     count, = cursor.fetchone()
 
     return count
-
-
-class TestData(DataSet):
-    def __init__(self):
-        self.granularity = create_granularity("900s")
-        self.data_source = None
-        self.entity_type = None
-
-    def load(self, conn):
-        with closing(conn.cursor()) as cursor:
-            self.data_source = DataSource.from_name("test-source")(cursor)
-            self.entity_type = EntityType.from_name("test_type")(cursor)
-
-
-class TestStore(unittest.TestCase):
-    def setUp(self):
-        self.conn = clear_database(connect())
-
-    def tearDown(self):
-        self.conn.close()
-
-    def test_create_trend_store(self):
-        with with_data_context(self.conn, TestData) as data_set:
-            partition_size = 3600
-            retention_period = 86400 * 7
-
-            trend_store_descr = TrendStore.Descriptor(
-                data_set.data_source, data_set.entity_type,
-                data_set.granularity, [
-                    TrendStorePart.Descriptor('test-store', [])
-                ], partition_size
-            )
-
-            with closing(self.conn.cursor()) as cursor:
-                trend_store = TrendStore.create(trend_store_descr)(cursor)
-
-            self.assertIsInstance(trend_store, TrendStore)
-
-            self.assertIsNotNone(trend_store.id)
-
-    def test_create_trend_store_with_children(self):
-        with with_data_context(self.conn, TestData) as data_set:
-            partition_size = 3600
-
-            trend_store_descr = TrendStore.Descriptor(
-                data_set.data_source, data_set.entity_type,
-                data_set.granularity,
-                [TrendStorePart.Descriptor('test_store', [])],
-                partition_size
-            )
-
-            with closing(self.conn.cursor()) as cursor:
-                trend_store = TrendStore.create(trend_store_descr)(cursor)
-
-                self.assertIsNotNone(trend_store.id)
-
-                timestamp = pytz.utc.localize(
-                    datetime.datetime(2013, 5, 6, 14, 45)
-                )
-
-    def test_get_trend_store(self):
-        with with_data_context(self.conn, TestData) as data_set:
-            partition_size = timedelta(seconds=3600)
-
-            with closing(self.conn.cursor()) as cursor:
-                trend_store_descr = TrendStore.Descriptor(
-                    data_set.data_source, data_set.entity_type,
-                    data_set.granularity, [
-                        TrendStorePart.Descriptor('test_store', [])
-                    ], partition_size
-                )
-
-                TrendStore.create(trend_store_descr)(cursor)
-
-                trend_store = TrendStore.get(
-                    data_set.data_source, data_set.entity_type,
-                    data_set.granularity
-                )(cursor)
-
-                self.assertEqual(
-                    trend_store.data_source.id, data_set.data_source.id
-                )
-                self.assertEqual(trend_store.partition_size, partition_size)
-                self.assertIsNotNone(trend_store.id)
-
-    def test_store_copy_from(self):
-        with with_data_context(self.conn, TestData) as data_set:
-            partition_size = timedelta(seconds=86400)
-
-            with closing(self.conn.cursor()) as cursor:
-                trend_store_descr = TrendStore.Descriptor(
-                    data_set.data_source, data_set.entity_type,
-                    data_set.granularity, [
-                        TrendStorePart.Descriptor('test_store', [])
-                    ], partition_size
-                )
-
-                trend_store = TrendStore.create(trend_store_descr)(cursor)
-
-            self.conn.commit()
-
-            timestamp = pytz.utc.localize(
-                datetime.datetime(2013, 4, 25, 9, 45)
-            )
-
-            trend_store_descriptors = [
-                Trend.Descriptor("a", datatype.registry['integer'], ''),
-                Trend.Descriptor("b", datatype.registry['integer'], ''),
-                Trend.Descriptor("c", datatype.registry['integer'], ''),
-            ]
-
-            def make_row(index):
-                return 1234 + index, timestamp, [1, 2, 3 + index]
-
-            rows = list(map(make_row, range(100)))
-
-            data_package_type = refined_package_type_for_entity_type('TestType')
-
-            data_package = DataPackage(
-                data_package_type, data_set.granularity, trend_store_descriptors, rows
-            )
-
-            trend_store.store(data_package, 'test-job')(self.conn)
-
-            trend_store.store(data_package, 'test-job')(self.conn)
-
-    def test_store_copy_from_missing_column(self):
-        with with_data_context(self.conn, TestData) as data_set:
-            partition_size = timedelta(seconds=86400)
-
-            trend_store_descr = TrendStore.Descriptor(
-                data_set.data_source, data_set.entity_type,
-                data_set.granularity, [
-                    TrendStorePart.Descriptor('test_store', [])
-                ], partition_size
-            )
-
-            with closing(self.conn.cursor()) as cursor:
-                trend_store = TrendStore.create(trend_store_descr)(cursor)
-
-            self.conn.commit()
-
-            timestamp = pytz.utc.localize(
-                datetime.datetime(2013, 4, 25, 9, 45)
-            )
-
-            trend_store_descriptors = [
-                Trend.Descriptor("a", datatype.registry['integer'], ''),
-                Trend.Descriptor("b", datatype.registry['integer'], ''),
-                Trend.Descriptor("c", datatype.registry['integer'], ''),
-            ]
-
-            def make_row_x(index):
-                return 1234 + index, timestamp, [1, 2, 3 + index]
-
-            rows = list(map(make_row_x, range(100)))
-
-            data_package_type = refined_package_type_for_entity_type('TestType')
-
-            data_package = DataPackage(
-                data_package_type, data_set.granularity, trend_store_descriptors, rows
-            )
-
-            trend_store.store(data_package, 'test-job')(self.conn)
-
-            # Store second part with one column extra
-
-            timestamp = pytz.utc.localize(
-                datetime.datetime(2013, 4, 25, 10, 00)
-            )
-
-            trend_store_descriptors = [
-                Trend.Descriptor("a", datatype.registry['integer'], ''),
-                Trend.Descriptor("b", datatype.registry['integer'], ''),
-                Trend.Descriptor("c", datatype.registry['integer'], ''),
-                Trend.Descriptor("d", datatype.registry['integer'], ''),
-            ]
-
-            def make_row_y(index):
-                return 1234 + index, timestamp, [1, 2, 3, 4 + index]
-
-            rows = list(map(make_row_y, range(100)))
-
-            data_package = DataPackage(
-                data_package_type, data_set.granularity, trend_store_descriptors, rows
-            )
-
-            trend_store.store(data_package, 'test-job')(self.conn)
-
-    def test_store(self):
-        with with_data_context(self.conn, TestData) as dataset:
-            partition_size = 86400
-
-            timestamp = pytz.utc.localize(
-                datetime.datetime(2013, 4, 25, 9, 45)
-            )
-
-            trend_store_descr = TrendStore.Descriptor(
-                dataset.data_source, dataset.entity_type,
-                dataset.granularity, [
-                    TrendStorePart.Descriptor('TestStore', [])
-                ], partition_size
-            )
-
-            with closing(self.conn.cursor()) as cursor:
-                trend_store = TrendStore.create(trend_store_descr)(cursor)
-                trend_store.partition('TestStore', timestamp).create(cursor)
-
-            self.conn.commit()
-
-            trends = ["a", "b", "c"]
-
-            rows = [
-                (1234, [1, 2, 3]),
-                (2345, [4, 5, 6])
-            ]
-
-            data_package = refined_package_type_for_entity_type('TestType')(
-                dataset.granularity, timestamp, trends, rows
-            )
-
-            trend_store.store(data_package)(self.conn)
-
-            table = trend_store.partition('TestStore', timestamp).table()
-
-            condition = And(
-                Eq(Column("entity_id"), 2345),
-                Eq(Column("timestamp"), timestamp)
-            )
-
-            query = table.select(Column("c")).where_(condition)
-
-            with closing(self.conn.cursor()) as cursor:
-                query.execute(cursor)
-
-                c, = cursor.fetchone()
-
-            self.assertEqual(c, 6)
-
-            rows = [
-                (1234, [1, 2, 3]),
-                (2345, [4, 5, 7])
-            ]
-
-            data_package = refined_package_type_for_entity_type('TestType')(
-                dataset.granularity, timestamp, trends, rows
-            )
-
-            trend_store.store(data_package)(self.conn)
-
-            with closing(self.conn.cursor()) as cursor:
-                query.execute(cursor)
-
-                c, = cursor.fetchone()
-
-            self.assertEqual(c, 7)

@@ -1,11 +1,13 @@
 # -*- coding: utf-8 -*-
 from contextlib import closing
 from datetime import timedelta
-from typing import List, Callable
+from typing import List, Callable, Tuple, Dict
 
 from psycopg2 import extensions
 
+from minerva.db import ConnDbAction
 from minerva.db.query import Column, Eq, ands
+from minerva.storage import DataPackage
 
 from minerva.storage.trend import schema
 from minerva.directory import DataSource, EntityType
@@ -53,6 +55,7 @@ class TrendStore:
 
     partition_size: timedelta
     parts: List[TrendStorePart]
+    part_by_name: Dict[str, TrendStorePart]
 
     column_names = [
         "id", "entity_type_id", "data_source_id", "granularity",
@@ -81,7 +84,7 @@ class TrendStore:
         self.partition_size = partition_size
         self.retention_period = retention_period
         self.parts = []
-        self.part_by_name = None
+        self.part_by_name = {}
         self._trend_part_mapping = None
 
     @staticmethod
@@ -211,13 +214,13 @@ class TrendStore:
 
         return self
 
-    def store(self, data_package, description):
+    def store(self, data_package: DataPackage, description: dict) -> ConnDbAction:
         return string_fns([
             part.store(package_part, description)
             for part, package_part in self.split_package_by_parts(data_package)
         ])
 
-    def split_package_by_parts(self, data_package):
+    def split_package_by_parts(self, data_package: DataPackage) -> List[Tuple[TrendStorePart, DataPackage]]:
         def group_fn(trend_name):
             try:
                 return self._trend_part_mapping[trend_name].name

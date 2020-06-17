@@ -5,22 +5,12 @@ from functools import partial
 import unittest
 
 import pytz
-from minerva.directory.entityref import EntityIdRef
 from minerva.storage import datatype
 
 from minerva.storage.trend.granularity import create_granularity
-from minerva.storage.trend.datapackage import DataPackage, DataPackageType
+from minerva.storage.trend.datapackage import DataPackage
 from minerva.storage.trend.trend import Trend
-from minerva.util import k
-
-
-def refined_package_type_for_entity_type(type_name: str) -> DataPackageType:
-    def identifier():
-        return None
-
-    get_entity_type_name = k(type_name)
-
-    return DataPackageType(identifier, EntityIdRef, get_entity_type_name)
+from minerva.test.trend import refined_package_type_for_entity_type
 
 
 class TestDataPackage(unittest.TestCase):

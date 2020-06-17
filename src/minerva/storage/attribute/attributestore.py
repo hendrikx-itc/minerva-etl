@@ -227,7 +227,7 @@ class AttributeStore:
             cursor.execute(query, args)
 
             (
-                data_source_id, entity_type_id, attribute_store_id
+                attribute_store_id, data_source_id, entity_type_id
             ) = cursor.fetchone()
 
             entity_type = EntityType.get(entity_type_id)(cursor)
