@@ -8,7 +8,7 @@ trend_store_json = {
     'data_source': 'test',
     'entity_type': 'Cell',
     'granularity': '1 day',
-    'partition_size': 86400,
+    'partition_size': '86400s',
     'parts': [
         {
             'name': 'first_part',
@@ -34,7 +34,7 @@ class TestLoadData(unittest.TestCase):
             json.dump(trend_store_json, json_tmp_file)
             json_tmp_file.flush()
 
-            proc = subprocess.run(['minerva', 'trend-store', 'create', '--from-json', json_tmp_file.name])
+            proc = subprocess.run(['minerva', 'trend-store', 'create', '--format=json', json_tmp_file.name])
 
         self.assertEqual(proc.returncode, 0)
 
