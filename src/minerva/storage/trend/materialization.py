@@ -255,7 +255,7 @@ class FunctionMaterialization(Materialization):
 
     def drop_function(self, conn):
         drop_function_query = sql.SQL(
-            'DROP FUNCTION {}"(timestamp with time zone)'
+            'DROP FUNCTION {}(timestamp with time zone)'
         ).format(
             sql.Identifier('trend', self.target_trend_store_part)
         )
