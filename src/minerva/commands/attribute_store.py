@@ -46,59 +46,27 @@ def setup_create_parser(subparsers):
     )
 
     cmd.add_argument(
-        '--data-source',
-        help='name of the data source of the new attribute store'
+        '--format', choices=['yaml', 'json'], default='yaml',
+        help='format of definition'
     )
 
     cmd.add_argument(
-        '--entity-type',
-        help='name of the entity type of the new attribute store'
-    )
-
-    cmd.add_argument(
-        '--from-json', type=argparse.FileType('r'),
-        help='use json description for attribute store'
-    )
-
-    cmd.add_argument(
-        '--from-yaml', type=argparse.FileType('r'),
-        help='use yaml description for attribute store'
+        'definition', type=argparse.FileType('r'),
+        help='file containing attribute store definition'
     )
 
     cmd.set_defaults(cmd=create_attribute_store_cmd)
 
 
 def create_attribute_store_cmd(args):
-    if args.from_json:
-        attribute_store_config = json.load(args.from_json)
-    elif args.from_yaml:
-        attribute_store_config = yaml.load(
-            args.from_yaml, Loader=yaml.SafeLoader
-        )
-    else:
-        attribute_store_config = {
-            'data_source': 'example_source',
-            'entity_type': 'example_type',
-            'attributes': []
-        }
-
-    if args.data_source:
-        attribute_store_config['data_source'] = args.data_source
-
-    if args.entity_type:
-        attribute_store_config['entity_type'] = args.entity_type
-
-    attribute_store_name = '{}_{}'.format(
-        attribute_store_config['data_source'],
-        attribute_store_config['entity_type']
-    )
+    attribute_store = MinervaInstance.load_attribute_store_from_file(args.definition)
 
     sys.stdout.write(
-        "Creating attribute store '{}'... ".format(attribute_store_name)
+        f"Creating attribute store '{attribute_store}'... "
     )
 
     try:
-        create_attribute_store(attribute_store_config)
+        create_attribute_store(attribute_store)
         sys.stdout.write("OK\n")
     except DuplicateAttributeStore as exc:
         sys.stdout.write(str(exc))
