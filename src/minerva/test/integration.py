@@ -7,6 +7,7 @@ from minerva.test import connect
 def start_db_container(docker_client):
     container = docker_client.containers.run(
         "minerva_db",
+        remove=True,
         detach=True,
         environment={"POSTGRES_PASSWORD": "password"},
         ports={5432: 5432}

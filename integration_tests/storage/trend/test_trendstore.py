@@ -2,7 +2,6 @@
 from contextlib import closing
 import datetime
 import unittest
-import os
 
 import pytz
 import docker
