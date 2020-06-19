@@ -1064,9 +1064,7 @@ copy_from_serializer_base_type_config = {
         'null_value': '\\N'
     },
     registry['text']: {
-        'null_value': '\\N',
-        'prefix': '"',
-        'postfix': '"',
+        'null_value': '\\N'
     }
 }
 
