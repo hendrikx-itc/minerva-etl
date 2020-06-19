@@ -7,7 +7,7 @@ from datetime import datetime, tzinfo
 import decimal
 from functools import partial, reduce
 import operator
-from typing import Callable, Optional, Any
+from typing import Callable, Optional, Any, Set, Dict
 
 import pytz
 
@@ -19,7 +19,9 @@ class ParseError(Exception):
 
 
 class DataType:
-    def __init__(self, name):
+    name: str
+
+    def __init__(self, name: str):
         self.name = name
 
     def string_parser(self, config=None):
@@ -28,7 +30,7 @@ class DataType:
     def string_serializer(self, config=None):
         raise NotImplementedError()
 
-    def deduce_parser_config(self, value) -> Optional[dict]:
+    def deduce_parser_config(self, value: str) -> Optional[dict]:
         """
         Returns a configuration that can be used to parse the provided value
         and values like it or None if the value can not be parsed.
@@ -40,17 +42,17 @@ class DataType:
 
 
 class Boolean(DataType):
-    true_set = {"1", "True", "true"}
-    false_set = {"0", "False", "false"}
-    bool_set = true_set | false_set
+    true_set: Set[str] = {"1", "True", "true"}
+    false_set: Set[str] = {"0", "False", "false"}
+    bool_set: Set[str] = true_set | false_set
 
-    default_parser_config = {
+    default_parser_config: Dict[str, str] = {
         "null_value": "\\N",
         "true_value": "true",
         "false_value": "false"
     }
 
-    default_serializer_config = {
+    default_serializer_config: Dict[str, str] = {
         "null_value": "\\N",
         "true_value": "true",
         "false_value": "false"
@@ -103,22 +105,20 @@ class Boolean(DataType):
             return self.default_serializer_config
 
     def string_serializer(self, config: Optional[dict] = None) -> Callable[[Optional[bool]], str]:
-        config = self.string_serializer_config(config)
+        merged_config = self.string_serializer_config(config)
 
         def serialize(value) -> str:
             if value is None:
-                return config['null_value']
+                return merged_config['null_value']
             elif value is True:
-                return config['true_value']
+                return merged_config['true_value']
             else:
-                return config['false_value']
+                return merged_config['false_value']
 
         return serialize
 
     def deduce_parser_config(self, value) -> Optional[dict]:
-        if not isinstance(value, str):
-            return None
-        elif value in self.bool_set:
+        if value in self.bool_set:
             return merge_dicts(
                 self.default_parser_config,
                 {
@@ -126,6 +126,8 @@ class Boolean(DataType):
                     "false_value": self.false_set
                 }
             )
+        else:
+            return None
 
 
 def assure_tzinfo(tz):
@@ -150,7 +152,7 @@ class TimestampWithTimeZone(DataType):
     def __init__(self):
         DataType.__init__(self, 'timestamp with time zone')
 
-    def string_parser_config(self, config: dict) -> dict:
+    def string_parser_config(self, config: Optional[dict]) -> dict:
         if config is None:
             return self.default_parser_config
         else:
@@ -179,11 +181,13 @@ class TimestampWithTimeZone(DataType):
 
         return parse
 
-    def string_serializer_config(self, config: dict) -> dict:
+    def string_serializer_config(self, config: Optional[dict]) -> dict:
         if config is None:
             return self.default_serializer_config
+        else:
+            return merge_dicts(self.default_serializer_config, config)
 
-    def string_serializer(self, config=None):
+    def string_serializer(self, config: Optional[dict] = None) -> Callable[[datetime], str]:
         config = self.string_parser_config(config)
 
         null_value = config['null_value']
@@ -200,6 +204,8 @@ class TimestampWithTimeZone(DataType):
     def deduce_parser_config(self, value) -> dict:
         if value is None:
             return self.default_parser_config
+        else:
+            raise NotImplementedError
 
 
 class Timestamp(DataType):
@@ -279,6 +285,8 @@ class Timestamp(DataType):
                     {'format': datetime_format}
                 )
 
+        return None
+
 
 class SmallInt(DataType):
     min = int(-pow(2, 15))
@@ -338,6 +346,8 @@ class SmallInt(DataType):
         else:
             if self.min <= int_val <= self.max:
                 return self.default_parser_config
+            else:
+                return None
 
     def string_serializer_config(self, config):
         if config is None:
@@ -468,11 +478,11 @@ class Bigint(DataType):
     min = int(-pow(2, 63))
     max = int(pow(2, 63) - 1)
 
-    default_parser_config = {
+    default_parser_config: Dict[str, str] = {
         "null_value": "\\N"
     }
 
-    default_serializer_config = {}
+    default_serializer_config: Dict[str, str] = {}
 
     def __init__(self):
         DataType.__init__(self, 'bigint')
@@ -549,11 +559,11 @@ class Bigint(DataType):
 
 
 class Real(DataType):
-    default_parser_config = {
+    default_parser_config: Dict[str, str] = {
         "null_value": "\\N"
     }
 
-    default_serializer_config = {}
+    default_serializer_config: Dict[str, str] = {}
 
     def __init__(self):
         DataType.__init__(self, 'real')
@@ -620,11 +630,11 @@ class Real(DataType):
 
 
 class DoublePrecision(DataType):
-    default_parser_config = {
+    default_parser_config: Dict[str, str] = {
         "null_value": "\\N"
     }
 
-    default_serializer_config = {}
+    default_serializer_config: Dict[str, str] = {}
 
     def __init__(self):
         DataType.__init__(self, 'double precision')
@@ -650,7 +660,7 @@ class DoublePrecision(DataType):
 
         null_value = config['null_value']
 
-        def parse(value):
+        def parse(value: str) -> Optional[float]:
             if value == null_value:
                 return None
             else:
@@ -686,11 +696,11 @@ class DoublePrecision(DataType):
 
 
 class Numeric(DataType):
-    default_parser_config = {
+    default_parser_config: Dict[str, str] = {
         "null_value": "\\N"
     }
 
-    default_serializer_config = {}
+    default_serializer_config: Dict[str, str] = {}
 
     def __init__(self):
         DataType.__init__(self, 'numeric')

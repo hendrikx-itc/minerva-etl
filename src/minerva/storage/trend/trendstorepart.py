@@ -36,6 +36,7 @@ class TrendStorePart:
     class Descriptor:
         name: str
         trend_descriptors: List[Trend.Descriptor]
+        generated_trend_descriptors: List[Trend.Descriptor]
 
         def __init__(
                 self, name: str, trend_descriptors: List[Trend.Descriptor]):

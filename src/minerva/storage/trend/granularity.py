@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import re
 import datetime
-from typing import Union
+from typing import Union, Callable, Dict, Any
 
 from dateutil.relativedelta import relativedelta
 
@@ -89,7 +89,11 @@ def str_to_granularity(granularity_str: str) -> Granularity:
     m = re.match('([0-9]{2}):([0-9]{2}):([0-9]{2})', granularity_str)
 
     if m:
-        hours, minutes, seconds = m.groups()
+        hours_str, minutes_str, seconds_str = m.groups()
+
+        hours = int(hours_str)
+        minutes = int(minutes_str)
+        seconds = int(seconds_str)
 
         return Granularity(
             relativedelta(hours=hours, minutes=minutes, seconds=seconds)
@@ -98,42 +102,42 @@ def str_to_granularity(granularity_str: str) -> Granularity:
     m = re.match('^([0-9]+)[ ]*(s|second|seconds)$', granularity_str)
 
     if m:
-        seconds, _ = m.groups()
+        seconds_str, _ = m.groups()
 
-        return Granularity(relativedelta(seconds=int(seconds)))
+        return Granularity(relativedelta(seconds=int(seconds_str)))
 
     m = re.match('^([0-9]+)[ ]*(m|min|minute|minutes)$', granularity_str)
 
     if m:
-        minutes, _ = m.groups()
+        minutes_str, _ = m.groups()
 
-        return Granularity(relativedelta(minutes=int(minutes)))
+        return Granularity(relativedelta(minutes=int(minutes_str)))
 
     m = re.match('([0-9]+)[ ]*(d|day|days)', granularity_str)
 
     if m:
-        days, _ = m.groups()
+        days_str, _ = m.groups()
 
-        return Granularity(relativedelta(days=int(days)))
+        return Granularity(relativedelta(days=int(days_str)))
 
     m = re.match('([0-9]+)[ ]*(w|week|weeks)', granularity_str)
 
     if m:
-        weeks, _ = m.groups()
+        weeks_str, _ = m.groups()
 
-        return Granularity(relativedelta(days=int(weeks) * 7))
+        return Granularity(relativedelta(days=int(weeks_str) * 7))
 
     m = re.match('([0-9]+)[ ]*(month|months)', granularity_str)
 
     if m:
-        months, _ = m.groups()
+        months_str, _ = m.groups()
 
-        return Granularity(relativedelta(months=int(months)))
+        return Granularity(relativedelta(months=int(months_str)))
 
     raise Exception("Unsupported granularity: {}".format(granularity_str))
 
 
-granularity_casts = {
+granularity_casts: Dict[Any, Callable[[Any], Granularity]] = {
     datetime.timedelta: timedelta_to_granularity,
     str: str_to_granularity,
     int: int_to_granularity
@@ -162,14 +166,14 @@ DELTA_15M = relativedelta(minutes=15)
 def months_str(num: int) -> str:
     if num == 1:
         return '1 month'
-    elif num > 1:
+    else:
         return '{} months'.format(num)
 
 
 def days_str(num: int) -> str:
     if num == 1:
         return '1 day'
-    elif num > 1:
+    else:
         return '{} days'.format(num)
 
 

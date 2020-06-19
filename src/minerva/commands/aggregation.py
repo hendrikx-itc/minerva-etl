@@ -257,6 +257,9 @@ def translate_source_part_name(aggregation_context: EntityAggregationContext, na
 
     m = re.search(pattern, name)
 
+    if m is None:
+        raise ConfigurationError('Could not extract part specific string from {name}')
+
     part_specific_name = m.group(1)
 
     return f'{data_source}_{entity_type}_{part_specific_name}_{granularity}'

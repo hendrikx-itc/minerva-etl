@@ -1,6 +1,6 @@
 import os
 from io import TextIOBase
-from typing import List, Generator, Union
+from typing import List, Generator, Union, Tuple
 from collections import OrderedDict
 from pathlib import Path
 
@@ -92,7 +92,7 @@ class GeneratedTrend:
         )
 
     def to_dict(self) -> OrderedDict:
-        items = [
+        items: List[Tuple[str, Union[str, dict]]] = [
             ('name', self.name),
             ('data_type', self.data_type)
         ]
@@ -376,6 +376,8 @@ class MinervaInstance:
                 definition = yaml.load(definition_file, Loader=yaml.SafeLoader)
         elif isinstance(file, TextIOBase):
             definition = yaml.load(file, Loader=yaml.SafeLoader)
+        else:
+            raise Exception('Unsupported argument type for file')
 
         return TrendStore.from_dict(definition)
 
@@ -385,7 +387,7 @@ class MinervaInstance:
         try:
             return self.load_attribute_store_from_file(file_path)
         except Exception as e:
-            print(f'Error loading attribute store {name}: {e}')
+            raise ConfigurationError(f'Error loading attribute store {name}: {e}')
 
     def save_attribute_store(self, attribute_store: AttributeStore) -> Path:
         """
@@ -402,9 +404,14 @@ class MinervaInstance:
         return out_file_path
 
     @staticmethod
-    def load_attribute_store_from_file(file_path: Path) -> AttributeStore:
-        with file_path.open() as definition_file:
-            definition = yaml.load(definition_file, Loader=yaml.SafeLoader)
+    def load_attribute_store_from_file(file: Union[Path, TextIOBase]) -> AttributeStore:
+        if isinstance(file, Path):
+            with file.open() as definition_file:
+                definition = yaml.load(definition_file, Loader=yaml.SafeLoader)
+        elif isinstance(file, TextIOBase):
+            definition = yaml.load(file, Loader=yaml.SafeLoader)
+        else:
+            raise Exception('Unsupported argument type for file')
 
         return AttributeStore.from_dict(definition)
 
