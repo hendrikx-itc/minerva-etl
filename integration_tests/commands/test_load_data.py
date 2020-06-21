@@ -1,26 +1,6 @@
 import subprocess
-import unittest
 import tempfile
 import json
-
-import docker
-
-from minerva.test.integration import start_db_container
-
-client = docker.from_env()
-db_container = None
-
-
-def setUpModule():
-    print('Setup')
-    global db_container
-    db_container = start_db_container(client)
-
-
-def tearDownModule():
-    print('Teardown')
-    global db_container
-    db_container.stop()
 
 
 trend_store_json = {
@@ -43,27 +23,26 @@ trend_store_json = {
 }
 
 
-class TestLoadData(unittest.TestCase):
-    def test_create_data_source(self):
-        proc = subprocess.run(['minerva', 'data-source', 'create', 'test'])
+def test_create_data_source(start_db_container):
+    proc = subprocess.run(['minerva', 'data-source', 'create', 'test'])
 
-        self.assertEqual(proc.returncode, 0)
+    assert proc.returncode == 0
 
-        with tempfile.NamedTemporaryFile('wt') as json_tmp_file:
-            json.dump(trend_store_json, json_tmp_file)
-            json_tmp_file.flush()
+    with tempfile.NamedTemporaryFile('wt') as json_tmp_file:
+        json.dump(trend_store_json, json_tmp_file)
+        json_tmp_file.flush()
 
-            proc = subprocess.run(['minerva', 'trend-store', 'create', '--format=json', json_tmp_file.name])
+        proc = subprocess.run(['minerva', 'trend-store', 'create', '--format=json', json_tmp_file.name])
 
-        self.assertEqual(proc.returncode, 0)
+    assert proc.returncode == 0
 
-        with tempfile.NamedTemporaryFile() as tmp_file:
-            proc = subprocess.run(
-                ['minerva', 'load-data', '--data-source', 'test', '--plugin', 'csv', tmp_file.name]
-            )
+    with tempfile.NamedTemporaryFile() as tmp_file:
+        proc = subprocess.run(
+            ['minerva', 'load-data', '--data-source', 'test', '--type', 'csv', tmp_file.name]
+        )
 
-        self.assertEqual(proc.returncode, 0)
+    assert proc.returncode == 0
 
-        proc = subprocess.run(['minerva', 'data-source', 'delete', 'test'])
+    proc = subprocess.run(['minerva', 'data-source', 'delete', 'test'])
 
-        self.assertEqual(proc.returncode, 0)
+    assert proc.returncode == 0

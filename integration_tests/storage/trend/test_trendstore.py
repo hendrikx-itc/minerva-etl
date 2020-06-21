@@ -4,7 +4,6 @@ import datetime
 import unittest
 
 import pytz
-import docker
 
 from minerva.directory import EntityType, DataSource
 from minerva.test import connect, clear_database
@@ -14,22 +13,6 @@ from minerva.storage.trend.trendstore import TrendStore, \
 from minerva.storage.trend.trend import Trend
 from minerva.storage.trend.granularity import create_granularity
 from minerva.db.util import get_column_names
-from minerva.test.integration import start_db_container
-
-client = docker.from_env()
-db_container = None
-
-
-def setUpModule():
-    print('Setup')
-    global db_container
-    db_container = start_db_container(client)
-
-
-def tearDownModule():
-    print('Teardown')
-    global db_container
-    db_container.stop()
 
 
 class TestStoreTrend(unittest.TestCase):

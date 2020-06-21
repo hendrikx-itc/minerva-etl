@@ -2,7 +2,6 @@ import os
 import sys
 import datetime
 import subprocess
-from itertools import chain
 from pathlib import Path
 from importlib import import_module
 
@@ -13,7 +12,7 @@ from minerva.storage.trend.granularity import str_to_granularity
 from minerva.storage.trend.datapackage import DataPackage
 from minerva.harvest.plugins import get_plugin
 from minerva.db import connect
-from minerva.commands.load_data import create_store_db_context
+from minerva.loading.loader import create_store_db_context
 from minerva.directory.entitytype import NoSuchEntityType
 from minerva.commands import ConfigurationError
 from minerva.instance import INSTANCE_ROOT_VARIABLE

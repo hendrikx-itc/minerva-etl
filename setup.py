@@ -22,7 +22,7 @@ setup(
         "python-dateutil", "pyparsing", "jinja2"
     ],
     extras_require={
-        "tests": ["docker"]
+        "tests": ["pytest", "docker"]
     },
     packages=[
         "minerva",
