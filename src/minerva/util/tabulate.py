@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from functools import partial, reduce
-
+from typing import List, Iterator
 
 WITH_ACCS = {
     "auto": min,
@@ -47,7 +47,7 @@ def render_rst_table(column_names, column_align, column_sizes, rows):
     )
 
 
-def render_table(column_names, column_align, column_sizes, rows):
+def render_table(column_names: List[str], column_align: List[str], column_sizes: List[str], rows: List[List]) -> List[str]:
     """
     Return list of lines of rendered table.
 

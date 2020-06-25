@@ -6,7 +6,7 @@ from minerva.error import ConfigurationError
 from minerva.commands import data_source, trend_store, entity_type, load_data, \
     structure, alias, attribute_store, initialize, relation, \
     trigger, load_sample_data, virtual_entity, notification_store, \
-    aggregation, live_monitor, trend_materialization, quick_start
+    aggregation, live_monitor, trend_materialization, quick_start, report
 
 
 def main():
@@ -38,6 +38,7 @@ def main():
     trend_store.setup_command_parser(subparsers)
     trigger.setup_command_parser(subparsers)
     virtual_entity.setup_command_parser(subparsers)
+    report.setup_command_parser(subparsers)
 
     args = parser.parse_args()
 
