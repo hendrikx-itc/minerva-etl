@@ -145,25 +145,28 @@ def initialize_derivatives(instance_root):
 def initialize_attribute_stores(instance_root):
     instance = MinervaInstance.load(instance_root)
 
-    for attribute_store in instance.load_attribute_stores():
-        print(attribute_store)
+    with connect() as conn:
+        conn.autocommit = True
 
-        try:
-            create_attribute_store(attribute_store)
-        except DuplicateAttributeStore as exc:
-            print(exc)
+        for attribute_store in instance.load_attribute_stores():
+            print(attribute_store)
 
-    # Attribute-store-like views can be used for quick attribute
-    # transformations or combinations. These views can be defined using plain
-    # SQL.
-    sql_files = glob.glob(
-        os.path.join(instance_root, 'attribute/*.sql')
-    )
+            try:
+                create_attribute_store(conn, attribute_store)
+            except DuplicateAttributeStore as exc:
+                print(exc)
 
-    for sql_file_path in sql_files:
-        print(sql_file_path)
+        # Attribute-store-like views can be used for quick attribute
+        # transformations or combinations. These views can be defined using plain
+        # SQL.
+        sql_files = glob.glob(
+            os.path.join(instance_root, 'attribute/*.sql')
+        )
 
-        execute_sql_file(sql_file_path)
+        for sql_file_path in sql_files:
+            print(sql_file_path)
+
+            execute_sql_file(sql_file_path)
 
 
 def initialize_trend_stores(instance_root):

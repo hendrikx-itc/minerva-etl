@@ -430,13 +430,13 @@ class MinervaInstance:
         """
         Return list of trend store file paths in the instance trend directory
         """
-        return list(Path(self.root, 'trend').rglob('*.yaml'))
+        return sorted(Path(self.root, 'trend').rglob('*.yaml'))
 
     def list_attribute_stores(self) -> List[Path]:
         """
         Return list of attribute store file paths in the instance attribute directory
         """
-        return list(Path(self.root, 'attribute').glob('*.yaml'))
+        return sorted(Path(self.root, 'attribute').glob('*.yaml'))
 
     def load_trend_stores(self) -> Generator[TrendStore, None, None]:
         """
