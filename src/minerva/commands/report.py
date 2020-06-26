@@ -2,7 +2,8 @@
 Provides the 'report' sub-command for reporting on metrics of trend stores,
 attribute stores, etc.
 """
-from typing import Generator
+from datetime import datetime
+from typing import Generator, List, Tuple
 
 from psycopg2 import sql
 
@@ -96,6 +97,22 @@ def get_trend_store_part_statistics(conn, trend_store_part_name: str):
 
 
 def generate_attribute_report(conn) -> Generator[str, None, None]:
+    table_rows = [
+        get_attribute_store_part_statistics(conn, name)
+        for name in get_attribute_store_names(conn)
+    ]
+
+    column_names = ['Name', 'Record Count', 'Unique Entity Count', 'Max Timestamp']
+
+    column_align = ['<', '>', '>', '<']
+    column_sizes = ["max"] * len(column_names)
+
+    yield from render_table(
+        column_names, column_align, column_sizes, table_rows
+    )
+
+
+def get_attribute_store_names(conn) -> List[str]:
     query = (
         'SELECT attribute_store::text AS name '
         'FROM attribute_directory.attribute_store ORDER BY name'
@@ -104,37 +121,25 @@ def generate_attribute_report(conn) -> Generator[str, None, None]:
     with conn.cursor() as cursor:
         cursor.execute(query)
 
-        rows = cursor.fetchall()
-
-        table_rows = [
-            (
-                name,
-            ) + get_attribute_store_part_statistics(conn, name)
-            for name, in rows
-        ]
-
-        column_names = ['Name', 'Record Count', 'Unique Entity Count']
-
-        column_align = ['<', '>', '>']
-        column_sizes = ["max"] * len(column_names)
-
-        yield from render_table(
-            column_names, column_align, column_sizes, table_rows
-        )
+        return [name for name, in cursor.fetchall()]
 
 
-def get_attribute_store_part_statistics(conn, attribute_store_part_name: str):
+def get_attribute_store_part_statistics(conn, attribute_store_name: str) -> Tuple[str, int, int, str]:
+    attribute_history_identifier = sql.Identifier(
+        'attribute_history', attribute_store_name
+    )
+
     record_count_query = sql.SQL(
         'SELECT count(*) FROM {}'
-    ).format(
-        sql.Identifier('attribute_history', attribute_store_part_name)
-    )
+    ).format(attribute_history_identifier)
 
     unique_entity_count_query = sql.SQL(
         'SELECT count(distinct entity_id) FROM {}'
-    ).format(
-        sql.Identifier('attribute_history', attribute_store_part_name)
-    )
+    ).format(attribute_history_identifier)
+
+    most_recent_timestamp_query = sql.SQL(
+        'SELECT max(timestamp) FROM {}'
+    ).format(attribute_history_identifier)
 
     with conn.cursor() as cursor:
         cursor.execute(record_count_query)
@@ -145,4 +150,13 @@ def get_attribute_store_part_statistics(conn, attribute_store_part_name: str):
 
         unique_entity_count, = cursor.fetchone()
 
-    return record_count, unique_entity_count
+        cursor.execute(most_recent_timestamp_query)
+
+        most_recent_timestamp, = cursor.fetchone()
+
+        if most_recent_timestamp is None:
+            most_recent_timestamp_str = ''
+        else:
+            most_recent_timestamp_str = str(most_recent_timestamp)
+
+    return attribute_store_name, record_count, unique_entity_count, most_recent_timestamp_str
