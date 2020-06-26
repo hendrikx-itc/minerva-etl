@@ -109,14 +109,13 @@ def generate_attribute_report(conn) -> Generator[str, None, None]:
         table_rows = [
             (
                 name,
-                get_attribute_store_part_statistics(conn, name)
-            )
+            ) + get_attribute_store_part_statistics(conn, name)
             for name, in rows
         ]
 
-        column_names = ['Name', 'Record Count']
+        column_names = ['Name', 'Record Count', 'Unique Entity Count']
 
-        column_align = ['<', '>']
+        column_align = ['<', '>', '>']
         column_sizes = ["max"] * len(column_names)
 
         yield from render_table(
@@ -125,15 +124,25 @@ def generate_attribute_report(conn) -> Generator[str, None, None]:
 
 
 def get_attribute_store_part_statistics(conn, attribute_store_part_name: str):
-    query = sql.SQL(
+    record_count_query = sql.SQL(
         'SELECT count(*) FROM {}'
     ).format(
         sql.Identifier('attribute_history', attribute_store_part_name)
     )
 
+    unique_entity_count_query = sql.SQL(
+        'SELECT count(distinct entity_id) FROM {}'
+    ).format(
+        sql.Identifier('attribute_history', attribute_store_part_name)
+    )
+
     with conn.cursor() as cursor:
-        cursor.execute(query)
+        cursor.execute(record_count_query)
 
-        row_count, = cursor.fetchone()
+        record_count, = cursor.fetchone()
 
-        return row_count
+        cursor.execute(unique_entity_count_query)
+
+        unique_entity_count, = cursor.fetchone()
+
+    return record_count, unique_entity_count

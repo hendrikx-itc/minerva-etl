@@ -72,9 +72,9 @@ def create_attribute_store_cmd(args):
             create_attribute_store(conn, attribute_store)
             sys.stdout.write("OK\n")
         except DuplicateAttributeStore as exc:
-            sys.stdout.write(str(exc))
+            sys.stdout.write(f'{exc}\n')
         except Exception as exc:
-            sys.stdout.write("Error:\n{}".format(exc))
+            sys.stdout.write(f'Error:\n{exc}\n')
 
 
 def create_attribute_store(conn, attribute_store: AttributeStore):
