@@ -1,6 +1,6 @@
 import os
 from io import TextIOBase
-from typing import List, Generator, Union, Tuple
+from typing import List, Generator, Union, Tuple, Optional
 from collections import OrderedDict
 from pathlib import Path
 
@@ -282,11 +282,13 @@ class Attribute:
 
 
 class AttributeStore:
+    title: Optional[str]
     data_source: str
     entity_type: str
     attributes: List[Attribute]
 
     def __init__(self, data_source, entity_type, attributes):
+        self.title = None
         self.data_source = data_source
         self.entity_type = entity_type
         self.attributes = attributes
@@ -302,14 +304,23 @@ class AttributeStore:
             [Attribute.from_dict(a) for a in data['attributes']]
         )
 
+        attribute_store.title = data.get('title')
+
         return attribute_store
 
     def to_dict(self) -> OrderedDict:
-        return OrderedDict([
+        items = []
+
+        if self.title:
+            items.append(('title', self.title))
+
+        items.extend([
             ('data_source', self.data_source),
             ('entity_type', self.entity_type),
             ('attributes', [attribute.to_dict() for attribute in self.attributes])
         ])
+
+        return OrderedDict(items)
 
 
 class MinervaInstance:
