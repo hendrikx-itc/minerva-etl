@@ -39,7 +39,8 @@ setup(
         "minerva.storage.attribute",
         "minerva.storage.notification",
         "minerva.harvest",
-        "minerva.trigger"
+        "minerva.trigger",
+        "minerva.loading",
     ],
     package_dir={"": "src"},
     entry_points={
