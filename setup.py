@@ -41,6 +41,7 @@ setup(
         "minerva.harvest",
         "minerva.trigger",
         "minerva.loading",
+        "minerva.loading.csv",
     ],
     package_dir={"": "src"},
     entry_points={
