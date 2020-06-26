@@ -1,4 +1,8 @@
 pipeline {
+    parameters {
+        string(name: 'PACKAGE_SECTION', defaultValue: 'unstable', description: '')
+    }
+
     agent {
         node {
             label 'git'
@@ -32,17 +36,7 @@ pipeline {
 
                         sh './package 1804'
                         
-                        switch (GIT_BRANCH) {
-                            case "origin/master":
-                                publishPackages buildDir1804.toString(), 'common/bionic/stable', 'bionic'
-                                break
-                            case "origin/release/5.0":
-                                publishPackages buildDir1804.toString(), 'common/bionic/unstable', 'bionic'
-                                break
-                            case "origin/develop":
-                                publishPackages buildDir1804.toString(), 'common/bionic/unstable', 'bionic'
-                                break
-                        }
+                        publishPackages buildDir1804.toString(), "common/bionic/${params.PACKAGE_SECTION}", 'bionic'
 
                         archiveArtifacts(artifacts: "${buildDir1804}/*")
                     }
