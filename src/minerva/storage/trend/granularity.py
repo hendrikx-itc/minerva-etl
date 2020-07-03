@@ -2,10 +2,13 @@
 import re
 import datetime
 from typing import Union, Callable, Dict, Any
+from functools import total_ordering
 
 from dateutil.relativedelta import relativedelta
 
+DUMMY_EPOCH = datetime.datetime(year=1900, month=1, day=1)
 
+@total_ordering
 class Granularity:
     delta: relativedelta
 
@@ -31,6 +34,15 @@ class Granularity:
                 self.delta.hours, self.delta.minutes, self.delta.seconds))
 
         return " ".join(parts)
+
+    def __lt__(self, other):
+        return self.to_timedelta() < other.to_timedelta()
+
+    def __eq__(self, other):
+        return self.to_timedelta() == other.to_timedelta()
+
+    def to_timedelta(self):
+        return (DUMMY_EPOCH + self.delta) - DUMMY_EPOCH
 
     def inc(self, x: datetime.datetime) -> datetime.datetime:
         return x.tzinfo.localize(
@@ -112,6 +124,14 @@ def str_to_granularity(granularity_str: str) -> Granularity:
         minutes_str, _ = m.groups()
 
         return Granularity(relativedelta(minutes=int(minutes_str)))
+
+    m = re.match('^([0-9]+)[ ]*(h|hour|hours)$', granularity_str)
+
+    if m:
+        hours_str, _ = m.groups()
+        hours = int(hours_str)
+
+        return Granularity(relativedelta(minutes=(60 * hours)))
 
     m = re.match('([0-9]+)[ ]*(d|day|days)', granularity_str)
 

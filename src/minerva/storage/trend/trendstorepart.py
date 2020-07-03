@@ -260,10 +260,13 @@ class TrendStorePart:
                 self.base_table(), trend_names
             )
 
-            try:
-                cursor.copy_expert(copy_from_query, copy_from_file)
-            except psycopg2.errors.InvalidTextRepresentation as exc:
-                raise DataTypeMismatch()
+            cursor.copy_expert(copy_from_query, copy_from_file)
+
+            # Only valid for psycopg <2.8, so not compatible with the version on Ubuntu 18.04
+            #try:
+            #    cursor.copy_expert(copy_from_query, copy_from_file)
+            #except psycopg2.errors.InvalidTextRepresentation as exc:
+            #    raise DataTypeMismatch()
 
         return f
 
