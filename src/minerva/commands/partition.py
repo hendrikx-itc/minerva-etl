@@ -1,4 +1,5 @@
 from contextlib import closing
+from typing import Optional, Generator, Tuple
 
 import psycopg2.errors
 
@@ -29,9 +30,14 @@ def create_specific_partitions_for_trend_store(conn, trend_store_id, timestamp):
             conn.rollback()
 
 
-def create_partitions_for_trend_store(conn, trend_store_id, ahead_interval, partition_count=None):
+def create_partitions_for_trend_store(
+        conn, trend_store_id: int, ahead_interval: str, partition_count: Optional[int] = None
+) -> Generator[Tuple[str, int, int, int], None, None]:
     """
-    :param partition_count: Provide the number of partitions to create or None
+    :param conn: Connection to Minerva database
+    :param trend_store_id: Id of trend store to create partitions for
+    :param ahead_interval: Interval string defining how far ahead partitions need te be created
+    :param partition_count: The number of partitions to create or None
     to create partitions for the full retention period.
     """
     if partition_count is None:

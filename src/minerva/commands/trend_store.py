@@ -65,6 +65,11 @@ def setup_create_parser(subparsers):
     )
 
     cmd.add_argument(
+        '--create-partitions', default=False, action='store_true',
+        help='create partitions according to retention configuration'
+    )
+
+    cmd.add_argument(
         'definition', type=argparse.FileType('r'),
         help='file containing trend store definition'
     )
@@ -99,7 +104,7 @@ def create_trend_store_cmd(args):
     )
 
     try:
-        create_trend_store(trend_store)
+        create_trend_store(trend_store, args.create_partitions)
         sys.stdout.write("OK\n")
     except DuplicateTrendStore as exc:
         print("Could not create trend store: {}".format(exc))
@@ -371,9 +376,10 @@ def deduce_trend_store_cmd(cmd_parser):
     return cmd
 
 
-def create_trend_store(trend_store_definition: TrendStore):
+def create_trend_store(trend_store_definition: TrendStore, create_partitions: bool):
     query = (
-        'SELECT trend_directory.create_trend_store('
+        'SELECT id '
+        'FROM trend_directory.create_trend_store('
         '%s::text, %s::text, %s::interval, %s::interval, '
         '%s::trend_directory.trend_store_part_descr[]'
         ')'
@@ -393,6 +399,15 @@ def create_trend_store(trend_store_definition: TrendStore):
                     trend_store_definition.data_source, trend_store_definition.entity_type,
                     trend_store_definition.granularity
                 )
+
+            trend_store_id, = cursor.fetchone()
+
+            if create_partitions:
+                print()
+                ahead_interval = '3 days'
+
+                for name, partition_index, index, total in create_partitions_for_trend_store(conn, trend_store_id, ahead_interval):
+                    print(f"created partition of part '{name}_{partition_index}' {index + 1}/{total}")
 
         conn.commit()
 
