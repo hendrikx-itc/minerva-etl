@@ -350,7 +350,7 @@ class MinervaInstance:
     def trend_store_file_path(self, name: str) -> Path:
         base_name, ext = os.path.splitext(name)
 
-        if not ext:
+        if ext != '.yaml':
             file_name = f'{name}.yaml'
         else:
             file_name = name
