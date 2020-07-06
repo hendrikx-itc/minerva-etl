@@ -5,7 +5,6 @@ Helper functions for the directory schema.
 import re
 from typing import List
 
-from minerva.directory import Entity, EntityType
 from psycopg2 import sql
 
 from minerva.util import identity, k, fst
@@ -108,21 +107,6 @@ class NoSuchRelationTypeError(Exception):
     Exception raised when no matching relation type is found.
     """
     pass
-
-
-def get_child_ids(cursor, base_entity: Entity, entity_type: EntityType) -> List[int]:
-    """
-    Return child ids for entity_type related to base_entity.
-    """
-    query = (
-        "SELECT id FROM directory.entity "
-        "WHERE entitytype_id = %s AND name LIKE %s")
-
-    args = (entity_type.id, base_entity.name + ",%")
-
-    cursor.execute(query, args)
-
-    return (entity_id for entity_id, in cursor.fetchall())
 
 
 def none_or(if_none=k(None), if_value=identity):

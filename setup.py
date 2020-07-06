@@ -17,6 +17,7 @@ setup(
     author_email="info@hendrikx-itc.nl",
     version=ns['__version__'],
     license="GPL",
+    python_requires='>3.6',
     install_requires=[
         "pytz", "psycopg2>=2.8", "PyYAML", "configobj",
         "python-dateutil", "pyparsing", "jinja2"
