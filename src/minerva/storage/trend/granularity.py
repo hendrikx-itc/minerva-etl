@@ -69,6 +69,12 @@ class Granularity:
             return x.tzinfo.localize(
                 datetime.datetime(years, months, days, hours, 0, 0)
             )
+        elif self.delta == DELTA_30M:
+            truncated_minutes = minutes - (minutes % 30)
+
+            return x.tzinfo.localize(
+                datetime.datetime(years, months, days, hours, truncated_minutes, 0)
+            )
         elif self.delta == DELTA_15M:
             truncated_minutes = minutes - (minutes % 15)
 
@@ -180,6 +186,7 @@ def fn_range(incr, start, end):
 
 DELTA_1D = relativedelta(days=1)
 DELTA_1H = relativedelta(hours=1)
+DELTA_30M = relativedelta(minutes=30)
 DELTA_15M = relativedelta(minutes=15)
 
 
