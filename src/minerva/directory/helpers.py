@@ -36,16 +36,26 @@ def names_to_entity_ids(cursor, entity_type: str, names: list) -> List[int]:
     Map names to entity ID's, create any missing entities, and return the
     corresponding entity ID's.
 
-    :param cursor:
-    :param entity_type: name of the entity type
+    :param cursor: psycopg2 cursor
+    :param entity_type: case insensitive name of the entity type
     :param names: names of entities for which to return the ID's
     :return:
     """
+    # First get the correct casing for the entity type name, because the table
+    # name uses that specific casing.
+    query = sql.SQL(
+        'SELECT name FROM directory.entity_type WHERE lower(name) = %s'
+    )
+
+    cursor.execute(query, (entity_type.lower(),))
+
+    entity_type_name, = cursor.fetchone()
+
     query = sql.SQL(
         'WITH lookup_list AS (SELECT unnest(ARRAY[%s]::text[]) AS name) '
         'SELECT l.name, e.id FROM lookup_list l '
         'LEFT JOIN entity.{} e ON l.name = e.name '
-    ).format(sql.Identifier(entity_type))
+    ).format(sql.Identifier(entity_type_name))
 
     unmapped_names = []
     entity_ids = []
@@ -60,7 +70,7 @@ def names_to_entity_ids(cursor, entity_type: str, names: list) -> List[int]:
 
     if len(unmapped_names) > 0:
         entity_ids.extend(
-            create_entities_from_names(cursor, entity_type, unmapped_names)
+            create_entities_from_names(cursor, entity_type_name, unmapped_names)
         )
 
     return entity_ids
