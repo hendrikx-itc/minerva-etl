@@ -1,4 +1,6 @@
 import os
+from typing import Optional
+
 import sys
 import datetime
 import subprocess
@@ -29,6 +31,11 @@ def setup_command_parser(subparsers):
     )
 
     cmd.add_argument(
+        '--interval-count', default=30, type=int,
+        help='number of intervals for which to generate trend data'
+    )
+
+    cmd.add_argument(
         'dataset', nargs='?', help='name of the dataset to load'
     )
 
@@ -45,14 +52,14 @@ def load_sample_data_cmd(args):
     )
 
     try:
-        load_sample_data(instance_root, args.dataset)
+        load_sample_data(instance_root, args.interval_count, args.dataset)
     except ConfigurationError as exc:
         sys.stdout.write('{}\n'.format(str(exc)))
 
     sys.stdout.write("Done\n")
 
 
-def load_sample_data(instance_root, data_set=None):
+def load_sample_data(instance_root: str, interval_count: int, data_set: Optional[str]=None):
     sys.path.append(os.path.join(instance_root, 'sample-data'))
 
     definition_file_path = Path(
@@ -69,7 +76,7 @@ def load_sample_data(instance_root, data_set=None):
             # data set.
             if (data_set is None) or (data_set == config['name']):
                 if definition_type == 'native':
-                    generate_and_load(config)
+                    generate_and_load(config, interval_count)
                 elif definition_type == 'command':
                     cmd_generate_and_load(config)
 
@@ -89,9 +96,7 @@ def cmd_generate_and_load(config):
         subprocess.run(cmd)
 
 
-def generate_and_load(config):
-    interval_count = 150
-
+def generate_and_load(config, interval_count: int):
     name = config['name']
 
     print("Loading dataset '{}' of type '{}'".format(
