@@ -685,14 +685,25 @@ def aggregate_function(part_data: TrendStorePart, target_granularity):
 
     column_expressions = [
         '      entity_id',
-        '      $2 AS timestamp'
-    ] + trend_column_expressions
+        '      $2 AS timestamp',
+    ]
+
+    result_columns = [
+        '  "entity_id" integer',
+        '  "timestamp" timestamp with time zone',
+    ]
+
+    if len([trend for trend in part_data.trends if trend.name == 'samples']) == 0:
+        column_expressions.append('      count(*) AS samples')
+        result_columns.append('  samples smallint')
+
+    column_expressions += trend_column_expressions
+
+    result_columns += trend_columns
 
     return_type = (
         'TABLE (\n' +
-        '  "entity_id" integer,\n' +
-        '  "timestamp" timestamp with time zone,\n' +
-        ',\n'.join(trend_columns) +
+        ',\n'.join(result_columns) +
         '\n' +
         ')\n'
     )

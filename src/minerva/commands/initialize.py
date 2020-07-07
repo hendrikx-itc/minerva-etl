@@ -175,7 +175,7 @@ def initialize_trend_stores(instance_root):
     for trend_store in instance.load_trend_stores():
         print(trend_store)
         try:
-            create_trend_store(trend_store)
+            create_trend_store(trend_store, False)
         except DuplicateTrendStore as exc:
             print(exc)
 
