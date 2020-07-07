@@ -380,9 +380,19 @@ def enable_sql(name):
     ]
 
 
-AGGREGATE_DATA_TYPE_MAPPING = {
+AGGREGATE_DATA_TYPE_MAPPING_SUM = {
     'smallint': 'bigint',
     'integer': 'bigint',
+    'bigint': 'numeric',
+    'float': 'float',
+    'double precision': 'double precision',
+    'real': 'real',
+    'numeric': 'numeric'
+}
+
+AGGREGATE_DATA_TYPE_MAPPING_AVG = {
+    'smallint': 'numeric',
+    'integer': 'numeric',
     'bigint': 'numeric',
     'float': 'double precision',
     'double precision': 'double precision',
@@ -499,18 +509,23 @@ def define_aggregate_part(data: TrendStorePart, definition):
     )
 
 
-def aggregate_data_type(data_type):
-    return AGGREGATE_DATA_TYPE_MAPPING.get(data_type, data_type)
+def aggregate_data_type(data_type: str, aggregate_method: str) -> str:
+    if aggregate_method == 'SUM':
+        return AGGREGATE_DATA_TYPE_MAPPING_SUM.get(data_type, data_type)
+    elif aggregate_method == 'AVG':
+        return AGGREGATE_DATA_TYPE_MAPPING_AVG.get(data_type, data_type)
+    else:
+        return data_type
 
 
-def define_aggregate_trend(data: Trend):
+def define_aggregate_trend(source_trend: Trend):
     return Trend(
-        data.name,
-        aggregate_data_type(data.data_type),
+        source_trend.name,
+        aggregate_data_type(source_trend.data_type, source_trend.time_aggregation),
         '',
-        data.time_aggregation,
-        data.entity_aggregation,
-        data.extra_data
+        source_trend.time_aggregation,
+        source_trend.entity_aggregation,
+        source_trend.extra_data
     )
 
 
@@ -669,7 +684,7 @@ def aggregate_function(part_data: TrendStorePart, target_granularity):
     trend_columns = [
         '  "{}" {}'.format(
             trend.name,
-            aggregate_data_type(trend.data_type)
+            aggregate_data_type(trend.data_type, trend.time_aggregation)
         )
         for trend in part_data.trends
     ]
@@ -694,7 +709,7 @@ def aggregate_function(part_data: TrendStorePart, target_granularity):
     ]
 
     if len([trend for trend in part_data.trends if trend.name == 'samples']) == 0:
-        column_expressions.append('      count(*) AS samples')
+        column_expressions.append('      (count(*))::smallint AS samples')
         result_columns.append('  samples smallint')
 
     column_expressions += trend_column_expressions
