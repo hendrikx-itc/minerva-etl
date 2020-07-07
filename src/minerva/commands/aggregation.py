@@ -510,9 +510,9 @@ def define_aggregate_part(data: TrendStorePart, definition):
 
 
 def aggregate_data_type(data_type: str, aggregate_method: str) -> str:
-    if aggregate_method == 'SUM':
+    if aggregate_method.upper() == 'SUM':
         return AGGREGATE_DATA_TYPE_MAPPING_SUM.get(data_type, data_type)
-    elif aggregate_method == 'AVG':
+    elif aggregate_method.upper() == 'AVG':
         return AGGREGATE_DATA_TYPE_MAPPING_AVG.get(data_type, data_type)
     else:
         return data_type
