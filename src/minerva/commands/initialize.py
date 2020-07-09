@@ -43,7 +43,7 @@ def setup_command_parser(subparsers):
     )
 
     cmd.add_argument(
-        '--sample-count', default=3,
+        '--interval-count', default=3,
         help='number of samples to load for trend data'
     )
 
@@ -81,7 +81,7 @@ def initialize_cmd(args):
 
     if args.load_sample_data:
         header('Loading sample data')
-        load_sample_data(instance_root, args.sample_count)
+        load_sample_data(instance_root, args.interval_count)
 
     initialize_derivatives(instance_root)
 
