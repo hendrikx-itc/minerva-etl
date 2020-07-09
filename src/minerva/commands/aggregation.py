@@ -1,4 +1,5 @@
-from typing import Dict, List, Union
+from pathlib import Path
+from typing import Dict, List, Union, Optional, Tuple
 import os
 import json
 import re
@@ -10,6 +11,7 @@ import yaml
 from minerva.instance import MinervaInstance, TrendStore, TrendStorePart, \
     Trend, GeneratedTrend
 from minerva.commands import ConfigurationError
+from minerva.storage.trend.granularity import str_to_granularity
 
 
 def setup_command_parser(subparsers):
@@ -19,13 +21,13 @@ def setup_command_parser(subparsers):
 
     cmd_subparsers = cmd.add_subparsers()
 
-    setup_time_parser(cmd_subparsers)
-    setup_entity_parser(cmd_subparsers)
+    setup_compile_parser(cmd_subparsers)
+    setup_compile_all_parser(cmd_subparsers)
 
 
-def setup_entity_parser(subparsers):
+def setup_compile_parser(subparsers):
     cmd = subparsers.add_parser(
-        'entity', help='define entity aggregation'
+        'compile', help='compile an aggregation into materializations'
     )
 
     cmd.add_argument(
@@ -38,34 +40,73 @@ def setup_entity_parser(subparsers):
         help='Aggregations definition file'
     )
 
-    cmd.set_defaults(cmd=entity_aggregation)
+    cmd.set_defaults(cmd=compile_aggregation)
+
+
+def setup_compile_all_parser(subparsers):
+    cmd = subparsers.add_parser(
+        'compile-all', help='compile all defined aggregations in the Minerva instance'
+    )
+
+    cmd.set_defaults(cmd=compile_all_aggregations)
+
+
+def load_aggregations(instance_root: Path) -> List[Tuple[Path, dict]]:
+    return [
+        (file_path, yaml.load(file_path.open(), Loader=yaml.SafeLoader))
+        for file_path in instance_root.glob('aggregation/*.yaml')
+    ]
+
+
+def compile_all_aggregations(args):
+    instance = MinervaInstance.load()
+
+    instance_root = Path(instance.root)
+
+    aggregation_definitions = load_aggregations(instance_root)
+
+    time_aggregation_definitions = [
+        (file_path, TimeAggregationContext(instance, d['time_aggregation'], str(file_path)))
+        for file_path, d in aggregation_definitions
+        if 'time_aggregation' in d
+    ]
+
+    entity_aggregation_definitions = [
+        (file_path, EntityAggregationContext(instance, d['entity_aggregation'], str(file_path)))
+        for file_path, d in aggregation_definitions
+        if 'entity_aggregation' in d
+    ]
+
+    sorted_time_aggregation_definitions = sorted(time_aggregation_definitions, key=time_aggregation_key_fn)
+
+    for file_path, aggregation_context in sorted_time_aggregation_definitions:
+        title = str(file_path)
+        print('#-{}'.format(len(title)*'-'))
+        print('# {}'.format(title))
+        print('#-{}'.format(len(title)*'-'))
+        time_aggregation(aggregation_context)
+
+    for file_path, aggregation_context in entity_aggregation_definitions:
+        entity_aggregation(aggregation_context)
 
 
 class AggregationContext:
     instance: MinervaInstance
-    source_definition: TrendStore
+    definition: dict
+    source_definition: Optional[TrendStore]
+    aggregation_file_path: str
 
-    def __init__(self, instance, aggregation_file_path, file_format):
+    def __init__(self, instance, definition: dict, aggregation_file_path: str):
         self.instance = instance
+        self.definition = definition
         self.aggregation_file_path = aggregation_file_path
 
-        with open(aggregation_file_path) as definition_file:
-            if file_format == 'json':
-                definition = json.load(definition_file)
-            elif file_format == 'yaml':
-                definition = ordered_load(definition_file, Loader=yaml.SafeLoader)
-
-        self.definition = definition
-
         self.source_definition_file_path = None
-        self.source_definition = None
-
-        self.load_source_definition()
+        self.source_definition = self.instance.load_trend_store_by_name(
+            self.definition['source']
+        )
 
         self.configuration_check()
-
-    def load_source_definition(self):
-        raise NotImplementedError()
 
     def configuration_check(self):
         raise NotImplementedError()
@@ -79,7 +120,7 @@ class AggregationContext:
         )
 
         relative_source_definition_path = self.instance.make_relative(
-            self.definition['entity_aggregation']['source']
+            self.definition['source']
         )
 
         return (
@@ -95,21 +136,16 @@ class AggregationContext:
 
 
 class EntityAggregationContext(AggregationContext):
-    def load_source_definition(self):
-        self.source_definition = self.instance.load_trend_store_by_name(
-            self.definition['entity_aggregation']['source']
-        )
-
     def configuration_check(self):
         # Check if the relation matches the aggregation
         relation = load_relation(
-            self.instance.root, self.definition['entity_aggregation']['relation']
+            self.instance.root, self.definition['relation']
         )
 
-        if self.definition['entity_aggregation']['entity_type'] != relation['target_entity_type']:
+        if self.definition['entity_type'] != relation['target_entity_type']:
             raise ConfigurationError(
                 'Entity type mismatch between definition and relation target: {} != {}'.format(
-                    self.definition['entity_aggregation']['entity_type'],
+                    self.definition['entity_type'],
                     relation['target_entity_type']
                 )
             )
@@ -140,22 +176,41 @@ class TimeAggregation:
 
 
 class TimeAggregationContext(AggregationContext):
-    def load_source_definition(self):
-        self.source_definition = self.instance.load_trend_store_by_name(
-            self.definition['time_aggregation']['source']
-        )
-
     def configuration_check(self):
         pass
 
 
-def entity_aggregation(args):
+def time_aggregation_key_fn(pair: Tuple[Path, TimeAggregationContext]):
+    file_path, aggregation_context = pair
+    granularity_str = aggregation_context.definition['granularity']
+
+    return str_to_granularity(granularity_str)
+
+
+def compile_aggregation(args):
+    with open(args.definition) as definition_file:
+        if args.format == 'json':
+            definition = json.load(definition_file)
+        elif args.format == 'yaml':
+            definition = ordered_load(definition_file, Loader=yaml.SafeLoader)
+
     instance = MinervaInstance.load()
 
-    aggregation_context = EntityAggregationContext(
-        instance, args.definition, args.format
-    )
+    if 'entity_aggregation' in definition:
+        aggregation_context = EntityAggregationContext(
+            instance, definition['entity_aggregation'], args.definition
+        )
 
+        entity_aggregation(aggregation_context)
+    elif 'time_aggregation' in definition:
+        aggregation_context = TimeAggregationContext(
+            instance, definition['time_aggregation'], args.definition
+        )
+
+        time_aggregation(aggregation_context)
+
+
+def entity_aggregation(aggregation_context: EntityAggregationContext):
     try:
         write_entity_aggregations(aggregation_context)
     except ConfigurationError as exc:
@@ -267,7 +322,7 @@ def translate_source_part_name(aggregation_context: EntityAggregationContext, na
 
 def write_entity_aggregations(aggregation_context: EntityAggregationContext) -> None:
     """
-    Generate and write aggregations for all parts of the trend store
+    Generate and write aggregation materializations for all parts of the trend store
 
     :param aggregation_context: Complete context for entity aggregation to write
     :return: None
@@ -411,11 +466,7 @@ PARTITION_SIZE_MAPPING = {
 
 
 def define_aggregate_trend_store(aggregation_context: Union[EntityAggregationContext, TimeAggregationContext]) -> TrendStore:
-    if 'entity_aggregation' in aggregation_context.definition:
-        definition = aggregation_context.definition['entity_aggregation']
-    else:
-        definition = aggregation_context.definition['time_aggregation']
-
+    definition = aggregation_context.definition
     src_trend_store = aggregation_context.source_definition
 
     if definition.get('data_source') is None:
@@ -555,38 +606,15 @@ def part_name_mapper_entity(
     return map_part_name
 
 
-def setup_time_parser(subparsers):
-    cmd = subparsers.add_parser(
-        'time', help='define time aggregation'
-    )
-
-    cmd.add_argument(
-        '--format', choices=['yaml', 'json'], default='yaml',
-        help='format of definition'
-    )
-
-    cmd.add_argument(
-        'definition', help='file containing relation definition'
-    )
-
-    cmd.set_defaults(cmd=time_aggregation)
-
-
-def time_aggregation(args):
-    instance = MinervaInstance.load()
-
-    aggregation_context = TimeAggregationContext(
-        instance, args.definition, args.format
-    )
-
+def time_aggregation(aggregation_context: TimeAggregationContext):
     write_time_aggregations(aggregation_context)
 
     aggregate_trend_store = define_aggregate_trend_store(aggregation_context)
 
     aggregate_trend_store_file_path = os.path.join(
-        instance.root,
+        aggregation_context.instance.root,
         'trend',
-        '{}.yaml'.format(aggregation_context.definition['time_aggregation']['name'])
+        '{}.yaml'.format(aggregation_context.definition['name'])
     )
 
     print("Writing aggregate trend store to '{}'".format(
@@ -620,7 +648,7 @@ def write_time_aggregations(aggregation_context: TimeAggregationContext):
 
     :param aggregation_context:
     """
-    for agg_part in aggregation_context.definition['time_aggregation']['parts']:
+    for agg_part in aggregation_context.definition['parts']:
         if 'source' in agg_part:
             try:
                 source_part = next(
@@ -641,8 +669,8 @@ def write_time_aggregations(aggregation_context: TimeAggregationContext):
                 "Writing materialization to '{}'".format(materialization_file_path)
             )
 
-            mapping_function = aggregation_context.definition['time_aggregation']['mapping_function']
-            target_granularity = aggregation_context.definition['time_aggregation']['granularity']
+            mapping_function = aggregation_context.definition['mapping_function']
+            target_granularity = aggregation_context.definition['granularity']
 
             aggregate_definition = define_part_time_aggregation(
                 source_part, aggregation_context.source_definition.granularity, mapping_function,
@@ -656,7 +684,9 @@ def write_time_aggregations(aggregation_context: TimeAggregationContext):
                 )
 
 
-def define_part_time_aggregation(source_part: TrendStorePart, source_granularity, mapping_function, target_granularity, name) -> OrderedDict:
+def define_part_time_aggregation(
+        source_part: TrendStorePart, source_granularity: str, mapping_function: str, target_granularity: str, name: str
+) -> OrderedDict:
     return OrderedDict([
         ('target_trend_store_part', name),
         ('enabled', True),
