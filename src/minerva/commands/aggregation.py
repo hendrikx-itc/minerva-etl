@@ -11,6 +11,7 @@ import yaml
 from minerva.instance import MinervaInstance, TrendStore, TrendStorePart, \
     Trend, GeneratedTrend
 from minerva.commands import ConfigurationError
+from minerva.instance.aggregation_generation import generate_standard_aggregations
 from minerva.storage.trend.granularity import str_to_granularity
 
 
@@ -21,8 +22,26 @@ def setup_command_parser(subparsers):
 
     cmd_subparsers = cmd.add_subparsers()
 
+    setup_generate_parser(cmd_subparsers)
     setup_compile_parser(cmd_subparsers)
     setup_compile_all_parser(cmd_subparsers)
+
+
+def setup_generate_parser(subparsers):
+    cmd = subparsers.add_parser(
+        'generate', help='generate standard aggregations'
+    )
+
+    cmd.add_argument(
+        'trend-store', nargs='*',
+        help='trend stores to generate aggregations for'
+    )
+
+    cmd.set_defaults(cmd=generate_standard_aggregations_cmd)
+
+
+def generate_standard_aggregations_cmd(args):
+    generate_standard_aggregations()
 
 
 def setup_compile_parser(subparsers):

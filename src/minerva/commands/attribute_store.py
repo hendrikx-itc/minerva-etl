@@ -38,6 +38,7 @@ def setup_command_parser(subparsers):
     setup_list_parser(cmd_subparsers)
     setup_list_config_parser(cmd_subparsers)
     setup_materialization_parser(cmd_subparsers)
+    setup_materialize_curr_ptr_parser(cmd_subparsers)
 
 
 def setup_create_parser(subparsers):
@@ -314,6 +315,35 @@ def setup_materialization_parser(subparsers):
     setup_run_materialization_parser(cmd_subparsers)
 
 
+def setup_materialize_curr_ptr_parser(subparsers):
+    cmd = subparsers.add_parser(
+        'materialize-curr-ptr',
+        help="command for updating the 'current' view of attributes"
+    )
+
+    cmd.add_argument(
+        'attribute_store', nargs='?',
+        help='Id or name of attribute store to materialize the curr-ptr table for'
+    )
+
+    cmd.set_defaults(cmd=materialize_curr_ptr_cmd)
+
+
+def materialize_curr_ptr_cmd(args):
+    with connect() as conn:
+        conn.autocommit = True
+
+        if args.attribute_store is None:
+            materialize_all_curr_ptr(conn)
+        else:
+            try:
+                attribute_store_id = int(args.attribute_store)
+
+                materialize_curr_ptr_by_id(conn, attribute_store_id)
+            except ValueError:
+                materialize_curr_ptr_by_name(conn, args.attribute_store)
+
+
 def setup_create_materialization_parser(subparsers):
     cmd = subparsers.add_parser(
         'create', help='command for creating attribute materialization'
@@ -500,11 +530,44 @@ def run_materialization_cmd(args):
             print('{}: {}'.format(attribute_store, row_count))
 
             if args.materialize_curr:
-                print('Materializing curr ptr for {}'.format(attribute_store))
-                materialize_curr_ptr(conn, attribute_store)
+                print('Materializing curr-ptr for {}'.format(attribute_store))
+                materialize_curr_ptr_by_name(conn, attribute_store)
 
 
-def materialize_curr_ptr(conn, attribute_store: str):
+def materialize_all_curr_ptr(conn):
+    query = (
+        'select ast.id, ast::text '
+        'from attribute_directory.attribute_store ast '
+        'join attribute_directory.attribute_store_modified asm '
+        'on ast.id = asm.attribute_store_id '
+        'left join attribute_directory.attribute_store_curr_materialized ascm '
+        'on ascm.attribute_store_id = asm.attribute_store_id '
+        'where modified > materialized or materialized is NULL'
+    )
+
+    with conn.cursor() as cursor:
+        cursor.execute(query)
+
+        for attribute_store_id, attribute_store_name in cursor.fetchall():
+            print(f"Materializing curr-ptr for {attribute_store_name}")
+            materialize_curr_ptr_by_id(conn, attribute_store_id)
+
+
+def materialize_curr_ptr_by_id(conn, attribute_store_id: int):
+    materialize_curr_query = (
+        'SELECT '
+        'attribute_directory.materialize_curr_ptr(attribute_store) '
+        'FROM attribute_directory.attribute_store '
+        'WHERE id = %s'
+    )
+
+    with conn.cursor() as cursor:
+        cursor.execute(materialize_curr_query, (attribute_store_id,))
+
+    conn.commit()
+
+
+def materialize_curr_ptr_by_name(conn, attribute_store_name: str):
     materialize_curr_query = (
         'SELECT '
         'attribute_directory.materialize_curr_ptr(attribute_store) '
@@ -513,6 +576,6 @@ def materialize_curr_ptr(conn, attribute_store: str):
     )
 
     with conn.cursor() as cursor:
-        cursor.execute(materialize_curr_query, (attribute_store,))
+        cursor.execute(materialize_curr_query, (attribute_store_name,))
 
     conn.commit()
