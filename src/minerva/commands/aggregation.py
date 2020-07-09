@@ -65,11 +65,15 @@ def compile_all_aggregations(args):
 
     aggregation_definitions = load_aggregations(instance_root)
 
+    print("Loading time aggregations")
+
     time_aggregation_definitions = [
         (file_path, TimeAggregationContext(instance, d['time_aggregation'], str(file_path)))
         for file_path, d in aggregation_definitions
         if 'time_aggregation' in d
     ]
+
+    print("Loading entity aggregations")
 
     entity_aggregation_definitions = [
         (file_path, EntityAggregationContext(instance, d['entity_aggregation'], str(file_path)))
@@ -225,7 +229,7 @@ def entity_aggregation(aggregation_context: EntityAggregationContext):
         print("Error generating target trend store: {}".format(exc))
         return 1
 
-    base_name = aggregation_context.definition['entity_aggregation']['name']
+    base_name = aggregation_context.definition['name']
 
     aggregate_trend_store_file_path = aggregation_context.instance.trend_store_file_path(
         base_name
@@ -302,11 +306,10 @@ def load_relation(instance_root: str, relation: str) -> Dict:
 
 
 def translate_source_part_name(aggregation_context: EntityAggregationContext, name: str) -> str:
-    definition = aggregation_context.definition['entity_aggregation']
     granularity = aggregation_context.source_definition.granularity
 
-    data_source = definition['data_source']
-    entity_type = definition['entity_type']
+    data_source = aggregation_context.definition['data_source']
+    entity_type = aggregation_context.definition['entity_type']
 
     pattern = f'_([^_]+)_{granularity}$'
 
@@ -327,7 +330,7 @@ def write_entity_aggregations(aggregation_context: EntityAggregationContext) -> 
     :param aggregation_context: Complete context for entity aggregation to write
     :return: None
     """
-    definition = aggregation_context.definition['entity_aggregation']
+    definition = aggregation_context.definition
 
     for part in aggregation_context.source_definition.parts:
         try:
