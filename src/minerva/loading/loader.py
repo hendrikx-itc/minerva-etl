@@ -47,7 +47,7 @@ class Loader:
         self.merge_packages = True
         self.stop_on_missing_entity_type = False
 
-    def load_data(self, file_type, config, file_path):
+    def load_data(self, file_type: str, config: dict, file_path: str):
         statistics = Statistics()
 
         if file_type in builtin_types:
@@ -147,10 +147,10 @@ class Statistics(object):
         ]
 
 
-def filter_trend_package(entity_filter, trend_filter, package):
-    filtered_trend_names = filter(trend_filter, package.trend_names)
+def filter_trend_package(entity_filter, trend_filter, package: DataPackage):
+    filtered_trend_names = list(filter(trend_filter, package.trend_descriptors))
 
-    trend_filter_map = map(trend_filter, package.trend_names)
+    trend_filter_map = map(trend_filter, package.trend_descriptors)
 
     filter_rows = compose(entity_filter, itemgetter(0))
 
@@ -173,7 +173,7 @@ def filter_trend_package(entity_filter, trend_filter, package):
         filtered_rows.append(trend_filtered_row)
 
     return minerva.storage.trend.datapackage.DataPackage(
-        package.granularity, package.timestamp, filtered_trend_names,
+        package.data_package_type, package.granularity, filtered_trend_names,
         filtered_rows
     )
 
@@ -252,7 +252,7 @@ def create_store_db_context(
     return store_db_context
 
 
-def no_such_data_source_error(data_source_name):
+def no_such_data_source_error(data_source_name: str) -> ConfigurationError:
     return ConfigurationError(
         'No such data source \'{data_source}\'\n'
         'Create a data source using e.g.\n'
@@ -263,7 +263,7 @@ def no_such_data_source_error(data_source_name):
     )
 
 
-def no_such_trend_store_error(data_source, entity_type, granularity):
+def no_such_trend_store_error(data_source: DataSource, entity_type: EntityType, granularity: str) -> ConfigurationError:
     return ConfigurationError(
         'No table trend store found for the combination (data source: '
         '{data_source}, entity type: {entity_type}, granularity: {granularity}'
