@@ -10,8 +10,8 @@ from minerva.storage.trend.trendstore import NoSuchTrendStore
 from minerva.util import compose, k
 from minerva.directory import DataSource
 import minerva.storage.trend.datapackage
-from minerva.storage.attribute.datapackage import DataPackage
-from minerva.directory.entitytype import NoSuchEntityType
+from minerva.storage.trend.datapackage import DataPackage
+from minerva.directory.entitytype import NoSuchEntityType, EntityType
 from minerva.harvest.fileprocessor import process_file
 from minerva.db import connect, connect_logging
 from minerva.commands import ListPlugins, load_json
