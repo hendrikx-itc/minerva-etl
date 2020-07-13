@@ -56,28 +56,29 @@ def names_to_entity_ids(cursor, entity_type: str, names: list) -> List[int]:
         'LEFT JOIN entity.{} e ON l.name = e.name '
     ).format(sql.Identifier(entity_type_name))
 
-    unmapped_names = []
     entity_ids = []
 
     cursor.execute(query, (names,))
 
-    for name, entity_id in cursor.fetchall():
-        if entity_id is None:
-            unmapped_names.append(name)
-        else:
-            entity_ids.append(entity_id)
+    rows = cursor.fetchall()
 
-    if len(unmapped_names) > 0:
-        entity_ids.extend(
-            create_entities_from_names(cursor, entity_type_name, unmapped_names)
-        )
+    for name, entity_id in rows:
+        if entity_id is None:
+            entity_id = create_entity_from_name(cursor, entity_type, name)
+
+        entity_ids.append(entity_id)
 
     return entity_ids
 
 
 def create_entities_from_names(cursor, entity_type: str, names: list) -> List[int]:
-    entity_ids = []
+    return [
+        create_entity_from_name(cursor, entity_type, name)
+        for name in names
+    ]
 
+
+def create_entity_from_name(cursor, entity_type: str, name: str) -> int:
     insert_query = sql.SQL(
         'INSERT INTO entity.{}(name) '
         'VALUES (%s) '
@@ -85,14 +86,11 @@ def create_entities_from_names(cursor, entity_type: str, names: list) -> List[in
         'RETURNING id'
     ).format(sql.Identifier(entity_type))
 
-    for name in names:
-        cursor.execute(insert_query, (name,))
+    cursor.execute(insert_query, (name,))
 
-        entity_id, = cursor.fetchone()
+    entity_id, = cursor.fetchone()
 
-        entity_ids.append(entity_id)
-
-    return entity_ids
+    return entity_id
 
 
 class InvalidNameError(Exception):
