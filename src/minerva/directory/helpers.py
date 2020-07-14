@@ -30,7 +30,7 @@ def aliases_to_entity_ids(cursor, namespace: str, aliases: list, entity_type: st
     return list(map(fst, cursor.fetchall()))
 
 
-def names_to_entity_ids(cursor, entity_type: str, names: list) -> List[int]:
+def names_to_entity_ids(cursor, entity_type: str, names: List[str]) -> List[int]:
     """
     Map names to entity ID's, create any missing entities, and return the
     corresponding entity ID's.

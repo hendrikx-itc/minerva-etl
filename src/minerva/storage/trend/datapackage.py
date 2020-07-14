@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from datetime import datetime
 from io import StringIO
-from typing import Callable, List, Generator
+from typing import Callable, List, Generator, Tuple
 
 from itertools import chain
 from operator import itemgetter
@@ -64,7 +64,7 @@ class DataPackage:
             trend_descriptor.name
             for trend_descriptor in self.trend_descriptors
         )
-        column_align = ">" * len(column_names)
+        column_align = [">"] * len(column_names)
         column_sizes = ["max"] * len(column_names)
 
         rows = [row[:-1] + tuple(row[-1]) for row in self.rows]
@@ -136,7 +136,7 @@ class DataPackage:
                 )
             )
 
-    def get_key(self):
+    def get_key(self) -> Tuple[DataPackageType, str, Granularity]:
         return (
             self.data_package_type,
             self.entity_type_name(), self.granularity
@@ -196,9 +196,11 @@ class DataPackage:
 
         return copy_from_file
 
-    def _create_copy_from_lines(self, value_descriptors: List[ValueDescriptor], modified: datetime) -> Generator[str, None, None]:
+    def _create_copy_from_lines(
+            self, value_descriptors: List[ValueDescriptor], modified: datetime
+    ) -> Generator[str, None, None]:
         value_mappers = [
-            value_descriptor.serialize_to_string
+            value_descriptor.data_type.string_serializer()
             for value_descriptor in value_descriptors
         ]
 
@@ -215,7 +217,7 @@ class DataPackage:
         )
 
 
-def package_group(key, packages) -> DataPackage:
+def package_group(key: Tuple[DataPackageType, str, Granularity], packages: List[DataPackage]) -> DataPackage:
     data_package_type, _entity_type_name, granularity = key
 
     all_trend_descriptors = {}

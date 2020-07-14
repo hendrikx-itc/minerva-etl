@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import logging
+from pathlib import Path
 
 from minerva.loading.loader import Loader, create_regex_filter
 from minerva.util import k
@@ -19,7 +20,7 @@ def setup_command_parser(subparsers):
     )
 
     cmd.add_argument(
-        "file_path", nargs="*",
+        "file", nargs="*",
         help="path of file that will be processed"
     )
 
@@ -97,6 +98,12 @@ def load_data_cmd(cmd_parser, stop_on_missing_entity_type=False):
             cmd_parser.print_help()
             return
 
-        loader.load_data(args.type, args.parser_config, args.file_path)
+        for file_path_str in args.file:
+            file_path = Path(file_path_str)
+
+            if file_path.is_file():
+                loader.load_data(args.type, args.parser_config, file_path)
+            else:
+                print(f"No such file: {file_path}")
 
     return cmd

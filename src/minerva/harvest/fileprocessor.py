@@ -5,8 +5,9 @@ Provides the function process_file for processing a single file.
 """
 import os
 import threading
+from pathlib import Path
+
 import time
-import traceback
 import codecs
 
 from operator import not_
@@ -22,16 +23,14 @@ class ParseError(Exception):
 
 
 def process_file(
-        file_path, parser: HarvestParserTrend, show_progress=False):
+        file_path: Path, parser: HarvestParserTrend, show_progress=False):
     """
     Process a single file with specified plugin.
     """
-    if not os.path.exists(file_path):
+    if not file_path.exists():
         raise Exception("Could not find file '{0}'".format(file_path))
 
-    _directory, filename = os.path.split(file_path)
-
-    with codecs.open(file_path, encoding='utf-8') as data_file:
+    with file_path.open(encoding='utf-8') as data_file:
         stop_event = threading.Event()
         condition = compose(not_, stop_event.is_set)
 
@@ -39,7 +38,7 @@ def process_file(
             start_progress_reporter(data_file, condition)
 
         try:
-            for package in parser.load_packages(data_file, filename):
+            for package in parser.load_packages(data_file, file_path.name):
                 yield package
         except DataError as exc:
             raise exc

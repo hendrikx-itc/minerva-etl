@@ -5,6 +5,7 @@ from contextlib import closing
 from operator import itemgetter
 from functools import partial
 import re
+from pathlib import Path
 
 from minerva.storage.trend.trendstore import NoSuchTrendStore
 from minerva.util import compose, k
@@ -14,7 +15,6 @@ from minerva.storage.trend.datapackage import DataPackage
 from minerva.directory.entitytype import NoSuchEntityType, EntityType
 from minerva.harvest.fileprocessor import process_file
 from minerva.db import connect, connect_logging
-from minerva.commands import ListPlugins, load_json
 from minerva.harvest.plugins import get_plugin
 
 from minerva.loading import csv
@@ -47,7 +47,15 @@ class Loader:
         self.merge_packages = True
         self.stop_on_missing_entity_type = False
 
-    def load_data(self, file_type: str, config: dict, file_path: str):
+    def load_data(self, file_type: str, config: dict, file_path: Path):
+        """
+        Load the data in the file specified by `file_path` of type
+        `file_type`. The parser will be configured with `config`.
+        :param file_type: The type of file
+        :param config: The parser configuration
+        :param file_path: The file to process
+        :return:
+        """
         statistics = Statistics()
 
         if file_type in builtin_types:
@@ -73,7 +81,7 @@ class Loader:
 
         try:
             with storage_provider() as store:
-                def handle_package(package, action):
+                def handle_package(package, action: dict):
                     if self.debug:
                         print(package.render_table())
 
@@ -89,7 +97,7 @@ class Loader:
                 action = {
                     'type': 'load-data',
                     'file_type': file_type,
-                    'uri': file_path
+                    'uri': str(file_path)
                 }
 
                 packages_generator = process_file(
@@ -224,7 +232,7 @@ def tee(fn):
 
 
 def create_store_db_context(
-        data_source_name, store_cmd, connect_to_db,
+        data_source_name: str, store_cmd, connect_to_db,
         stop_on_missing_trend_store=False
 ):
     @contextmanager
@@ -242,7 +250,7 @@ def create_store_db_context(
                 except NoSuchTrendStore as exc:
                     if stop_on_missing_trend_store:
                         raise no_such_trend_store_error(
-                            exc.data_source, exc.entity_type, exc.granularity
+                            exc.data_source, exc.entity_type, str(exc.granularity)
                         )
                     else:
                         logging.warning(str(exc))

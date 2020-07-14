@@ -27,7 +27,7 @@ class DataType:
     def string_parser(self, config=None):
         raise NotImplementedError()
 
-    def string_serializer(self, config=None):
+    def string_serializer(self, config=None) -> Callable[[Any], str]:
         raise NotImplementedError()
 
     def deduce_parser_config(self, value: str) -> Optional[dict]:
