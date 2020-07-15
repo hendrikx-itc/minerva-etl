@@ -6,6 +6,7 @@ from typing import List, Callable, Any, Tuple, Iterable, Generator
 
 import psycopg2
 import psycopg2.extras
+from minerva.storage.trend.datapackage import DataPackageRow
 from psycopg2.extensions import adapt, register_adapter, AsIs, QuotedString
 
 from minerva.db import CursorDbAction, ConnDbAction
@@ -459,9 +460,6 @@ def create_insert_query(table: Table, column_names: List[str]) -> str:
         ",".join('%s' for _ in column_names),
         ",".join(update_parts)
     )
-
-
-DataPackageRow = Tuple[int, datetime, List[Any]]
 
 
 def create_copy_from_lines(modified: datetime, job: int, rows: List[DataPackageRow], serializers: List) -> Generator[str, None, None]:

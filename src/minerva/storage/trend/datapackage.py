@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from datetime import datetime
 from io import StringIO
-from typing import Callable, List, Generator, Tuple
+from typing import Callable, List, Generator, Tuple, Any
 
 from itertools import chain
 from operator import itemgetter
@@ -32,6 +32,9 @@ class DataPackageType:
 
     def __lt__(self, other):
         return self.identifier < other.identifier
+
+
+DataPackageRow = Tuple[int, datetime, List[Any]]
 
 
 class DataPackage:
@@ -142,7 +145,7 @@ class DataPackage:
             self.entity_type_name(), self.granularity
         )
 
-    def refined_rows(self, cursor):
+    def refined_rows(self, cursor) -> List[DataPackageRow]:
         """
         Map the entity reference to an entity ID in each row and return the
         newly formed rows with IDs.
