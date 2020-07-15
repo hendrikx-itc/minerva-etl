@@ -64,7 +64,7 @@ def names_to_entity_ids(cursor, entity_type: str, names: List[str]) -> List[int]
 
     for name, entity_id in rows:
         if entity_id is None:
-            entity_id = create_entity_from_name(cursor, entity_type, name)
+            entity_id = create_entity_from_name(cursor, entity_type_name, name)
 
         entity_ids.append(entity_id)
 
