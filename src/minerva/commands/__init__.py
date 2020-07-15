@@ -1,9 +1,6 @@
 import json
 import sys
 import argparse
-from collections import OrderedDict
-
-import yaml
 
 from minerva.util.tabulate import render_table
 from minerva.harvest.plugins import iter_entry_points, \
@@ -54,30 +51,8 @@ def load_json(path):
         return json.load(config_file)
 
 
-class SqlSrc(str):
-    @staticmethod
-    def representer(dumper, data):
-        return dumper.represent_scalar('tag:yaml.org,2002:str', data, style='|')
-
-
-def ordered_yaml_dump(data, stream=None, Dumper=yaml.Dumper, **kwds):
-    class OrderedDumper(Dumper):
-        pass
-
-    def _dict_representer(dumper, data: OrderedDict):
-        return dumper.represent_mapping(
-            yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG,
-            data.items()
-        )
-
-    OrderedDumper.add_representer(OrderedDict, _dict_representer)
-    OrderedDumper.add_representer(SqlSrc, SqlSrc.representer)
-
-    return yaml.dump(data, stream, OrderedDumper, **kwds)
-
-
 def show_rows(column_names, rows, show_cmd=print):
-    column_align = "<" * len(column_names)
+    column_align = ["<"] * len(column_names)
     column_sizes = ["max"] * len(column_names)
 
     for line in render_table(column_names, column_align, column_sizes, rows):

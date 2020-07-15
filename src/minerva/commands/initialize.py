@@ -154,12 +154,14 @@ def initialize_attribute_stores(instance_root):
         conn.autocommit = True
 
         for attribute_store in instance.load_attribute_stores():
-            print(attribute_store)
+            sys.stdout.write(f"Creating '{attribute_store}' ... ")
 
             try:
                 create_attribute_store(conn, attribute_store)
             except DuplicateAttributeStore as exc:
                 print(exc)
+
+            sys.stdout.write("OK\n")
 
         # Attribute-store-like views can be used for quick attribute
         # transformations or combinations. These views can be defined using plain
@@ -178,11 +180,14 @@ def initialize_trend_stores(instance_root):
     instance = MinervaInstance.load(instance_root)
 
     for trend_store in instance.load_trend_stores():
-        print(trend_store)
+        sys.stdout.write(f"Creating '{trend_store}' ... ")
+
         try:
             create_trend_store(trend_store, False)
         except DuplicateTrendStore as exc:
             print(exc)
+
+        sys.stdout.write("OK\n")
 
 
 def initialize_notification_stores(instance_root):

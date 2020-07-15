@@ -4,7 +4,8 @@ from typing import List, Generator, Union, Tuple, Optional
 from collections import OrderedDict
 from pathlib import Path
 
-from minerva.commands import ordered_yaml_dump, ConfigurationError
+from minerva.commands import ConfigurationError
+from minerva.util.yaml import ordered_yaml_dump
 from psycopg2.extensions import adapt, register_adapter, AsIs, QuotedString
 from psycopg2.extras import Json
 
@@ -28,7 +29,7 @@ class Trend:
         self.extra_data = extra_data
 
     @staticmethod
-    def from_dict(data: dict):
+    def from_dict(data: dict) -> 'Trend':
         return Trend(
             data['name'],
             data['data_type'],
@@ -49,7 +50,7 @@ class Trend:
         ])
 
     @staticmethod
-    def adapt(trend):
+    def adapt(trend: 'Trend'):
         if trend.extra_data is None:
             extra_data = 'NULL'
         else:
@@ -317,16 +318,49 @@ class AttributeStore:
         items.extend([
             ('data_source', self.data_source),
             ('entity_type', self.entity_type),
-            ('attributes', [attribute.to_dict() for attribute in self.attributes])
+            ('attributes', [attribute.to_dict() for attribute in self.attributes]),
         ])
 
         return OrderedDict(items)
 
 
-class MinervaInstance:
-    root: str
+class Relation:
+    name: str
+    source_entity_type: str
+    target_entity_type: str
+    query: str
 
-    def __init__(self, root: str):
+    def __init__(self, name, source_entity_type, target_entity_type, query):
+        self.name = name
+        self.source_entity_type = source_entity_type
+        self.target_entity_type = target_entity_type
+        self.query = query
+
+    def __str__(self):
+        return self.name
+
+    @staticmethod
+    def from_dict(data: dict) -> 'Relation':
+        return Relation(
+            data['name'],
+            data['source_entity_type'],
+            data['target_entity_type'],
+            data['query'],
+        )
+
+    def to_dict(self) -> OrderedDict:
+        return OrderedDict([
+            ('name', self.name),
+            ('source_entity_type', self.source_entity_type),
+            ('target_entity_type', self.target_entity_type),
+            ('query', self.query),
+        ])
+
+
+class MinervaInstance:
+    root: Path
+
+    def __init__(self, root: Path):
         self.root = root
 
     @staticmethod
@@ -339,11 +373,11 @@ class MinervaInstance:
             instance_root or os.environ.get(INSTANCE_ROOT_VARIABLE) or os.getcwd()
         )
 
-    def materialization_file_path(self, name: str):
+    def materialization_file_path(self, name: str) -> Path:
         """
         Return a full file path from the provided materialization name.
         """
-        return os.path.join(
+        return Path(
             self.root, 'materialization', f'{name}.yaml'
         )
 
@@ -369,8 +403,8 @@ class MinervaInstance:
             self.root, 'attribute', file_name
         )
 
-    def make_relative(self, path: str):
-        return os.path.relpath(path, self.root)
+    def make_relative(self, path: Path) -> Path:
+        return path.relative_to(self.root)
 
     def load_trend_store_by_name(self, name: str) -> TrendStore:
         file_path = self.trend_store_file_path(name)
@@ -454,4 +488,24 @@ class MinervaInstance:
         return (
             self.load_attribute_store_from_file(path)
             for path in self.list_attribute_stores()
+        )
+
+    def list_relations(self):
+        return sorted(Path(self.root, 'relation').glob('*.yaml'))
+
+    @staticmethod
+    def load_relation_from_file(yaml_file_path: Path):
+        with yaml_file_path.open() as yaml_file:
+            definition = yaml.load(yaml_file, Loader=yaml.SafeLoader)
+
+            return Relation.from_dict(definition)
+
+    def load_relations(self) -> Generator[Relation, None, None]:
+        """
+        Return generator that loads and returns all entity relations
+        :return:
+        """
+        return (
+            self.load_relation_from_file(path)
+            for path in self.list_relations()
         )
