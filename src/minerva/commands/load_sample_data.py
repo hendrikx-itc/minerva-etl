@@ -118,7 +118,7 @@ def generate_and_load(config, interval_count: int):
 
     target_dir = "/tmp"
 
-    data_source = 'u2020-pm'
+    data_source = config['data_source']
 
     plugin = get_plugin(config['data_type'])
 
