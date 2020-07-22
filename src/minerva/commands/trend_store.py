@@ -982,14 +982,18 @@ def materialize_all(reset):
 
     if reset:
         where_clause = (
-            "WHERE m.enabled AND ms.timestamp < now()"
+            "WHERE m.enabled AND ms.timestamp < now() "
+            "AND (ms.max_modified IS NULL "
+            "OR ms.max_modified + m.processing_delay < now())"
         )
     else:
         where_clause = (
             "WHERE ("
             "source_fingerprint != processed_fingerprint OR "
             "processed_fingerprint IS NULL"
-            ") AND m.enabled AND ms.timestamp < now()"
+            ") AND m.enabled AND ms.timestamp < now() "
+            "AND (ms.max_modified IS NULL "
+            "OR ms.max_modified + m.processing_delay < now())"
         )
 
     query += where_clause
