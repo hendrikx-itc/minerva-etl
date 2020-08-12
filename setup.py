@@ -19,7 +19,7 @@ setup(
     license="GPL",
     python_requires='>3.6',
     install_requires=[
-        "pytz", "psycopg2>=2.8", "PyYAML", "configobj",
+        "pytz", "psycopg2-binary", "PyYAML", "configobj",
         "python-dateutil", "pyparsing", "jinja2"
     ],
     extras_require={
