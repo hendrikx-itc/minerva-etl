@@ -2,6 +2,7 @@ from operator import itemgetter
 import csv
 import datetime
 
+from minerva.directory.entityref import entity_name_ref_class
 from minerva.harvest.plugin_api_trend import HarvestParserTrend
 from minerva.storage.trend.trend import Trend
 from minerva.storage.trend.datapackage import DataPackage, DataPackageType
@@ -20,8 +21,10 @@ class Parser(HarvestParserTrend):
 
         timestamp_provider = is_timestamp_provider(self.config['timestamp']['is'])
 
+        identifier_getter = itemgetter(header.index(self.config['identifier']['is']))
+
         def get_identifier(row):
-            return row[0]
+            return identifier_getter(row)
 
         value_parsers = [
             (
@@ -50,10 +53,19 @@ class Parser(HarvestParserTrend):
 
         entity_type_name = self.config['entity_type']
 
-        classic_type = DataPackageType(AliasRef(), fixed_type(entity_type_name))
+        granularity = create_granularity(self.config['granularity'])
+
+        entity_ref_type = entity_name_ref_class(entity_type_name)
+
+        def get_entity_type_name(data_package):
+            return entity_type_name
+
+        data_package_type = DataPackageType(
+            entity_type_name, entity_ref_type, get_entity_type_name
+        )
 
         yield DataPackage(
-            classic_type, create_granularity('1 day'),
+            data_package_type, granularity,
             trend_descriptors, rows
         )
 

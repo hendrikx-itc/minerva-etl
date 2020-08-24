@@ -4,11 +4,24 @@ Provides plugin loading functionality.
 """
 import pkg_resources
 
+from minerva.loading import csv
+
 ENTRY_POINT = "minerva.harvest.plugins"
+
+
+builtin_types = {
+    'csv': csv.Plugin()
+}
 
 
 def iter_entry_points():
     return pkg_resources.iter_entry_points(group=ENTRY_POINT)
+
+
+def list_plugins():
+    return list(builtin_types.keys()) + [
+        entry_point.name for entry_point in iter_entry_points()
+    ]
 
 
 def load_plugins():
@@ -22,6 +35,9 @@ def load_plugins():
 
 
 def get_plugin(name):
+    if name in builtin_types:
+        return builtin_types[name]
+
     try:
         return next(
             entry_point.load()()

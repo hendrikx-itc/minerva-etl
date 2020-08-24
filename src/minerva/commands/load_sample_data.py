@@ -127,7 +127,7 @@ def generate_and_load(config, interval_count: int):
             "No plugin found for data type '{}'".format(config['data_type'])
         )
 
-    parser = plugin.create_parser({})
+    parser = plugin.create_parser(config['parser_config'])
     storage_provider = create_store_db_context(
         data_source, parser.store_command(), connect
     )

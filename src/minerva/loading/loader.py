@@ -17,16 +17,9 @@ from minerva.harvest.fileprocessor import process_file
 from minerva.db import connect, connect_logging
 from minerva.harvest.plugins import get_plugin
 
-from minerva.loading import csv
-
 
 class ConfigurationError(Exception):
     pass
-
-
-builtin_types = {
-    'csv': csv.Plugin()
-}
 
 
 class Loader:
@@ -58,10 +51,7 @@ class Loader:
         """
         statistics = Statistics()
 
-        if file_type in builtin_types:
-            plugin = builtin_types[file_type]
-        else:
-            plugin = get_plugin(file_type)
+        plugin = get_plugin(file_type)
 
         parser = plugin.create_parser(config)
 

@@ -35,7 +35,7 @@ def setup_command_parser(subparsers):
     )
 
     cmd.add_argument(
-        "--parser-config", type=load_json,
+        "--parser-config", type=Path,
         help="parser specific configuration"
     )
 
@@ -83,6 +83,8 @@ def setup_command_parser(subparsers):
 
 def load_data_cmd(cmd_parser, stop_on_missing_entity_type=False):
     def cmd(args):
+        parser_config = load_json(args.parser_config)
+
         loader = Loader()
         loader.debug = args.debug
         loader.data_source = args.data_source
@@ -102,7 +104,7 @@ def load_data_cmd(cmd_parser, stop_on_missing_entity_type=False):
             file_path = Path(file_path_str)
 
             if file_path.is_file():
-                loader.load_data(args.type, args.parser_config, file_path)
+                loader.load_data(args.type, parser_config, file_path)
             else:
                 print(f"No such file: {file_path}")
 

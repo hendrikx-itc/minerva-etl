@@ -3,7 +3,7 @@ import sys
 import argparse
 
 from minerva.util.tabulate import render_table
-from minerva.harvest.plugins import iter_entry_points, \
+from minerva.harvest.plugins import list_plugins, \
     get_plugin as get_harvest_plugin
 
 
@@ -20,8 +20,8 @@ class ListPlugins(argparse.Action):
         )
 
     def __call__(self, parser, namespace, values, option_string=None):
-        for entry_point in iter_entry_points():
-            print(entry_point.name)
+        for name in list_plugins():
+            print(name)
 
         sys.exit(0)
 
