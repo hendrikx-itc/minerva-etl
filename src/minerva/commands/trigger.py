@@ -33,19 +33,15 @@ def setup_create_parser(subparsers):
     )
 
     cmd.add_argument(
-        '--from-yaml', type=argparse.FileType('r'),
-        help='use yaml description for trend store'
+        'definition', type=argparse.FileType('r'),
+        help='file containing trend store definition'
     )
 
     cmd.set_defaults(cmd=create_trigger_cmd)
 
 
 def create_trigger_cmd(args):
-    if args.from_yaml:
-        trigger_config = yaml.load(args.from_yaml, Loader=yaml.SafeLoader)
-    else:
-        sys.stdout.write("No configuration provided\n")
-        return
+    trigger_config = yaml.load(args.definition, Loader=yaml.SafeLoader)
 
     sys.stdout.write(
         "Creating trigger '{}' ...\n".format(trigger_config['name'])
