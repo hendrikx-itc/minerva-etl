@@ -3,6 +3,7 @@ import csv
 import datetime
 
 from minerva.directory.entityref import entity_name_ref_class
+from minerva.error import ConfigurationError
 from minerva.harvest.plugin_api_trend import HarvestParserTrend
 from minerva.storage.trend.trend import Trend
 from minerva.storage.trend.datapackage import DataPackage, DataPackageType
@@ -10,21 +11,31 @@ from minerva.storage.trend.granularity import create_granularity
 from minerva.storage.datatype import registry
 
 
+DEFAULT_CONFIG = {
+    "timestamp": {
+        "is": "timestamp"
+    },
+    "identifier": {
+        "is": "entity"
+    }
+}
+
+
 class Parser(HarvestParserTrend):
     def __init__(self, config):
-        self.config = config
+        if config is None:
+            self.config = DEFAULT_CONFIG
+        else:
+            self.config = config
 
     def load_packages(self, stream, name):
         csv_reader = csv.reader(stream, delimiter=',')
 
         header = next(csv_reader)
 
-        timestamp_provider = is_timestamp_provider(self.config['timestamp']['is'])
+        timestamp_provider = is_timestamp_provider(header, self.config['timestamp']['is'])
 
-        identifier_getter = itemgetter(header.index(self.config['identifier']['is']))
-
-        def get_identifier(row):
-            return identifier_getter(row)
+        identifier_provider = is_identifier_provider(header, self.config['identifier']['is'])
 
         value_parsers = [
             (
@@ -41,7 +52,7 @@ class Parser(HarvestParserTrend):
 
         rows = [
             (
-                get_identifier(row),
+                identifier_provider(row),
                 timestamp_provider(row),
                 tuple(
                     value_parser(get_value(row))
@@ -70,8 +81,8 @@ class Parser(HarvestParserTrend):
         )
 
 
-def is_timestamp_provider(func_name):
-    if func_name == 'current_timestamp':
+def is_timestamp_provider(header, name):
+    if name == 'current_timestamp':
         timestamp = datetime.datetime.now()
 
         def f(*args):
@@ -79,7 +90,27 @@ def is_timestamp_provider(func_name):
 
         return f
     else:
-        raise NotImplementedError()
+        if name not in header:
+            raise ConfigurationError(f"No column named '{name}' specified in header")
+
+        column_index = header.index(name)
+        timestamp_format = "%Y-%m-%dT%H:%M:%SZ"
+
+        def f(row):
+            value = row[column_index]
+
+            timestamp = datetime.datetime.strptime(value, timestamp_format)
+
+            return timestamp
+
+        return f
+
+
+def is_identifier_provider(header, name):
+    if name not in header:
+        raise ConfigurationError(f"No column named '{name}' specified in header")
+    else:
+        return itemgetter(header.index(name))
 
 
 class AliasRef:

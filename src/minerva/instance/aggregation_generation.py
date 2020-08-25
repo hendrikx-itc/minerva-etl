@@ -94,11 +94,16 @@ def generate_aggregations(
 
 def generate_entity_aggregation(instance_root: Path, trend_store: TrendStore, relation: Relation):
     print(f'generate entity aggregation for {trend_store}')
+    aggregation_directory_path = Path(instance_root, 'custom/post-init/entity-aggregation')
+
+    if not aggregation_directory_path.is_dir():
+        aggregation_directory_path.mkdir(parents=True)
+
     for part in trend_store.parts:
         part_name = translate_entity_aggregation_part_name(part.name, relation.target_entity_type)
 
         file_name = f'{part_name}.sql'
-        out_file_path = Path(instance_root, 'custom/post-init/entity-aggregation', file_name)
+        out_file_path = Path(aggregation_directory_path, file_name)
 
         with out_file_path.open('w') as out_file:
             sql = aggregation_view_sql(part_name, part, relation)

@@ -1,0 +1,3 @@
+node,timestamp,outside_temp,inside_temp,power_kwh
+hillside14,2020-08-25T14:00:00Z,14.4,32.4,55.8
+hillside15,2020-08-25T14:00:00Z,14.4,32.4,55.8

@@ -212,7 +212,7 @@ class TrendStore:
 
         for attribute_name in required_attributes:
             if attribute_name not in data:
-                raise DefinitionError("Attribute '{attribute_name}' missing from trend store definition")
+                raise DefinitionError(f"Attribute '{attribute_name}' missing from trend store definition")
 
     @staticmethod
     def from_dict(data: dict):

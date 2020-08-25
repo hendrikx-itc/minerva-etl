@@ -83,7 +83,10 @@ def setup_command_parser(subparsers):
 
 def load_data_cmd(cmd_parser, stop_on_missing_entity_type=False):
     def cmd(args):
-        parser_config = load_json(args.parser_config)
+        if args.parser_config is not None:
+            parser_config = load_json(args.parser_config)
+        else:
+            parser_config = None
 
         loader = Loader()
         loader.debug = args.debug
