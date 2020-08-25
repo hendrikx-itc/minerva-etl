@@ -2,6 +2,8 @@ from operator import itemgetter
 import csv
 import datetime
 
+import dateutil.parser
+
 from minerva.directory.entityref import entity_name_ref_class
 from minerva.error import ConfigurationError
 from minerva.harvest.plugin_api_trend import HarvestParserTrend
@@ -12,12 +14,9 @@ from minerva.storage.datatype import registry
 
 
 DEFAULT_CONFIG = {
-    "timestamp": {
-        "is": "timestamp"
-    },
-    "identifier": {
-        "is": "entity"
-    }
+    "timestamp": "timestamp",
+    "timestamp_format": "%Y-%m-%dT%H:%M:%SZ",
+    "identifier": "entity"
 }
 
 
@@ -94,12 +93,11 @@ def is_timestamp_provider(header, name):
             raise ConfigurationError(f"No column named '{name}' specified in header")
 
         column_index = header.index(name)
-        timestamp_format = "%Y-%m-%dT%H:%M:%SZ"
 
         def f(row):
             value = row[column_index]
 
-            timestamp = datetime.datetime.strptime(value, timestamp_format)
+            timestamp = dateutil.parser.parse(value)
 
             return timestamp
 
