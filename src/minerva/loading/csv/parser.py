@@ -29,7 +29,7 @@ class Parser(HarvestParserTrend):
             self.config = config
 
     def load_packages(self, stream, name):
-        csv_reader = csv.reader(stream, delimiter=',')
+        csv_reader = csv.reader(stream, delimiter=self.config['delimiter'])
 
         header = next(csv_reader)
 
