@@ -33,9 +33,9 @@ class Parser(HarvestParserTrend):
 
         header = next(csv_reader)
 
-        timestamp_provider = is_timestamp_provider(header, self.config['timestamp']['is'])
+        timestamp_provider = is_timestamp_provider(header, self.config['timestamp'])
 
-        identifier_provider = is_identifier_provider(header, self.config['identifier']['is'])
+        identifier_provider = is_identifier_provider(header, self.config['identifier'])
 
         value_parsers = [
             (
