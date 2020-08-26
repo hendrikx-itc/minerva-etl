@@ -39,7 +39,7 @@ class Parser(HarvestParserTrend):
         value_parsers = [
             (
                 itemgetter(header.index(column['name'])),
-                registry[column['data_type']].string_parser(),
+                registry[column['data_type']].string_parser({"null_value": ""}),
             )
             for column in self.config['columns']
         ]
@@ -47,18 +47,6 @@ class Parser(HarvestParserTrend):
         trend_descriptors = [
             Trend.Descriptor(column['name'], registry['text'], '')
             for column in self.config['columns']
-        ]
-
-        rows = [
-            (
-                identifier_provider(row),
-                timestamp_provider(row),
-                tuple(
-                    value_parser(get_value(row))
-                    for get_value, value_parser in value_parsers
-                )
-            )
-            for row in csv_reader
         ]
 
         entity_type_name = self.config['entity_type']
@@ -74,10 +62,44 @@ class Parser(HarvestParserTrend):
             entity_type_name, entity_ref_type, get_entity_type_name
         )
 
+        rows = (
+            (
+                identifier_provider(row),
+                timestamp_provider(row),
+                tuple(
+                    parse_value(value_parser, get_value, row)
+                    for get_value, value_parser in value_parsers
+                )
+            )
+            for row in csv_reader
+        )
+
         yield DataPackage(
             data_package_type, granularity,
             trend_descriptors, rows
         )
+
+
+class ParseError(Exception):
+    pass
+
+
+def parse_value(value_parser, get_value, row):
+    """
+    Parse a value from a row and provide context if an error occurs.
+    :param value_parser:
+    :param get_value:
+    :param row:
+    :return:
+    """
+    raw_value = get_value(row)
+
+    try:
+        value = value_parser(raw_value)
+    except Exception as exc:
+        raise ParseError(f"Error parsing value '{raw_value}': {exc}")
+
+    return value
 
 
 def is_timestamp_provider(header, name):
