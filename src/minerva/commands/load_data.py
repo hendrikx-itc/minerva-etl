@@ -91,6 +91,7 @@ def load_data_cmd(cmd_parser, stop_on_missing_entity_type=False):
         loader = Loader()
         loader.debug = args.debug
         loader.data_source = args.data_source
+        loader.merge_packages = args.merge_packages
         loader.stop_on_missing_entity_type = stop_on_missing_entity_type
 
         if args.debug:
