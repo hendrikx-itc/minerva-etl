@@ -1,6 +1,7 @@
 from operator import itemgetter
 import csv
 import datetime
+from itertools import chain, islice
 
 import dateutil.parser
 
@@ -12,11 +13,12 @@ from minerva.storage.trend.datapackage import DataPackage, DataPackageType
 from minerva.storage.trend.granularity import create_granularity
 from minerva.storage.datatype import registry
 
+DEFAULT_CHUNK_SIZE = 5000
 
 DEFAULT_CONFIG = {
     "timestamp": "timestamp",
-    "timestamp_format": "%Y-%m-%dT%H:%M:%SZ",
-    "identifier": "entity"
+    "identifier": "entity",
+    "chunk_size": DEFAULT_CHUNK_SIZE
 }
 
 
@@ -74,10 +76,25 @@ class Parser(HarvestParserTrend):
             for row in csv_reader
         )
 
-        yield DataPackage(
-            data_package_type, granularity,
-            trend_descriptors, rows
-        )
+        chunk_size = self.config.get('chunk_size', DEFAULT_CHUNK_SIZE)
+
+        for chunk in chunked(rows, chunk_size):
+            yield DataPackage(
+                data_package_type, granularity,
+                trend_descriptors, chunk
+            )
+
+
+def chunked(iterable, size: int):
+    """
+    Return a generator of chunks (lists) of length size until
+    :param iterable: the iterable that will be chunked
+    :param size: the chunk size
+    :return:
+    """
+    iterator = iter(iterable)
+    for first in iterator:
+        yield list(chain([first], islice(iterator, size - 1)))
 
 
 class ParseError(Exception):
