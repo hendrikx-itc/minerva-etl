@@ -997,21 +997,31 @@ def get_materialization_chunks_to_run(conn, materialization, reset: bool):
         "ON m.id = ms.materialization_id "
     )
 
+    max_modified_supported = is_max_modified_supported(conn)
+
     if reset:
         where_clause = (
             "WHERE " + materialization_selection_part + " AND ms.timestamp < now() "
-            "AND (ms.max_modified IS NULL "
-            "OR ms.max_modified + m.processing_delay < now())"
         )
+
+        if max_modified_supported:
+            where_clause += (
+                "AND (ms.max_modified IS NULL "
+                "OR ms.max_modified + m.processing_delay < now())"
+            )
     else:
         where_clause = (
             "WHERE " + materialization_selection_part + " AND ("
             "source_fingerprint != processed_fingerprint OR "
             "processed_fingerprint IS NULL"
             ") AND ms.timestamp < now() "
-            "AND (ms.max_modified IS NULL "
-            "OR ms.max_modified + m.processing_delay < now())"
         )
+
+        if max_modified_supported:
+            where_clause += (
+                "AND (ms.max_modified IS NULL "
+                "OR ms.max_modified + m.processing_delay < now())"
+            )
 
     query += where_clause
 
@@ -1045,6 +1055,28 @@ def materialize_selection(materializations, reset: bool):
                     print(str(e))
 
 
+def is_max_modified_supported(conn) -> bool:
+    """
+    Returns true if the materialization_state.max_modified column is
+    available in the database
+    """
+    query = (
+        "select relname, attname "
+        "from pg_class c "
+        "join pg_namespace n on n.oid = relnamespace "
+        "join pg_attribute a on a.attrelid = c.oid "
+        "where nspname = 'trend_directory' "
+        "and c.relname = 'materialization_state' "
+        "and relkind = 'r' "
+        "and attname = 'max_modified'"
+    )
+
+    with conn.cursor() as cursor:
+        cursor.execute(query)
+
+        return len(cursor.fetchall()) > 0
+
+
 def materialize_all(reset):
     query = (
         "SELECT m.id, m::text, ms.timestamp "
@@ -1053,25 +1085,35 @@ def materialize_all(reset):
         "ON m.id = ms.materialization_id "
     )
 
-    if reset:
-        where_clause = (
-            "WHERE m.enabled AND ms.timestamp < now() "
-            "AND (ms.max_modified IS NULL "
-            "OR ms.max_modified + m.processing_delay < now())"
-        )
-    else:
-        where_clause = (
-            "WHERE ("
-            "source_fingerprint != processed_fingerprint OR "
-            "processed_fingerprint IS NULL"
-            ") AND m.enabled AND ms.timestamp < now() "
-            "AND (ms.max_modified IS NULL "
-            "OR ms.max_modified + m.processing_delay < now())"
-        )
-
-    query += where_clause
-
     with closing(connect()) as conn:
+        max_modified_supported = is_max_modified_supported(conn)
+
+        if reset:
+            where_clause = (
+                "WHERE m.enabled AND ms.timestamp < now() "
+            )
+
+            if max_modified_supported:
+                where_clause += (
+                    "AND (ms.max_modified IS NULL "
+                    "OR ms.max_modified + m.processing_delay < now())"
+                )
+        else:
+            where_clause = (
+                "WHERE ("
+                "source_fingerprint != processed_fingerprint OR "
+                "processed_fingerprint IS NULL"
+                ") AND m.enabled AND ms.timestamp < now() "
+            )
+
+            if max_modified_supported:
+                where_clause += (
+                    "AND (ms.max_modified IS NULL "
+                    "OR ms.max_modified + m.processing_delay < now())"
+                )
+
+        query += where_clause
+
         with closing(conn.cursor()) as cursor:
             cursor.execute(query)
 
