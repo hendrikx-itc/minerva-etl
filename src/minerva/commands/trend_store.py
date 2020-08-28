@@ -961,15 +961,88 @@ def setup_materialize_parser(subparsers):
         help='ignore materialization state'
     )
 
+    cmd.add_argument(
+        'materialization', nargs='*', help='materialization Id or name'
+    )
+
     cmd.set_defaults(cmd=materialize_cmd)
 
 
 def materialize_cmd(args):
     try:
-        materialize_all(args.reset)
+        if not args.materialization:
+            materialize_all(args.reset)
+        else:
+            materialize_selection(args.materialization, args.reset)
     except Exception as exc:
         sys.stdout.write("Error:\n{}".format(str(exc)))
         raise exc
+
+
+def get_materialization_chunks_to_run(conn, materialization, reset: bool):
+    args = []
+
+    try:
+        materialization_id = int(materialization)
+        materialization_selection_part = "m.id = %s"
+        args.append(materialization_id)
+    except ValueError:
+        materialization_selection_part = "m::text = %s"
+        args.append(materialization)
+
+    query = (
+        "SELECT m.id, m::text, ms.timestamp "
+        "FROM trend_directory.materialization_state ms "
+        "JOIN trend_directory.materialization m "
+        "ON m.id = ms.materialization_id "
+    )
+
+    if reset:
+        where_clause = (
+            "WHERE " + materialization_selection_part + " AND ms.timestamp < now() "
+            "AND (ms.max_modified IS NULL "
+            "OR ms.max_modified + m.processing_delay < now())"
+        )
+    else:
+        where_clause = (
+            "WHERE " + materialization_selection_part + " AND ("
+            "source_fingerprint != processed_fingerprint OR "
+            "processed_fingerprint IS NULL"
+            ") AND ms.timestamp < now() "
+            "AND (ms.max_modified IS NULL "
+            "OR ms.max_modified + m.processing_delay < now())"
+        )
+
+    query += where_clause
+
+    with closing(conn.cursor()) as cursor:
+        cursor.execute(query, args)
+
+        rows = cursor.fetchall()
+
+    conn.commit()
+
+    return rows
+
+
+def materialize_selection(materializations, reset: bool):
+    with closing(connect()) as conn:
+        for materialization in materializations:
+            rows = get_materialization_chunks_to_run(conn, materialization, reset)
+
+            for materialization_id, name, timestamp in rows:
+                try:
+                    row_count = materialize(conn, materialization_id, timestamp)
+
+                    conn.commit()
+
+                    print("{} - {}: {} records".format(name, timestamp, row_count))
+                except Exception as e:
+                    conn.rollback()
+                    print("Error materializing {} ({})".format(
+                        name, materialization_id
+                    ))
+                    print(str(e))
 
 
 def materialize_all(reset):
