@@ -3,6 +3,7 @@ import argparse
 import json
 
 import yaml
+from minerva.commands import show_rows_from_cursor
 
 from minerva.db import connect
 from minerva.storage.trend.materialization import from_config, Materialization
@@ -18,6 +19,7 @@ def setup_command_parser(subparsers):
     setup_create_parser(cmd_subparsers)
     setup_update_parser(cmd_subparsers)
     setup_drop_parser(cmd_subparsers)
+    setup_list_parser(cmd_subparsers)
 
 
 def setup_create_parser(subparsers):
@@ -68,6 +70,14 @@ def setup_drop_parser(subparsers):
     cmd.set_defaults(cmd=drop_materialization)
 
 
+def setup_list_parser(subparsers):
+    cmd = subparsers.add_parser(
+        'list', help='list materializations'
+    )
+
+    cmd.set_defaults(cmd=list_materializations)
+
+
 def create_materialization(args):
     if args.format == 'json':
         definition = json.load(args.definition)
@@ -114,3 +124,17 @@ def drop_materialization(args):
 
     if count == 0:
         print("No materialization matched name '{}'".format(args.name))
+
+
+def list_materializations(args):
+    with closing(connect()) as conn:
+        query = (
+            "SELECT id, m::text AS name FROM trend_directory.materialization m ORDER BY m::text"
+        )
+
+        with conn.cursor() as cursor:
+            cursor.execute(query)
+
+            show_rows_from_cursor(cursor)
+
+        conn.commit()
