@@ -1,3 +1,4 @@
+from minerva.commands import ConfigurationError
 from psycopg2 import sql
 
 
@@ -281,3 +282,8 @@ class FunctionMaterialization(Materialization):
 
         with conn.cursor() as cursor:
             cursor.execute(define_function_materialization_query, define_materialization_args)
+
+            if cursor.rowcount == 1:
+                raise ConfigurationError(
+                    f"No target trend store part '{self.target_trend_store_part}' for materialization"
+                )
