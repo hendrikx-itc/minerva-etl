@@ -88,7 +88,16 @@ def create_entity_from_name(cursor, entity_type: str, name: str) -> int:
 
     cursor.execute(insert_query, (name,))
 
-    entity_id, = cursor.fetchone()
+    if cursor.rowcount == 0:
+        select_query = sql.SQL(
+            'SELECT id FROM entity.{} WHERE name = %s'
+        ).format(sql.Identifier(entity_type))
+
+        cursor.execute(select_query, (name,))
+
+        entity_id, = cursor.fetchone()
+    else:
+        entity_id, = cursor.fetchone()
 
     return entity_id
 
