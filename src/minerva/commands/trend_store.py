@@ -1083,6 +1083,10 @@ def materialize_all(reset):
         "FROM trend_directory.materialization_state ms "
         "JOIN trend_directory.materialization m "
         "ON m.id = ms.materialization_id "
+        "JOIN trend_directory.trend_store_part tsp "
+        "ON tsp.id = m.dst_trend_store_part_id "
+        "JOIN trend_directory.trend_store ts ON ts.id = tsp.trend_store_id "
+        "WHERE now() - ts.retention_period < ms.timestamp "
     )
 
     with closing(connect()) as conn:
@@ -1090,7 +1094,7 @@ def materialize_all(reset):
 
         if reset:
             where_clause = (
-                "WHERE m.enabled AND ms.timestamp < now() "
+                "AND m.enabled AND ms.timestamp < now() "
             )
 
             if max_modified_supported:
@@ -1100,7 +1104,7 @@ def materialize_all(reset):
                 )
         else:
             where_clause = (
-                "WHERE ("
+                "AND ("
                 "source_fingerprint != processed_fingerprint OR "
                 "processed_fingerprint IS NULL"
                 ") AND m.enabled AND ms.timestamp < now() "
