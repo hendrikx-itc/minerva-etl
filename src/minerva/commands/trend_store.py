@@ -3,7 +3,7 @@ from contextlib import closing
 import argparse
 import sys
 import datetime
-from typing import BinaryIO, Generator
+from typing import BinaryIO, Generator, Optional
 
 import yaml
 import psycopg2
@@ -962,6 +962,10 @@ def setup_materialize_parser(subparsers):
     )
 
     cmd.add_argument(
+        '--max-num', help='maximum number of materializations to run'
+    )
+
+    cmd.add_argument(
         'materialization', nargs='*', help='materialization Id or name'
     )
 
@@ -971,15 +975,15 @@ def setup_materialize_parser(subparsers):
 def materialize_cmd(args):
     try:
         if not args.materialization:
-            materialize_all(args.reset)
+            materialize_all(args.reset, args.max_num)
         else:
-            materialize_selection(args.materialization, args.reset)
+            materialize_selection(args.materialization, args.reset, args.max_num)
     except Exception as exc:
         sys.stdout.write("Error:\n{}".format(str(exc)))
         raise exc
 
 
-def get_materialization_chunks_to_run(conn, materialization, reset: bool):
+def get_materialization_chunks_to_run(conn, materialization, reset: bool, max_num: Optional[int]):
     args = []
 
     try:
@@ -1007,7 +1011,7 @@ def get_materialization_chunks_to_run(conn, materialization, reset: bool):
         if max_modified_supported:
             where_clause += (
                 "AND (ms.max_modified IS NULL "
-                "OR ms.max_modified + m.processing_delay < now())"
+                "OR ms.max_modified + m.processing_delay < now()) "
             )
     else:
         where_clause = (
@@ -1020,10 +1024,14 @@ def get_materialization_chunks_to_run(conn, materialization, reset: bool):
         if max_modified_supported:
             where_clause += (
                 "AND (ms.max_modified IS NULL "
-                "OR ms.max_modified + m.processing_delay < now())"
+                "OR ms.max_modified + m.processing_delay < now()) "
             )
 
     query += where_clause
+
+    if max_num is not None:
+        query += "LIMIT %s"
+        args.append(max_num)
 
     with closing(conn.cursor()) as cursor:
         cursor.execute(query, args)
@@ -1035,10 +1043,10 @@ def get_materialization_chunks_to_run(conn, materialization, reset: bool):
     return rows
 
 
-def materialize_selection(materializations, reset: bool):
+def materialize_selection(materializations, reset: bool, max_num: Optional[int]):
     with closing(connect()) as conn:
         for materialization in materializations:
-            rows = get_materialization_chunks_to_run(conn, materialization, reset)
+            rows = get_materialization_chunks_to_run(conn, materialization, reset, max_num)
 
             for materialization_id, name, timestamp in rows:
                 try:
@@ -1077,7 +1085,7 @@ def is_max_modified_supported(conn) -> bool:
         return len(cursor.fetchall()) > 0
 
 
-def materialize_all(reset):
+def materialize_all(reset: bool, max_num: Optional[int]):
     query = (
         "SELECT m.id, m::text, ms.timestamp "
         "FROM trend_directory.materialization_state ms "
@@ -1088,6 +1096,7 @@ def materialize_all(reset):
         "JOIN trend_directory.trend_store ts ON ts.id = tsp.trend_store_id "
         "WHERE now() - ts.retention_period < ms.timestamp "
     )
+    args = []
 
     with closing(connect()) as conn:
         max_modified_supported = is_max_modified_supported(conn)
@@ -1100,7 +1109,7 @@ def materialize_all(reset):
             if max_modified_supported:
                 where_clause += (
                     "AND (ms.max_modified IS NULL "
-                    "OR ms.max_modified + m.processing_delay < now())"
+                    "OR ms.max_modified + m.processing_delay < now()) "
                 )
         else:
             where_clause = (
@@ -1113,13 +1122,17 @@ def materialize_all(reset):
             if max_modified_supported:
                 where_clause += (
                     "AND (ms.max_modified IS NULL "
-                    "OR ms.max_modified + m.processing_delay < now())"
+                    "OR ms.max_modified + m.processing_delay < now()) "
                 )
 
         query += where_clause
 
+        if max_num is not None:
+            query += "LIMIT %s"
+            args.append(max_num)
+
         with closing(conn.cursor()) as cursor:
-            cursor.execute(query)
+            cursor.execute(query, args)
 
             rows = cursor.fetchall()
 
