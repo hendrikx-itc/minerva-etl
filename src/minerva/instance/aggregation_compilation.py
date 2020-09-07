@@ -7,6 +7,7 @@ from typing import List, Optional, Tuple, Dict, Union
 import yaml
 from minerva.error import ConfigurationError
 from minerva.instance import TrendStorePart, MinervaInstance, TrendStore, GeneratedTrend, Trend, Relation
+from minerva.instance.generating import translate_entity_aggregation_part_name
 from minerva.storage.trend.granularity import str_to_granularity
 from minerva.util.yaml import SqlSrc, ordered_yaml_dump
 
@@ -32,17 +33,23 @@ class AggregationContext:
     def configuration_check(self):
         raise NotImplementedError()
 
-    def generated_file_header(self):
+    def generated_file_header(self) -> str:
         """
-        Return a string that can be placed at the start of generated files as header
+        Return a string that can be placed at the start of generated files as
+        header.
         """
         relative_aggregation_file_path = self.instance.make_relative(
             self.aggregation_file_path
         )
 
-        relative_source_definition_path = self.instance.make_relative(
-            Path(self.definition['source'])
-        )
+        path = Path(self.definition['source'])
+
+        if path.is_absolute():
+            relative_source_definition_path = self.instance.make_relative(
+                path
+            )
+        else:
+            relative_source_definition_path = path
 
         return (
             '###########################################################################\n'
@@ -59,15 +66,13 @@ class AggregationContext:
 class EntityAggregationContext(AggregationContext):
     def configuration_check(self):
         # Check if the relation matches the aggregation
-        relation = load_relation(
-            self.instance.root, self.definition['relation']
-        )
+        relation = self.instance.load_relation(self.definition['relation'])
 
-        if self.definition['entity_type'] != relation['target_entity_type']:
+        if self.definition['entity_type'] != relation.target_entity_type:
             raise ConfigurationError(
                 'Entity type mismatch between definition and relation target: {} != {}'.format(
                     self.definition['entity_type'],
-                    relation['target_entity_type']
+                    relation.target_entity_type
                 )
             )
 
@@ -90,63 +95,43 @@ def time_aggregation_key_fn(pair: Tuple[Path, TimeAggregationContext]):
 
 
 def compile_entity_aggregation(aggregation_context: EntityAggregationContext):
-    try:
-        write_entity_aggregations(aggregation_context)
-    except ConfigurationError as exc:
-        print("Error generating aggregation: {}".format(exc))
-        return 1
+    if aggregation_context.definition['aggregation_type'] == 'VIEW':
+        trend_store = aggregation_context.instance.load_trend_store_by_name(aggregation_context.definition['source'])
+        relation = aggregation_context.instance.load_relation(aggregation_context.definition['relation'])
 
-    try:
-        aggregate_trend_store = define_aggregate_trend_store(
-            aggregation_context
-        )
-    except ConfigurationError as exc:
-        print("Error generating target trend store: {}".format(exc))
-        return 1
+        generate_view_entity_aggregation(aggregation_context.instance.root, trend_store, relation)
+    elif aggregation_context.definition['aggregation_type'] == 'VIEW MATERIALIZATION':
+        try:
+            write_entity_aggregations(aggregation_context)
+        except ConfigurationError as exc:
+            print("Error generating aggregation: {}".format(exc))
+            return 1
 
-    base_name = aggregation_context.definition['name']
+        try:
+            aggregate_trend_store = define_aggregate_trend_store(
+                aggregation_context
+            )
+        except ConfigurationError as exc:
+            print("Error generating target trend store: {}".format(exc))
+            return 1
 
-    aggregate_trend_store_file_path = aggregation_context.instance.trend_store_file_path(
-        base_name
-    )
+        base_name = aggregation_context.definition['name']
 
-    print("Writing aggregate trend store to '{}'".format(
-        aggregate_trend_store_file_path
-    ))
-
-    with aggregate_trend_store_file_path.open('w') as out_file:
-        out_file.write(aggregation_context.generated_file_header())
-
-        ordered_yaml_dump(
-            aggregate_trend_store.to_dict(), stream=out_file, Dumper=yaml.SafeDumper,
-            indent=2
+        aggregate_trend_store_file_path = aggregation_context.instance.trend_store_file_path(
+            base_name
         )
 
+        print("Writing aggregate trend store to '{}'".format(
+            aggregate_trend_store_file_path
+        ))
 
-def load_relation(instance_root: Path, relation: str) -> Dict:
-    """
-    :param instance_root:
-    :param relation: Can be an absolute path, or a filename (with or without
-    extension) relative to relation directory in instance root.
-    :return:
-    """
-    path_variants = [
-        relation,
-        Path(instance_root, 'relation', relation),
-        Path(instance_root, 'relation', f'{relation}.yaml')
-    ]
+        with aggregate_trend_store_file_path.open('w') as out_file:
+            out_file.write(aggregation_context.generated_file_header())
 
-    try:
-        yaml_file_path = next(
-            path for path in path_variants if path.is_file()
-        )
-    except StopIteration:
-        raise Exception("No such relation '{}'".format(relation))
-
-    print("Using relation definition '{}'".format(yaml_file_path))
-
-    with yaml_file_path.open() as yaml_file:
-        return yaml.load(yaml_file, Loader=yaml.SafeLoader)
+            ordered_yaml_dump(
+                aggregate_trend_store.to_dict(), stream=out_file, Dumper=yaml.SafeDumper,
+                indent=2
+            )
 
 
 def translate_source_part_name(aggregation_context: EntityAggregationContext, name: str) -> str:
@@ -165,6 +150,37 @@ def translate_source_part_name(aggregation_context: EntityAggregationContext, na
     part_specific_name = m.group(1)
 
     return f'{data_source}_{entity_type}_{part_specific_name}_{granularity}'
+
+
+def generate_view_entity_aggregation(instance_root: Path, trend_store: TrendStore, relation: Relation):
+    """
+    Generate a plain SQL file that defines a view with an aggregation query
+    """
+    print(f'generate entity aggregation view for {trend_store}')
+    aggregation_directory_path = Path(instance_root, 'custom/post-init/entity-aggregation')
+
+    if not aggregation_directory_path.is_dir():
+        aggregation_directory_path.mkdir(parents=True)
+
+    for part in trend_store.parts:
+        part_name = translate_entity_aggregation_part_name(part.name, relation.target_entity_type)
+
+        file_name = f'{part_name}.sql'
+        out_file_path = Path(aggregation_directory_path, file_name)
+
+        with out_file_path.open('w') as out_file:
+            sql = aggregation_view_sql(part_name, part, relation)
+
+            out_file.write(sql)
+
+        print(f"written entity aggregation to '{out_file_path}'")
+
+
+def aggregation_view_sql(name: str, source_part: TrendStorePart, relation: Relation) -> str:
+    return (
+        f'CREATE VIEW trend."{name}" AS\n'
+        f'{entity_aggregation_query(source_part, relation)};\n'
+    )
 
 
 def write_entity_aggregations(aggregation_context: EntityAggregationContext) -> None:
@@ -191,9 +207,16 @@ def write_entity_aggregations(aggregation_context: EntityAggregationContext) -> 
                 'name': translate_source_part_name(aggregation_context, part.name)
             }
 
+        relations = {
+            relation.name: relation
+            for relation in aggregation_context.instance.load_relations()
+        }
+
+        relation = relations[definition['relation']]
+
         aggregation = define_part_entity_aggregation(
             part,
-            definition['relation'],
+            relation,
             dest_part['name']
         )
 
@@ -210,7 +233,7 @@ def write_entity_aggregations(aggregation_context: EntityAggregationContext) -> 
             )
 
 
-def define_part_entity_aggregation(part: TrendStorePart, relation, name):
+def define_part_entity_aggregation(part: TrendStorePart, relation: Relation, name: str):
     mapping_function = 'trend.mapping_id'
 
     return OrderedDict([
@@ -262,7 +285,7 @@ def entity_aggregation_query(part: TrendStorePart, relation: Relation) -> str:
         f'{columns_part}\n'
         f'FROM trend."{part.name}" t\n'
         f'JOIN relation."{relation.name}" r ON t.entity_id = r.source_id\n'
-        'GROUP BY timestamp, r.target_id;\n'
+        'GROUP BY timestamp, r.target_id'
     )
 
 

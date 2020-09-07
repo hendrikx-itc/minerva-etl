@@ -5,11 +5,19 @@ stores (containing the word 'raw' in the trend store title).
 """
 import re
 from pathlib import Path
-from collections import OrderedDict
+from collections import OrderedDict, defaultdict
+from typing import Dict, Tuple
 
-from minerva.commands.aggregation import TimeAggregationContext, compile_time_aggregation
-from minerva.instance import MinervaInstance, TrendStore, Relation, TrendStorePart
+from minerva.commands.aggregation import (
+    TimeAggregationContext, compile_time_aggregation, EntityAggregationContext,
+    compile_entity_aggregation
+)
+from minerva.instance import (
+    MinervaInstance, TrendStore, Relation, TrendStorePart, AggregationHint,
+    EntityAggregationType, ENTITY_AGGREGATION_TYPE_MAP_REVERSE
+)
 from minerva.instance.aggregation_compilation import entity_aggregation_query
+from minerva.instance.generating import translate_entity_aggregation_part_name
 from minerva.util.yaml import ordered_yaml_dump
 
 STANDARD_AGGREGATIONS = {
@@ -36,23 +44,22 @@ def generate_standard_aggregations(instance: MinervaInstance):
 
 
 def generate_standard_aggregations_for(instance: MinervaInstance, trend_store_path: Path):
-    instance_root = instance.root
+    trend_path = Path(instance.root, 'trend')
 
-    trend_path = Path(instance_root, 'trend')
-
-    relative_path = trend_store_path.relative_to(trend_path)
+    relative_path = trend_store_path.absolute().relative_to(trend_path)
     trend_store = MinervaInstance.load_trend_store_from_file(trend_store_path)
+    aggregation_hints = instance.load_aggregation_hints()
 
     if trend_store.title and "raw" in trend_store.title.lower():
         print(relative_path)
 
         generate_aggregations(
-            instance_root, relative_path, trend_store
+            instance.root, relative_path, trend_store, aggregation_hints
         )
 
 
 def generate_aggregations(
-        instance_root: Path, source_path: Path, trend_store: TrendStore):
+        instance_root: Path, source_path: Path, trend_store: TrendStore, aggregation_hints: Dict[str, AggregationHint]):
     """
     Generate all standard aggregations for the specified trend store
     """
@@ -66,15 +73,31 @@ def generate_aggregations(
 
     instance = MinervaInstance(instance_root)
 
-    entity_relations = {
-        relation.source_entity_type: relation
-        for relation in instance.load_relations()
-    }
+    entity_relations = defaultdict(list)
 
-    relation = entity_relations.get(trend_store.entity_type)
+    for relation in instance.load_relations():
+        entity_relations[relation.source_entity_type].append(relation)
 
-    if relation is not None:
-        generate_entity_aggregation(instance_root, trend_store, relation)
+    relations = entity_relations.get(trend_store.entity_type, [])
+
+    for relation in relations:
+        aggregation_hint = aggregation_hints.get(relation.name)
+
+        if aggregation_hint is None:
+            aggregation_type = DEFAULT_AGGREGATION_TYPE
+        else:
+            aggregation_type = aggregation_hint.aggregation_type
+
+        file_path, definition = generate_entity_aggregation(
+            instance_root, source_path, trend_store, relation,
+            aggregation_type
+        )
+
+        aggregation_context = EntityAggregationContext(
+            instance, definition['entity_aggregation'], file_path
+        )
+
+        compile_entity_aggregation(aggregation_context)
 
     for source_granularity, target_granularity in aggregations:
         file_path, definition = generate_time_aggregation(
@@ -88,36 +111,72 @@ def generate_aggregations(
 
         target_trend_store = compile_time_aggregation(aggregation_context)
 
-        if relation is not None:
-            generate_entity_aggregation(instance_root, target_trend_store, relation)
+        for relation in relations:
+            aggregation_hint = aggregation_hints.get(relation.name)
+
+            if aggregation_hint is None:
+                aggregation_type = DEFAULT_AGGREGATION_TYPE
+            else:
+                aggregation_type = aggregation_hint.aggregation_type
+
+            entity_aggregation_file_path, definition = generate_entity_aggregation(
+                instance_root, file_path, target_trend_store, relation,
+                aggregation_type
+            )
+
+            aggregation_context = EntityAggregationContext(
+                instance, definition['entity_aggregation'], entity_aggregation_file_path
+            )
+
+            compile_entity_aggregation(aggregation_context)
 
 
-def generate_entity_aggregation(instance_root: Path, trend_store: TrendStore, relation: Relation):
-    print(f'generate entity aggregation for {trend_store}')
-    aggregation_directory_path = Path(instance_root, 'custom/post-init/entity-aggregation')
+def generate_entity_aggregation(
+        instance_root: Path, source_path: Path, trend_store: TrendStore,
+        relation: Relation, aggregation_type: EntityAggregationType) -> Tuple[Path, dict]:
+    """
+    Generate the YAML based aggregation definition and write it to a file.
+    :param instance_root:
+    :param source_path: Source trend store file path
+    :param trend_store: Source trend store
+    :param relation: Relation to map source entity to target entity
+    :param aggregation_type: Type of aggregation (view, view materialization)
+    :return:
+    """
+    print(f'generate entity aggregation for {trend_store} using {relation}')
+    name = f"{trend_store.data_source}_{relation.target_entity_type}_{trend_store.granularity}"
+    file_name = f"{name}.yaml"
+    aggregation_file_path = Path(instance_root, "aggregation", file_name)
 
-    if not aggregation_directory_path.is_dir():
-        aggregation_directory_path.mkdir(parents=True)
+    print(aggregation_file_path)
 
-    for part in trend_store.parts:
-        part_name = translate_entity_aggregation_part_name(part.name, relation.target_entity_type)
+    parts = [
+        OrderedDict([
+            ("name", translate_entity_aggregation_part_name(part.name, relation.target_entity_type)),
+            ("source", part.name)
+        ])
+        for part in trend_store.parts
+    ]
 
-        file_name = f'{part_name}.sql'
-        out_file_path = Path(aggregation_directory_path, file_name)
+    data = {
+        "entity_aggregation": OrderedDict([
+            ("source", source_path.stem),
+            ("name", name),
+            ("data_source", trend_store.data_source),
+            ("entity_type", relation.target_entity_type),
+            ("relation", relation.name),
+            ("aggregation_type", ENTITY_AGGREGATION_TYPE_MAP_REVERSE[aggregation_type]),
+            ("parts", parts)
+        ])
+    }
 
-        with out_file_path.open('w') as out_file:
-            sql = aggregation_view_sql(part_name, part, relation)
+    with aggregation_file_path.open("w") as out_file:
+        ordered_yaml_dump(data, out_file)
 
-            out_file.write(sql)
-
-        print(f"written entity aggregation to '{out_file_path}'")
+    return aggregation_file_path, data
 
 
-def aggregation_view_sql(name: str, source_part: TrendStorePart, relation: Relation) -> str:
-    return (
-        f'CREATE VIEW trend."{name}" AS\n'
-        f'{entity_aggregation_query(source_part, relation)}'
-    )
+DEFAULT_AGGREGATION_TYPE = EntityAggregationType.VIEW
 
 
 def generate_time_aggregation(
@@ -190,21 +249,3 @@ def translate_time_aggregation_part_name(name: str, target_granularity: str) -> 
     entity_type_and_data_source = m.group(1)
 
     return f"{entity_type_and_data_source}_{target_granularity}"
-
-
-def translate_entity_aggregation_part_name(name: str, target_entity_type: str) -> str:
-    """
-    Translate a part name with standard naming convention
-    <data_source>_<entity_type>_<granularity> to
-    <data_source_<target_entity_type>_<granularity>.
-    """
-    m = re.match("^([^_]+)_([^_]+)_(.*)$", name)
-
-    if m is None:
-        raise ValueError(f"Could not translate part name {name}")
-
-    data_source = m.group(1)
-    _entity_type = m.group(2)
-    tail = m.group(3)
-
-    return f"{data_source}_{target_entity_type}_{tail}"

@@ -66,6 +66,9 @@ def load_sample_data(instance_root: str, interval_count: int, data_set: Optional
         instance_root, 'sample-data/definition.yaml'
     )
 
+    if not definition_file_path.is_file():
+        raise ConfigurationError(f"No sample data definition found: {definition_file_path}")
+
     with definition_file_path.open() as definition_file:
         definitions = yaml.load(definition_file, Loader=yaml.SafeLoader)
 

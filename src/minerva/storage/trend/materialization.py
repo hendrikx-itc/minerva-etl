@@ -43,7 +43,8 @@ class Materialization:
             "materialization_id, trend_store_part_id, timestamp_mapping_func) "
             "SELECT m.id, tsp.id, %s::regprocedure "
             "FROM trend_directory.materialization m, trend_directory.trend_store_part tsp "
-            "WHERE m::text = %s and tsp.name = %s;"
+            "WHERE m::text = %s and tsp.name = %s "
+            "RETURNING *"
         )
 
         with conn.cursor() as cursor:
@@ -55,6 +56,9 @@ class Materialization:
                 )
 
                 cursor.execute(link_trend_store_query, link_trend_store_args)
+
+                if cursor.rowcount == 0:
+                    raise ConfigurationError(f"Could not link source trend store part '{link['trend_store_part']}'")
 
     def unlink_sources(self, conn):
         unlink_trend_store_query = (

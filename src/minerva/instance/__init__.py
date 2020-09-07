@@ -3,6 +3,7 @@ from io import TextIOBase
 from typing import List, Generator, Union, Tuple, Optional
 from collections import OrderedDict
 from pathlib import Path
+from enum import Enum
 
 from minerva.commands import ConfigurationError
 from minerva.util.yaml import ordered_yaml_dump
@@ -17,6 +18,31 @@ INSTANCE_ROOT_VARIABLE = 'MINERVA_INSTANCE_ROOT'
 
 class DefinitionError(Exception):
     pass
+
+
+class EntityAggregationType(Enum):
+    VIEW = 1
+    VIEW_MATERIALIZATION = 2
+
+
+ENTITY_AGGREGATION_TYPE_MAP = {
+    "VIEW": EntityAggregationType.VIEW,
+    "VIEW_MATERIALIZATION": EntityAggregationType.VIEW_MATERIALIZATION
+}
+
+ENTITY_AGGREGATION_TYPE_MAP_REVERSE = {
+    aggregation_type: name
+    for name, aggregation_type in ENTITY_AGGREGATION_TYPE_MAP.items()
+}
+
+
+class AggregationHint:
+    relation: str
+    aggregation_type: EntityAggregationType
+
+    def __init__(self, relation, aggregation_type: EntityAggregationType):
+        self.relation = relation
+        self.aggregation_type = aggregation_type
 
 
 class Trend:
@@ -406,6 +432,17 @@ class MinervaInstance:
     def make_relative(self, path: Path) -> Path:
         return path.relative_to(self.root)
 
+    def load_aggregation_hints(self):
+        aggregation_hints_path = Path(self.root, 'aggregation', 'aggregation_hints.yaml')
+
+        with aggregation_hints_path.open() as hints_file:
+            hints_data = yaml.load(hints_file, Loader=yaml.SafeLoader)
+
+        return {
+            relation_name: AggregationHint(relation_name, ENTITY_AGGREGATION_TYPE_MAP[aggregation_type])
+            for relation_name, aggregation_type in hints_data.items()
+        }
+
     def load_trend_store_by_name(self, name: str) -> TrendStore:
         file_path = self.trend_store_file_path(name)
 
@@ -492,6 +529,27 @@ class MinervaInstance:
 
     def list_relations(self):
         return sorted(Path(self.root, 'relation').glob('*.yaml'))
+
+    def load_relation(self, name: str) -> Relation:
+        """
+        :param name: Can be an absolute path, or a filename (with or without
+        extension) relative to relation directory in instance root.
+        :return:
+        """
+        path_variants = [
+            Path(name),
+            Path(self.root, 'relation', name),
+            Path(self.root, 'relation', f'{name}.yaml')
+        ]
+
+        try:
+            yaml_file_path = next(
+                path for path in path_variants if path.is_file()
+            )
+        except StopIteration:
+            raise Exception("No such relation '{}'".format(name))
+
+        return self.load_relation_from_file(yaml_file_path)
 
     @staticmethod
     def load_relation_from_file(yaml_file_path: Path):
