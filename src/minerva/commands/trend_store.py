@@ -966,6 +966,11 @@ def setup_materialize_parser(subparsers):
     )
 
     cmd.add_argument(
+        '--newest-first', action='store_true', default=False,
+        help='materialize newest data first'
+    )
+
+    cmd.add_argument(
         'materialization', nargs='*', help='materialization Id or name'
     )
 
@@ -975,15 +980,15 @@ def setup_materialize_parser(subparsers):
 def materialize_cmd(args):
     try:
         if not args.materialization:
-            materialize_all(args.reset, args.max_num)
+            materialize_all(args.reset, args.max_num, args.newest_first)
         else:
-            materialize_selection(args.materialization, args.reset, args.max_num)
+            materialize_selection(args.materialization, args.reset, args.max_num, args.newest_first)
     except Exception as exc:
         sys.stdout.write("Error:\n{}".format(str(exc)))
         raise exc
 
 
-def get_materialization_chunks_to_run(conn, materialization, reset: bool, max_num: Optional[int]):
+def get_materialization_chunks_to_run(conn, materialization, reset: bool, max_num: Optional[int], newest_first: bool):
     args = []
 
     try:
@@ -1028,6 +1033,9 @@ def get_materialization_chunks_to_run(conn, materialization, reset: bool, max_nu
             )
 
     query += where_clause
+
+    if newest_first:
+        query += "ORDER BY ms.timestamp DESC "
 
     if max_num is not None:
         query += "LIMIT %s"
@@ -1085,7 +1093,7 @@ def is_max_modified_supported(conn) -> bool:
         return len(cursor.fetchall()) > 0
 
 
-def materialize_all(reset: bool, max_num: Optional[int]):
+def materialize_all(reset: bool, max_num: Optional[int], newest_first: bool):
     query = (
         "SELECT m.id, m::text, ms.timestamp "
         "FROM trend_directory.materialization_state ms "
@@ -1126,6 +1134,9 @@ def materialize_all(reset: bool, max_num: Optional[int]):
                 )
 
         query += where_clause
+
+        if newest_first:
+            query += "ORDER BY ms.timestamp DESC "
 
         if max_num is not None:
             query += "LIMIT %s"
