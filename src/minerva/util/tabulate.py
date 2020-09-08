@@ -47,7 +47,7 @@ def render_rst_table(column_names: List[str], column_align: List[str], column_si
     )
 
 
-def render_table(column_names: List[str], column_align: List[str], column_sizes: List[str], rows: List[Iterable]) -> List[str]:
+def render_table(column_names: List[str], column_align: Iterable[str], column_sizes: List[str], rows: List[Iterable]) -> List[str]:
     """
     Return list of lines of rendered table.
 

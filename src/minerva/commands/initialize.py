@@ -16,7 +16,7 @@ from minerva.commands.attribute_store import \
 from minerva.commands.trend_store import create_trend_store, \
     DuplicateTrendStore
 from minerva.commands.notification_store import \
-    create_notification_store_from_json, DuplicateNotificationStore
+    create_notification_store_from_definition, DuplicateNotificationStore
 from minerva.commands.partition import create_partitions_for_trend_store
 from minerva.commands.trigger import create_trigger_from_config
 from minerva.commands.load_sample_data import load_sample_data
@@ -200,7 +200,7 @@ def initialize_notification_stores(instance_root):
             definition = yaml.load(definition_file, Loader=yaml.SafeLoader)
 
         try:
-            create_notification_store_from_json(definition)
+            create_notification_store_from_definition(definition)
         except DuplicateNotificationStore as exc:
             print(exc)
 
@@ -342,7 +342,7 @@ def define_attribute_materializations(instance_root):
             with open(definition_file_path) as definition_file:
                 definition = yaml.load(definition_file, Loader=yaml.SafeLoader)
 
-                materialization = SampledViewMaterialization.from_json(
+                materialization = SampledViewMaterialization.from_dict(
                     definition
                 )
 

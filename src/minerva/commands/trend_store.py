@@ -60,11 +60,6 @@ def setup_create_parser(subparsers):
     )
 
     cmd.add_argument(
-        '--format', choices=['yaml', 'json'], default='yaml',
-        help='format of definition'
-    )
-
-    cmd.add_argument(
         '--create-partitions', default=False, action='store_true',
         help='create partitions according to retention configuration'
     )
@@ -75,21 +70,6 @@ def setup_create_parser(subparsers):
     )
 
     cmd.set_defaults(cmd=create_trend_store_cmd)
-
-
-def load_definition(in_file: BinaryIO, file_format: str) -> dict:
-    """
-    Load definition data in one of the supported formats (YAML, JSON)
-    :param in_file: Path of the file to load
-    :param file_format: Format of the data
-    :return: dict
-    """
-    if file_format == 'json':
-        return json.load(in_file)
-    elif file_format == 'yaml':
-        return yaml.load(in_file, Loader=yaml.SafeLoader)
-    else:
-        raise ConfigurationError('Unsupported format: {format}')
 
 
 def create_trend_store_cmd(args):
@@ -119,11 +99,6 @@ def setup_add_trends_parser(subparsers):
     )
 
     cmd.add_argument(
-        '--format', choices=['yaml', 'json'], default='yaml',
-        help='format of definition'
-    )
-
-    cmd.add_argument(
         'definition', type=argparse.FileType('r'),
         help='file containing trend store definition'
     )
@@ -132,7 +107,9 @@ def setup_add_trends_parser(subparsers):
 
 
 def add_trends_cmd(args):
-    trend_store = load_trend_store(args.definition, args.format)
+    instance = MinervaInstance.load()
+
+    trend_store = instance.load_trend_store_from_file(args.definition)
 
     try:
         result = add_trends_to_trend_store(trend_store)
@@ -152,11 +129,6 @@ def setup_add_parts_parser(subparsers):
     )
 
     cmd.add_argument(
-        '--format', choices=['yaml', 'json'], default='yaml',
-        help='format of definition (default is yaml)'
-    )
-
-    cmd.add_argument(
         'definition', type=argparse.FileType('r'),
         help='file containing trend store definition'
     )
@@ -164,20 +136,9 @@ def setup_add_parts_parser(subparsers):
     cmd.set_defaults(cmd=add_parts_cmd)
 
 
-def load_trend_store(in_file: BinaryIO, file_format: str) -> TrendStore:
-    trend_store_def = load_definition(in_file, file_format)
-
-    return TrendStore.from_dict(trend_store_def)
-
-
 def setup_remove_parser(subparsers):
     cmd = subparsers.add_parser(
         'remove-trends', help='command for removing trends from trend stores'
-    )
-
-    cmd.add_argument(
-        '--format', choices=['yaml', 'json'], default='yaml',
-        help='format of definition'
     )
 
     cmd.add_argument(
@@ -189,10 +150,12 @@ def setup_remove_parser(subparsers):
 
 
 def remove_trends_cmd(args):
-    trend_store_definition = load_trend_store(args.definition, args.format)
+    instance = MinervaInstance.load()
+
+    trend_store = instance.load_trend_store_from_file(args.definition)
 
     try:
-        result = remove_trends_from_trend_store(trend_store_definition)
+        result = remove_trends_from_trend_store(trend_store)
         if result:
             sys.stdout.write(f"Removed trends: {result}\n")
         else:
@@ -216,11 +179,6 @@ def setup_alter_trends_parser(subparsers):
     )
 
     cmd.add_argument(
-        '--format', choices=['yaml', 'json'], default='yaml',
-        help='format of definition'
-    )
-
-    cmd.add_argument(
         'definition', type=argparse.FileType('r'),
         help='file containing trend store definition'
     )
@@ -229,11 +187,12 @@ def setup_alter_trends_parser(subparsers):
 
 
 def alter_trends_cmd(args):
-    trend_store_config = load_definition(args.definition, args.format)
+    instance = MinervaInstance.load()
+    trend_store = instance.load_trend_store_from_file(args.definition)
 
     try:
-        result = alter_tables_in_trend_store_from_json(
-            trend_store_config, force=args.force
+        result = alter_tables_in_trend_store(
+            trend_store, force=args.force
         )
 
         if result:
@@ -256,11 +215,6 @@ def setup_change_trends_parser(subparsers):
     )
 
     cmd.add_argument(
-        '--format', choices=['yaml', 'json'], default='yaml',
-        help='format of definition'
-    )
-
-    cmd.add_argument(
         'definition', type=argparse.FileType('r'),
         help='file containing trend store definition'
     )
@@ -269,7 +223,9 @@ def setup_change_trends_parser(subparsers):
 
 
 def change_trends_cmd(args):
-    trend_store = load_trend_store(args.definition, args.format)
+    instance = MinervaInstance.load()
+
+    trend_store = instance.load_trend_store_from_file(args.definition)
 
     try:
         result = change_trend_store(trend_store, force=args.force)
@@ -293,7 +249,9 @@ def change_trends_cmd(args):
 
 
 def add_parts_cmd(args):
-    trend_store = load_trend_store(args.definition, args.format)
+    instance = MinervaInstance.load()
+
+    trend_store = instance.load_trend_store_from_file(args.definition)
 
     sys.stdout.write(
         "Adding trend store parts to trend store '{}' - '{}' - '{}' ... \n".format(  # noqa: disable=E501
@@ -438,7 +396,7 @@ def add_trends_to_trend_store(trend_store_definition: TrendStore):
     return ', '.join(str(r) for r in result[0])
 
 
-def remove_trends_from_trend_store(trend_store_definition: TrendStore):
+def remove_trends_from_trend_store(trend_store: TrendStore):
     query = (
         'SELECT trend_directory.remove_extra_trends('
         'trend_directory.get_trend_store('
@@ -448,10 +406,10 @@ def remove_trends_from_trend_store(trend_store_definition: TrendStore):
     )
 
     query_args = (
-        trend_store_definition.data_source,
-        trend_store_definition.entity_type,
-        trend_store_definition.granularity,
-        trend_store_definition.parts
+        trend_store.data_source,
+        trend_store.entity_type,
+        trend_store.granularity,
+        trend_store.parts
     )
 
     with closing(connect()) as conn:
@@ -467,7 +425,7 @@ def remove_trends_from_trend_store(trend_store_definition: TrendStore):
         return None
 
 
-def alter_tables_in_trend_store_from_json(trend_store_definition: TrendStore, force=False):
+def alter_tables_in_trend_store(trend_store: TrendStore, force=False):
     query = (
         'SELECT trend_directory.{}('
         'trend_directory.get_trend_store('
@@ -480,10 +438,10 @@ def alter_tables_in_trend_store_from_json(trend_store_definition: TrendStore, fo
     )
 
     query_args = (
-        trend_store_definition.data_source,
-        trend_store_definition.entity_type,
-        trend_store_definition.granularity,
-        trend_store_definition.parts
+        trend_store.data_source,
+        trend_store.entity_type,
+        trend_store.granularity,
+        trend_store.parts
     )
 
     with closing(connect()) as conn:

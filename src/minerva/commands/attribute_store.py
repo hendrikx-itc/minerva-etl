@@ -7,7 +7,7 @@ import psycopg2
 import yaml
 
 from minerva.db import connect
-from minerva.instance import MinervaInstance, AttributeStore
+from minerva.instance import MinervaInstance, AttributeStore, load_yaml
 from minerva.commands import show_rows_from_cursor, show_rows, ConfigurationError
 
 
@@ -44,11 +44,6 @@ def setup_command_parser(subparsers):
 def setup_create_parser(subparsers):
     cmd = subparsers.add_parser(
         'create', help='command for creating attribute stores'
-    )
-
-    cmd.add_argument(
-        '--format', choices=['yaml', 'json'], default='yaml',
-        help='format of definition'
     )
 
     cmd.add_argument(
@@ -350,11 +345,6 @@ def setup_create_materialization_parser(subparsers):
     )
 
     cmd.add_argument(
-        '--format', choices=['yaml', 'json'], default='yaml',
-        help='format of definition'
-    )
-
-    cmd.add_argument(
         'definition', type=argparse.FileType('r'),
         help='file containing materialization definition'
     )
@@ -374,7 +364,7 @@ class SampledViewMaterialization:
         )
 
     @staticmethod
-    def from_json(data):
+    def from_dict(data):
         return SampledViewMaterialization(
             data['attribute_store'],
             data['query']
@@ -416,15 +406,9 @@ class SampledViewMaterialization:
 
 def create_materialization_cmd(args):
     print('Create attribute store materialization')
+    definition = load_yaml(args.definition)
 
-    if args.format == 'json':
-        definition = json.load(args.definition)
-    elif args.format == 'yaml':
-        definition = yaml.load(args.definition, Loader=yaml.SafeLoader)
-    else:
-        raise ConfigurationError(f"Unsupported format '{args.format}'")
-
-    materialization = SampledViewMaterialization.from_json(definition)
+    materialization = SampledViewMaterialization.from_dict(definition)
 
     with closing(connect()) as conn:
         conn.autocommit = True

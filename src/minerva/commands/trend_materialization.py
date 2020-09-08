@@ -1,11 +1,9 @@
 from contextlib import closing
 import argparse
-import json
 
-import yaml
 from minerva.commands import show_rows_from_cursor
-
 from minerva.db import connect
+from minerva.instance import load_yaml
 from minerva.storage.trend.materialization import from_config, Materialization
 
 
@@ -28,11 +26,6 @@ def setup_create_parser(subparsers):
     )
 
     cmd.add_argument(
-        '--format', choices=['yaml', 'json'], default='yaml',
-        help='format of definition'
-    )
-
-    cmd.add_argument(
         'definition', type=argparse.FileType('r'),
         help='file containing materialization definition'
     )
@@ -43,11 +36,6 @@ def setup_create_parser(subparsers):
 def setup_update_parser(subparsers):
     cmd = subparsers.add_parser(
         'update', help='update a materialization'
-    )
-
-    cmd.add_argument(
-        '--format', choices=['yaml', 'json'], default='yaml',
-        help='format of definition'
     )
 
     cmd.add_argument(
@@ -79,10 +67,7 @@ def setup_list_parser(subparsers):
 
 
 def create_materialization(args):
-    if args.format == 'json':
-        definition = json.load(args.definition)
-    elif args.format == 'yaml':
-        definition = yaml.load(args.definition, Loader=yaml.SafeLoader)
+    definition = load_yaml(args.definition)
 
     define_materialization(definition)
 
@@ -99,10 +84,7 @@ def define_materialization(definition):
 
 
 def update_materialization(args):
-    if args.format == 'json':
-        definition = json.load(args.definition)
-    elif args.format == 'yaml':
-        definition = yaml.load(args.definition, Loader=yaml.SafeLoader)
+    definition = load_yaml(args.definition)
 
     materialization = from_config(definition)
 

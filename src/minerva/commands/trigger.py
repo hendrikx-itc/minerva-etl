@@ -7,6 +7,7 @@ import dateutil.parser
 import dateutil.tz
 
 from minerva.db import connect
+from minerva.instance import load_yaml
 from minerva.trigger.trigger import Trigger
 from minerva.commands import show_rows
 
@@ -131,28 +132,24 @@ def setup_update_weight_parser(subparsers):
     )
 
     cmd.add_argument(
-        '--from-yaml', type=argparse.FileType('r'),
-        help='use yaml description for trend store'
+        'definition', type=argparse.FileType('r'),
+        help='yaml description for trigger'
     )
 
     cmd.set_defaults(cmd=update_weight_cmd)
 
 
 def update_weight_cmd(args):
-    if args.from_yaml:
-        trigger_config = yaml.load(args.from_yaml, Loader=yaml.SafeLoader)
-    else:
-        sys.stdout.write("No configuration provided\n")
-        return
+    definition = load_yaml(args.definition)
 
     sys.stdout.write(
-        "Updating weight of '{}' to:\n - {}".format(trigger_config['name'], trigger_config['weight'])
+        "Updating weight of '{}' to:\n - {}".format(definition['name'], definition['weight'])
     )
 
     with connect() as conn:
         conn.autocommit = True
 
-        trigger = Trigger.from_config(trigger_config)
+        trigger = Trigger.from_config(definition)
 
         trigger.update_weight(conn)
 

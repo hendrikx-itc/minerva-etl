@@ -16,7 +16,6 @@ from minerva.instance import (
     MinervaInstance, TrendStore, Relation,
     EntityAggregationType, ENTITY_AGGREGATION_TYPE_MAP_REVERSE
 )
-from minerva.instance.aggregation_compilation import entity_aggregation_query
 from minerva.instance.generating import translate_entity_aggregation_part_name
 from minerva.util.yaml import ordered_yaml_dump
 

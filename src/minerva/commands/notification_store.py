@@ -1,12 +1,11 @@
-import json
 from contextlib import closing
 import argparse
 import sys
 
 import psycopg2
-import yaml
 
 from minerva.db import connect
+from minerva.instance import load_yaml
 
 
 class DuplicateNotificationStore(Exception):
@@ -37,53 +36,30 @@ def setup_create_parser(subparsers):
     )
 
     cmd.add_argument(
-        '--data-source',
-        help='name of the data source of the new attribute store'
-    )
-
-    cmd.add_argument(
-        '--from-json', type=argparse.FileType('r'),
-        help='use json description for attribute store'
-    )
-
-    cmd.add_argument(
-        '--from-yaml', type=argparse.FileType('r'),
-        help='use yaml description for attribute store'
+        'definition', type=argparse.FileType('r'),
+        help='definition of attribute store'
     )
 
     cmd.set_defaults(cmd=create_notification_store_cmd)
 
 
 def create_notification_store_cmd(args):
-    if args.from_json:
-        notification_store_config = json.load(args.from_json)
-    elif args.from_yaml:
-        notification_store_config = yaml.load(
-            args.from_yaml, Loader=yaml.SafeLoader
-        )
-    else:
-        notification_store_config = {
-            'data_source': 'example_source',
-            'attributes': []
-        }
+    definition = load_yaml(args.definition)
 
-    if args.data_source:
-        notification_store_config['data_source'] = args.data_source
-
-    notification_store_name = notification_store_config['data_source']
+    notification_store_name = definition['data_source']
 
     sys.stdout.write(
         "Creating notification store '{}'... ".format(notification_store_name)
     )
 
     try:
-        create_notification_store_from_json(notification_store_config)
+        create_notification_store_from_definition(definition)
         sys.stdout.write("OK\n")
     except DuplicateNotificationStore as exc:
-        sys.stdout.write(exc)
+        sys.stdout.write(str(exc))
 
 
-def create_notification_store_from_json(data):
+def create_notification_store_from_definition(data: dict):
     query = (
         'SELECT notification_directory.create_notification_store('
         '%s::text, {}'

@@ -1,3 +1,4 @@
+import json
 import os
 from io import TextIOBase
 from typing import List, Generator, Union, Tuple, Optional
@@ -553,6 +554,18 @@ def load_yaml(file: Union[Path, TextIOBase]) -> Union[list, dict]:
             data = yaml.load(definition_file, Loader=yaml.SafeLoader)
     elif isinstance(file, TextIOBase):
         data = yaml.load(file, Loader=yaml.SafeLoader)
+    else:
+        raise ValueError('Unsupported argument type for file')
+
+    return data
+
+
+def load_json(file: Union[Path, TextIOBase]) -> Union[list, dict]:
+    if isinstance(file, Path):
+        with file.open() as definition_file:
+            data = json.load(definition_file)
+    elif isinstance(file, TextIOBase):
+        data = json.load(file)
     else:
         raise ValueError('Unsupported argument type for file')
 

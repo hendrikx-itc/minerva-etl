@@ -1,11 +1,10 @@
 from contextlib import closing
 import argparse
-import json
 
 from psycopg2 import sql
 import psycopg2.errors
-import yaml
 
+from minerva.instance import load_yaml
 from minerva.db import connect
 
 
@@ -27,11 +26,6 @@ def setup_create_parser(subparsers):
     )
 
     cmd.add_argument(
-        '--format', choices=['yaml', 'json'], default='yaml',
-        help='format of definition'
-    )
-
-    cmd.add_argument(
         'definition', type=argparse.FileType('r'),
         help='file containing relation definition'
     )
@@ -45,10 +39,7 @@ class DuplicateRelation(Exception):
 
 
 def create_relation(args):
-    if args.format == 'json':
-        definition = json.load(args.definition)
-    elif args.format == 'yaml':
-        definition = yaml.load(args.definition, Loader=yaml.SafeLoader)
+    definition = load_yaml(args.definition)
 
     try:
         define_relation(definition)
@@ -116,13 +107,14 @@ def materialize_relations():
 
                 print("Materialized relation '{}'".format(name))
 
+
 def setup_remove_parser(subparsers):
     cmd = subparsers.add_parser(
         'remove', help='remove a relation'
     )
 
-    cmd.add_argument('name',
-        help='name of the relation to be removed'
+    cmd.add_argument(
+        'name', help='name of the relation to be removed'
     )
 
     cmd.set_defaults(cmd=remove_relation)
@@ -140,4 +132,5 @@ def remove_relation(args):
                 print("Removed relation '{}'".format(result))
             else:
                 print("No relation to remove")
+
         conn.commit()

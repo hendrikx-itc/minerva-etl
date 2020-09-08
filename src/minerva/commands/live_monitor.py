@@ -23,8 +23,10 @@ def live_monitor_cmd(args):
 
 
 def live_monitor():
+    max_num_materializations = 50
+
     while True:
         process_modified_log(False)
-        materialize_all(False)
+        materialize_all(False, max_num_materializations, False)
 
         time.sleep(2)
