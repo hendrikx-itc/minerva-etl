@@ -36,15 +36,6 @@ ENTITY_AGGREGATION_TYPE_MAP_REVERSE = {
 }
 
 
-class AggregationHint:
-    relation: str
-    aggregation_type: EntityAggregationType
-
-    def __init__(self, relation, aggregation_type: EntityAggregationType):
-        self.relation = relation
-        self.aggregation_type = aggregation_type
-
-
 class Trend:
     def __init__(self, name, data_type, description, time_aggregation, entity_aggregation, extra_data):
         self.name = name
@@ -439,7 +430,7 @@ class MinervaInstance:
             hints_data = yaml.load(hints_file, Loader=yaml.SafeLoader)
 
         return {
-            relation_name: AggregationHint(relation_name, ENTITY_AGGREGATION_TYPE_MAP[aggregation_type])
+            relation_name: ENTITY_AGGREGATION_TYPE_MAP[aggregation_type]
             for relation_name, aggregation_type in hints_data.items()
         }
 
@@ -453,13 +444,7 @@ class MinervaInstance:
         """
         Load and return trend store from the provided path
         """
-        if isinstance(file, Path):
-            with file.open() as definition_file:
-                definition = yaml.load(definition_file, Loader=yaml.SafeLoader)
-        elif isinstance(file, TextIOBase):
-            definition = yaml.load(file, Loader=yaml.SafeLoader)
-        else:
-            raise Exception('Unsupported argument type for file')
+        definition = load_yaml(file)
 
         return TrendStore.from_dict(definition)
 
@@ -487,13 +472,7 @@ class MinervaInstance:
 
     @staticmethod
     def load_attribute_store_from_file(file: Union[Path, TextIOBase]) -> AttributeStore:
-        if isinstance(file, Path):
-            with file.open() as definition_file:
-                definition = yaml.load(definition_file, Loader=yaml.SafeLoader)
-        elif isinstance(file, TextIOBase):
-            definition = yaml.load(file, Loader=yaml.SafeLoader)
-        else:
-            raise Exception('Unsupported argument type for file')
+        definition = load_yaml(file)
 
         return AttributeStore.from_dict(definition)
 
@@ -552,11 +531,10 @@ class MinervaInstance:
         return self.load_relation_from_file(yaml_file_path)
 
     @staticmethod
-    def load_relation_from_file(yaml_file_path: Path):
-        with yaml_file_path.open() as yaml_file:
-            definition = yaml.load(yaml_file, Loader=yaml.SafeLoader)
+    def load_relation_from_file(yaml_file: Union[Path, TextIOBase]):
+        definition = load_yaml(yaml_file)
 
-            return Relation.from_dict(definition)
+        return Relation.from_dict(definition)
 
     def load_relations(self) -> Generator[Relation, None, None]:
         """
@@ -567,3 +545,15 @@ class MinervaInstance:
             self.load_relation_from_file(path)
             for path in self.list_relations()
         )
+
+
+def load_yaml(file: Union[Path, TextIOBase]) -> Union[list, dict]:
+    if isinstance(file, Path):
+        with file.open() as definition_file:
+            data = yaml.load(definition_file, Loader=yaml.SafeLoader)
+    elif isinstance(file, TextIOBase):
+        data = yaml.load(file, Loader=yaml.SafeLoader)
+    else:
+        raise ValueError('Unsupported argument type for file')
+
+    return data

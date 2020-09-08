@@ -662,7 +662,8 @@ def aggregate_function(part_data: TrendStorePart, target_granularity) -> Ordered
 def define_materialization_sql(target_name: str) -> List[str]:
     return [
         'SELECT trend_directory.define_function_materialization(\n',
-        "    id, '30m'::interval, '5m'::interval, '3 days'::interval, 'trend.{}(timestamp with time zone)'::regprocedure\n".format(target_name),
+        "    id, '30m'::interval, '5m'::interval, '3 days'::interval,\n"
+        "    'trend.{}(timestamp with time zone)'::regprocedure\n".format(target_name),
         ')\n',
         'FROM trend_directory.trend_store_part\n',
         "WHERE name = '{}';\n".format(target_name),
@@ -671,7 +672,8 @@ def define_materialization_sql(target_name: str) -> List[str]:
 
 def define_trend_store_link(part_name: str, mapping_function: str, target_name: str) -> List[str]:
     return [
-        'INSERT INTO trend_directory.materialization_trend_store_link(materialization_id, trend_store_part_id, timestamp_mapping_func)\n',
+        'INSERT INTO trend_directory.materialization_trend_store_link(\n'
+        'materialization_id, trend_store_part_id, timestamp_mapping_func)\n',
         "SELECT m.id, tsp.id, 'trend.{}(timestamp with time zone)'::regprocedure\n".format(mapping_function),
         'FROM trend_directory.materialization m, trend_directory.trend_store_part tsp\n',
         "WHERE m::text = '{}' and tsp.name = '{}';\n".format(
@@ -684,7 +686,11 @@ def fingerprint_function_sql(
         part_data: TrendStorePart, source_granularity: str, target_granularity: str) -> str:
     return (
         "SELECT max(modified.last), format('{%s}', string_agg(format('\"%s\":\"%s\"', t, modified.last), ','))::jsonb\n"
-        f"FROM generate_series($1 - interval '{target_granularity}' + interval '{source_granularity}', $1, interval '{source_granularity}') t\n"
+        "FROM generate_series(\n"
+        f"  $1 - interval '{target_granularity}' + interval '{source_granularity}',\n"
+        "  $1,\n"
+        f"  interval '{source_granularity}'\n"
+        f") t\n"
         'LEFT JOIN (\n'
         '  SELECT timestamp, last\n'
         '  FROM trend_directory.trend_store_part part\n'

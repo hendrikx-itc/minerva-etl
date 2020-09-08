@@ -13,7 +13,7 @@ from minerva.commands.aggregation import (
     compile_entity_aggregation
 )
 from minerva.instance import (
-    MinervaInstance, TrendStore, Relation, TrendStorePart, AggregationHint,
+    MinervaInstance, TrendStore, Relation,
     EntityAggregationType, ENTITY_AGGREGATION_TYPE_MAP_REVERSE
 )
 from minerva.instance.aggregation_compilation import entity_aggregation_query
@@ -59,7 +59,8 @@ def generate_standard_aggregations_for(instance: MinervaInstance, trend_store_pa
 
 
 def generate_aggregations(
-        instance_root: Path, source_path: Path, trend_store: TrendStore, aggregation_hints: Dict[str, AggregationHint]):
+        instance_root: Path, source_path: Path, trend_store: TrendStore,
+        aggregation_hints: Dict[str, EntityAggregationType]):
     """
     Generate all standard aggregations for the specified trend store
     """
@@ -102,12 +103,7 @@ def generate_aggregations(
 def generate_entity_aggregation(
         aggregation_hints, instance: MinervaInstance, relation: Relation, source_path: Path, trend_store: TrendStore
 ):
-    aggregation_hint = aggregation_hints.get(relation.name)
-
-    if aggregation_hint is None:
-        aggregation_type = DEFAULT_AGGREGATION_TYPE
-    else:
-        aggregation_type = aggregation_hint.aggregation_type
+    aggregation_type = aggregation_hints.get(relation.name, DEFAULT_AGGREGATION_TYPE)
 
     file_path, definition = generate_entity_aggregation_yaml(
         instance.root, source_path, trend_store, relation,

@@ -988,6 +988,38 @@ def materialize_cmd(args):
         raise exc
 
 
+class MaterializationChunk:
+    materialization_id: int
+    name: str
+    timestamp: datetime.datetime
+
+    def __init__(self, materialization_id: int, name: str, timestamp: datetime.datetime):
+        self.materialization_id = materialization_id
+        self.name = name
+        self.timestamp = timestamp
+
+    def materialize(self, conn):
+        try:
+            materialize_query = (
+                "SELECT (trend_directory.materialize(m, %s)).row_count "
+                "FROM trend_directory.materialization m WHERE id = %s"
+            )
+
+            with conn.cursor() as cursor:
+                cursor.execute(materialize_query, (self.timestamp, self.materialization_id))
+                row_count, = cursor.fetchone()
+
+            conn.commit()
+
+            print("{} - {}: {} records".format(self.name, self.timestamp, row_count))
+        except Exception as e:
+            conn.rollback()
+            print("Error materializing {} ({})".format(
+                self.name, self.materialization_id
+            ))
+            print(str(e))
+
+
 def get_materialization_chunks_to_run(conn, materialization, reset: bool, max_num: Optional[int], newest_first: bool):
     args = []
 
@@ -1048,27 +1080,17 @@ def get_materialization_chunks_to_run(conn, materialization, reset: bool, max_nu
 
     conn.commit()
 
-    return rows
+    return [MaterializationChunk(*row) for row in rows]
 
 
-def materialize_selection(materializations, reset: bool, max_num: Optional[int]):
+def materialize_selection(materializations, reset: bool, max_num: Optional[int], newest_first: bool):
     with closing(connect()) as conn:
         for materialization in materializations:
-            rows = get_materialization_chunks_to_run(conn, materialization, reset, max_num)
+            chunks = get_materialization_chunks_to_run(conn, materialization, reset, max_num, newest_first)
 
-            for materialization_id, name, timestamp in rows:
-                try:
-                    row_count = materialize(conn, materialization_id, timestamp)
-
-                    conn.commit()
-
-                    print("{} - {}: {} records".format(name, timestamp, row_count))
-                except Exception as e:
-                    conn.rollback()
-                    print("Error materializing {} ({})".format(
-                        name, materialization_id
-                    ))
-                    print(str(e))
+            for chunk in chunks:
+                chunk.materialize(conn)
+                conn.commit()
 
 
 def is_max_modified_supported(conn) -> bool:
@@ -1145,33 +1167,11 @@ def materialize_all(reset: bool, max_num: Optional[int], newest_first: bool):
         with closing(conn.cursor()) as cursor:
             cursor.execute(query, args)
 
-            rows = cursor.fetchall()
+            chunks = [MaterializationChunk(*row) for row in cursor.fetchall()]
 
         conn.commit()
 
-        for materialization_id, name, timestamp in rows:
-            try:
-                row_count = materialize(conn, materialization_id, timestamp)
+        for chunk in chunks:
+            chunk.materialize(conn)
 
-                conn.commit()
-
-                print("{} - {}: {} records".format(name, timestamp, row_count))
-            except Exception as e:
-                conn.rollback()
-                print("Error materializing {} ({})".format(
-                    name, materialization_id
-                ))
-                print(str(e))
-
-
-def materialize(conn, materialization_id, timestamp):
-    materialize_query = (
-        "SELECT (trend_directory.materialize(m, %s)).row_count "
-        "FROM trend_directory.materialization m WHERE id = %s"
-    )
-
-    with closing(conn.cursor()) as cursor:
-        cursor.execute(materialize_query, (timestamp, materialization_id))
-        row_count, = cursor.fetchone()
-
-    return row_count
+            conn.commit()
