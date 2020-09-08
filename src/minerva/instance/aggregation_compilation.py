@@ -2,11 +2,12 @@ import re
 from collections import OrderedDict
 from itertools import chain
 from pathlib import Path
-from typing import List, Optional, Tuple, Dict, Union
+from typing import List, Optional, Tuple, Union
 
 import yaml
 from minerva.error import ConfigurationError
-from minerva.instance import TrendStorePart, MinervaInstance, TrendStore, GeneratedTrend, Trend, Relation
+from minerva.instance import TrendStorePart, MinervaInstance, TrendStore, GeneratedTrend, Trend, Relation, \
+    EntityAggregationType, ENTITY_AGGREGATION_TYPE_MAP
 from minerva.instance.generating import translate_entity_aggregation_part_name
 from minerva.storage.trend.granularity import str_to_granularity
 from minerva.util.yaml import SqlSrc, ordered_yaml_dump
@@ -95,12 +96,14 @@ def time_aggregation_key_fn(pair: Tuple[Path, TimeAggregationContext]):
 
 
 def compile_entity_aggregation(aggregation_context: EntityAggregationContext):
-    if aggregation_context.definition['aggregation_type'] == 'VIEW':
+    aggregation_type = ENTITY_AGGREGATION_TYPE_MAP[aggregation_context.definition['aggregation_type']]
+
+    if aggregation_type is EntityAggregationType.VIEW:
         trend_store = aggregation_context.instance.load_trend_store_by_name(aggregation_context.definition['source'])
         relation = aggregation_context.instance.load_relation(aggregation_context.definition['relation'])
 
         generate_view_entity_aggregation(aggregation_context.instance.root, trend_store, relation)
-    elif aggregation_context.definition['aggregation_type'] == 'VIEW MATERIALIZATION':
+    elif aggregation_type is EntityAggregationType.VIEW_MATERIALIZATION:
         try:
             write_entity_aggregations(aggregation_context)
         except ConfigurationError as exc:
@@ -156,7 +159,7 @@ def generate_view_entity_aggregation(instance_root: Path, trend_store: TrendStor
     """
     Generate a plain SQL file that defines a view with an aggregation query
     """
-    print(f'generate entity aggregation view for {trend_store}')
+    print(f'Generating entity aggregation views ({len(trend_store.parts)}) for {trend_store}')
     aggregation_directory_path = Path(instance_root, 'custom/post-init/entity-aggregation')
 
     if not aggregation_directory_path.is_dir():

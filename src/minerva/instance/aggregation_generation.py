@@ -81,23 +81,7 @@ def generate_aggregations(
     relations = entity_relations.get(trend_store.entity_type, [])
 
     for relation in relations:
-        aggregation_hint = aggregation_hints.get(relation.name)
-
-        if aggregation_hint is None:
-            aggregation_type = DEFAULT_AGGREGATION_TYPE
-        else:
-            aggregation_type = aggregation_hint.aggregation_type
-
-        file_path, definition = generate_entity_aggregation(
-            instance_root, source_path, trend_store, relation,
-            aggregation_type
-        )
-
-        aggregation_context = EntityAggregationContext(
-            instance, definition['entity_aggregation'], file_path
-        )
-
-        compile_entity_aggregation(aggregation_context)
+        generate_entity_aggregation(aggregation_hints, instance, relation, source_path, trend_store)
 
     for source_granularity, target_granularity in aggregations:
         file_path, definition = generate_time_aggregation(
@@ -112,26 +96,30 @@ def generate_aggregations(
         target_trend_store = compile_time_aggregation(aggregation_context)
 
         for relation in relations:
-            aggregation_hint = aggregation_hints.get(relation.name)
-
-            if aggregation_hint is None:
-                aggregation_type = DEFAULT_AGGREGATION_TYPE
-            else:
-                aggregation_type = aggregation_hint.aggregation_type
-
-            entity_aggregation_file_path, definition = generate_entity_aggregation(
-                instance_root, file_path, target_trend_store, relation,
-                aggregation_type
-            )
-
-            aggregation_context = EntityAggregationContext(
-                instance, definition['entity_aggregation'], entity_aggregation_file_path
-            )
-
-            compile_entity_aggregation(aggregation_context)
+            generate_entity_aggregation(aggregation_hints, instance, relation, file_path, target_trend_store)
 
 
 def generate_entity_aggregation(
+        aggregation_hints, instance: MinervaInstance, relation: Relation, source_path: Path, trend_store: TrendStore
+):
+    aggregation_hint = aggregation_hints.get(relation.name)
+
+    if aggregation_hint is None:
+        aggregation_type = DEFAULT_AGGREGATION_TYPE
+    else:
+        aggregation_type = aggregation_hint.aggregation_type
+
+    file_path, definition = generate_entity_aggregation_yaml(
+        instance.root, source_path, trend_store, relation,
+        aggregation_type
+    )
+    aggregation_context = EntityAggregationContext(
+        instance, definition['entity_aggregation'], file_path
+    )
+    compile_entity_aggregation(aggregation_context)
+
+
+def generate_entity_aggregation_yaml(
         instance_root: Path, source_path: Path, trend_store: TrendStore,
         relation: Relation, aggregation_type: EntityAggregationType) -> Tuple[Path, dict]:
     """
