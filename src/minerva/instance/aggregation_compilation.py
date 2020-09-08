@@ -686,11 +686,7 @@ def fingerprint_function_sql(
         part_data: TrendStorePart, source_granularity: str, target_granularity: str) -> str:
     return (
         "SELECT max(modified.last), format('{%s}', string_agg(format('\"%s\":\"%s\"', t, modified.last), ','))::jsonb\n"
-        "FROM generate_series(\n"
-        f"  $1 - interval '{target_granularity}' + interval '{source_granularity}',\n"
-        "  $1,\n"
-        f"  interval '{source_granularity}'\n"
-        f") t\n"
+        f"FROM generate_series($1 - interval '{target_granularity}' + interval '{source_granularity}', $1, interval '{source_granularity}') t\n"  # noqa: E501
         'LEFT JOIN (\n'
         '  SELECT timestamp, last\n'
         '  FROM trend_directory.trend_store_part part\n'
