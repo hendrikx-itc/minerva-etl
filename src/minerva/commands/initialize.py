@@ -123,6 +123,9 @@ def initialize_instance(instance_root, num_partitions):
     header("Defining relations")
     define_relations(instance_root)
 
+    header('Custom pre-materialization-init SQL')
+    load_custom_pre_materialization_init_sql(instance_root)
+
     header('Initializing trend materializations')
     define_trend_materializations(instance_root)
 
@@ -188,6 +191,19 @@ def initialize_trend_stores(instance_root):
             print(exc)
 
         sys.stdout.write("OK\n")
+
+
+def load_custom_pre_materialization_init_sql(instance_root):
+    glob_pattern = os.path.join(
+        instance_root, 'custom/pre-materialization-init/**/*.sql'
+    )
+
+    definition_files = glob.glob(glob_pattern, recursive=True)
+
+    for definition_file_path in sorted(definition_files):
+        print(definition_file_path)
+
+        execute_sql_file(definition_file_path)
 
 
 def initialize_notification_stores(instance_root):
