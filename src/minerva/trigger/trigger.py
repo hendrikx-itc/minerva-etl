@@ -1,5 +1,6 @@
 from contextlib import closing
 
+from minerva.commands import ConfigurationError
 from psycopg2 import sql
 import psycopg2
 
@@ -223,6 +224,11 @@ def create_rule(conn, config):
         )
     )
 
+    get_notification_store_query = (
+        "SELECT * FROM notification_directory.notification_store "
+        "WHERE notification_store::text = %s"
+    )
+
     set_properties_query = (
         "UPDATE trigger.rule "
         "SET notification_store_id = notification_store.id, "
@@ -234,6 +240,11 @@ def create_rule(conn, config):
     )
 
     with closing(conn.cursor()) as cursor:
+        cursor.execute(get_notification_store_query, (config['notification_store'],))
+
+        if cursor.rowcount == 0:
+            raise ConfigurationError(f'No such notification store: {config["notification_store"]}')
+
         cursor.execute(create_query)
 
         row = cursor.fetchone()
