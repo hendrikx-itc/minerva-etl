@@ -825,7 +825,9 @@ class Text(DataType):
 
 class ArrayType(DataType):
     default_string_parser_config = {
-        'separator': ','
+        'separator': ',',
+        'prefix': '[',
+        'postfix': ']'
     }
 
     default_string_serializer_config = {
@@ -871,7 +873,10 @@ class ArrayType(DataType):
         )
         separator = config['separator']
 
-        values_part = strip_brackets
+        lbracket = config['prefix']
+        rbracket = config['postfix']
+
+        values_part = bracket_stripper(lbracket, rbracket)
 
         def parse(str_value):
             return [
@@ -907,8 +912,11 @@ class ArrayType(DataType):
         raise NotImplementedError
 
 
-def strip_brackets(str_value):
-    return str_value.lstrip('[').rstrip(']')
+def bracket_stripper(lbracket: str, rbracket: str) -> str:
+    def strip_brackets(str_value):
+        return str_value.lstrip(lbracket).rstrip(rbracket)
+
+    return strip_brackets
 
 
 registry = {}

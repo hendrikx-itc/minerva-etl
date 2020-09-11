@@ -5,6 +5,7 @@ import glob
 from pathlib import Path
 
 import yaml
+from minerva.commands import ConfigurationError
 from minerva.commands.live_monitor import live_monitor
 
 from minerva.db import connect
@@ -81,7 +82,10 @@ def initialize_cmd(args):
 
     if args.load_sample_data:
         header('Loading sample data')
-        load_sample_data(instance_root, args.interval_count)
+        try:
+            load_sample_data(instance_root, args.interval_count)
+        except ConfigurationError as exc:
+            print(str(exc))
 
     initialize_derivatives(instance_root)
 

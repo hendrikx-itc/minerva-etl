@@ -41,7 +41,7 @@ class Parser(HarvestParserTrend):
         value_parsers = [
             (
                 itemgetter(header.index(column['name'])),
-                registry[column['data_type']].string_parser({"null_value": ""}),
+                registry[column['data_type']].string_parser(column.get('parser_config', {"null_value": ""})),
             )
             for column in self.config['columns']
         ]
