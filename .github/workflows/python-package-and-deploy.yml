@@ -1,0 +1,30 @@
+name: Python package and deploy
+
+on:
+  push:
+    branches:
+      - master
+      
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python 3.x
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'
+          
+      - name: Install/Upgrade latest setuptools & wheel
+        run: python3 -m pip install setuptools wheel
+
+      - name: Build package
+        run: python3 setup.py sdist bdist_wheel
+      
+      - name: Deploy package
+        uses: pypa/gh-action-pypi-publish@master
+        with:
+          user: __token__
+          password: ${{ secrets.PYPI_TOKEN }}
