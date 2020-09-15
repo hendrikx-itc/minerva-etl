@@ -341,6 +341,47 @@ class AttributeStore:
 
         return OrderedDict(items)
 
+class NotificationStore:
+    title: Optional[str]
+    data_source: str
+    entity_type: str
+    attributes: List[Attribute]
+
+    def __init__(self, data_source, entity_type, attributes):
+        self.title = None
+        self.data_source = data_source
+        self.entity_type = entity_type
+        self.attributes = attributes
+
+    def __str__(self):
+        return f'{self.data_source}_{self.entity_type}'
+
+    @staticmethod
+    def from_dict(data: dict):
+        notification_store = NotificationStore(
+            data['data_source'],
+            data['entity_type'],
+            [Attribute.from_dict(a) for a in data['attributes']]
+        )
+
+        notification_store.title = data.get('title')
+
+        return notification_store
+
+    def to_dict(self) -> OrderedDict:
+        items = []
+
+        if self.title:
+            items.append(('title', self.title))
+
+        items.extend([
+            ('data_source', self.data_source),
+            ('entity_type', self.entity_type),
+            ('attributes', [attribute.to_dict() for attribute in self.attributes]),
+        ])
+
+        return OrderedDict(items)
+    
 
 class Relation:
     name: str
@@ -476,6 +517,12 @@ class MinervaInstance:
         definition = load_yaml(file)
 
         return AttributeStore.from_dict(definition)
+
+    @staticmethod
+    def load_notification_store_from_file(file: Union[Path, TextIOBase]) -> NotificationStore:
+        definition = load_yaml(file)
+
+        return NotificationStore.from_dict(definition)  
 
     def list_trend_stores(self) -> List[Path]:
         """
