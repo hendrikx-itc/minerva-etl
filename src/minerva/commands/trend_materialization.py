@@ -6,7 +6,7 @@ from minerva.db import connect
 from minerva.instance import load_yaml
 from minerva.storage.trend.materialization import from_config, Materialization
 
-from psycopg2 import OperationalError, errors
+from psycopg2.errors import DuplicateFunction
 
 
 def setup_command_parser(subparsers):
@@ -83,7 +83,7 @@ def define_materialization(definition):
                 conn.commit()
 
         print("Created materialization '{}'".format(definition['target_trend_store_part']))    
-    except errors.DuplicateFunction as e:
+    except DuplicateFunction as e:
         print("Error: {}".format(e))    
 
 def update_materialization(args):
