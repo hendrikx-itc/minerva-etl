@@ -84,7 +84,7 @@ def define_materialization(definition):
 
         print("Created materialization '{}'".format(definition['target_trend_store_part']))    
     except DuplicateFunction as e:
-        print("Error: {}".format(e))    
+        print("Error creating materialization: {}".format(e))    
 
 def update_materialization(args):
     definition = load_yaml(args.definition)
