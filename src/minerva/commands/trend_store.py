@@ -793,7 +793,7 @@ def remove_old_partitions_cmd(args):
                         print(f'\nRemoved {removed_partitions} of {total_partitions} partitions')
     except psycopg2.errors.LockNotAvailable as partition_lock:
         print(f"Could not remove partitions: {partition_lock}")
-        pass
+
 
 def create_partition_cmd(args):
     ahead_interval = args.ahead_interval or '1 day'
@@ -808,7 +808,7 @@ def create_partition_cmd(args):
                 )
     except psycopg2.errors.LockNotAvailable as partition_lock:
         print(f"Could not create partition: {partition_lock}")
-        pass
+
 
 def create_partitions_for_one_trend_store(conn, trend_store_id, ahead_interval):
     for name, partition_index, i, num in create_partitions_for_trend_store(
