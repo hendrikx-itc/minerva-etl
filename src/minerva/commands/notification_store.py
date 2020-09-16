@@ -5,7 +5,7 @@ import sys
 import psycopg2
 
 from minerva.db import connect
-from minerva.instance import load_yaml
+from minerva.instance import MinervaInstance, NotificationStore, load_yaml
 
 
 class DuplicateNotificationStore(Exception):
@@ -44,22 +44,24 @@ def setup_create_parser(subparsers):
 
 
 def create_notification_store_cmd(args):
-    definition = load_yaml(args.definition)
+    # definition = load_yaml(args.definition)
+    # notification_store_name = definition['data_source']
 
-    notification_store_name = definition['data_source']
+    notification_store = MinervaInstance.load_notification_store_from_file(args.definition)
+    notification_store_name = notification_store.data_source
 
     sys.stdout.write(
         "Creating notification store '{}'... ".format(notification_store_name)
     )
 
     try:
-        create_notification_store_from_definition(definition)
+        create_notification_store_from_definition(notification_store)
         sys.stdout.write("OK\n")
     except DuplicateNotificationStore as exc:
         sys.stdout.write(str(exc))
 
 
-def create_notification_store_from_definition(data: dict):
+def create_notification_store_from_definition(notification_store: NotificationStore):
     query = (
         'SELECT notification_directory.create_notification_store('
         '%s::text, {}'
@@ -67,16 +69,16 @@ def create_notification_store_from_definition(data: dict):
     ).format(
         'ARRAY[{}]::notification_directory.attr_def[]'.format(','.join([
             "('{}', '{}', '{}')".format(
-                attribute['name'],
-                attribute['data_type'],
-                attribute.get('description', '')
+                attribute.name,
+                attribute.data_type,
+                ''
             )
-            for attribute in data['attributes']
+            for attribute in notification_store.attributes
         ]))
     )
 
     query_args = (
-        data['data_source'],
+        notification_store.data_source,
     )
 
     with closing(connect()) as conn:
@@ -84,7 +86,7 @@ def create_notification_store_from_definition(data: dict):
             try:
                 cursor.execute(query, query_args)
             except psycopg2.errors.UniqueViolation as exc:
-                raise DuplicateNotificationStore(data['data_source']) from exc
+                raise DuplicateNotificationStore(notification_store.data_source) from exc
 
         conn.commit()
 
