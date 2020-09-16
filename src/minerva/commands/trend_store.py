@@ -763,46 +763,51 @@ def remove_old_partitions_cmd(args):
 
     removed_partitions = 0
 
-    with connect() as conn:
-        with conn.cursor() as cursor:
-            cursor.execute(partition_count_query)
-            total_partitions, = cursor.fetchone()
+    try:
+        with connect() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute(partition_count_query)
+                total_partitions, = cursor.fetchone()
 
-            cursor.execute(old_partitions_query)
+                cursor.execute(old_partitions_query)
 
-            rows = cursor.fetchall()
+                rows = cursor.fetchall()
 
-            print(f'Found {len(rows)} of {total_partitions} partitions to be removed')
+                print(f'Found {len(rows)} of {total_partitions} partitions to be removed')
 
-            conn.commit()
+                conn.commit()
 
-            if len(rows) > 0:
-                print()
-
-                for partition_id, partition_name, data_from, data_to in rows:
-                    if not args.pretend:
-                        cursor.execute(f'drop table trend_partition."{partition_name}"')
-                        cursor.execute('delete from trend_directory.partition where id = %s', (partition_id,))
-                        conn.commit()
-                    removed_partitions += 1
-                    print(f' - {partition_name} ({data_from} - {data_to})')
-
-                if args.pretend:
-                    print(f'\nWould have removed {removed_partitions} of {total_partitions} partitions')
-                else:
-                    print(f'\nRemoved {removed_partitions} of {total_partitions} partitions')
+                if len(rows) > 0:
+                    print()
+                    for partition_id, partition_name, data_from, data_to in rows:
+                        if not args.pretend:
+                            cursor.execute(f'drop table trend_partition."{partition_name}"')
+                            cursor.execute('delete from trend_directory.partition where id = %s', (partition_id,))
+                            conn.commit()
+                            removed_partitions += 1
+                            print(f' - {partition_name} ({data_from} - {data_to})')
+                            
+                    if args.pretend:
+                        print(f'\nWould have removed {removed_partitions} of {total_partitions} partitions')
+                    else:
+                        print(f'\nRemoved {removed_partitions} of {total_partitions} partitions')
+    except psycopg2.errors.LockNotAvailable as partition_lock:
+        print(f"Could not remove partitions: {partition_lock}")
 
 
 def create_partition_cmd(args):
     ahead_interval = args.ahead_interval or '1 day'
 
-    with closing(connect()) as conn:
-        if args.trend_store is None:
-            create_partitions_for_all_trend_stores(conn, ahead_interval)
-        else:
-            create_partitions_for_one_trend_store(
-                conn, args.trend_store, ahead_interval
-            )
+    try:
+        with closing(connect()) as conn:
+            if args.trend_store is None:
+                create_partitions_for_all_trend_stores(conn, ahead_interval)
+            else:
+                create_partitions_for_one_trend_store(
+                    conn, args.trend_store, ahead_interval
+                )
+    except psycopg2.errors.LockNotAvailable as partition_lock:
+        print(f"Could not create partition: {partition_lock}")
 
 
 def create_partitions_for_one_trend_store(conn, trend_store_id, ahead_interval):
