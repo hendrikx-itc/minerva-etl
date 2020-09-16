@@ -7,7 +7,7 @@ from datetime import datetime, tzinfo
 import decimal
 from functools import partial, reduce
 import operator
-from typing import Callable, Optional, Any, Set, Dict
+from typing import Callable, Optional, Any, Set, Dict, List, Iterable
 
 import pytz
 
@@ -24,10 +24,10 @@ class DataType:
     def __init__(self, name: str):
         self.name = name
 
-    def string_parser(self, config=None):
+    def string_parser(self, config: dict=None) -> Callable[[str], Any]:
         raise NotImplementedError()
 
-    def string_serializer(self, config=None) -> Callable[[Any], str]:
+    def string_serializer(self, config: dict=None) -> Callable[[Any], str]:
         raise NotImplementedError()
 
     def deduce_parser_config(self, value: str) -> Optional[dict]:
@@ -117,7 +117,7 @@ class Boolean(DataType):
 
         return serialize
 
-    def deduce_parser_config(self, value) -> Optional[dict]:
+    def deduce_parser_config(self, value: str) -> Optional[dict]:
         if value in self.bool_set:
             return merge_dicts(
                 self.default_parser_config,
@@ -158,7 +158,7 @@ class TimestampWithTimeZone(DataType):
         else:
             return merge_dicts(self.default_parser_config, config)
 
-    def string_parser(self, config=None):
+    def string_parser(self, config: dict=None) -> Callable[[str], Optional[datetime]]:
         """
         Return function that can parse a string representation of a
         TimestampWithTimeZone value.
@@ -201,7 +201,7 @@ class TimestampWithTimeZone(DataType):
 
         return serialize
 
-    def deduce_parser_config(self, value) -> dict:
+    def deduce_parser_config(self, value: str) -> dict:
         if value is None:
             return self.default_parser_config
         else:
@@ -819,7 +819,7 @@ class Text(DataType):
 
         return serialize
 
-    def deduce_parser_config(self, value):
+    def deduce_parser_config(self, value) -> dict:
         return self.default_parser_config
 
 
@@ -838,7 +838,7 @@ class ArrayType(DataType):
         'base_type_config': None
     }
 
-    def __init__(self, base_type):
+    def __init__(self, base_type: DataType):
         self.base_type = base_type
 
         type_name = '{}[]'.format(base_type.name)
@@ -846,7 +846,7 @@ class ArrayType(DataType):
         DataType.__init__(self, type_name)
 
     @staticmethod
-    def string_parser_config(config):
+    def string_parser_config(config: Optional[dict]) -> dict:
         if config is None:
             config = ArrayType.default_string_parser_config
 
@@ -856,7 +856,7 @@ class ArrayType(DataType):
         )
 
     @staticmethod
-    def string_serializer_config(config):
+    def string_serializer_config(config: Optional[dict]) -> dict:
         if config is None:
             config = ArrayType.default_string_serializer_config
 
@@ -865,7 +865,7 @@ class ArrayType(DataType):
             config
         )
 
-    def string_parser(self, config=None):
+    def string_parser(self, config: Optional[dict]=None):
         config = self.string_parser_config(config)
 
         base_type_parser = self.base_type.string_parser(
@@ -919,10 +919,10 @@ def bracket_stripper(lbracket: str, rbracket: str) -> str:
     return strip_brackets
 
 
-registry = {}
+registry: Dict[str, DataType] = {}
 
 
-def register_type(data_type):
+def register_type(data_type: DataType):
     registry[data_type.name] = data_type
 
 
@@ -949,13 +949,13 @@ register_type(ArrayType(registry['text']))
 
 
 # The set of types that are integer
-INTEGER_TYPES = {
+INTEGER_TYPES: Set[DataType] = {
     registry['bigint'],
     registry['integer'],
     registry['smallint']
 }
 
-TYPE_ORDER = [
+TYPE_ORDER: List[DataType] = [
     registry['smallint'],
     registry['integer'],
     registry['bigint'],
@@ -967,20 +967,20 @@ TYPE_ORDER = [
 ]
 
 
-TYPE_ORDER_RANKS = dict(
+TYPE_ORDER_RANKS: Dict[DataType, int] = dict(
     (data_type, i)
     for i, data_type in enumerate(TYPE_ORDER)
 )
 
 
-def max_data_type(left, right):
+def max_data_type(left: DataType, right: DataType) -> DataType:
     if TYPE_ORDER_RANKS[right] > TYPE_ORDER_RANKS[left]:
         return right
     else:
         return left
 
 
-def max_data_types(current_data_types, new_data_types):
+def max_data_types(current_data_types: Iterable[DataType], new_data_types: Iterable[DataType]) -> List[DataType]:
     return [
         max_data_type(current_data_type, new_data_type)
         for current_data_type, new_data_type
@@ -1077,7 +1077,7 @@ copy_from_serializer_base_type_config = {
 }
 
 
-def copy_from_serializer_config(data_type):
+def copy_from_serializer_config(data_type: DataType) -> dict:
     if isinstance(data_type, ArrayType):
         return {
             'separator': ',',
