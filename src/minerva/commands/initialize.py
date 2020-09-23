@@ -19,7 +19,7 @@ from minerva.commands.trend_store import create_trend_store, \
 from minerva.commands.notification_store import \
     create_notification_store_from_definition, DuplicateNotificationStore
 from minerva.commands.partition import create_partitions_for_trend_store
-from minerva.commands.trigger import create_trigger_from_config
+from minerva.commands.trigger import create_trigger_from_dict
 from minerva.commands.load_sample_data import load_sample_data
 from minerva.commands.relation import DuplicateRelation, define_relation, \
     materialize_relations
@@ -314,7 +314,7 @@ def define_triggers(instance_root):
         with open(definition_file_path) as definition_file:
             definition = yaml.load(definition_file, Loader=yaml.SafeLoader)
 
-            create_trigger_from_config(definition)
+            create_trigger_from_dict(definition)
 
 
 def create_partitions(num_partitions):
