@@ -51,7 +51,7 @@ def create_trigger_cmd(args):
     )
 
     try:
-        create_trigger_from_dict(trigger)
+        create_trigger(trigger)
     except Exception as exc:
         sys.stdout.write("Error:\n{}".format(str(exc)))
         raise exc
@@ -59,12 +59,13 @@ def create_trigger_cmd(args):
     sys.stdout.write("Done\n")
 
 
-def create_trigger_from_dict(trigger: Trigger):
+def create_trigger(trigger: Trigger):
     with closing(connect()) as conn:
         conn.autocommit = True
 
         trigger.create(conn)
-        
+
+
 def setup_enable_parser(subparsers):
     cmd = subparsers.add_parser(
         'enable', help='command for enabling triggers'
