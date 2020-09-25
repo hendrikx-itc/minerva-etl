@@ -218,7 +218,6 @@ def initialize_notification_stores(instance_root):
         print(definition_file_path)
 
         with definition_file_path.open() as definition_file:
-            # definition = yaml.load(definition_file, Loader=yaml.SafeLoader)
             definition = instance.load_notification_store_from_file(
                 definition_file)
 
