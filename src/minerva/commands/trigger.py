@@ -235,11 +235,9 @@ def execute_trigger_cmd(args):
     else:
         timestamp = None
 
-    trigger = Trigger(args.trigger)
-
     with closing(connect()) as conn:
         conn.autocommit = True
 
-        notification_count = trigger.execute(conn, timestamp)
+        notification_count = Trigger.execute_by_name(conn, args.trigger, timestamp)
 
     print("Notifications generated: {}".format(notification_count))

@@ -56,6 +56,7 @@ class Trigger:
             data["granularity"]
         )
 
+
     def create(self, conn):
         yield " - creating KPI type"
 
@@ -121,8 +122,12 @@ class Trigger:
         self.set_weight(conn, self.config)
 
     def execute(self, conn, timestamp):
-        query = "SELECT * FROM trigger.create_notifications(%s, %s)"
-        query_args = (self.name, timestamp)
+        Trigger.execute_by_name(conn, self.name, timestamp)
+
+    @staticmethod
+    def execute_by_name(conn, name, timestamp):
+        query = "SELECT * FROM trigger.create_notifications(%s::name, %s::timestamptz)"
+        query_args = (name, timestamp)
 
         with closing(conn.cursor()) as cursor:
             cursor.execute(query, query_args)

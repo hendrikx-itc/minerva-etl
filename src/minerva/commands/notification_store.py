@@ -91,6 +91,10 @@ def create_notification_store_from_definition(notification_store: NotificationSt
         conn.commit()
 
 
+def create_notification_store_from_description(description: dict):
+    create_notification_store_from_definition(NotificationStore.from_dict(description))
+
+
 def setup_delete_parser(subparsers):
     cmd = subparsers.add_parser(
         'delete', help='command for deleting notification stores'
