@@ -573,6 +573,7 @@ class MinervaInstance:
 
     @staticmethod
     def load_trigger_from_file(file: Union[Path, TextIOBase]) -> Trigger:
+        print(type(file))
         definition = load_yaml(file)
 
         return Trigger.from_dict(definition)     

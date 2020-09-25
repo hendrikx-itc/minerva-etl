@@ -58,55 +58,59 @@ class Trigger:
 
 
     def create(self, conn):
-        yield " - creating KPI type"
+        print(" - creating KPI type")
 
         try:
             self.create_kpi_type(conn)
         except psycopg2.errors.DuplicateObject:
             # Type already exists
-            yield 'Type exists already'
+            print('Type exists already')
 
-        yield " - creating KPI function"
+        print(" - creating KPI function")
 
         try:
             self.create_kpi_function(conn)
         except psycopg2.errors.DuplicateFunction:
             # Function already exists
-            yield 'Function exists already'
+            print('Function exists already')
 
         # set_fingerprint(conn, config)
 
-        yield " - creating rule"
+        print(" - creating rule")
 
         self.create_rule(conn)
 
-        yield " - setting weight"
+        print(" - setting weight")
 
         self.set_weight(conn)
 
-        yield " - setting thresholds"
+        print(" - setting thresholds")
 
         self.set_thresholds(conn)
 
-        yield " - setting condition"
+        print(" - setting condition")
 
         self.set_condition(conn)
 
-        yield " - defining notification"
+        print(" - defining notification")
 
         self.define_notification_message(conn)
 
-        yield " - creating mapping functions"
+        print(" - creating mapping functions")
 
         self.create_mapping_functions(conn)
 
-        yield " - link trend stores"
+        print(" - link trend stores")
 
         self.link_trend_stores(conn)
 
     def delete(self, conn):
+        Trigger.delete_by_name(conn, self.name)
+
+    @staticmethod
+    def delete_by_name(conn, name):
         query = 'SELECT trigger.delete_rule(%s)'
-        query_args = (self.name,)
+        query_args = (name,)
 
         with closing(conn.cursor()) as cursor:
             cursor.execute(query, query_args)
@@ -222,7 +226,7 @@ class Trigger:
                     # Function already exists
                     pass
 
-    def link_trend_stores(self, conn, config):
+    def link_trend_stores(self, conn):
         query = (
             'INSERT INTO trigger.rule_trend_store_link(rule_id, trend_store_part_id, timestamp_mapping_func) '
             "SELECT rule.id, trend_store_part.id, '{}(timestamp with time zone)'::regprocedure "
@@ -294,12 +298,12 @@ class Trigger:
                 (self.granularity, rule_id, self.notification_store)
             )
 
-    def set_thresholds(self, conn, config):
+    def set_thresholds(self, conn):
         function_name = '{}_set_thresholds'.format(self.name)
 
         query = 'SELECT trigger_rule."{}"({})'.format(
             function_name,
-            ','.join(len(config['thresholds']) * ['%s'])
+            ','.join(len(self.thresholds) * ['%s'])
         )
 
         query_args = tuple(threshold['value'] for threshold in self.thresholds)

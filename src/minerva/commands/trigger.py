@@ -60,7 +60,9 @@ def create_trigger_cmd(args):
 
 
 def create_trigger(trigger: Trigger):
+
     with closing(connect()) as conn:
+
         conn.autocommit = True
 
         trigger.create(conn)
@@ -114,7 +116,7 @@ def delete_trigger_cmd(args):
     with closing(connect()) as conn:
         conn.autocommit = True
 
-        Trigger(args.name).delete(conn)
+        Trigger.delete_by_name(conn, args.name)
 
 
 def setup_list_parser(subparsers):
