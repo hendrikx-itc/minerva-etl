@@ -8,6 +8,8 @@ from enum import Enum
 
 from minerva.commands import ConfigurationError
 from minerva.util.yaml import ordered_yaml_dump
+from minerva.trigger.trigger import Trigger
+
 from psycopg2.extensions import adapt, register_adapter, AsIs, QuotedString
 from psycopg2.extras import Json
 
@@ -415,6 +417,51 @@ class Relation:
             ('query', self.query),
         ])
 
+# Need cleanup
+# class Trigger:
+#     name: str
+#     kpi_data: List
+#     kpi_function: str
+#     thresholds: List
+#     condition: str
+#     weight: int
+#     notification: str
+
+#     def __init__(self, name, kpi_data, kpi_function, thresholds, condition, weight, notification):
+#         self.name = name
+#         self.kpi_data = kpi_data
+#         self.kpi_function = kpi_function
+#         self.thresholds = thresholds
+#         self.condition = condition
+#         self.weight = weight
+#         self.notification = notification
+
+#     def __str__(self):
+#         return self.name
+
+#     @staticmethod
+#     def from_dict(data: dict):
+#         print(data['name'])
+#         return Trigger(
+#             data['name'],
+#             data['kpi_data'],
+#             data['kpi_function'],
+#             data['thresholds'],
+#             data['condition'],
+#             data['weight'],
+#             data['notification'],
+#         )
+
+#     def to_dict(self) -> OrderedDict:
+#         return OrderedDict([
+#             ('name', self.name),
+#             ('kpi_data', self.kpi_data),
+#             ('kpi_function', self.kpi_function),
+#             ('thresholds', self.thresholds),
+#             ('condition', self.condition),
+#             ('weight', self.weight),
+#             ('notification', self.notification),
+#         ])     
 
 class MinervaInstance:
     root: Path
@@ -522,7 +569,13 @@ class MinervaInstance:
     def load_notification_store_from_file(file: Union[Path, TextIOBase]) -> NotificationStore:
         definition = load_yaml(file)
 
-        return NotificationStore.from_dict(definition)  
+        return NotificationStore.from_dict(definition)
+
+    @staticmethod
+    def load_trigger_from_file(file: Union[Path, TextIOBase]) -> Trigger:
+        definition = load_yaml(file)
+
+        return Trigger.from_dict(definition)     
 
     def list_trend_stores(self) -> List[Path]:
         """
