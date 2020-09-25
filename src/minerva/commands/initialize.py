@@ -211,13 +211,18 @@ def load_custom_pre_materialization_init_sql(instance_root):
 
 
 def initialize_notification_stores(instance_root):
+    instance = MinervaInstance.load(instance_root)
     definition_files = Path(instance_root, 'notification').rglob('*.yaml')
 
     for definition_file_path in definition_files:
         print(definition_file_path)
 
         with definition_file_path.open() as definition_file:
-            definition = yaml.load(definition_file, Loader=yaml.SafeLoader)
+            # definition = yaml.load(definition_file, Loader=yaml.SafeLoader)
+            definition = instance.load_notification_store_from_file(
+                definition_file)
+
+            print(definition_file)
 
         try:
             create_notification_store_from_definition(definition)
@@ -312,7 +317,7 @@ def define_triggers(instance_root):
     for definition_file_path in definition_files:
         print(definition_file_path)
 
-        trigger = instance.load_trigger_from_file(definition_file_path)
+        trigger = instance.load_trigger_from_file(Path(definition_file_path))
         create_trigger(trigger)
 
 
