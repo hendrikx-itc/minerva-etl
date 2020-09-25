@@ -7,8 +7,8 @@ import dateutil.parser
 import dateutil.tz
 
 from minerva.db import connect
-from minerva.instance import load_yaml
 from minerva.trigger.trigger import Trigger
+from minerva.instance import MinervaInstance, load_yaml
 from minerva.commands import show_rows
 
 
@@ -42,14 +42,16 @@ def setup_create_parser(subparsers):
 
 
 def create_trigger_cmd(args):
-    trigger_config = yaml.load(args.definition, Loader=yaml.SafeLoader)
+    # trigger_config = yaml.load(args.definition, Loader=yaml.SafeLoader)
+    instance = MinervaInstance.load()
+    trigger = instance.load_trigger_from_file(args.definition)
 
     sys.stdout.write(
-        "Creating trigger '{}' ...\n".format(trigger_config['name'])
+        "Creating trigger '{}' ...\n".format(trigger.name)
     )
 
     try:
-        create_trigger_from_config(trigger_config)
+        create_trigger(trigger)
     except Exception as exc:
         sys.stdout.write("Error:\n{}".format(str(exc)))
         raise exc
@@ -57,14 +59,11 @@ def create_trigger_cmd(args):
     sys.stdout.write("Done\n")
 
 
-def create_trigger_from_config(config):
-    trigger = Trigger.from_config(config)
-
+def create_trigger(trigger: Trigger):
     with closing(connect()) as conn:
         conn.autocommit = True
 
-        for message in trigger.create(conn):
-            print(message)
+        trigger.create(conn)
 
 
 def setup_enable_parser(subparsers):
