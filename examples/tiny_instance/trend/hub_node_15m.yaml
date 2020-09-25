@@ -3,7 +3,7 @@ entity_type: node
 granularity: 15m
 partition_size: 1d
 parts:
-  - name: hub_node_main_1d
+  - name: hub_node_main_15m
     trends:
       - name: outside_temp
         data_type: numeric
