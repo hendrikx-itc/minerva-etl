@@ -17,7 +17,7 @@ from minerva.commands.attribute_store import \
 from minerva.commands.trend_store import create_trend_store, \
     DuplicateTrendStore
 from minerva.commands.notification_store import \
-    create_notification_store_from_description, DuplicateNotificationStore
+    create_notification_store_from_definition, DuplicateNotificationStore
 from minerva.commands.partition import create_partitions_for_trend_store
 from minerva.commands.trigger import create_trigger
 from minerva.commands.load_sample_data import load_sample_data
@@ -217,10 +217,10 @@ def initialize_notification_stores(instance_root):
     for definition_file_path in definition_files:
         print(definition_file_path)
 
-        definition = instance.load_notification_store_from_file(definition_file_path)
+        notification_store = instance.load_notification_store_from_file(definition_file_path)
 
         try:
-            create_notification_store_from_description(definition)
+            create_notification_store_from_definition(notification_store)
         except DuplicateNotificationStore as exc:
             print(exc)
 
