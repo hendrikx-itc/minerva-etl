@@ -1,0 +1,19 @@
+target_trend_store_part: hub-kpi_node_main_15m
+enabled: true
+processing_delay: 30m
+stability_delay: 5m
+reprocessing_period: 3 days
+sources:
+- trend_store_part: hub_node_main_15m
+  mapping_function: trend.mapping_id
+view:
+  SELECT
+    timestamp,
+    entity_id, 
+    power_kwh * 1000 as power_mwh
+  FROM trend."hub_node_main_15m"
+fingerprint_function: |
+  SELECT modified.last, format('{"hub_node_main_15m": "%s"}', modified.last)::jsonb
+  FROM trend_directory.modified
+  JOIN trend_directory.trend_store_part ttsp ON ttsp.id = modified.trend_store_part_id
+  WHERE ttsp::name = 'hub_node_main_15m' AND modified.timestamp = $1;
