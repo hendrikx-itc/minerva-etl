@@ -63,7 +63,8 @@ def create_trigger(trigger: Trigger):
     with closing(connect()) as conn:
         conn.autocommit = True
 
-        trigger.create(conn)
+        for line in trigger.create(conn):
+            print(line)
 
 
 def setup_enable_parser(subparsers):

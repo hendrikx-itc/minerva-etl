@@ -217,7 +217,7 @@ class Trigger:
                     # Function already exists
                     pass
 
-    def link_trend_stores(self, conn, config):
+    def link_trend_stores(self, conn):
         query = (
             'INSERT INTO trigger.rule_trend_store_link(rule_id, trend_store_part_id, timestamp_mapping_func) '
             "SELECT rule.id, trend_store_part.id, '{}(timestamp with time zone)'::regprocedure "
@@ -289,12 +289,12 @@ class Trigger:
                 (self.granularity, rule_id, self.notification_store)
             )
 
-    def set_thresholds(self, conn, config):
+    def set_thresholds(self, conn):
         function_name = '{}_set_thresholds'.format(self.name)
 
         query = 'SELECT trigger_rule."{}"({})'.format(
             function_name,
-            ','.join(len(config['thresholds']) * ['%s'])
+            ','.join(len(self.thresholds) * ['%s'])
         )
 
         query_args = tuple(threshold['value'] for threshold in self.thresholds)
