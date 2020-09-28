@@ -217,14 +217,10 @@ def initialize_notification_stores(instance_root):
     for definition_file_path in definition_files:
         print(definition_file_path)
 
-        with definition_file_path.open() as definition_file:
-            definition = instance.load_notification_store_from_file(
-                definition_file)
-
-            print(definition_file)
+        notification_store = instance.load_notification_store_from_file(definition_file_path)
 
         try:
-            create_notification_store_from_definition(definition)
+            create_notification_store_from_definition(notification_store)
         except DuplicateNotificationStore as exc:
             print(exc)
 
