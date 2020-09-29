@@ -15,7 +15,7 @@ def start_db_container(request):
     port = 5432
 
     container = docker_client.containers.run(
-        "minerva_db",
+        "hendrikxitc/minerva",
         remove=True,
         detach=True,
         environment={"POSTGRES_PASSWORD": "password"},
