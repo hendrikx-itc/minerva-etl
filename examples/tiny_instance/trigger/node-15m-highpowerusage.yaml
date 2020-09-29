@@ -6,7 +6,10 @@ kpi_function: |-
   BEGIN
       RETURN QUERY EXECUTE $query$
       SELECT
-      JOIN trend."hub_node_main_15m" AS t
+          t.entity_id,
+          t.timestamp,
+          t.power_kwh
+      FROM trend."hub_node_main_15m" AS t
       WHERE
           t.timestamp = $1
       $query$ USING $1;
