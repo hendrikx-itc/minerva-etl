@@ -36,7 +36,11 @@ def test_create_data_source(start_db_container):
 
     assert proc.returncode == 0
 
-    with tempfile.NamedTemporaryFile() as tmp_file:
+    with tempfile.NamedTemporaryFile("wt") as tmp_file:
+        tmp_file.write("a,b,c\n")
+        tmp_file.write("1,2,3\n")
+        tmp_file.flush()
+
         proc = subprocess.run(
             ['minerva', 'load-data', '--data-source', 'test', '--type', 'csv', tmp_file.name]
         )
