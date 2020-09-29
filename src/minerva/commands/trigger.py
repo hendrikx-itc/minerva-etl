@@ -56,16 +56,15 @@ def create_trigger_cmd(args):
         sys.stdout.write("Error:\n{}".format(str(exc)))
         raise exc
 
-    sys.stdout.write("Done\n")
-
-
 def create_trigger(trigger: Trigger):
     with closing(connect()) as conn:
         conn.autocommit = True
 
-        for line in trigger.create(conn):
-            print(line)
-
+        try:
+            for line in trigger.create(conn):
+                print(line)
+        except Exception as exc:
+            print(exc)
 
 def setup_enable_parser(subparsers):
     cmd = subparsers.add_parser(
@@ -81,7 +80,8 @@ def enable_trigger_cmd(args):
     with closing(connect()) as conn:
         conn.autocommit = True
 
-        Trigger(args.name).set_enabled(conn, True)
+        Trigger().set_enabled(conn, args.name, True)
+        print(f"Trigger {args.name} has been enabled")
 
 
 def setup_disable_parser(subparsers):
@@ -98,7 +98,8 @@ def disable_trigger_cmd(args):
     with closing(connect()) as conn:
         conn.autocommit = True
 
-        Trigger(args.name).set_enabled(conn, False)
+        Trigger.set_enabled(conn, args.name, False)
+        print(f"Trigger {args.name} has been disabled")
 
 
 def setup_delete_parser(subparsers):
@@ -115,7 +116,7 @@ def delete_trigger_cmd(args):
     with closing(connect()) as conn:
         conn.autocommit = True
 
-        Trigger(args.name).delete(conn)
+        Trigger.delete(conn, args.name)
 
 
 def setup_list_parser(subparsers):
@@ -140,18 +141,17 @@ def setup_update_weight_parser(subparsers):
 
 
 def update_weight_cmd(args):
-    definition = load_yaml(args.definition)
+    instance = MinervaInstance.load()
+    trigger = instance.load_trigger_from_file(args.definition)
 
     sys.stdout.write(
-        "Updating weight of '{}' to:\n - {}".format(definition['name'], definition['weight'])
+        "Updating weight of '{}' to:\n - {}".format(trigger.name, trigger.weight)
     )
 
     with connect() as conn:
         conn.autocommit = True
 
-        trigger = Trigger.from_config(definition)
-
-        trigger.update_weight(conn)
+        Trigger.set_weight(conn, trigger.name, trigger.weight)
 
 
 def timedelta_to_string(t):
@@ -236,11 +236,9 @@ def execute_trigger_cmd(args):
     else:
         timestamp = None
 
-    trigger = Trigger(args.trigger)
-
     with closing(connect()) as conn:
         conn.autocommit = True
 
-        notification_count = trigger.execute(conn, timestamp)
+        notification_count = Trigger.execute(conn, args.trigger, timestamp)
 
     print("Notifications generated: {}".format(notification_count))

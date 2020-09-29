@@ -62,16 +62,14 @@ class Trigger:
         try:
             self.create_kpi_type(conn)
         except psycopg2.errors.DuplicateObject:
-            # Type already exists
-            yield 'Type exists already'
+            raise Exception("Trigger not created: trigger type exists already")
 
         yield " - creating KPI function"
 
         try:
             self.create_kpi_function(conn)
-        except psycopg2.errors.DuplicateFunction:
-            # Function already exists
-            yield 'Function exists already'
+        except psycopg2.errors.DuplicateFunction as exc:
+            raise Exception("Trigger not created: trigger function exists already")
 
         # set_fingerprint(conn, config)
 
@@ -103,16 +101,18 @@ class Trigger:
 
         self.link_trend_stores(conn)
 
-    def delete(self, conn):
+    @staticmethod
+    def delete(conn, name: str):
         query = 'SELECT trigger.delete_rule(%s)'
-        query_args = (self.name,)
+        query_args = (name,)
 
         with closing(conn.cursor()) as cursor:
             cursor.execute(query, query_args)
 
-    def set_enabled(self, conn, enabled: bool):
+    @staticmethod
+    def set_enabled(conn, name: str, enabled: bool):
         query = 'UPDATE trigger.rule SET enabled = %s WHERE name = %s'
-        query_args = (enabled, self.name)
+        query_args = (enabled, name)
 
         with closing(conn.cursor()) as cursor:
             cursor.execute(query, query_args)
@@ -120,9 +120,10 @@ class Trigger:
     def update_weight(self, conn):
         self.set_weight(conn, self.config)
 
-    def execute(self, conn, timestamp):
+    @staticmethod
+    def execute(conn, name, timestamp):
         query = "SELECT * FROM trigger.create_notifications(%s, %s)"
-        query_args = (self.name, timestamp)
+        query_args = (name, timestamp)
 
         with closing(conn.cursor()) as cursor:
             cursor.execute(query, query_args)
@@ -314,11 +315,15 @@ class Trigger:
             cursor.execute(query, query_args)
 
     def set_weight(self, conn):
+        Trigger.set_weight_by_name(conn, self.name, self.weight)
+
+    @staticmethod
+    def set_weight_by_name(conn, name: str, weight: int):
         query = (
             'SELECT trigger.set_weight(%s::name, %s::text)'
         )
 
-        query_args = (self.name, str(self.weight))
+        query_args = (name, str(weight))
 
         with closing(conn.cursor()) as cursor:
             cursor.execute(query, query_args)
