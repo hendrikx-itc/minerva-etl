@@ -1,9 +1,9 @@
 import subprocess
 import tempfile
-import json
 
+from minerva.util.yaml import ordered_yaml_dump
 
-trend_store_json = {
+trend_store_dict = {
     'data_source': 'test',
     'entity_type': 'Cell',
     'granularity': '1 day',
@@ -28,11 +28,11 @@ def test_create_data_source(start_db_container):
 
     assert proc.returncode == 0
 
-    with tempfile.NamedTemporaryFile('wt') as json_tmp_file:
-        json.dump(trend_store_json, json_tmp_file)
-        json_tmp_file.flush()
+    with tempfile.NamedTemporaryFile('wt') as yaml_tmp_file:
+        ordered_yaml_dump(trend_store_dict, yaml_tmp_file)
+        yaml_tmp_file.flush()
 
-        proc = subprocess.run(['minerva', 'trend-store', 'create', '--format=json', json_tmp_file.name])
+        proc = subprocess.run(['minerva', 'trend-store', 'create', yaml_tmp_file.name])
 
     assert proc.returncode == 0
 
