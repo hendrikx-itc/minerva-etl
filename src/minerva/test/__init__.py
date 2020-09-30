@@ -9,7 +9,7 @@ from minerva.util.debug import log_call_basic
 
 def connect():
     conn = psycopg2.connect(
-        '', connection_factory=psycopg2.extras.LoggingConnection
+        '', connection_factory=psycopg2.extras.LoggingConnection, connect_timeout=3
     )
 
     conn.initialize(logging.root)

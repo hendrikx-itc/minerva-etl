@@ -2,11 +2,11 @@ from contextlib import closing
 
 from minerva.directory import Entity
 from minerva.directory.entityref import EntityDnRef
-from minerva.test import with_conn
 
 
-@with_conn()
-def test_get_entity_type(conn):
+def test_get_entity_type(start_db_container):
+    conn = start_db_container
+
     dn = 'Network=G1,Node=001'
 
     with closing(conn.cursor()) as cursor:
