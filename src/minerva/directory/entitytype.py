@@ -25,14 +25,16 @@ class EntityType:
         """Create new entity type and add it to the database."""
         def f(cursor):
             query = (
-                "SELECT (directory.create_entity_type(%s)).*"
+                "SELECT id, name, description FROM directory.create_entity_type(%s)"
             )
 
             args = name,
 
             cursor.execute(query, args)
 
-            return EntityType(*cursor.fetchone())
+            row = cursor.fetchone()
+
+            return EntityType(*row)
 
         return f
 

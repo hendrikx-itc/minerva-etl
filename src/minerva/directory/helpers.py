@@ -15,12 +15,6 @@ from minerva.directory.distinguishedname import entity_type_name_from_dn
 MATCH_ALL = re.compile(".*")
 
 
-def dns_to_entity_ids(cursor, dns: List[str]) -> List[int]:
-    return aliases_to_entity_ids(
-        cursor, 'dn', dns, entity_type_name_from_dn(dns[0])
-    )
-
-
 @translate_postgresql_exceptions
 def aliases_to_entity_ids(cursor, namespace: str, aliases: list, entity_type: str) -> List[int]:
     cursor.callproc(

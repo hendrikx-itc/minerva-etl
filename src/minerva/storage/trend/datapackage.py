@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from datetime import datetime
 from io import StringIO
-from typing import Callable, List, Generator, Tuple, Any
+from typing import Callable, List, Generator, Tuple, Any, Optional
 
 from itertools import chain
 from operator import itemgetter
@@ -104,7 +104,8 @@ class DataPackage:
             ]
         )
 
-    def split(self, group_fn):
+    def \
+            split(self, group_fn: Callable[[str], Optional[str]]):
         """
         Split the trends in this package by passing the trend name through the
         provided function. The trends with the same resulting key are placed in

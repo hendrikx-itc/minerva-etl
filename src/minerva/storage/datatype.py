@@ -482,7 +482,9 @@ class Bigint(DataType):
         "null_value": "\\N"
     }
 
-    default_serializer_config: Dict[str, str] = {}
+    default_serializer_config: Dict[str, str] = {
+        "null_value": "\\n"
+    }
 
     def __init__(self):
         DataType.__init__(self, 'bigint')
@@ -563,7 +565,9 @@ class Real(DataType):
         "null_value": "\\N"
     }
 
-    default_serializer_config: Dict[str, str] = {}
+    default_serializer_config: Dict[str, str] = {
+        "null_value": "\\n"
+    }
 
     def __init__(self):
         DataType.__init__(self, 'real')
@@ -634,7 +638,9 @@ class DoublePrecision(DataType):
         "null_value": "\\N"
     }
 
-    default_serializer_config: Dict[str, str] = {}
+    default_serializer_config: Dict[str, str] = {
+        "null_value": "\\n"
+    }
 
     def __init__(self):
         DataType.__init__(self, 'double precision')
@@ -700,7 +706,9 @@ class Numeric(DataType):
         "null_value": "\\N"
     }
 
-    default_serializer_config: Dict[str, str] = {}
+    default_serializer_config: Dict[str, str] = {
+        "null_value": "\\n"
+    }
 
     def __init__(self):
         DataType.__init__(self, 'numeric')
@@ -825,6 +833,7 @@ class Text(DataType):
 
 class ArrayType(DataType):
     default_string_parser_config = {
+        'null_value': '\\n',
         'separator': ',',
         'prefix': '[',
         'postfix': ']'

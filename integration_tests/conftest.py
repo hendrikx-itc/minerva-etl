@@ -12,15 +12,24 @@ def start_db_container(request):
     print('\n----------- session start ---------------')
     docker_client = docker.from_env()
 
-    port = 5432
-
     container = docker_client.containers.run(
         "hendrikxitc/minerva",
         remove=True,
         detach=True,
         environment={"POSTGRES_PASSWORD": "password"},
-        ports={port: 5432}
+        publish_all_ports=True
     )
+
+    container.reload()
+
+    mapped_ports = container.ports['5432/tcp']
+
+    # We assume there will be one mapping for the standard PostgreSQL port, so
+    # we just take the first.
+    first_mapped_port = mapped_ports[0]
+
+    # Get the port on the host, so we know where to connect to
+    host_port = first_mapped_port['HostPort']
 
     def stop_container():
         print("stopping container")
@@ -33,7 +42,7 @@ def start_db_container(request):
     os.environ['PGPASSWORD'] = 'password'
     os.environ['PGUSER'] = 'postgres'
     os.environ['PGDATABASE'] = 'minerva'
-    os.environ['PGPORT'] = str(port)
+    os.environ['PGPORT'] = host_port
 
     connected = False
 
@@ -43,7 +52,6 @@ def start_db_container(request):
             connected = True
             print('connected to db')
         except Exception as exc:
-            #print('error connecting to db: {}'.format(exc))
             connected = False
             time.sleep(1)
 

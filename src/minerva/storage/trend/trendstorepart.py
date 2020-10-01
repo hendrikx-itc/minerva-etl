@@ -17,7 +17,7 @@ from minerva.storage.trend import schema
 from minerva.storage.trend.trend import Trend, NoSuchTrendError
 
 from minerva.db.error import NoCopyInProgress, \
-    translate_postgresql_exception, translate_postgresql_exceptions, DataTypeMismatch
+    translate_postgresql_exception, translate_postgresql_exceptions, DataTypeMismatch, UniqueViolation
 from minerva.util import zip_apply, first
 
 LARGE_BATCH_THRESHOLD = 10
@@ -198,37 +198,37 @@ class TrendStorePart:
                     for timestamp in data_package.timestamps():
                         self.mark_modified(timestamp, modified)(cursor)
 
-            except psycopg2.DatabaseError as exc:
+            except DataTypeMismatch as exc:
+                conn.rollback()
+
+                raise exc
+
+            except UniqueViolation as exc:
                 store_method = {'store_method': 'upsert'}
                 action = {**description, **store_method}
 
-                if exc.pgcode is None and str(exc).find(
-                        "no COPY in progress") != -1:
-                    # Might happen after database connection loss
-                    raise NoCopyInProgress()
-                else:
-                    # Try again through a slower but more reliable method
-                    conn.rollback()
+                # Try again through a slower but more reliable method
+                conn.rollback()
 
-                    with closing(conn.cursor()) as cursor:
-                        cursor.execute(
-                            "SELECT logging.start_job(%s)",
-                            (psycopg2.extras.Json(action),)
-                        )
-                        current_job_id = cursor.fetchone()[0]
-                        modified = get_timestamp(cursor)
+                with closing(conn.cursor()) as cursor:
+                    cursor.execute(
+                        "SELECT logging.start_job(%s)",
+                        (psycopg2.extras.Json(action),)
+                    )
+                    current_job_id = cursor.fetchone()[0]
+                    modified = get_timestamp(cursor)
 
-                        self.securely_store_copy_from(
-                            data_package, modified, current_job_id
-                        )(cursor)
+                    self.securely_store_copy_from(
+                        data_package, modified, current_job_id
+                    )(cursor)
 
-                        cursor.execute(
-                            "SELECT logging.end_job(%s)",
-                            (current_job_id,)
-                        )
+                    cursor.execute(
+                        "SELECT logging.end_job(%s)",
+                        (current_job_id,)
+                    )
 
-                        for timestamp in data_package.timestamps():
-                            self.mark_modified(timestamp, modified)(cursor)
+                    for timestamp in data_package.timestamps():
+                        self.mark_modified(timestamp, modified)(cursor)
 
             conn.commit()
 
@@ -261,7 +261,10 @@ class TrendStorePart:
                 self.base_table(), trend_names
             )
 
-            cursor.copy_expert(copy_from_query, copy_from_file)
+            try:
+                cursor.copy_expert(copy_from_query, copy_from_file)
+            except psycopg2.DatabaseError as exc:
+                raise translate_postgresql_exception(exc)
 
             # Only valid for psycopg <2.8, so not compatible with the version on Ubuntu 18.04
             #try:

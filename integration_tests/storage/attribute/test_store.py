@@ -15,8 +15,9 @@ from minerva.storage.attribute.attributestore import AttributeStore, Query, \
 from minerva.storage.attribute.datapackage import DataPackage
 
 
-@with_conn(clear_database)
-def test_simple(conn):
+def test_simple(start_db_container):
+    conn = clear_database(start_db_container)
+
     with closing(conn.cursor()) as cursor:
         attribute_names = ['CellID', 'CCR', 'Drops']
 
@@ -53,11 +54,12 @@ def test_simple(conn):
         cursor.execute(query)
         timestamp, = cursor.fetchone()
 
-        eq_(timestamp.toordinal(), timestamp.toordinal())
+        assert timestamp.toordinal() == timestamp.toordinal()
 
 
-@with_conn(clear_database)
-def test_array(conn):
+def test_array(start_db_container):
+    conn = clear_database(start_db_container)
+
     with closing(conn.cursor()) as cursor:
         data_source = DataSource.from_name("integration-test")(cursor)
         entity_type = EntityType.from_name("UtranCell")(cursor)
@@ -80,8 +82,9 @@ def test_array(conn):
         attribute_store.store(data_package)(conn)
 
 
-@with_conn(clear_database)
-def test_update_modified_column(conn):
+def test_update_modified_column(start_db_container):
+    conn = clear_database(start_db_container)
+
     attribute_names = ['CCR', 'Drops']
 
     with closing(conn.cursor()) as cursor:
@@ -132,14 +135,15 @@ def test_update_modified_column(conn):
         modified_b, hash_b = query.execute(cursor).fetchone()
 
     # modified should be updated when same data is delivered again
-    ok_(modified_a < modified_b)
+    assert modified_a < modified_b
 
     # hash should remain the same when then same data is delivered again
-    eq_(hash_a, hash_b)
+    assert hash_a == hash_b
 
 
-@with_conn(clear_database)
-def test_update(conn):
+def test_update(start_db_container):
+    conn = clear_database(start_db_container)
+
     with closing(conn.cursor()) as cursor:
         attribute_descriptors = [
             AttributeDescriptor('CellID', datatype.registry['text'], ''),
@@ -186,5 +190,5 @@ def test_update(conn):
 
         cursor.execute(query)
         test_list = [(modified, ccr) for modified, ccr in cursor.fetchall()]
-        assert_not_equal(test_list[0][0], test_list[1][0])
-        assert_not_equal(test_list[0][1], test_list[1][1])
+        assert test_list[0][0] != test_list[1][0]
+        assert test_list[0][1] != test_list[1][1]

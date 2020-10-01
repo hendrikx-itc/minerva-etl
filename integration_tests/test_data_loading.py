@@ -3,24 +3,21 @@
 Comprehensive tests of loading data into a Minerva database.
 """
 import datetime
-import unittest
 from contextlib import closing
 
 import pytz
 
 from minerva.storage.inputdescriptor import InputDescriptor
 from minerva.storage.trend.trendstorepart import TrendStorePart
-from minerva.test import connect, clear_database
+from minerva.test import clear_database
 from minerva.directory import EntityType, DataSource
 from minerva.storage.trend.granularity import create_granularity
 from minerva.storage.trend.trendstore import TrendStore
 from minerva.storage.trend.trend import Trend
 from minerva.storage.trend.datapackage import DataPackage
 from minerva.storage import datatype
-from minerva.test.trend import refined_package_type_for_entity_type
+from minerva.test.trend import package_type_for_entity_type
 from minerva.util import merge_dicts
-
-import pytest
 
 
 def test_defaults(start_db_container):
@@ -84,7 +81,7 @@ def test_defaults(start_db_container):
 
     conn.commit()
 
-    data_package_type = refined_package_type_for_entity_type('test_type')
+    data_package_type = package_type_for_entity_type('test_type')
 
     data_package = DataPackage(
         data_package_type,
@@ -197,7 +194,7 @@ def test_nulls(start_db_container):
 
     conn.commit()
 
-    data_package_type = refined_package_type_for_entity_type('test_type')
+    data_package_type = package_type_for_entity_type('test_type')
 
     data_package = DataPackage(
         data_package_type,

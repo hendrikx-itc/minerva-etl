@@ -12,14 +12,13 @@ import pytest
 from minerva.db.query import Table, Call, Column, Eq, And
 from minerva.db.error import DataTypeMismatch
 from minerva.storage.trend.trendstorepart import TrendStorePart
-from minerva.test import clear_database, with_data_context
+from minerva.test import clear_database
 from minerva.directory import DataSource, EntityType
 from minerva.storage import datatype, DataPackage
 from minerva.storage.trend.trendstore import TrendStore
-from minerva.storage.trend.trend import Trend, NoSuchTrendError
+from minerva.storage.trend.trend import Trend
 from minerva.storage.trend.granularity import create_granularity
 
-from minerva.storage.trend.test import DataSet
 from minerva.test.trend import refined_package_type_for_entity_type
 
 modified_table = Table("trend_directory", "modified")
@@ -136,8 +135,10 @@ def test_store_copy_from_2(start_db_container):
     trend_store.create_partitions_for_timestamp(conn, timestamp)
     conn.commit()
 
-    with pytest.raises(DataTypeMismatch) as cm:
+    with pytest.raises(DataTypeMismatch):
         trend_store.store(data_package, {'job': 'test-job'})(conn)
+
+    conn.rollback()
 
 
 def test_update_modified_column(start_db_container):
@@ -201,15 +202,24 @@ def test_update_modified_column(start_db_container):
         query = table.select([Column("job_id")])
 
         query.execute(cursor)
-        modified_list = [modified for modified in cursor.fetchall()]
+        job_id_list = [job_id for job_id, in cursor.fetchall()]
 
-        assert modified_list[0] != modified_list[1]
-
-        table.select(Call("max", Column("job_id"))).execute(cursor)
-
-        max_job_id, = cursor.fetchone()
+        assert job_id_list[0] != job_id_list[1]
 
         trend_store_part = trend_store.part_by_name['test-trend-store']
+
+        query = Table('trend_directory', 'modified_log').select([Column("modified")]).where_(
+            Eq(Column("trend_store_part_id"), trend_store_part.id)
+        )
+        query.execute(cursor)
+        modified_list = [modified for modified, in cursor.fetchall()]
+
+        max_modified = max(modified_list)
+
+        # The modified table is no longer directly populated, but indirectly
+        # by the processing of the modified_log table.
+
+        cursor.execute('select * from trend_directory.process_modified_log()')
 
         modified_table.select(Column("last")).where_(
             Eq(Column("trend_store_part_id"), trend_store_part.id)
@@ -217,7 +227,7 @@ def test_update_modified_column(start_db_container):
 
         end, = cursor.fetchone()
 
-        assert end == max_job_id
+        assert end == max_modified
 
 
 def test_update(start_db_container):
@@ -561,9 +571,10 @@ def test_store_copy_from_missing_column(start_db_container):
 
     data_package = DataPackage(data_package_type, granularity, trend_descriptors, rows)
 
-    with pytest.raises(NoSuchTrendError) as cm:
-        transaction = trend_store.store(data_package, {})
-        transaction(conn)
+    # Storing should succeed and just store what can be placed in the trend
+    # store parts.
+    transaction = trend_store.store(data_package, {})
+    transaction(conn)
 
 
 def test_store(start_db_container):

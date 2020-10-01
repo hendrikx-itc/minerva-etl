@@ -23,6 +23,19 @@ def refined_package_type_for_entity_type(type_name: str) -> DataPackageType:
 
     return DataPackageType(
         identifier,
+        EntityIdRef,
+        get_entity_type_name
+    )
+
+
+def package_type_for_entity_type(type_name: str) -> DataPackageType:
+    def identifier():
+        return None
+
+    get_entity_type_name = k(type_name)
+
+    return DataPackageType(
+        identifier,
         entity_name_ref_class(type_name),
         get_entity_type_name
     )

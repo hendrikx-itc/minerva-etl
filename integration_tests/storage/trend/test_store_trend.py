@@ -18,10 +18,6 @@ from minerva.test import clear_database, row_count
 from minerva.storage.trend.trendstore import TrendStore
 from minerva.storage.trend.granularity import create_granularity
 
-SCHEMA = 'trend'
-
-modified_table = Table(SCHEMA, "modified")
-
 
 def test_store_copy_from_1(start_db_container):
     conn = clear_database(start_db_container)
@@ -128,18 +124,14 @@ def test_store_copy_from_2(start_db_container):
 
         trend_store_part = trend_store.part_by_name['test_store']
 
+        conn.commit()
+
         with pytest.raises(DataTypeMismatch):
             trend_store_part.store_copy_from(data_package, modified, 1)(cursor)
 
-        conn.commit()
+        conn.rollback()
 
-        assert row_count(cursor, table) == 1
-
-        table.select(Call("max", Column("modified"))).execute(cursor)
-
-        max_modified = first(cursor.fetchone())
-
-        assert max_modified == modified
+        assert row_count(cursor, table) == 0
 
 
 def test_update_modified_column(start_db_container):
@@ -171,7 +163,7 @@ def test_update_modified_column(start_db_container):
 
         trend_store = TrendStore.create(TrendStore.Descriptor(
             data_source, entity_type, granularity, [
-                TrendStorePart.Descriptor('test-store', [])
+                TrendStorePart.Descriptor('test-store', trends)
             ], partition_size
         ))(cursor)
 
@@ -202,18 +194,6 @@ def test_update_modified_column(start_db_container):
         job_id_list = [job_id for job_id, in cursor.fetchall()]
 
         assert job_id_list[0] != job_id_list[1]
-
-        table.select(Call("max", Column("job_id"))).execute(cursor)
-
-        max_job_id = first(cursor.fetchone())
-
-        modified_table.select(Column("end")).where_(
-            Eq(Column("table_name"), table.name)
-        ).execute(cursor)
-
-        end = first(cursor.fetchone())
-
-        assert end == max_job_id
 
 
 def test_update(start_db_container):
