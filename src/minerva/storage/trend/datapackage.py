@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from datetime import datetime
 from io import StringIO
-from typing import Callable, List, Generator, Tuple, Any, Optional
+from typing import Callable, List, Generator, Tuple, Any, Optional, Dict
 
 from itertools import chain
 from operator import itemgetter
@@ -104,7 +104,7 @@ class DataPackage:
             ]
         )
 
-    def split(self, group_fn: Callable[[str], Optional[str]]):
+    def split(self, group_fn: Callable[[str], Optional[str]]) -> Generator[Tuple[str, "DataPackage"], None, None]:
         """
         Split the trends in this package by passing the trend name through the
         provided function. The trends with the same resulting key are placed in
@@ -188,7 +188,7 @@ class DataPackage:
             ",".join(map(quote_ident, column_names))
         )
 
-    def _create_copy_from_file(self, value_descriptors: List[ValueDescriptor], modified: datetime):
+    def _create_copy_from_file(self, value_descriptors: List[ValueDescriptor], modified: datetime) -> StringIO:
         copy_from_file = StringIO()
 
         copy_from_file.writelines(
@@ -226,7 +226,7 @@ def package_group(key: Tuple[DataPackageType, str, Granularity], packages: List[
     all_trend_descriptors = {}
 
     # Combine all values from all packages using dictionaries
-    dict_rows_by_entity_ref = {}
+    dict_rows_by_entity_ref: Dict[Tuple[EntityRef, datetime], dict] = {}
 
     for p in packages:
         for entity_ref, timestamp, values in p.rows:

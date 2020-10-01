@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
-from typing import Tuple, NewType
+from typing import Tuple, NewType, List, Callable, Any
+
+import psycopg2
 
 from minerva.directory.helpers import aliases_to_entity_ids, \
     names_to_entity_ids
@@ -26,7 +28,7 @@ class EntityRef:
         raise NotImplementedError()
 
     @classmethod
-    def map_to_entity_ids(cls, entity_refs):
+    def map_to_entity_ids(cls, entity_refs) -> Callable[[Any], List[int]]:
         raise NotImplementedError()
 
 
@@ -46,7 +48,7 @@ class EntityIdRef(EntityRef):
         return EntityType.get_by_entity_id(self.entity_id)(cursor)
 
     @classmethod
-    def map_to_entity_ids(cls, entity_refs):
+    def map_to_entity_ids(cls, entity_refs) -> Callable[[Any], List[int]]:
         def f(cursor):
             return entity_refs
 
@@ -69,7 +71,7 @@ def _create_alias_ref_class(alias_type: str, entity_type: str):
             )
 
         def get_entity_type(self, cursor):
-            return alias_type
+            return EntityType.get_by_name(entity_type)(cursor)
 
         @classmethod
         def map_to_entity_ids(cls, entity_refs):
