@@ -18,14 +18,14 @@ class Granularity:
     def __str__(self) -> str:
         parts = []
 
-        months = months_str(self.delta.months)
+        if self.delta.months:
+            months = months_str(self.delta.months)
 
-        if months:
             parts.append(months)
 
-        days = days_str(self.delta.days)
+        if self.delta.days:
+            days = days_str(self.delta.days)
 
-        if days:
             parts.append(days)
 
         if not parts or (
