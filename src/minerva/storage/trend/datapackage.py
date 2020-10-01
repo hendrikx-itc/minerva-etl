@@ -104,8 +104,7 @@ class DataPackage:
             ]
         )
 
-    def \
-            split(self, group_fn: Callable[[str], Optional[str]]):
+    def split(self, group_fn: Callable[[str], Optional[str]]):
         """
         Split the trends in this package by passing the trend name through the
         provided function. The trends with the same resulting key are placed in
