@@ -530,11 +530,14 @@ def materialize_all_curr_ptr(conn):
     )
 
     with conn.cursor() as cursor:
-        cursor.execute(query)
+        try:
+            cursor.execute(query)
 
-        for attribute_store_id, attribute_store_name in cursor.fetchall():
-            print(f"Materializing curr-ptr for {attribute_store_name}")
-            materialize_curr_ptr_by_id(conn, attribute_store_id)
+            for attribute_store_id, attribute_store_name in cursor.fetchall():
+                print(f"Materializing curr-ptr for {attribute_store_name}")
+                materialize_curr_ptr_by_id(conn, attribute_store_id)
+        except psycopg2.error.LockNotAvailable as e:
+            print(f"Could not run materialize_curr_ptr")
 
 
 def materialize_curr_ptr_by_id(conn, attribute_store_id: int):
@@ -546,7 +549,10 @@ def materialize_curr_ptr_by_id(conn, attribute_store_id: int):
     )
 
     with conn.cursor() as cursor:
-        cursor.execute(materialize_curr_query, (attribute_store_id,))
+        try:
+            cursor.execute(materialize_curr_query, (attribute_store_id,))
+        except psycopg2.error.LockNotAvailable as e:
+            print(f"Could not run materialize_curr_ptr: {e}")    
 
     conn.commit()
 
@@ -560,6 +566,9 @@ def materialize_curr_ptr_by_name(conn, attribute_store_name: str):
     )
 
     with conn.cursor() as cursor:
-        cursor.execute(materialize_curr_query, (attribute_store_name,))
+        try:
+            cursor.execute(materialize_curr_query, (attribute_store_name,))
+        except psycopg2.error.LockNotAvailable as e:
+            print(f"Could not run materialize_curr_ptr: {e}")    
 
     conn.commit()
