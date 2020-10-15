@@ -530,14 +530,14 @@ def materialize_all_curr_ptr(conn):
     )
 
     with conn.cursor() as cursor:
-        try:
-            cursor.execute(query)
+        cursor.execute(query)
 
-            for attribute_store_id, attribute_store_name in cursor.fetchall():
+        for attribute_store_id, attribute_store_name in cursor.fetchall():
+            try:
                 print(f"Materializing curr-ptr for {attribute_store_name}")
                 materialize_curr_ptr_by_id(conn, attribute_store_id)
-        except psycopg2.errors.LockNotAvailable as e:
-            print(f"Materialize_curr_ptr is not executed due to a lock timeout")
+            except psycopg2.errors.LockNotAvailable as e:
+                print(f"Materialize_curr_ptr is not executed due to a lock timeout")    
 
 
 def materialize_curr_ptr_by_id(conn, attribute_store_id: int):
