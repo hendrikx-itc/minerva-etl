@@ -2,7 +2,7 @@ pipeline {
     parameters {
         string(
             name: 'MINERVA_VERSION', 
-            default: '',
+            defaultValue: '',
             description: 'Minerva-etl version used in this pipeline'
         )
     }
@@ -22,6 +22,7 @@ pipeline {
             steps {
                 script {
                     echo ${MINERVA_VERSION}
+
                 }
             }
         }
