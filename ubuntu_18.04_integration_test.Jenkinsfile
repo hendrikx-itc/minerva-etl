@@ -23,8 +23,7 @@ pipeline {
         stage ('minerva-etl version') {
             steps {
                 script {
-                    echo ${MINERVA_VERSION}
-
+                    echo "python3-minerva-etl_${MINERVA_VERSION}_all.deb"
                 }
             }
         }
