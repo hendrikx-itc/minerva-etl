@@ -10,4 +10,4 @@ RUN pip3 install \
     pytest
  
 RUN printf 'deb [trusted=yes] https://packages.hendrikx-itc.nl/hitc/common/bionic/unstable/ bionic main' > /etc/apt/sources.list
-RUN chown 996:996 /etc/apt/sources.list
+RUN chmod 996:996 /etc/apt/sources.list
