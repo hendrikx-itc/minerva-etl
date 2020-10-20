@@ -1,7 +1,5 @@
 FROM ubuntu:18.04
 
-RUN printf 'deb [trusted=yes] https://packages.hendrikx-itc.nl/hitc/common/bionic/unstable/ bionic unstable' > /etc/apt/sources.list
-
 RUN apt-get update && apt-get install -y \
     git \
     ca-certificates \
@@ -12,3 +10,5 @@ RUN apt-get update && apt-get install -y \
 RUN pip3 install \
     docker \
     pytest
+
+RUN printf 'deb [trusted=yes] https://packages.hendrikx-itc.nl/hitc/common/bionic/unstable/ bionic unstable' > /etc/apt/sources.list
