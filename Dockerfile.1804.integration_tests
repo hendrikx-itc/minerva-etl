@@ -1,5 +1,8 @@
 FROM ubuntu:18.04
 
+RUN printf 'deb [trusted=yes] https://packages.hendrikx-itc.nl/hitc/common/bionic/unstable/ bionic main' > /etc/apt/sources.list
+RUN chown -R 996:996 /etc/apt/sources.list
+
 RUN apt-get update && apt-get install -y \
     git \
     software-properties-common \
@@ -9,6 +12,3 @@ RUN apt-get update && apt-get install -y \
 RUN pip3 install \
     docker \
     pytest
- 
-RUN apt-add-repository -y 'deb https://packages.hendrikx-itc.nl/hitc/common/bionic/unstable/ bionic main'
-RUN chown -R 996:996 /etc/apt/sources.list
