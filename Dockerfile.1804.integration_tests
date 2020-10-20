@@ -9,4 +9,4 @@ RUN pip3 install \
     docker \
     pytest
  
-RUN add-apt-repository "deb [trusted=yes] https://packages.hendrikx-itc.nl/hitc/common/bionic/unstable/ unstable main"
+RUN printf 'deb [trusted=yes] https://packages.hendrikx-itc.nl/hitc/common/bionic/unstable/ bionic main' > /etc/apt/sources.list
