@@ -10,5 +10,4 @@ RUN pip3 install \
     docker \
     pytest
  
-RUN apt-add-repository -y 'deb [trusted=yes] https://packages.hendrikx-itc.nl/hitc/common/bionic/unstable/ bionic main'
-RUN chown -R 996:996 /etc/apt/sources.list
+RUN apt-add-repository -y 'deb [trusted=yes] https://packages.hendrikx-itc.nl/hitc/common/bionic/unstable/'
