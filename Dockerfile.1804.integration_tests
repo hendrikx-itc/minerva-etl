@@ -1,5 +1,7 @@
 FROM ubuntu:18.04
 
+USER root
+
 RUN apt-get update && apt-get install -y \
     git \
     python3 \
@@ -9,4 +11,4 @@ RUN pip3 install \
     docker \
     pytest
  
-RUN printf 'deb [trusted=yes] https://packages.hendrikx-itc.nl/hitc/common/bionic/unstable/ bionic main' > /etc/apt/sources.list
+RUN 'deb [trusted=yes] https://packages.hendrikx-itc.nl/hitc/common/bionic/unstable/ bionic main' > /etc/apt/sources.list
