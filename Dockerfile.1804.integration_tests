@@ -12,3 +12,4 @@ RUN pip3 install \
     pytest
 
 RUN printf 'deb [trusted=yes] https://packages.hendrikx-itc.nl/hitc/common/bionic/unstable/ bionic unstable' > /etc/apt/sources.list
+RUN update
