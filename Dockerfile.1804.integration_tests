@@ -24,4 +24,5 @@ RUN apt-get update
 
 RUN pip3 install \
     docker \
-    pytest 
+    pytest \
+    psycopg2
