@@ -2,6 +2,7 @@ from contextlib import closing
 from typing import List
 
 from minerva.commands import ConfigurationError
+from minerva.db import connect
 from psycopg2 import sql
 import psycopg2
 
@@ -108,14 +109,18 @@ class Trigger:
 
         with closing(conn.cursor()) as cursor:
             cursor.execute(query, query_args)
+            return cursor.fetchone()[0]
+
 
     @staticmethod
     def set_enabled(conn, name: str, enabled: bool):
-        query = 'UPDATE trigger.rule SET enabled = %s WHERE name = %s'
+        query = 'UPDATE trigger.rule SET enabled = %s WHERE name = %s RETURNING enabled'
         query_args = (enabled, name)
 
         with closing(conn.cursor()) as cursor:
             cursor.execute(query, query_args)
+            return cursor.fetchone()
+
 
     def update_weight(self, conn):
         self.set_weight(conn, self.config)
