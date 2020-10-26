@@ -121,9 +121,13 @@ class Trigger:
         self.set_weight(conn, self.config)
 
     @staticmethod
-    def execute(conn, name, timestamp):
-        query = "SELECT * FROM trigger.create_notifications(%s, %s)"
-        query_args = (name, timestamp)
+    def execute(conn, name, timestamp=None):
+        if timestamp is None:
+            query = "SELECT * FROM trigger.create_notifications(%s::name)"
+            query_args = (name,)
+        else:
+            query = "SELECT * FROM trigger.create_notifications(%s::name, %s)"
+            query_args = (name, timestamp)
 
         with closing(conn.cursor()) as cursor:
             cursor.execute(query, query_args)
