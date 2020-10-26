@@ -58,11 +58,11 @@ def create_trigger_cmd(args):
 
 def create_trigger(trigger: Trigger):
     with closing(connect()) as conn:
-        conn.autocommit = True
-
         try:
             for line in trigger.create(conn):
                 print(line)
+
+            conn.commit()
         except Exception as exc:
             print(exc)
 
