@@ -42,7 +42,6 @@ def setup_create_parser(subparsers):
 
 
 def create_trigger_cmd(args):
-    # trigger_config = yaml.load(args.definition, Loader=yaml.SafeLoader)
     instance = MinervaInstance.load()
     trigger = instance.load_trigger_from_file(args.definition)
 
@@ -58,11 +57,11 @@ def create_trigger_cmd(args):
 
 def create_trigger(trigger: Trigger):
     with closing(connect()) as conn:
-        conn.autocommit = True
-
         try:
             for line in trigger.create(conn):
                 print(line)
+
+            conn.commit()
         except Exception as exc:
             print(exc)
 
@@ -80,8 +79,10 @@ def enable_trigger_cmd(args):
     with closing(connect()) as conn:
         conn.autocommit = True
 
-        Trigger().set_enabled(conn, args.name, True)
-        print(f"Trigger {args.name} has been enabled")
+        if Trigger.set_enabled(conn, args.name, True) is not None:
+            print(f"Trigger {args.name} has been enabled")
+        else:
+            print(f"No trigger {args.name} exist")
 
 
 def setup_disable_parser(subparsers):
@@ -97,9 +98,11 @@ def setup_disable_parser(subparsers):
 def disable_trigger_cmd(args):
     with closing(connect()) as conn:
         conn.autocommit = True
-
-        Trigger.set_enabled(conn, args.name, False)
-        print(f"Trigger {args.name} has been disabled")
+      
+        if Trigger.set_enabled(conn, args.name, False) is not None:
+            print(f"Trigger {args.name} has been disabled")
+        else:
+            print(f"No trigger {args.name} exist")    
 
 
 def setup_delete_parser(subparsers):
@@ -116,7 +119,10 @@ def delete_trigger_cmd(args):
     with closing(connect()) as conn:
         conn.autocommit = True
 
-        Trigger.delete(conn, args.name)
+        if Trigger.delete(conn, args.name) > 0:
+            print(f"Trigger {args.name} is removed")
+        else:
+            print(f"No trigger {args.name} exist")
 
 
 def setup_list_parser(subparsers):
