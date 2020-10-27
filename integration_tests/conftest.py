@@ -16,7 +16,6 @@ def start_db_container(request):
 
     container = docker_client.containers.run(
         "hendrikxitc/minerva",
-        name="minerva",
         remove=True,
         detach=True,
         environment={"POSTGRES_PASSWORD": "password"},
