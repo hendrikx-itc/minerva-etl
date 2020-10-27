@@ -1,0 +1,19 @@
+FROM python:latest
+
+RUN apt update && apt install -y \
+    git \
+    postgresql-contrib \
+    postgresql-client \
+    gcc \
+    python3-dev 
+
+RUN pip3 install \
+    psycopg2 \
+    pytest\
+    pytest-custom_exit_code \
+    pytz \
+    docker
+
+RUN git clone -b minerva-etl-in-jenkins-pipeline --single-branch https://github.com/hendrikx-itc/python-minerva-etl.git
+RUN cd /python-minerva-etl && pip3 install .
+ 
