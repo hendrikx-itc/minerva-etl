@@ -3,12 +3,15 @@ from contextlib import closing
 import sys
 import glob
 from pathlib import Path
+from minerva.db.error import translate_postgresql_exception
+import psycopg2
 
 import yaml
 from minerva.commands import ConfigurationError
 from minerva.commands.live_monitor import live_monitor
 
 from minerva.db import connect
+from minerva.db.error import DuplicateSchema
 
 from minerva.instance import INSTANCE_ROOT_VARIABLE, MinervaInstance
 from minerva.commands.attribute_store import \
@@ -249,8 +252,8 @@ def define_relations(instance_root):
 
         try:
             define_relation(definition)
-        except DuplicateRelation as exc:
-            print(exc)
+        except Exception as e:
+            pass
 
 
 def execute_sql_file(file_path):
@@ -261,7 +264,10 @@ def execute_sql_file(file_path):
         conn.autocommit = True
 
         with closing(conn.cursor()) as cursor:
-            cursor.execute(sql)
+            try:
+                cursor.execute(sql)
+            except Exception as e:
+                print(translate_postgresql_exception(e))
 
 
 def define_trend_materializations(instance_root):

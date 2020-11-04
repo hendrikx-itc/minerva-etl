@@ -2,7 +2,7 @@ from contextlib import closing
 from typing import List
 
 from minerva.commands import ConfigurationError
-from minerva.db import connect
+from minerva.db import connect, error
 from psycopg2 import sql
 import psycopg2
 
@@ -62,15 +62,15 @@ class Trigger:
 
         try:
             self.create_kpi_type(conn)
-        except psycopg2.errors.DuplicateObject:
-            raise Exception("Trigger not created: trigger type exists already")
+        except error.DuplicateObject:
+            pass
 
         yield " - creating KPI function"
 
         try:
             self.create_kpi_function(conn)
-        except psycopg2.errors.DuplicateFunction as exc:
-            raise Exception("Trigger not created: trigger function exists already")
+        except error.DuplicateFunction:
+            pass
 
         # set_fingerprint(conn, config)
 

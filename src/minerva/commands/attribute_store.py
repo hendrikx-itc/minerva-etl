@@ -7,6 +7,7 @@ import psycopg2
 import yaml
 
 from minerva.db import connect
+from minerva.db.error import translate_postgresql_exception, LockNotAvailable
 from minerva.instance import MinervaInstance, AttributeStore, load_yaml
 from minerva.commands import show_rows_from_cursor, show_rows, ConfigurationError
 
@@ -396,12 +397,15 @@ class SampledViewMaterialization:
         )
 
         with closing(conn.cursor()) as cursor:
-            cursor.execute(query)
+            try:
+                cursor.execute(query)
 
-            cursor.execute(
-                insert_materialization_query,
-                insert_materialization_args
-            )
+                cursor.execute(
+                    insert_materialization_query,
+                    insert_materialization_args
+                )
+            except Exception as exc:
+                print(translate_postgresql_exception(exc))
 
 
 def create_materialization_cmd(args):
@@ -537,10 +541,10 @@ def materialize_all_curr_ptr(conn):
                 try:
                     print(f"Materializing curr-ptr for {attribute_store_name}")
                     materialize_curr_ptr_by_id(conn, attribute_store_id)
-                except psycopg2.errors.LockNotAvailable as e:
-                    print(f"Materialize_curr_ptr is not executed due to a lock timeout")    
-        except psycopg2.errors.LockNotAvailable as e:
-            print(f"Materialize_curr_ptr is not executed due to a lock timeout")
+                except Exception as e:
+                    raise translate_postgresql_exception(e)
+        except Exception as e:
+            raise translate_postgresql_exception(e)
 
 def materialize_curr_ptr_by_id(conn, attribute_store_id: int):
     materialize_curr_query = (
