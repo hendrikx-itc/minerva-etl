@@ -3,6 +3,7 @@ import argparse
 
 from minerva.commands import show_rows_from_cursor
 from minerva.db import connect
+from minerva.db.error import DuplicateTable
 from minerva.instance import load_yaml
 from minerva.storage.trend.materialization import from_config, Materialization
 import psycopg2
@@ -82,7 +83,7 @@ def define_materialization(definition):
             conn.commit()
 
             print(f"Created materialization '{definition['target_trend_store_part']}'")
-        except psycopg2.errors.DuplicateTable as e:
+        except DuplicateTable as e:
             print(f"Error creating materialization: {e}")
 
 def update_materialization(args):

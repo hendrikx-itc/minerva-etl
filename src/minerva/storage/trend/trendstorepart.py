@@ -11,6 +11,7 @@ from psycopg2.extensions import adapt, register_adapter, AsIs, QuotedString
 
 from minerva.db import CursorDbAction, ConnDbAction
 from minerva.db.util import quote_ident, create_file
+from minerva.db.error import DuplicateTable
 from minerva.storage import datatype, DataPackage
 from minerva.db.query import Table
 from minerva.storage.trend import schema
@@ -413,7 +414,7 @@ class TrendStorePart:
         with closing(conn.cursor()) as cursor:
             try:
                 cursor.execute(query, args)
-            except psycopg2.errors.DuplicateTable:
+            except DuplicateTable:
                 raise PartitionExistsError(self.id, partition_index)
 
             name, p = cursor.fetchone()

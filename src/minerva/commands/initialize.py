@@ -80,7 +80,7 @@ def initialize_cmd(args):
     try:
         initialize_instance(instance_root, args.num_partitions)
     except Exception as exc:
-        sys.stdout.write("Error:\n{}".format(str(exc)))
+        sys.stdout.write("Error:\n\t{}".format(str(exc)))
         raise exc
 
     if args.load_sample_data:
@@ -89,6 +89,7 @@ def initialize_cmd(args):
             load_sample_data(instance_root, args.interval_count)
         except ConfigurationError as exc:
             print(str(exc))
+
 
     initialize_derivatives(instance_root)
 
@@ -169,7 +170,7 @@ def initialize_attribute_stores(instance_root):
             try:
                 create_attribute_store(conn, attribute_store)
             except DuplicateAttributeStore as exc:
-                print(exc)
+                print(f"Attribute store not created .. {attribute_store} already exist")
 
             sys.stdout.write("OK\n")
 

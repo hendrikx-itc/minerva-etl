@@ -11,6 +11,7 @@ import psycopg2
 from minerva.commands import LoadHarvestPlugin, ListPlugins, load_json, \
     ConfigurationError, show_rows_from_cursor
 from minerva.db import connect
+from minerva.db.error import UniqueViolation, LockNotAvailable
 from minerva.harvest.trend_config_deducer import deduce_config
 from minerva.commands.partition import create_partitions_for_trend_store, \
     create_specific_partitions_for_trend_store
@@ -352,7 +353,7 @@ def create_trend_store(trend_store_definition: TrendStore, create_partitions: bo
         with closing(conn.cursor()) as cursor:
             try:
                 cursor.execute(query, query_args)
-            except psycopg2.errors.UniqueViolation:
+            except UniqueViolation:
                 raise DuplicateTrendStore(
                     trend_store_definition.data_source, trend_store_definition.entity_type,
                     trend_store_definition.granularity
@@ -791,7 +792,7 @@ def remove_old_partitions_cmd(args):
                         print(f'\nWould have removed {removed_partitions} of {total_partitions} partitions')
                     else:
                         print(f'\nRemoved {removed_partitions} of {total_partitions} partitions')
-    except psycopg2.errors.LockNotAvailable as partition_lock:
+    except LockNotAvailable as partition_lock:
         print(f"Could not remove partitions: {partition_lock}")
 
 
@@ -806,7 +807,7 @@ def create_partition_cmd(args):
                 create_partitions_for_one_trend_store(
                     conn, args.trend_store, ahead_interval
                 )
-    except psycopg2.errors.LockNotAvailable as partition_lock:
+    except LockNotAvailable as partition_lock:
         print(f"Could not create partition: {partition_lock}")
 
 

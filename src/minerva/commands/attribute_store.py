@@ -7,7 +7,7 @@ import psycopg2
 import yaml
 
 from minerva.db import connect
-from minerva.db.error import translate_postgresql_exception, LockNotAvailable
+from minerva.db.error import translate_postgresql_exception, UniqueViolation
 from minerva.instance import MinervaInstance, AttributeStore, load_yaml
 from minerva.commands import show_rows_from_cursor, show_rows, ConfigurationError
 
@@ -97,11 +97,11 @@ def create_attribute_store(conn, attribute_store: AttributeStore):
     with closing(conn.cursor()) as cursor:
         try:
             cursor.execute(query, query_args)
-        except psycopg2.errors.UniqueViolation as exc:
-            raise DuplicateAttributeStore(
-                attribute_store.data_source, attribute_store.entity_type
-            ) from exc
-
+        except UniqueViolation as exc:
+            # raise DuplicateAttributeStore(
+            #     attribute_store.data_source, attribute_store.entity_type
+            # ) from exc
+            pass
 
 def setup_delete_parser(subparsers):
     cmd = subparsers.add_parser(
