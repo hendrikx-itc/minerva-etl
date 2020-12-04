@@ -818,8 +818,6 @@ def create_partitions_for_one_trend_store(conn, trend_store_id, ahead_interval):
             '{} - {} ({}/{})'.format(name, partition_index, i, num)
         )
 
-    conn.commit()
-
 
 def create_partitions_for_all_trend_stores(conn, ahead_interval):
     query = 'SELECT id FROM trend_directory.trend_store'
