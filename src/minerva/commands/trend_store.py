@@ -765,6 +765,8 @@ def remove_old_partitions_cmd(args):
 
     try:
         with connect() as conn:
+            set_lock_timeout(conn, '5s')
+
             with conn.cursor() as cursor:
                 cursor.execute(partition_count_query)
                 total_partitions, = cursor.fetchone()
@@ -800,6 +802,7 @@ def create_partition_cmd(args):
 
     try:
         with closing(connect()) as conn:
+            set_lock_timeout(conn, '5s')
             if args.trend_store is None:
                 create_partitions_for_all_trend_stores(conn, ahead_interval)
             else:
@@ -1136,3 +1139,11 @@ def materialize_all(reset: bool, max_num: Optional[int], newest_first: bool):
             chunk.materialize(conn)
 
             conn.commit()
+
+
+def set_lock_timeout(conn, duration: str):
+    query = "SET lock_timeout = %s"
+    args = (duration,)
+
+    with conn.cursor() as cursor:
+        cursor.execute(query, args)
