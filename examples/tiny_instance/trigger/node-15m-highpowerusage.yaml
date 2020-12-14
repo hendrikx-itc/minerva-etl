@@ -12,7 +12,6 @@ kpi_function: |-
       FROM trend."hub_node_main_15m" AS t
       WHERE
           t.timestamp = $1
-          AND 22
       $query$ USING $1;
   END; 
 thresholds:
