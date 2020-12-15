@@ -75,11 +75,17 @@ def create_partitions_for_trend_store(
         rows = cursor.fetchall()
 
     for i, (trend_store_part_id, partition_index) in enumerate(rows):
-        name = create_partition_for_trend_store_part(
-            conn, trend_store_part_id, partition_index
-        )
+        try:
+            name = create_partition_for_trend_store_part(
+                conn, trend_store_part_id, partition_index
+            )
+            conn.commit()
 
-        yield name, partition_index, i, len(rows)
+            yield name, partition_index, i, len(rows)
+        except psycopg2.errors.LockNotAvailable as partition_lock:
+            conn.rollback()
+
+            print(f"Could not create partition: {partition_lock}")
 
 
 class PartitionExistsError(Exception):

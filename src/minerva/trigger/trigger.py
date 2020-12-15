@@ -174,16 +174,21 @@ class Trigger:
         with closing(conn.cursor()) as cursor:
             cursor.execute(query)
 
-    def create_kpi_function(self, conn):
+    def create_kpi_function(self, conn, or_replace=False):
         function_name = '{}_kpi'.format(self.name)
         type_name = '{}_kpi'.format(self.name)
 
+        if or_replace:
+            create_function_part = sql.SQL("CREATE OR REPLACE FUNCTION")
+        else:
+            create_function_part = sql.SQL("CREATE FUNCTION")
+
         query_parts = [
             sql.SQL(
-                'CREATE FUNCTION trigger_rule.{}(timestamp with time zone)\n'
+                '{} trigger_rule.{}(timestamp with time zone)\n'
                 'RETURNS SETOF trigger_rule.{}\n'
                 'AS $trigger$'
-            ).format(sql.Identifier(function_name), sql.Identifier(type_name)),
+            ).format(create_function_part, sql.Identifier(function_name), sql.Identifier(type_name)),
             sql.SQL(self.kpi_function),
             sql.SQL(
                 '$trigger$ LANGUAGE plpgsql STABLE;'

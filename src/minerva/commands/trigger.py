@@ -25,6 +25,7 @@ def setup_command_parser(subparsers):
     setup_delete_parser(cmd_subparsers)
     setup_list_parser(cmd_subparsers)
     setup_update_weight_parser(cmd_subparsers)
+    setup_update_kpi_function_parser(cmd_subparsers)
     setup_create_notifications_parser(cmd_subparsers)
 
 
@@ -158,6 +159,38 @@ def update_weight_cmd(args):
         conn.autocommit = True
 
         Trigger.set_weight(conn, trigger.name, trigger.weight)
+
+
+def setup_update_kpi_function_parser(subparsers):
+    cmd = subparsers.add_parser(
+        'update-kpi-function', help='command for updating the kpi function of a trigger from the configuration'
+    )
+
+    cmd.add_argument(
+        'definition', type=argparse.FileType('r'),
+        help='yaml description for trigger'
+    )
+
+    cmd.set_defaults(cmd=update_kpi_function_cmd)
+
+
+def update_kpi_function_cmd(args):
+    instance = MinervaInstance.load()
+    trigger = instance.load_trigger_from_file(args.definition)
+
+    sys.stdout.write(
+        "Updating kpi function of '{}'... ".format(trigger.name)
+    )
+
+    with connect() as conn:
+        conn.autocommit = True
+
+        try:
+            trigger.create_kpi_function(conn, or_replace=True)
+
+            sys.stdout.write("Done\n")
+        except Exception as e:
+            sys.stdout.write(f"\nError updating kpi function:\n{e}")
 
 
 def timedelta_to_string(t):
