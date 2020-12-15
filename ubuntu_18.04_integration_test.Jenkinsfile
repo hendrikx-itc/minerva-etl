@@ -40,7 +40,7 @@ pipeline {
                 script {
                     sh 'lsb_release -a'
                     
-                    sh 'printf "deb [trusted=yes] https://packages.hendrikx-itc.nl/hitc/common/bionic/unstable/ bionic main" > /etc/apt/sources.list'
+                    sh 'printf "deb [trusted=yes] https://packages.hendrikx-itc.nl/hitc/common/bionic/${MINERVA_VERSION}/ bionic main" > /etc/apt/sources.list'
                     sh 'apt-get update && apt-get install python3-minerva-etl'
                                                            
                     sh 'pytest integration_tests/ --suppress-tests-failed-exit-code --junitxml=integrationtest_report.xml'
