@@ -1,7 +1,7 @@
 from contextlib import closing
 from typing import Optional, Generator, Tuple
 
-import psycopg2.errors
+from minerva.db.error import DuplicateTable
 
 
 def create_specific_partitions_for_trend_store(conn, trend_store_id, timestamp):
@@ -106,7 +106,7 @@ def create_partition_for_trend_store_part(
     with closing(conn.cursor()) as cursor:
         try:
             cursor.execute(query, args)
-        except psycopg2.errors.DuplicateTable:
+        except DuplicateTable:
             raise PartitionExistsError(trend_store_part_id, partition_index)
 
         name, p = cursor.fetchone()
