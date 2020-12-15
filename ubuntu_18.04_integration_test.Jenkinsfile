@@ -24,6 +24,7 @@ pipeline {
             steps {
                 script {
                     echo "${MINERVA_VERSION}"
+                    sh 'lsb_release -a'
                 }
             }
         }
@@ -39,14 +40,9 @@ pipeline {
             steps {
                 script {
                     git branch: 'update-minerva-etl-for-ubuntu-18_04', url: 'ssh://git@gitlab.hendrikx-itc.nl:2022/hitc/Minerva/minerva-etl.git'
-                    
-                    sh 'ls -la'
-                    sh 'pip3 freeze | grep psycopg2'
-                    
+                                       
                     sh 'pytest integration_tests/ --suppress-tests-failed-exit-code --junitxml=integrationtest_report.xml'
                     junit 'integrationtest_report.xml'
-                    
-                    sh 'lsb_release -a'
                 }
             }
         }
