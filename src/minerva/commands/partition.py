@@ -2,11 +2,7 @@ from time import sleep
 from contextlib import closing
 from typing import Optional, Generator, Tuple
 
-<<<<<<< HEAD
-from minerva.db.error import DuplicateTable
-=======
 from minerva.db.error import DuplicateTable, LockNotAvailable, DeadLockDetected
->>>>>>> Create DeadLock solution.
 
 
 def create_specific_partitions_for_trend_store(conn, trend_store_id, timestamp):
