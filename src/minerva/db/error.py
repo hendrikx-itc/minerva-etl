@@ -4,7 +4,7 @@ from functools import wraps
 from psycopg2 import errorcodes
 
 import psycopg2.errorcodes
-from psycopg2.errorcodes import DUPLICATE_FUNCTION, DUPLICATE_SCHEMA, IN_FAILED_SQL_TRANSACTION, LOCK_NOT_AVAILABLE
+from psycopg2.errorcodes import DEADLOCK_DETECTED, DUPLICATE_FUNCTION, DUPLICATE_SCHEMA, IN_FAILED_SQL_TRANSACTION, LOCK_NOT_AVAILABLE
 
 
 class NoSuchTable(Exception):
@@ -63,6 +63,10 @@ class LockNotAvailable(Exception):
     pass
 
 
+class DeadLockDetected(Exception):
+    pass
+
+
 postgresql_exception_mapping = {
     psycopg2.errorcodes.UNDEFINED_COLUMN: NoSuchColumnError,
     psycopg2.errorcodes.UNIQUE_VIOLATION: UniqueViolation,
@@ -75,7 +79,8 @@ postgresql_exception_mapping = {
     psycopg2.errorcodes.DUPLICATE_OBJECT: DuplicateObject,
     psycopg2.errorcodes.DUPLICATE_SCHEMA: DuplicateSchema,
     psycopg2.errorcodes.IN_FAILED_SQL_TRANSACTION: InFailedSQLTransaction,
-    psycopg2.errorcodes.LOCK_NOT_AVAILABLE: LockNotAvailable}
+    psycopg2.errorcodes.LOCK_NOT_AVAILABLE: LockNotAvailable,
+    psycopg2.errorcodes.DEADLOCK_DETECTED: DeadLockDetected}
 
 
 def translate_postgresql_exception(exc):
