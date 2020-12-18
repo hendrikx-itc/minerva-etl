@@ -4,11 +4,7 @@ from functools import wraps
 from psycopg2 import errorcodes
 
 import psycopg2.errorcodes
-<<<<<<< HEAD
-from psycopg2.errorcodes import DUPLICATE_FUNCTION, DUPLICATE_SCHEMA, IN_FAILED_SQL_TRANSACTION, LOCK_NOT_AVAILABLE
-=======
 from psycopg2.errorcodes import DEADLOCK_DETECTED, DUPLICATE_FUNCTION, DUPLICATE_SCHEMA, IN_FAILED_SQL_TRANSACTION, LOCK_NOT_AVAILABLE
->>>>>>> Create DeadLock solution.
 
 
 class NoSuchTable(Exception):
