@@ -1,7 +1,8 @@
+from time import sleep
 from contextlib import closing
 from typing import Optional, Generator, Tuple
 
-import psycopg2.errors
+from minerva.db.error import DuplicateTable, LockNotAvailable, DeadLockDetected
 
 
 def create_specific_partitions_for_trend_store(conn, trend_store_id, timestamp):
@@ -17,17 +18,26 @@ def create_specific_partitions_for_trend_store(conn, trend_store_id, timestamp):
 
         rows = cursor.fetchall()
  
+    retry = True
+    attempt = 0
+
     for i, (trend_store_part_id, partition_index) in enumerate(rows):
-        try:
-            name = create_partition_for_trend_store_part(
-                conn, trend_store_part_id, partition_index
-            )
+        while retry and attempt < 3:
+            attempt += 1
+            try:
+                name = create_partition_for_trend_store_part(
+                    conn, trend_store_part_id, partition_index
+                )
 
-            conn.commit()
+                conn.commit()
 
-            yield name, partition_index, i + 1, len(rows)
-        except PartitionExistsError as e:
-            conn.rollback()
+                yield name, partition_index, i + 1, len(rows)
+                retry = False
+            except PartitionExistsError as e:
+                conn.rollback()
+                retry = False
+            except DeadLockDetected:
+                pass
 
 
 def create_partitions_for_trend_store(
@@ -74,12 +84,24 @@ def create_partitions_for_trend_store(
 
         rows = cursor.fetchall()
 
-    for i, (trend_store_part_id, partition_index) in enumerate(rows):
-        name = create_partition_for_trend_store_part(
-            conn, trend_store_part_id, partition_index
-        )
+    retry = True
+    attempt = 0
+    
+    while retry and attempt < 3:
+        attempt += 1
+        for i, (trend_store_part_id, partition_index) in enumerate(rows):
+            try:
+                name = create_partition_for_trend_store_part(
+                    conn, trend_store_part_id, partition_index
+                )
+                conn.commit()
 
-        yield name, partition_index, i, len(rows)
+                yield name, partition_index, i, len(rows)
+            except LockNotAvailable as partition_lock:
+                conn.rollback()
+                print(f"Could not create partition: {partition_lock}")
+            except DeadLockDetected:
+                pass
 
 
 class PartitionExistsError(Exception):
@@ -100,7 +122,7 @@ def create_partition_for_trend_store_part(
     with closing(conn.cursor()) as cursor:
         try:
             cursor.execute(query, args)
-        except psycopg2.errors.DuplicateTable:
+        except DuplicateTable:
             raise PartitionExistsError(trend_store_part_id, partition_index)
 
         name, p = cursor.fetchone()

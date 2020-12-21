@@ -10,8 +10,9 @@ from minerva.storage.notification import NotificationStore, \
     NotificationStoreDescriptor, AttributeDescriptor, Record
 
 
-@with_conn(clear_database)
-def test_store_record(conn):
+def test_store_record(start_db_container):
+    conn = clear_database(start_db_container)
+
     attribute_descriptors = [
         AttributeDescriptor("a", datatype.registry['integer'], "a attribute"),
         AttributeDescriptor("b", datatype.registry['integer'], "b attribute")

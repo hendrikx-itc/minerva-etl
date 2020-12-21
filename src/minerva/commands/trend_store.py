@@ -11,6 +11,7 @@ import psycopg2
 from minerva.commands import LoadHarvestPlugin, ListPlugins, load_json, \
     ConfigurationError, show_rows_from_cursor
 from minerva.db import connect
+from minerva.db.error import UniqueViolation, LockNotAvailable
 from minerva.harvest.trend_config_deducer import deduce_config
 from minerva.commands.partition import create_partitions_for_trend_store, \
     create_specific_partitions_for_trend_store
@@ -352,7 +353,7 @@ def create_trend_store(trend_store_definition: TrendStore, create_partitions: bo
         with closing(conn.cursor()) as cursor:
             try:
                 cursor.execute(query, query_args)
-            except psycopg2.errors.UniqueViolation:
+            except UniqueViolation:
                 raise DuplicateTrendStore(
                     trend_store_definition.data_source, trend_store_definition.entity_type,
                     trend_store_definition.granularity
@@ -757,42 +758,47 @@ def remove_old_partitions_cmd(args):
         'from trend_directory.partition p '
         'join trend_directory.trend_store_part tsp on tsp.id = p.trend_store_part_id '
         'join trend_directory.trend_store ts on ts.id = tsp.trend_store_id '
-        'where p.to < now() - retention_period '
+        'where p.from < (now() - retention_period - partition_size - partition_size) '
         'order by p.name'
     )
 
     removed_partitions = 0
 
-    try:
-        with connect() as conn:
-            with conn.cursor() as cursor:
-                cursor.execute(partition_count_query)
-                total_partitions, = cursor.fetchone()
+    with connect() as conn:
+        set_lock_timeout(conn, '1s')
+        conn.commit()
 
-                cursor.execute(old_partitions_query)
+        with conn.cursor() as cursor:
+            cursor.execute(partition_count_query)
+            total_partitions, = cursor.fetchone()
 
-                rows = cursor.fetchall()
+            cursor.execute(old_partitions_query)
 
-                print(f'Found {len(rows)} of {total_partitions} partitions to be removed')
+            rows = cursor.fetchall()
 
-                conn.commit()
+            print(f'Found {len(rows)} of {total_partitions} partitions to be removed')
 
-                if len(rows) > 0:
-                    print()
-                    for partition_id, partition_name, data_from, data_to in rows:
-                        if not args.pretend:
+            conn.commit()
+
+            if len(rows) > 0:
+                print()
+                for partition_id, partition_name, data_from, data_to in rows:
+                    if not args.pretend:
+                        try:
                             cursor.execute(f'drop table trend_partition."{partition_name}"')
                             cursor.execute('delete from trend_directory.partition where id = %s', (partition_id,))
                             conn.commit()
                             removed_partitions += 1
-                            print(f' - {partition_name} ({data_from} - {data_to})')
-                            
-                    if args.pretend:
-                        print(f'\nWould have removed {removed_partitions} of {total_partitions} partitions')
-                    else:
-                        print(f'\nRemoved {removed_partitions} of {total_partitions} partitions')
-    except psycopg2.errors.LockNotAvailable as partition_lock:
-        print(f"Could not remove partitions: {partition_lock}")
+                            print(f'Removed partition {partition_name} ({data_from} - {data_to})')
+                        except LockNotAvailable as partition_lock:
+                            conn.rollback()
+                            print(f"Could not remove partition {partition_name} ({data_from} - {data_to}): {partition_lock}")
+
+                if args.pretend:
+                    print(f'\nWould have removed {removed_partitions} of {total_partitions} partitions')
+                else:
+                    print(f'\nRemoved {removed_partitions} of {total_partitions} partitions')
+
 
 
 def create_partition_cmd(args):
@@ -800,13 +806,16 @@ def create_partition_cmd(args):
 
     try:
         with closing(connect()) as conn:
+            set_lock_timeout(conn, '1s')
+            conn.commit()
+
             if args.trend_store is None:
                 create_partitions_for_all_trend_stores(conn, ahead_interval)
             else:
                 create_partitions_for_one_trend_store(
                     conn, args.trend_store, ahead_interval
                 )
-    except psycopg2.errors.LockNotAvailable as partition_lock:
+    except LockNotAvailable as partition_lock:
         print(f"Could not create partition: {partition_lock}")
 
 
@@ -817,8 +826,6 @@ def create_partitions_for_one_trend_store(conn, trend_store_id, ahead_interval):
         print(
             '{} - {} ({}/{})'.format(name, partition_index, i, num)
         )
-
-    conn.commit()
 
 
 def create_partitions_for_all_trend_stores(conn, ahead_interval):
@@ -1138,3 +1145,11 @@ def materialize_all(reset: bool, max_num: Optional[int], newest_first: bool):
             chunk.materialize(conn)
 
             conn.commit()
+
+
+def set_lock_timeout(conn, duration: str):
+    query = "SET lock_timeout = %s"
+    args = (duration,)
+
+    with conn.cursor() as cursor:
+        cursor.execute(query, args)

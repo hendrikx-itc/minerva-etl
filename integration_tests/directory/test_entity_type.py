@@ -1,11 +1,11 @@
 from contextlib import closing
 
 from minerva.directory import EntityType
-from minerva.test import with_conn
 
 
-@with_conn()
-def test_get_entity_type(conn):
+def test_get_entity_type(start_db_container):
+    conn = start_db_container
+
     with closing(conn.cursor()) as cursor:
         new_entity_type = EntityType.create(
             "test_get_entity_type", "short description of type"
@@ -17,8 +17,9 @@ def test_get_entity_type(conn):
     assert entity_type.name == "test_get_entity_type"
 
 
-@with_conn()
-def test_get_entity_type_by_id(conn):
+def test_get_entity_type_by_id(start_db_container):
+    conn = start_db_container
+
     with closing(conn.cursor()) as cursor:
         new_entity_type = EntityType.create(
             "test_get_entitytype_by_id", "short description of type"
@@ -30,8 +31,9 @@ def test_get_entity_type_by_id(conn):
     assert entity_type.name == "test_get_entitytype_by_id"
 
 
-@with_conn()
-def test_create_entity_type(conn):
+def test_create_entity_type(start_db_container):
+    conn = start_db_container
+
     with closing(conn.cursor()) as cursor:
         entity_type = EntityType.create(
             "test_create_entitytype", "short description of type"
@@ -41,8 +43,9 @@ def test_create_entity_type(conn):
     assert entity_type.name == "test_create_entitytype"
 
 
-@with_conn()
-def test_name_to_entity_type(conn):
+def test_name_to_entity_type(start_db_container):
+    conn = start_db_container
+
     with closing(conn.cursor()) as cursor:
         entity_type = EntityType.from_name("test_name_to_entitytype")(cursor)
 

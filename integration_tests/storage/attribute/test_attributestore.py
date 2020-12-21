@@ -14,8 +14,9 @@ from minerva.storage.attribute.datapackage import DataPackage
 from minerva.storage import datatype
 
 
-@with_conn(clear_database)
-def test_create(conn):
+def test_create(start_db_container):
+    conn = clear_database(start_db_container)
+
     """Test creation of a new attribute store."""
     with closing(conn.cursor()) as cursor:
         data_source = DataSource.from_name("integration-test")(cursor)
@@ -36,11 +37,11 @@ def test_create(conn):
             data_source, entity_type, attribute_descriptors
         ))(cursor)
 
-        eq_(len(attribute_descriptors), len(attribute_store.attributes))
+        assert len(attribute_descriptors) == len(attribute_store.attributes)
 
         expected_table_name = "integration-test_UtranCell"
 
-        eq_(attribute_store.table_name(), expected_table_name)
+        assert attribute_store.table_name() == expected_table_name
 
         conn.commit()
 
@@ -73,13 +74,14 @@ def test_create(conn):
 
         column_names = [column_name for column_name, in cursor.fetchall()]
 
-        eq_(column_names, ["entity_id", "timestamp"] + attribute_names)
+        assert column_names == ["entity_id", "timestamp", "end"] + attribute_names
 
-    eq_(table_name, expected_table_name)
+    assert table_name == expected_table_name
 
 
-@with_conn(clear_database)
-def test_from_attributes(conn):
+def test_from_attributes(start_db_container):
+    conn = clear_database(start_db_container)
+
     """Test creation of a new attribute store from attributes."""
     with closing(conn.cursor()) as cursor:
         data_source = DataSource.from_name("integration-test")(cursor)
@@ -102,7 +104,7 @@ def test_from_attributes(conn):
 
         expected_table_name = "integration-test_UtranCell"
 
-        eq_(attribute_store.table_name(), expected_table_name)
+        assert attribute_store.table_name() == expected_table_name
 
         conn.commit()
 
@@ -118,12 +120,13 @@ def test_from_attributes(conn):
 
         table_name, = cursor.fetchone()
 
-    eq_(table_name, expected_table_name)
+    assert table_name == expected_table_name
 
 
-@with_conn(clear_database)
-def test_store_batch_simple(conn):
+def test_store_batch_simple(start_db_container):
     """Test batch wise storing using staging table."""
+    conn = clear_database(start_db_container)
+
     with closing(conn.cursor()) as cursor:
         attribute_names = ['CCR', 'Drops']
         timestamp = pytz.utc.localize(datetime.utcnow())
@@ -142,7 +145,7 @@ def test_store_batch_simple(conn):
             data_source, entity_type, attribute_descriptors
         ))(cursor)
 
-        attribute_store.store(data_package)(conn)
+        attribute_store.store(data_package)(start_db_container)
         conn.commit()
 
         cursor.execute(
@@ -159,17 +162,18 @@ def test_store_batch_simple(conn):
 
         cursor.execute(query)
         # Row count should be the same as the stored batch size
-        eq_(cursor.rowcount, len(data_package.rows))
+        assert cursor.rowcount == len(data_package.rows)
 
         stored_timestamp, drops = cursor.fetchone()
         # Timestamp should be the same as the stored batch timestamp
-        eq_(stored_timestamp, timestamp)
-        eq_(drops, 17)
+        assert stored_timestamp == timestamp
+        assert drops == 17
 
 
-@with_conn(clear_database)
-def test_store_batch_with_list_a(conn):
+def test_store_batch_with_list_a(start_db_container):
     """Test batch wise storing using staging table."""
+    conn = clear_database(start_db_container)
+
     attribute_names = ['height', 'refs']
     timestamp = pytz.utc.localize(datetime.utcnow())
     data_rows = [
@@ -187,7 +191,7 @@ def test_store_batch_with_list_a(conn):
             data_source, entity_type, attribute_descriptors
         ))(cursor)
 
-        attribute_store.store(data_package)(conn)
+        attribute_store.store(data_package)(start_db_container)
         conn.commit()
 
         cursor.execute(
@@ -205,17 +209,18 @@ def test_store_batch_with_list_a(conn):
         cursor.execute(query)
 
         # Row count should be the same as the stored batch size
-        eq_(cursor.rowcount, len(data_package.rows))
+        assert cursor.rowcount == len(data_package.rows)
 
         stored_timestamp, height = cursor.fetchone()
         # Timestamp should be the same as the stored batch timestamp
-        eq_(stored_timestamp, timestamp)
-        eq_(height, 19.5)
+        assert stored_timestamp == timestamp
+        assert height == 19.5
 
 
-@with_conn(clear_database)
-def test_store_batch_with_list_b(conn):
+def test_store_batch_with_list_b(start_db_container):
     """Test batch wise storing using staging table."""
+    conn = clear_database(start_db_container)
+
     attribute_names = ['height', 'refs']
     timestamp = pytz.utc.localize(datetime.utcnow())
     data_rows = [
@@ -235,13 +240,14 @@ def test_store_batch_with_list_b(conn):
             data_source, entity_type, attribute_descriptors
         ))(cursor)
 
-        attribute_store.store(data_package)(conn)
+        attribute_store.store(data_package)(start_db_container)
         conn.commit()
 
 
-@with_conn(clear_database)
-def test_store_batch_with_list_c(conn):
+def test_store_batch_with_list_c(start_db_container):
     """Test batch wise storing using staging table."""
+    conn = clear_database(start_db_container)
+
     attribute_descriptors = [
         AttributeDescriptor('height', datatype.registry[
             'double precision'], ''),
@@ -266,13 +272,14 @@ def test_store_batch_with_list_c(conn):
 
         conn.commit()
 
-        attribute_store.store(data_package)(conn)
+        attribute_store.store(data_package)(start_db_container)
         conn.commit()
 
 
-@with_conn(clear_database)
-def test_store_txn_with_empty(conn):
+def test_store_txn_with_empty(start_db_container):
     """Test transactional storing with empty value."""
+    conn = clear_database(start_db_container)
+
     attribute_descriptors = [
         AttributeDescriptor('freeText', datatype.registry['text'], '')
     ]
@@ -295,12 +302,13 @@ def test_store_txn_with_empty(conn):
         )(cursor)
         conn.commit()
 
-        attribute_store.store(data_package)(conn)
+        attribute_store.store(data_package)(start_db_container)
 
 
-@with_conn(clear_database)
-def test_store_batch_update(conn):
+def test_store_batch_update(start_db_container):
     """Test batch wise storing with updates using staging table."""
+    conn = clear_database(start_db_container)
+
     with closing(conn.cursor()) as cursor:
         attribute_names = ['CCR', 'Drops']
         timestamp = pytz.utc.localize(datetime.utcnow())
@@ -324,7 +332,7 @@ def test_store_batch_update(conn):
             data_source, entity_type, attributes
         ))(cursor)
 
-        attribute_store.store(data_package)(conn)
+        attribute_store.store(data_package)(start_db_container)
         conn.commit()
         modified_query = (
             'SELECT modified FROM {0} '
@@ -334,7 +342,7 @@ def test_store_batch_update(conn):
         cursor.execute(modified_query)
         modified_a, = cursor.fetchone()
 
-        attribute_store.store(update_data_package)(conn)
+        attribute_store.store(update_data_package)(start_db_container)
         conn.commit()
 
         cursor.execute(modified_query)
@@ -356,18 +364,19 @@ def test_store_batch_update(conn):
 
         cursor.execute(query)
         # Row count should be the same as the stored batch size
-        eq_(cursor.rowcount, len(data_package.rows))
+        assert cursor.rowcount == len(data_package.rows)
 
         stored_timestamp, drops = cursor.fetchone()
 
         # Timestamp should be the same as the stored batch timestamp
-        eq_(stored_timestamp, timestamp)
-        eq_(drops, 18)
+        assert stored_timestamp == timestamp
+        assert drops == 18
 
 
-@with_conn(clear_database)
-def test_store_empty_rows(conn):
+def test_store_empty_rows(start_db_container):
     """Test storing of empty datapackage."""
+    conn = clear_database(start_db_container)
+
     with closing(conn.cursor()) as cursor:
         attribute_names = ['CCR', 'Drops']
         data_rows = []
@@ -385,13 +394,14 @@ def test_store_empty_rows(conn):
 
         conn.commit()
 
-        attribute_store.store(data_package)(conn)
+        attribute_store.store(data_package)(start_db_container)
         conn.commit()
 
 
-@with_conn(clear_database)
-def test_store_empty_attributes(conn):
+def test_store_empty_attributes(start_db_container):
     """Test storing of empty datapackage."""
+    conn = clear_database(start_db_container)
+
     with closing(conn.cursor()) as cursor:
         attribute_names = []
         timestamp = pytz.utc.localize(datetime.utcnow())
@@ -410,12 +420,13 @@ def test_store_empty_attributes(conn):
 
         conn.commit()
 
-        attribute_store.store(data_package)(conn)
+        attribute_store.store(data_package)(start_db_container)
 
 
-@with_conn(clear_database)
-def test_compact(conn):
+def test_compact(start_db_container):
     """Test compacting of redundant data."""
+    conn = clear_database(start_db_container)
+
     def make_rows(timestamp):
         return [
             (10023 + i, timestamp, ('0.9919', '17'))
@@ -444,10 +455,10 @@ def test_compact(conn):
             data_source, entity_type, attributes
         ))(cursor)
 
-        attribute_store.store(data_package_a)(conn)
+        attribute_store.store(data_package_a)(start_db_container)
         conn.commit()
 
-        attribute_store.store(data_package_b)(conn)
+        attribute_store.store(data_package_b)(start_db_container)
         conn.commit()
 
         count_query = (
@@ -458,8 +469,9 @@ def test_compact(conn):
         cursor.execute(count_query)
 
         count, = cursor.fetchone()
+
         # Row count should be the same as the stored batch sizes summed
-        eq_(count, len(data_package_b.rows) + len(data_package_a.rows))
+        assert count == len(data_package_b.rows) + len(data_package_a.rows)
 
         attribute_store.compact(cursor)
         conn.commit()
@@ -467,5 +479,6 @@ def test_compact(conn):
         cursor.execute(count_query)
 
         count, = cursor.fetchone()
+
         # Row count should be the same as the first stored batch size
-        eq_(count, len(data_package_a.rows))
+        assert count == len(data_package_a.rows)

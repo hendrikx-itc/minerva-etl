@@ -232,7 +232,7 @@ class TestDataPackage(unittest.TestCase):
     
         self.assertEqual(
             lines[0],
-            "123001\t2013-08-30 15:30:00+00:00\t405\t0.0\ttrue\t\"\"\n"
+            "123001\t2013-08-30 15:30:00+00:00\t405\t0.0\ttrue\t\n"
         )
     
         data_package = DataPackage(

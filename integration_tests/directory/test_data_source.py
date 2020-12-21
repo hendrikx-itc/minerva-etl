@@ -1,11 +1,11 @@
 from contextlib import closing
 
 from minerva.directory import DataSource
-from minerva.test import with_conn
 
 
-@with_conn()
-def test_create_data_source(conn):
+def test_create_data_source(start_db_container):
+    conn = start_db_container
+
     with closing(conn.cursor()) as cursor:
         data_source = DataSource.create(
             "TestSource", "short description of data source"

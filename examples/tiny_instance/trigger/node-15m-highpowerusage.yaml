@@ -1,0 +1,50 @@
+name: node/15m/highpowerusage
+kpi_data:
+  - name: power_kwh
+    data_type: numeric
+kpi_function: |-
+  BEGIN
+      RETURN QUERY EXECUTE $query$
+      SELECT
+          t.entity_id,
+          t.timestamp,
+          t.power_kwh
+      FROM trend."hub_node_main_15m" AS t
+      WHERE
+          t.timestamp = $1
+      $query$ USING $1;
+  END; 
+thresholds:
+  - name: max_power
+    data_type: numeric
+    value: 0.05
+condition: |-
+  power_kwh > max_power
+weight: |-
+  SELECT
+      CASE
+          WHEN $1.power_kwh > 1 THEN 500
+          WHEN $1.power_kwh > 2 THEN 800
+          ELSE 300
+      END
+notification: |-
+  SELECT array_to_string(
+      ARRAY[
+          'HighPowerUsage',
+          format('%s > %s', $1.power_kwh, $1.max_power)
+      ],
+      E'\n'
+  )
+tags: ['online']
+fingerprint: |-
+  SELECT trigger.modified_to_fingerprint(
+      ARRAY[
+          trend.modified(trend.to_trendstore('hub_node_main_15m'), $1)
+      ]::timestamptz[]
+  )
+notification_store: trigger-notification
+trend_store_links:
+  - part_name: hub_node_main_15m
+    mapping_function: mapping_id
+mapping_functions: []
+granularity: 15m

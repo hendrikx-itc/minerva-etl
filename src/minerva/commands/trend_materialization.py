@@ -3,10 +3,10 @@ import argparse
 
 from minerva.commands import show_rows_from_cursor
 from minerva.db import connect
+from minerva.db.error import DuplicateTable
 from minerva.instance import load_yaml
 from minerva.storage.trend.materialization import from_config, Materialization
-
-from psycopg2.errors import DuplicateFunction
+import psycopg2
 
 
 def setup_command_parser(subparsers):
@@ -77,14 +77,14 @@ def create_materialization(args):
 def define_materialization(definition):
     materialization = from_config(definition)
 
-    try:
-        with closing(connect()) as conn:
-                materialization.create(conn)
-                conn.commit()
+    with closing(connect()) as conn:
+        try:
+            materialization.create(conn)
+            conn.commit()
 
-        print("Created materialization '{}'".format(definition['target_trend_store_part']))    
-    except DuplicateFunction as e:
-        print("Error creating materialization: {}".format(e))    
+            print(f"Created materialization '{definition['target_trend_store_part']}'")
+        except DuplicateTable as e:
+            print(f"Error creating materialization: {e}")
 
 def update_materialization(args):
     definition = load_yaml(args.definition)
@@ -96,7 +96,7 @@ def update_materialization(args):
 
         conn.commit()
 
-    print("Updated materialization '{}'".format(definition['target_trend_store_part']))
+    print(f"Updated materialization '{definition['target_trend_store_part']}'")
 
 
 def drop_materialization(args):
@@ -107,8 +107,10 @@ def drop_materialization(args):
 
         conn.commit()
 
-    if count == 0:
-        print("No materialization matched name '{}'".format(args.name))
+    if count > 0:
+        print(f"Drop materialization '{args.name}'")
+    else:    
+        print(f"No materialization matched name '{args.name}'")
 
 
 def list_materializations(args):

@@ -2,10 +2,9 @@ from contextlib import closing
 import argparse
 
 from psycopg2 import sql
-import psycopg2.errors
 
 from minerva.instance import load_yaml
-from minerva.db import connect
+from minerva.db import connect, error
 
 
 def setup_command_parser(subparsers):
@@ -52,12 +51,11 @@ def define_relation(definition):
         with closing(conn.cursor()) as cursor:
             try:
                 cursor.execute(create_materialized_view_query(definition))
-            except psycopg2.errors.DuplicateTable:
-                raise DuplicateRelation(definition)
-
-            cursor.execute(register_type_query(definition))
-
-        conn.commit()
+                cursor.execute(register_type_query(definition))
+            except Exception as exc:
+                print(exc)
+            finally:
+                conn.commit()
 
 
 def create_materialized_view_query(relation):

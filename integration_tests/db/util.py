@@ -2,11 +2,11 @@ from contextlib import closing
 
 from minerva.db.util import create_temp_table_from
 from minerva.db.query import Table
-from minerva.test import with_conn
 
 
-@with_conn()
-def test_create_temp_table_from(conn):
+def test_create_temp_table_from(start_db_container):
+    conn = start_db_container
+
     table = Table("trend_partition", "storage_tmp_test_table")
 
     with closing(conn.cursor()) as cursor:

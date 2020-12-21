@@ -1,0 +1,12 @@
+data_source: trigger-notification
+entity_type: notification
+attributes:
+  - name: rule_id
+    data_type: integer
+  - name: details
+    data_type: text
+  - name: weight
+    data_type: integer
+  - name: created
+    data_type: timestamp with time zone
+

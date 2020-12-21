@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from contextlib import closing
 from datetime import timedelta
-from typing import List, Callable, Tuple, Dict
+from typing import List, Callable, Tuple, Dict, Optional
 
 from psycopg2 import extensions
 
@@ -56,6 +56,7 @@ class TrendStore:
     partition_size: timedelta
     parts: List[TrendStorePart]
     part_by_name: Dict[str, TrendStorePart]
+    _trend_part_mapping: Dict[str, TrendStorePart]
 
     column_names = [
         "id", "entity_type_id", "data_source_id", "granularity",
@@ -85,7 +86,7 @@ class TrendStore:
         self.retention_period = retention_period
         self.parts = []
         self.part_by_name = {}
-        self._trend_part_mapping = None
+        self._trend_part_mapping = {}
 
     @staticmethod
     def create(descriptor: Descriptor) -> Callable[[extensions.cursor], 'TrendStore']:
@@ -221,7 +222,7 @@ class TrendStore:
         ])
 
     def split_package_by_parts(self, data_package: DataPackage) -> List[Tuple[TrendStorePart, DataPackage]]:
-        def group_fn(trend_name):
+        def group_fn(trend_name: str) -> Optional[str]:
             try:
                 return self._trend_part_mapping[trend_name].name
             except KeyError:

@@ -1,0 +1,27 @@
+- native:
+    name: tiny-set
+    data_source: hub
+    type: trend
+    data_type: csv 
+    granularity: 15m
+    parser_config:
+      timestamp: timestamp
+      identifier: node
+      granularity: 15m
+      entity_type: node 
+      delimiter: ","
+      columns:
+        - name: timestamp
+          data_type: text
+        - name: node
+          data_type: text
+        - name: outside_temp
+          data_type: numeric
+        - name: inside_temp
+          data_type: numeric
+        - name: power_kwh
+          data_type: numeric
+        - name: freq_power
+          data_type: numeric[]
+          parser_config:
+            separator: ","

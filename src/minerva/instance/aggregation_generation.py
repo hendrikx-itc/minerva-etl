@@ -31,6 +31,10 @@ STANDARD_AGGREGATIONS = {
         ("30m", "1d"),
         ("1d", "1w"),
         ("1d", "1month"),
+    ],
+    "1d": [
+        ("1d", "1w"),
+        ("1d", "1month"),
     ]
 }
 
