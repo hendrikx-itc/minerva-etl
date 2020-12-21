@@ -430,7 +430,7 @@ def define_aggregate_part(data: TrendStorePart, definition):
             0,
             Trend(
                 name='samples',
-                data_type='smallint',
+                data_type='integer',
                 description='Number of source records',
                 time_aggregation='sum',
                 entity_aggregation='sum',

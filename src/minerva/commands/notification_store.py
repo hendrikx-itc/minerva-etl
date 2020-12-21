@@ -5,6 +5,7 @@ import sys
 import psycopg2
 
 from minerva.db import connect
+from minerva.db.error import UniqueViolation
 from minerva.instance import MinervaInstance, NotificationStore, load_yaml
 
 
@@ -85,7 +86,7 @@ def create_notification_store_from_definition(notification_store: NotificationSt
         with closing(conn.cursor()) as cursor:
             try:
                 cursor.execute(query, query_args)
-            except psycopg2.errors.UniqueViolation as exc:
+            except UniqueViolation as exc:
                 raise DuplicateNotificationStore(notification_store.data_source) from exc
 
         conn.commit()

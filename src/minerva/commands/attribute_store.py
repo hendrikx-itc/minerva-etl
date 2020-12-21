@@ -7,6 +7,7 @@ import psycopg2
 import yaml
 
 from minerva.db import connect
+from minerva.db.error import translate_postgresql_exception, UniqueViolation
 from minerva.instance import MinervaInstance, AttributeStore, load_yaml
 from minerva.commands import show_rows_from_cursor, show_rows, ConfigurationError
 
@@ -96,11 +97,11 @@ def create_attribute_store(conn, attribute_store: AttributeStore):
     with closing(conn.cursor()) as cursor:
         try:
             cursor.execute(query, query_args)
-        except psycopg2.errors.UniqueViolation as exc:
-            raise DuplicateAttributeStore(
-                attribute_store.data_source, attribute_store.entity_type
-            ) from exc
-
+        except UniqueViolation as exc:
+            # raise DuplicateAttributeStore(
+            #     attribute_store.data_source, attribute_store.entity_type
+            # ) from exc
+            pass
 
 def setup_delete_parser(subparsers):
     cmd = subparsers.add_parser(
@@ -396,12 +397,15 @@ class SampledViewMaterialization:
         )
 
         with closing(conn.cursor()) as cursor:
-            cursor.execute(query)
+            try:
+                cursor.execute(query)
 
-            cursor.execute(
-                insert_materialization_query,
-                insert_materialization_args
-            )
+                cursor.execute(
+                    insert_materialization_query,
+                    insert_materialization_args
+                )
+            except Exception as exc:
+                print(translate_postgresql_exception(exc))
 
 
 def create_materialization_cmd(args):
@@ -530,12 +534,17 @@ def materialize_all_curr_ptr(conn):
     )
 
     with conn.cursor() as cursor:
-        cursor.execute(query)
+        try:
+            cursor.execute(query)
 
-        for attribute_store_id, attribute_store_name in cursor.fetchall():
-            print(f"Materializing curr-ptr for {attribute_store_name}")
-            materialize_curr_ptr_by_id(conn, attribute_store_id)
-
+            for attribute_store_id, attribute_store_name in cursor.fetchall():
+                try:
+                    print(f"Materializing curr-ptr for {attribute_store_name}")
+                    materialize_curr_ptr_by_id(conn, attribute_store_id)
+                except Exception as e:
+                    raise translate_postgresql_exception(e)
+        except Exception as e:
+            raise translate_postgresql_exception(e)
 
 def materialize_curr_ptr_by_id(conn, attribute_store_id: int):
     materialize_curr_query = (

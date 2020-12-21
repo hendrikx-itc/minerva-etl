@@ -3,12 +3,15 @@ from contextlib import closing
 import sys
 import glob
 from pathlib import Path
+from minerva.db.error import translate_postgresql_exception
+import psycopg2
 
 import yaml
 from minerva.commands import ConfigurationError
 from minerva.commands.live_monitor import live_monitor
 
 from minerva.db import connect
+from minerva.db.error import DuplicateSchema
 
 from minerva.instance import INSTANCE_ROOT_VARIABLE, MinervaInstance
 from minerva.commands.attribute_store import \
@@ -19,7 +22,7 @@ from minerva.commands.trend_store import create_trend_store, \
 from minerva.commands.notification_store import \
     create_notification_store_from_definition, DuplicateNotificationStore
 from minerva.commands.partition import create_partitions_for_trend_store
-from minerva.commands.trigger import create_trigger_from_config
+from minerva.commands.trigger import create_trigger
 from minerva.commands.load_sample_data import load_sample_data
 from minerva.commands.relation import DuplicateRelation, define_relation, \
     materialize_relations
@@ -77,7 +80,7 @@ def initialize_cmd(args):
     try:
         initialize_instance(instance_root, args.num_partitions)
     except Exception as exc:
-        sys.stdout.write("Error:\n{}".format(str(exc)))
+        sys.stdout.write("Error:\n\t{}".format(str(exc)))
         raise exc
 
     if args.load_sample_data:
@@ -86,6 +89,7 @@ def initialize_cmd(args):
             load_sample_data(instance_root, args.interval_count)
         except ConfigurationError as exc:
             print(str(exc))
+
 
     initialize_derivatives(instance_root)
 
@@ -166,7 +170,7 @@ def initialize_attribute_stores(instance_root):
             try:
                 create_attribute_store(conn, attribute_store)
             except DuplicateAttributeStore as exc:
-                print(exc)
+                print(f"Attribute store not created .. {attribute_store} already exist")
 
             sys.stdout.write("OK\n")
 
@@ -211,16 +215,16 @@ def load_custom_pre_materialization_init_sql(instance_root):
 
 
 def initialize_notification_stores(instance_root):
+    instance = MinervaInstance.load(instance_root)
     definition_files = Path(instance_root, 'notification').rglob('*.yaml')
 
     for definition_file_path in definition_files:
         print(definition_file_path)
 
-        with definition_file_path.open() as definition_file:
-            definition = yaml.load(definition_file, Loader=yaml.SafeLoader)
+        notification_store = instance.load_notification_store_from_file(definition_file_path)
 
         try:
-            create_notification_store_from_definition(definition)
+            create_notification_store_from_definition(notification_store)
         except DuplicateNotificationStore as exc:
             print(exc)
 
@@ -249,8 +253,8 @@ def define_relations(instance_root):
 
         try:
             define_relation(definition)
-        except DuplicateRelation as exc:
-            print(exc)
+        except Exception as e:
+            pass
 
 
 def execute_sql_file(file_path):
@@ -261,7 +265,10 @@ def execute_sql_file(file_path):
         conn.autocommit = True
 
         with closing(conn.cursor()) as cursor:
-            cursor.execute(sql)
+            try:
+                cursor.execute(sql)
+            except Exception as e:
+                print(translate_postgresql_exception(e))
 
 
 def define_trend_materializations(instance_root):
@@ -306,15 +313,14 @@ def load_custom_post_init_sql(instance_root):
 
 
 def define_triggers(instance_root):
+    instance = MinervaInstance(instance_root)
     definition_files = glob.glob(os.path.join(instance_root, 'trigger/*.yaml'))
 
     for definition_file_path in definition_files:
         print(definition_file_path)
 
-        with open(definition_file_path) as definition_file:
-            definition = yaml.load(definition_file, Loader=yaml.SafeLoader)
-
-            create_trigger_from_config(definition)
+        trigger = instance.load_trigger_from_file(Path(definition_file_path))
+        create_trigger(trigger)
 
 
 def create_partitions(num_partitions):

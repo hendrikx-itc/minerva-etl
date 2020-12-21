@@ -7,8 +7,8 @@ import dateutil.parser
 import dateutil.tz
 
 from minerva.db import connect
-from minerva.instance import load_yaml
 from minerva.trigger.trigger import Trigger
+from minerva.instance import MinervaInstance, load_yaml
 from minerva.commands import show_rows
 
 
@@ -25,6 +25,7 @@ def setup_command_parser(subparsers):
     setup_delete_parser(cmd_subparsers)
     setup_list_parser(cmd_subparsers)
     setup_update_weight_parser(cmd_subparsers)
+    setup_update_kpi_function_parser(cmd_subparsers)
     setup_create_notifications_parser(cmd_subparsers)
 
 
@@ -42,30 +43,28 @@ def setup_create_parser(subparsers):
 
 
 def create_trigger_cmd(args):
-    trigger_config = yaml.load(args.definition, Loader=yaml.SafeLoader)
+    instance = MinervaInstance.load()
+    trigger = instance.load_trigger_from_file(args.definition)
 
     sys.stdout.write(
-        "Creating trigger '{}' ...\n".format(trigger_config['name'])
+        "Creating trigger '{}' ...\n".format(trigger.name)
     )
 
     try:
-        create_trigger_from_config(trigger_config)
+        create_trigger(trigger)
     except Exception as exc:
         sys.stdout.write("Error:\n{}".format(str(exc)))
         raise exc
 
-    sys.stdout.write("Done\n")
-
-
-def create_trigger_from_config(config):
-    trigger = Trigger.from_config(config)
-
+def create_trigger(trigger: Trigger):
     with closing(connect()) as conn:
-        conn.autocommit = True
+        try:
+            for line in trigger.create(conn):
+                print(line)
 
-        for message in trigger.create(conn):
-            print(message)
-
+            conn.commit()
+        except Exception as exc:
+            print(exc)
 
 def setup_enable_parser(subparsers):
     cmd = subparsers.add_parser(
@@ -81,7 +80,10 @@ def enable_trigger_cmd(args):
     with closing(connect()) as conn:
         conn.autocommit = True
 
-        Trigger(args.name).set_enabled(conn, True)
+        if Trigger.set_enabled(conn, args.name, True) is not None:
+            print(f"Trigger {args.name} has been enabled")
+        else:
+            print(f"No trigger {args.name} exist")
 
 
 def setup_disable_parser(subparsers):
@@ -97,8 +99,11 @@ def setup_disable_parser(subparsers):
 def disable_trigger_cmd(args):
     with closing(connect()) as conn:
         conn.autocommit = True
-
-        Trigger(args.name).set_enabled(conn, False)
+      
+        if Trigger.set_enabled(conn, args.name, False) is not None:
+            print(f"Trigger {args.name} has been disabled")
+        else:
+            print(f"No trigger {args.name} exist")    
 
 
 def setup_delete_parser(subparsers):
@@ -115,7 +120,10 @@ def delete_trigger_cmd(args):
     with closing(connect()) as conn:
         conn.autocommit = True
 
-        Trigger(args.name).delete(conn)
+        if Trigger.delete(conn, args.name) > 0:
+            print(f"Trigger {args.name} is removed")
+        else:
+            print(f"No trigger {args.name} exist")
 
 
 def setup_list_parser(subparsers):
@@ -140,18 +148,49 @@ def setup_update_weight_parser(subparsers):
 
 
 def update_weight_cmd(args):
-    definition = load_yaml(args.definition)
+    instance = MinervaInstance.load()
+    trigger = instance.load_trigger_from_file(args.definition)
 
     sys.stdout.write(
-        "Updating weight of '{}' to:\n - {}".format(definition['name'], definition['weight'])
+        "Updating weight of '{}' to:\n - {}".format(trigger.name, trigger.weight)
     )
 
     with connect() as conn:
         conn.autocommit = True
 
-        trigger = Trigger.from_config(definition)
+        Trigger.set_weight(conn, trigger.name, trigger.weight)
 
-        trigger.update_weight(conn)
+
+def setup_update_kpi_function_parser(subparsers):
+    cmd = subparsers.add_parser(
+        'update-kpi-function', help='command for updating the kpi function of a trigger from the configuration'
+    )
+
+    cmd.add_argument(
+        'definition', type=argparse.FileType('r'),
+        help='yaml description for trigger'
+    )
+
+    cmd.set_defaults(cmd=update_kpi_function_cmd)
+
+
+def update_kpi_function_cmd(args):
+    instance = MinervaInstance.load()
+    trigger = instance.load_trigger_from_file(args.definition)
+
+    sys.stdout.write(
+        "Updating kpi function of '{}'... ".format(trigger.name)
+    )
+
+    with connect() as conn:
+        conn.autocommit = True
+
+        try:
+            trigger.create_kpi_function(conn, or_replace=True)
+
+            sys.stdout.write("Done\n")
+        except Exception as e:
+            sys.stdout.write(f"\nError updating kpi function:\n{e}")
 
 
 def timedelta_to_string(t):
@@ -236,11 +275,9 @@ def execute_trigger_cmd(args):
     else:
         timestamp = None
 
-    trigger = Trigger(args.trigger)
-
     with closing(connect()) as conn:
         conn.autocommit = True
 
-        notification_count = trigger.execute(conn, timestamp)
+        notification_count = Trigger.execute(conn, args.trigger, timestamp)
 
     print("Notifications generated: {}".format(notification_count))

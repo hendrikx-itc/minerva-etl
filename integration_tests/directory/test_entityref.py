@@ -1,20 +1,24 @@
 from contextlib import closing
 
-from minerva.directory import Entity
-from minerva.directory.entityref import EntityDnRef
-from minerva.test import with_conn
+from minerva.directory import EntityType
+from minerva.directory.entityref import entity_name_ref_class
+from minerva.directory.helpers import create_entity_from_name
 
 
-@with_conn()
-def test_get_entity_type(conn):
-    dn = 'Network=G1,Node=001'
+def test_get_entity_type(start_db_container):
+    conn = start_db_container
 
-    with closing(conn.cursor()) as cursor:
-        Entity.create_from_dn(cursor, dn)
+    CellRef = entity_name_ref_class('Node')
 
-    ref = EntityDnRef(dn)
+    node_name = 'Network=G1,Node=001'
 
     with closing(conn.cursor()) as cursor:
-        entity_type = ref.get_entitytype(cursor)
+        EntityType.create('Node', '')(cursor)
+        create_entity_from_name(cursor, 'Node', node_name)
+
+    ref = CellRef(node_name)
+
+    with closing(conn.cursor()) as cursor:
+        entity_type = ref.get_entity_type(cursor)
 
     assert entity_type.name == 'Node'

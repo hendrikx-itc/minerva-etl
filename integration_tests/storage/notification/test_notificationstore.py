@@ -7,11 +7,12 @@ from minerva.directory.entityref import EntityIdRef
 from minerva.storage import datatype
 from minerva.storage.notification import NotificationStore, \
     Record, NotificationStoreDescriptor, AttributeDescriptor
-from minerva.test import with_conn, clear_database
+from minerva.test import clear_database
 
 
-@with_conn(clear_database)
-def test_create(conn):
+def test_create(start_db_container):
+    conn = clear_database(start_db_container)
+
     with closing(conn.cursor()) as cursor:
         data_source = DataSource.from_name("test-source-001")(cursor)
 
@@ -37,15 +38,16 @@ def test_create(conn):
 
         cursor.execute(query, args)
 
-        eq_(cursor.rowcount, 1)
+        assert cursor.rowcount == 1
 
         data_source_id, = cursor.fetchone()
 
-        eq_(data_source_id, data_source.id)
+        assert data_source_id == data_source.id
 
 
-@with_conn(clear_database)
-def test_store(conn):
+def test_store(start_db_container):
+    conn = clear_database(start_db_container)
+
     with closing(conn.cursor()) as cursor:
         data_source = DataSource.from_name("test-source-002")(cursor)
 

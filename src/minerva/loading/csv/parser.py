@@ -18,6 +18,7 @@ DEFAULT_CHUNK_SIZE = 5000
 DEFAULT_CONFIG = {
     "timestamp": "timestamp",
     "identifier": "entity",
+    "delimiter": ",",
     "chunk_size": DEFAULT_CHUNK_SIZE
 }
 

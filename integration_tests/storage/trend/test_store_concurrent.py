@@ -7,6 +7,7 @@ from datetime import datetime
 
 import pytz
 
+from minerva.storage.trend.trendstorepart import TrendStorePart
 from minerva.util import head
 from minerva.directory import EntityType, DataSource
 from minerva.test import connect, with_conn, clear_database
@@ -56,11 +57,11 @@ def store_batch(conn, trend_store, data_package):
     trend_store.store(data_package).run(conn)
 
 
-@with_conn(clear_database)
-def test_store_concurrent(conn):
+def test_store_concurrent(start_db_container):
     """
     Concurrent storing of the same dataset should cause no problems.
     """
+    conn = clear_database(start_db_container)
     timestamp = pytz.utc.localize(datetime(2013, 8, 27, 18, 0, 0))
 
     trend_names = ["c1", "c2", "c3"]
@@ -69,7 +70,7 @@ def test_store_concurrent(conn):
         for i in range(100)
     ]
 
-    granularity = create_granularity("900")
+    granularity = create_granularity("900s")
 
     data_package = DataPackage(
         granularity, timestamp, trend_names, rows
@@ -79,15 +80,20 @@ def test_store_concurrent(conn):
         data_source = DataSource.from_name("test-source")(cursor)
         entity_type = EntityType.from_name("test_type")(cursor)
         trend_store = TrendStore.create(TrendStore.Descriptor(
-            'test-trend-store', data_source, entity_type, granularity, [
-                Trend.Descriptor('c1', datatype.registry['smallint'], ''),
-                Trend.Descriptor('c2', datatype.registry['smallint'], ''),
-                Trend.Descriptor('c3', datatype.registry['smallint'], '')
+            data_source, entity_type, granularity, [
+                TrendStorePart.Descriptor(
+                    'test-trend-store',
+                    [
+                        Trend.Descriptor('c1', datatype.registry['smallint'], ''),
+                        Trend.Descriptor('c2', datatype.registry['smallint'], ''),
+                        Trend.Descriptor('c3', datatype.registry['smallint'], '')
+                    ]
+                )
             ],
             86400
         ))(cursor)
 
-        trend_store.partition(timestamp).create(cursor)
+        trend_store.create_partitions_for_timestamp(conn, timestamp)
 
     conn.commit()
 

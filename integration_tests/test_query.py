@@ -13,8 +13,9 @@ def with_cursor(conn, f):
         return f(cursor)
 
 
-@with_conn()
-def test_table_create(conn):
+def test_table_create(start_db_container):
+    conn = start_db_container
+
     table = Table("test_table")
 
     query = table.create()
@@ -22,11 +23,14 @@ def test_table_create(conn):
     with_cursor(conn, query.execute)
 
     with closing(conn.cursor()) as cursor:
-        eq_(table_exists(cursor, table), True)
+        assert table_exists(cursor, table)
+
+    conn.rollback()
 
 
-@with_conn()
-def test_table_drop(conn):
+def test_table_drop(start_db_container):
+    conn = start_db_container
+
     table = Table("test_table")
 
     create_query = table.create()
@@ -35,15 +39,18 @@ def test_table_drop(conn):
     with closing(conn.cursor()) as cursor:
         create_query.execute(cursor)
 
-        eq_(table_exists(cursor, table), True)
+        assert table_exists(cursor, table)
 
         drop_query.execute(cursor)
 
-        eq_(table_exists(cursor, table), False)
+        assert table_exists(cursor, table) is False
+
+    conn.rollback()
 
 
-@with_conn()
-def test_copy_from(conn):
+def test_copy_from(start_db_container):
+    conn = start_db_container
+
     data = (
         "1\tfirst\n"
         "2\tsecond\n"
@@ -74,10 +81,12 @@ def test_copy_from(conn):
 
         id_, name = cursor.fetchone()
 
-        eq_(name, "second")
+        assert name == "second"
 
         query_by_name.execute(cursor, ("third",))
 
         id_, name = cursor.fetchone()
 
-        eq_(id_, 3)
+        assert id_ == 3
+
+    conn.rollback()

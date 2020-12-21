@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
 import logging
 from functools import wraps
+from psycopg2 import errorcodes
 
 import psycopg2.errorcodes
+from psycopg2.errorcodes import DEADLOCK_DETECTED, DUPLICATE_FUNCTION, DUPLICATE_SCHEMA, IN_FAILED_SQL_TRANSACTION, LOCK_NOT_AVAILABLE
 
 
 class NoSuchTable(Exception):
@@ -37,7 +39,31 @@ class DuplicateTable(Exception):
     pass
 
 
+class DuplicateObject(Exception):
+    pass
+
+
+class DuplicateFunction(Exception):
+    pass
+
+
+class DuplicateSchema(Exception):
+    pass
+
+
 class NoCopyInProgress(Exception):
+    pass
+
+
+class InFailedSQLTransaction(Exception):
+    pass
+
+
+class LockNotAvailable(Exception):
+    pass
+
+
+class DeadLockDetected(Exception):
     pass
 
 
@@ -48,7 +74,13 @@ postgresql_exception_mapping = {
     psycopg2.errorcodes.DATATYPE_MISMATCH: DataTypeMismatch,
     psycopg2.errorcodes.NUMERIC_VALUE_OUT_OF_RANGE: DataTypeMismatch,
     psycopg2.errorcodes.INVALID_TEXT_REPRESENTATION: DataTypeMismatch,
-    psycopg2.errorcodes.DUPLICATE_TABLE: DuplicateTable}
+    psycopg2.errorcodes.DUPLICATE_TABLE: DuplicateTable,
+    psycopg2.errorcodes.DUPLICATE_FUNCTION: DuplicateFunction,
+    psycopg2.errorcodes.DUPLICATE_OBJECT: DuplicateObject,
+    psycopg2.errorcodes.DUPLICATE_SCHEMA: DuplicateSchema,
+    psycopg2.errorcodes.IN_FAILED_SQL_TRANSACTION: InFailedSQLTransaction,
+    psycopg2.errorcodes.LOCK_NOT_AVAILABLE: LockNotAvailable,
+    psycopg2.errorcodes.DEADLOCK_DETECTED: DeadLockDetected}
 
 
 def translate_postgresql_exception(exc):
