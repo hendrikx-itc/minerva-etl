@@ -97,6 +97,8 @@ def create_partitions_for_trend_store(
                 conn.commit()
 
                 yield name, partition_index, i, len(rows)
+
+                retry = False
             except LockNotAvailable as partition_lock:
                 conn.rollback()
                 print(f"Could not create partition: {partition_lock}")
