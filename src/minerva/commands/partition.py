@@ -107,7 +107,7 @@ def create_partitions_for_trend_store(
                 retry = False
             except LockNotAvailable as partition_lock:
                 conn.rollback()
-                print(f"Could not create partition '{name}' - {partition_index}: {partition_lock}")
+                print(f"Could not create partition for part {trend_store_part_id} - {partition_index}: {partition_lock}")
             except DeadLockDetected:
                 pass
 
