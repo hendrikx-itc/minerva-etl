@@ -2,6 +2,8 @@ from time import sleep
 from contextlib import closing
 from typing import Optional, Generator, Tuple
 
+import psycopg2.errors
+
 from minerva.db.error import DuplicateTable, LockNotAvailable, DeadLockDetected
 
 
@@ -36,6 +38,10 @@ def create_specific_partitions_for_trend_store(conn, trend_store_id, timestamp):
             except PartitionExistsError as e:
                 conn.rollback()
                 retry = False
+            except LockNotAvailable:
+                conn.rollback()
+                print(e)
+                sleep(1)
             except DeadLockDetected:
                 pass
 
@@ -126,6 +132,8 @@ def create_partition_for_trend_store_part(
             cursor.execute(query, args)
         except DuplicateTable:
             raise PartitionExistsError(trend_store_part_id, partition_index)
+        except psycopg2.errors.LockNotAvailable:
+            raise LockNotAvailable
 
         name, p = cursor.fetchone()
 
