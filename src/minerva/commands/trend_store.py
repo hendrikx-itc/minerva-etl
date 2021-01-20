@@ -6,7 +6,7 @@ import datetime
 from typing import BinaryIO, Generator, Optional
 
 import yaml
-import psycopg2
+import psycopg2.errors
 
 from minerva.commands import LoadHarvestPlugin, ListPlugins, load_json, \
     ConfigurationError, show_rows_from_cursor
@@ -790,7 +790,7 @@ def remove_old_partitions_cmd(args):
                             conn.commit()
                             removed_partitions += 1
                             print(f'Removed partition {partition_name} ({data_from} - {data_to})')
-                        except LockNotAvailable as partition_lock:
+                        except psycopg2.errors.LockNotAvailable as partition_lock:
                             conn.rollback()
                             print(f"Could not remove partition {partition_name} ({data_from} - {data_to}): {partition_lock}")
 
