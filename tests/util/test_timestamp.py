@@ -21,21 +21,21 @@ def test_to_unix_timestamp():
 
     delta = unix_timestamp - expected_unix_timestamp
 
-    eq_(delta, 0)
+    assert delta == 0
 
-    eq_(unix_timestamp, expected_unix_timestamp)
+    assert unix_timestamp == expected_unix_timestamp
 
     timestamp = pytz.utc.localize(datetime(1970, 1, 5, 8, 0))
     unix_timestamp = to_unix_timestamp(timestamp)
 
-    eq_(unix_timestamp, 4 * 86400 + 8 * 3600)
+    assert unix_timestamp == 4 * 86400 + 8 * 3600
 
 
 def test_from_unix_timestamp():
     timestamp = from_unix_timestamp(0)
     expected_timestamp = pytz.utc.localize(datetime(1970, 1, 1, 0, 0, 0))
-    eq_(timestamp, expected_timestamp)
+    assert timestamp == expected_timestamp
 
     timestamp = from_unix_timestamp(1365022800)
     expected_timestamp = pytz.utc.localize(datetime(2013, 4, 3, 21, 0, 0))
-    eq_(timestamp, expected_timestamp)
+    assert timestamp == expected_timestamp

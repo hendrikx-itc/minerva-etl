@@ -20,6 +20,6 @@ class TestAttributeStore(unittest.TestCase):
             ]
         }
 
-        attribute_store = AttributeStore.from_json(json_data)
+        attribute_store = AttributeStore.from_dict(json_data)
 
         self.assertEqual(attribute_store.data_source, 'oss-4g')
