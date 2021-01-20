@@ -538,13 +538,18 @@ def materialize_all_curr_ptr(conn):
             cursor.execute(query)
 
             for attribute_store_id, attribute_store_name in cursor.fetchall():
+                print(f"Materializing curr-ptr for {attribute_store_name}")
+
                 try:
-                    print(f"Materializing curr-ptr for {attribute_store_name}")
                     materialize_curr_ptr_by_id(conn, attribute_store_id)
-                except Exception as e:
-                    raise translate_postgresql_exception(e)
+                except psycopg2.errors.LockNotAvailable as e:
+                    conn.rollbock()
+
+                    print(f"Error materializing curr-ptr for {attribute_store_name}: {e}")
+
         except Exception as e:
             raise translate_postgresql_exception(e)
+
 
 def materialize_curr_ptr_by_id(conn, attribute_store_id: int):
     materialize_curr_query = (
