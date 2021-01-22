@@ -1,0 +1,32 @@
+kind: pipeline
+type: docker
+name: default
+
+steps:
+  - name: lint
+    image: alpine/flake8
+    pull: always
+    failure: ignore
+    commands:
+      - flake8 ./
+
+# - name: format-check
+#   image: kiwicom/black
+#   pull: always
+#   failure: ignore
+#   commands:
+#     - black --check ./
+
+  - name: dependency-check
+    image: pyupio/safety
+    failure: ignore
+    commands:
+      - safety check
+
+  - name: vulnerability-check
+    image: python:3-alpine
+    pull: always
+    failure: ignore
+    commands:
+      - pip install bandit
+      - bandit -r ./

@@ -266,7 +266,7 @@ def setup_list_config_parser(subparsers):
     )
 
     cmd.set_defaults(cmd=list_config_attribute_stores_cmd)
-    
+
 
 def list_config_attribute_stores_cmd(_args):
     instance = MinervaInstance.load()
@@ -543,7 +543,7 @@ def materialize_all_curr_ptr(conn):
                 try:
                     materialize_curr_ptr_by_id(conn, attribute_store_id)
                 except psycopg2.errors.LockNotAvailable as e:
-                    conn.rollbock()
+                    conn.rollback()
 
                     print(f"Error materializing curr-ptr for {attribute_store_name}: {e}")
 
