@@ -46,16 +46,10 @@ def generate_sample_data_cmd(args):
         args.instance_root or os.environ.get(INSTANCE_ROOT_VARIABLE) or os.getcwd()
     )
 
-    sys.stdout.write(
-        "Generating sample data from '{}' ...\n".format(instance_root)
-    )
-
     try:
         generate_sample_data(instance_root, args.timestamp, args.target_directory, args.dataset)
     except ConfigurationError as exc:
         sys.stdout.write('{}\n'.format(str(exc)))
-
-    sys.stdout.write("Done\n")
 
 
 def generate_sample_data(instance_root: str, timestamp: datetime.datetime, target_directory: Path, data_set: Optional[str]=None):
@@ -86,8 +80,6 @@ def generate_sample_data(instance_root: str, timestamp: datetime.datetime, targe
 def cmd_generate(config, target_directory: Path):
     name = config['name']
 
-    print("Loading dataset '{}'".format(name))
-
     data_set_generator = import_module(name)
 
     for cmd in data_set_generator.generate(target_directory):
@@ -96,10 +88,6 @@ def cmd_generate(config, target_directory: Path):
 
 def generate(config, timestamp: datetime.datetime, target_directory: Path):
     name = config['name']
-
-    print("Loading dataset '{}' of type '{}'".format(
-        name, config['data_type']
-    ))
 
     data_set_generator = __import__(name)
 
@@ -110,13 +98,8 @@ def generate(config, timestamp: datetime.datetime, target_directory: Path):
 
     target_timestamp = granularity.truncate(now)
 
-    print(' ' * 60, end='\r')
-    print(' - {}'.format(target_timestamp), end='\r')
-
     file_path = data_set_generator.generate(
         target_directory, target_timestamp, granularity
     )
 
     print(f"Generated file '{file_path}'")
-
-    print(' ' * 60, end='\r')
