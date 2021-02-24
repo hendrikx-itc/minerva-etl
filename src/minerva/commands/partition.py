@@ -130,7 +130,7 @@ def create_partition_for_trend_store_part(
     with closing(conn.cursor()) as cursor:
         try:
             cursor.execute(query, args)
-        except DuplicateTable:
+        except psycopg2.errors.DuplicateTable:
             raise PartitionExistsError(trend_store_part_id, partition_index)
         except psycopg2.errors.LockNotAvailable as e:
             raise LockNotAvailable(e)
