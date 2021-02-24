@@ -83,7 +83,7 @@ def initialize_cmd(args):
         sys.stdout.write("Error:\n\t{}".format(str(exc)))
         raise exc
 
-    if args.generate_sample_data:
+    if args.load_sample_data:
         header('Loading sample data')
         try:
             load_sample_data(instance_root, args.interval_count)
