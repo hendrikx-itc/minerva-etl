@@ -65,6 +65,7 @@ class AggregationContext:
 
 
 class EntityAggregationContext(AggregationContext):
+
     def configuration_check(self):
         # Check if the relation matches the aggregation
         relation = self.instance.load_relation(self.definition['relation'])
@@ -95,14 +96,20 @@ def time_aggregation_key_fn(pair: Tuple[Path, TimeAggregationContext]):
     return str_to_granularity(granularity_str)
 
 
-def compile_entity_aggregation(aggregation_context: EntityAggregationContext):
+def create_base_name_to_name_translation(aggregation_definition: dict):
+    return {element['source']: element['name'] for element in aggregation_definition['parts']}
+
+
+def compile_entity_aggregation(aggregation_context: EntityAggregationContext, combined_aggregation: bool):
     aggregation_type = ENTITY_AGGREGATION_TYPE_MAP[aggregation_context.definition['aggregation_type']]
 
     if aggregation_type is EntityAggregationType.VIEW:
         trend_store = aggregation_context.instance.load_trend_store_by_name(aggregation_context.definition['source'])
         relation = aggregation_context.instance.load_relation(aggregation_context.definition['relation'])
+        name_translation = create_base_name_to_name_translation(aggregation_context.definition)
 
-        generate_view_entity_aggregation(aggregation_context.instance.root, trend_store, relation)
+        generate_view_entity_aggregation(aggregation_context.instance.root, trend_store, relation, name_translation)
+
     elif aggregation_type is EntityAggregationType.VIEW_MATERIALIZATION:
         try:
             write_entity_aggregations(aggregation_context)
@@ -118,23 +125,40 @@ def compile_entity_aggregation(aggregation_context: EntityAggregationContext):
             print("Error generating target trend store: {}".format(exc))
             return 1
 
-        base_name = aggregation_context.definition['name']
+
+        base_name = aggregation_context.definition['basename']
 
         aggregate_trend_store_file_path = aggregation_context.instance.trend_store_file_path(
             base_name
         )
 
-        print("Writing aggregate trend store to '{}'".format(
-            aggregate_trend_store_file_path
-        ))
+        if combined_aggregation:
+            print("Adding to aggregate trend store '{}'".format(
+                aggregate_trend_store_file_path
+            ))
 
-        with aggregate_trend_store_file_path.open('w') as out_file:
-            out_file.write(aggregation_context.generated_file_header())
+            with aggregate_trend_store_file_path.open('r') as in_file:
+                existing_trend_store = TrendStore.from_dict(yaml.load(in_file, Loader=yaml.FullLoader))
+                aggregate_trend_store.parts += existing_trend_store.parts
 
-            ordered_yaml_dump(
-                aggregate_trend_store.to_dict(), stream=out_file, Dumper=yaml.SafeDumper,
-                indent=2
-            )
+            with aggregate_trend_store_file_path.open('w') as out_file:
+                out_file.write(aggregation_context.generated_file_header())
+                ordered_yaml_dump(
+                    aggregate_trend_store.to_dict(), stream=out_file, Dumper=yaml.SafeDumper,
+                    indent=2
+                )
+
+        else:
+            print("Writing aggregate trend store to '{}'".format(
+                aggregate_trend_store_file_path
+            ))
+
+            with aggregate_trend_store_file_path.open('w') as out_file:
+                out_file.write(aggregation_context.generated_file_header())
+                ordered_yaml_dump(
+                    aggregate_trend_store.to_dict(), stream=out_file, Dumper=yaml.SafeDumper,
+                    indent=2
+                )
 
 
 def translate_source_part_name(aggregation_context: EntityAggregationContext, name: str) -> str:
@@ -155,7 +179,8 @@ def translate_source_part_name(aggregation_context: EntityAggregationContext, na
     return f'{data_source}_{entity_type}_{part_specific_name}_{granularity}'
 
 
-def generate_view_entity_aggregation(instance_root: Path, trend_store: TrendStore, relation: Relation):
+def generate_view_entity_aggregation(instance_root: Path, trend_store: TrendStore, relation: Relation,
+                                     name_translation: dict):
     """
     Generate a plain SQL file that defines a view with an aggregation query
     """
@@ -166,7 +191,8 @@ def generate_view_entity_aggregation(instance_root: Path, trend_store: TrendStor
         aggregation_directory_path.mkdir(parents=True)
 
     for part in trend_store.parts:
-        part_name = translate_entity_aggregation_part_name(part.name, relation.target_entity_type)
+        part_name = name_translation.get(part.name,
+                                         translate_entity_aggregation_part_name(part.name, relation.target_entity_type))
 
         file_name = f'{part_name}.sql'
         out_file_path = Path(aggregation_directory_path, file_name)

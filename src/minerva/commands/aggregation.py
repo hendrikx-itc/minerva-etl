@@ -112,7 +112,7 @@ def compile_all_aggregations(_args):
         compile_time_aggregation(aggregation_context)
 
     for file_path, aggregation_context in entity_aggregation_definitions:
-        compile_entity_aggregation(aggregation_context)
+        compile_entity_aggregation(aggregation_context, combined_aggregation=False)
 
 
 def compile_aggregation(args):
@@ -128,8 +128,7 @@ def compile_aggregation(args):
         aggregation_context = EntityAggregationContext(
             instance, definition['entity_aggregation'], args.definition
         )
-
-        compile_entity_aggregation(aggregation_context)
+        compile_entity_aggregation(aggregation_context, combined_aggregation=False)
     elif 'time_aggregation' in definition:
         aggregation_context = TimeAggregationContext(
             instance, definition['time_aggregation'], args.definition
