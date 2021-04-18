@@ -111,8 +111,10 @@ def compile_all_aggregations(_args):
         print('#-{}'.format(len(title)*'-'))
         compile_time_aggregation(aggregation_context)
 
+    trend_stores_done = set()
     for file_path, aggregation_context in entity_aggregation_definitions:
-        compile_entity_aggregation(aggregation_context, combined_aggregation=False)
+        compile_entity_aggregation(aggregation_context, combined_aggregation=aggregation_context.definition['basename'] in trend_stores_done)
+        trend_stores_done.add(aggregation_context.definition['basename'])
 
 
 def compile_aggregation(args):

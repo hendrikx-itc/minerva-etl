@@ -42,11 +42,14 @@ STANDARD_AGGREGATIONS = {
 def generate_standard_aggregations(instance: MinervaInstance):
     trend_path = Path(instance.root, 'trend')
 
+    created_entity_aggregations = set()
+
     for file_path in trend_path.rglob('*.yaml'):
-        generate_standard_aggregations_for(instance, file_path)
+        generate_standard_aggregations_for(instance, file_path, created_entity_aggregations)
 
 
-def generate_standard_aggregations_for(instance: MinervaInstance, trend_store_path: Path):
+def generate_standard_aggregations_for(instance: MinervaInstance, trend_store_path: Path,
+                                       created_entity_aggregations: Set[str]):
     trend_path = Path(instance.root, 'trend')
 
     relative_path = trend_store_path.absolute().relative_to(trend_path)
@@ -57,13 +60,14 @@ def generate_standard_aggregations_for(instance: MinervaInstance, trend_store_pa
         print(relative_path)
 
         generate_aggregations(
-            instance.root, relative_path, trend_store, aggregation_hints
+            instance.root, relative_path, trend_store, aggregation_hints, created_entity_aggregations
         )
 
 
 def generate_aggregations(
         instance_root: Path, source_path: Path, trend_store: TrendStore,
-        aggregation_hints: Dict[str, Tuple[EntityAggregationType, str]]):
+        aggregation_hints: Dict[str, Tuple[EntityAggregationType, str]],
+        created_entity_aggregations: Set[str]):
     """
     Generate all standard aggregations for the specified trend store
     """
@@ -82,7 +86,6 @@ def generate_aggregations(
     for relation in instance.load_relations():
         entity_relations[relation.source_entity_type].append(relation)
 
-    created_entity_aggregations = set()
     relations = entity_relations.get(trend_store.entity_type, [])
 
     for relation in relations:
@@ -103,6 +106,7 @@ def generate_aggregations(
         for relation in relations:
             created_entity_aggregations = generate_entity_aggregation(aggregation_hints, instance, relation, file_path, target_trend_store, created_entity_aggregations)
 
+    return created_entity_aggregations
 
 def generate_entity_aggregation(
         aggregation_hints, instance: MinervaInstance, relation: Relation, source_path: Path, trend_store: TrendStore,
