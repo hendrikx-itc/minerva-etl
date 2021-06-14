@@ -35,6 +35,8 @@ notification: |-
       ],
       E'\n'
   )
+data: |-
+  format('{"power_kwh": %s, "max_power": %s}', $1.power_kwh, $1.max_power)::json
 tags: ['online']
 fingerprint: |-
   SELECT trigger.modified_to_fingerprint(

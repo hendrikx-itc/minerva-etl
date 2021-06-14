@@ -5,6 +5,8 @@ attributes:
     data_type: integer
   - name: details
     data_type: text
+  - name: data
+    data_type: json
   - name: weight
     data_type: integer
   - name: created
