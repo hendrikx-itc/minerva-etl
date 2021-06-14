@@ -14,6 +14,7 @@ class Trigger:
     condition: str
     weight: int
     notification: str
+    notification_json: str
     tags: List[str]
     fingerprint: str
     notification_store: str
@@ -22,7 +23,7 @@ class Trigger:
     granularity: str
 
     def __init__(self, name, kpi_data, kpi_function, thresholds, condition,
-                 weight, notification, tags, fingerprint, notification_store,
+                 weight, notification, data, tags, fingerprint, notification_store,
                  trend_store_links, mapping_functions, granularity):
         self.name = name
         self.kpi_data = kpi_data
@@ -31,6 +32,7 @@ class Trigger:
         self.condition = condition
         self.weight = weight
         self.notification = notification
+        self.data = data
         self.tags = tags
         self.fingerprint = fingerprint
         self.notification_store = notification_store
@@ -48,6 +50,7 @@ class Trigger:
             data["condition"],
             data["weight"],
             data["notification"],
+            data.get("data", "'{}'::json"),
             data["tags"],
             data["fingerprint"],
             data["notification_store"],
@@ -89,9 +92,13 @@ class Trigger:
 
         self.set_condition(conn)
 
-        yield " - defining notification"
+        yield " - defining notification message"
 
         self.define_notification_message(conn)
+
+        yield " - defining notification data"
+
+        self.define_notification_data(conn)
 
         yield " - creating mapping functions"
 
@@ -203,6 +210,17 @@ class Trigger:
         query_args = (
             self.name,
             self.notification
+        )
+
+        with closing(conn.cursor()) as cursor:
+            cursor.execute(query, query_args)
+
+    def define_notification_data(self, conn):
+        query = 'SELECT trigger.define_notification_data(%s, %s)'
+
+        query_args = (
+            self.name,
+            self.data
         )
 
         with closing(conn.cursor()) as cursor:
