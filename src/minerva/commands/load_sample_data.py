@@ -102,10 +102,6 @@ def cmd_generate_and_load(config):
 def generate_and_load(config, interval_count: int):
     name = config['name']
 
-    print("Loading dataset '{}' of type '{}'".format(
-        name, config['data_type']
-    ))
-
     data_set_generator = __import__(name)
 
     if 'granularity' in config:
@@ -118,6 +114,10 @@ def generate_and_load(config, interval_count: int):
     start = end - (granularity.delta * interval_count)
 
     timestamp_range = granularity.range(start, end)
+
+    print("Loading dataset '{}' of type '{}': {} - {}".format(
+        name, config['data_type'], start, end
+    ))
 
     target_dir = "/tmp"
 
