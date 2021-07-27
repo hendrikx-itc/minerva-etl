@@ -216,6 +216,10 @@ def setup_change_trends_parser(subparsers):
     )
 
     cmd.add_argument(
+        '--statement-timeout', help='set the statement timeout on the database session'
+    )
+
+    cmd.add_argument(
         'definition', type=argparse.FileType('r'),
         help='file containing trend store definition'
     )
@@ -229,7 +233,7 @@ def change_trends_cmd(args):
     trend_store = instance.load_trend_store_from_file(args.definition)
 
     try:
-        result = change_trend_store(trend_store, force=args.force)
+        result = change_trend_store(trend_store, force=args.force, statement_timeout=args.statement_timeout)
 
         if result:
             text = result[0]
@@ -458,7 +462,7 @@ def alter_tables_in_trend_store(trend_store: TrendStore, force=False):
         return None
 
 
-def change_trend_store(trend_store: TrendStore, force=False):
+def change_trend_store(trend_store: TrendStore, force=False, statement_timeout: str=None):
     query = (
         'SELECT trend_directory.{}('
         'trend_directory.get_trend_store('
@@ -476,6 +480,9 @@ def change_trend_store(trend_store: TrendStore, force=False):
     )
 
     with closing(connect()) as conn:
+        if statement_timeout is not None:
+            set_statement_timeout(conn, statement_timeout)
+
         with closing(conn.cursor()) as cursor:
             cursor.execute(query, query_args)
             result = cursor.fetchone()
@@ -486,6 +493,14 @@ def change_trend_store(trend_store: TrendStore, force=False):
         return result[0]
     else:
         return None
+
+
+def set_statement_timeout(conn, statement_timeout: str):
+    query = "SET SESSION statement_timeout = %s"
+    query_args = (statement_timeout,)
+
+    with conn.cursor() as cursor:
+        cursor.execute(query, query_args)
 
 
 def add_parts_to_trend_store(
