@@ -2,9 +2,8 @@ from contextlib import closing
 from typing import List
 
 from minerva.commands import ConfigurationError
-from minerva.db import connect, error
+from minerva.db import error
 from psycopg2 import sql
-import psycopg2
 
 
 class Trigger:
@@ -111,7 +110,6 @@ class Trigger:
             cursor.execute(query, query_args)
             return cursor.fetchone()[0]
 
-
     @staticmethod
     def set_enabled(conn, name: str, enabled: bool):
         query = 'UPDATE trigger.rule SET enabled = %s WHERE name = %s RETURNING enabled'
@@ -121,9 +119,8 @@ class Trigger:
             cursor.execute(query, query_args)
             return cursor.fetchone()
 
-
-    def update_weight(self, conn):
-        self.set_weight(conn, self.config)
+    def set_weight(self, conn):
+        Trigger.set_weight_by_name(conn, self.name, self.weight)
 
     @staticmethod
     def execute(conn, name, timestamp=None):
@@ -211,7 +208,8 @@ class Trigger:
         with closing(conn.cursor()) as cursor:
             cursor.execute(query, query_args)
 
-    def create_mapping_function_query(self, definition):
+    @staticmethod
+    def create_mapping_function_query(definition):
         return (
             'CREATE FUNCTION trend."{}"(timestamp with time zone) '
             'RETURNS SETOF timestamp with time zone '
@@ -252,7 +250,7 @@ class Trigger:
     def set_fingerprint(self, conn):
         query = sql.SQL('SELECT trigger.set_fingerprint({}, {});').format(
             sql.Literal(self.name),
-            sql.Literal(self.finger)
+            sql.Literal(self.fingerprint)
         )
 
         with closing(conn.cursor()) as cursor:
@@ -327,9 +325,6 @@ class Trigger:
 
         with closing(conn.cursor()) as cursor:
             cursor.execute(query, query_args)
-
-    def set_weight(self, conn):
-        Trigger.set_weight_by_name(conn, self.name, self.weight)
 
     @staticmethod
     def set_weight_by_name(conn, name: str, weight: int):

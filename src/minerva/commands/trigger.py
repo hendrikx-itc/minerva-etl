@@ -2,13 +2,12 @@ from contextlib import closing
 import argparse
 import sys
 
-import yaml
 import dateutil.parser
 import dateutil.tz
 
 from minerva.db import connect
 from minerva.trigger.trigger import Trigger
-from minerva.instance import MinervaInstance, load_yaml
+from minerva.instance import MinervaInstance
 from minerva.commands import show_rows
 
 
@@ -56,6 +55,7 @@ def create_trigger_cmd(args):
         sys.stdout.write("Error:\n{}".format(str(exc)))
         raise exc
 
+
 def create_trigger(trigger: Trigger):
     with closing(connect()) as conn:
         try:
@@ -65,6 +65,7 @@ def create_trigger(trigger: Trigger):
             conn.commit()
         except Exception as exc:
             print(exc)
+
 
 def setup_enable_parser(subparsers):
     cmd = subparsers.add_parser(
@@ -158,7 +159,7 @@ def update_weight_cmd(args):
     with connect() as conn:
         conn.autocommit = True
 
-        Trigger.set_weight(conn, trigger.name, trigger.weight)
+        trigger.set_weight(conn)
 
 
 def setup_update_kpi_function_parser(subparsers):

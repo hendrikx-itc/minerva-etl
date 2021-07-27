@@ -4,7 +4,7 @@ Provides common definition generating logic
 import re
 
 
-def translate_entity_aggregation_part_name(name: str, target_entity_type: str) -> str:
+def translate_entity_aggregation_part_name(name: str, target_entity_type: str, prefix='') -> str:
     """
     Translate a part name with standard naming convention
     <data_source>_<entity_type>_<granularity> to
@@ -19,4 +19,4 @@ def translate_entity_aggregation_part_name(name: str, target_entity_type: str) -
     _entity_type = m.group(2)
     tail = m.group(3)
 
-    return f"{data_source}_{target_entity_type}_{tail}"
+    return f"{data_source}_{target_entity_type}_{prefix}{tail}"

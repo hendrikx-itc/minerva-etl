@@ -519,7 +519,10 @@ class MinervaInstance:
             hints_data = yaml.load(hints_file, Loader=yaml.SafeLoader)
 
         return {
-            relation_name: ENTITY_AGGREGATION_TYPE_MAP[aggregation_type]
+            relation_name: (
+                ENTITY_AGGREGATION_TYPE_MAP[aggregation_type.split('+')[0]],
+                (aggregation_type+'+').split('+')[1]
+            )
             for relation_name, aggregation_type in hints_data.items()
         }
 

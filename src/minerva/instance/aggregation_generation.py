@@ -6,7 +6,7 @@ stores (containing the word 'raw' in the trend store title).
 import re
 from pathlib import Path
 from collections import OrderedDict, defaultdict
-from typing import Dict, Tuple
+from typing import Dict, Tuple, Set
 
 from minerva.commands.aggregation import (
     TimeAggregationContext, compile_time_aggregation, EntityAggregationContext,
@@ -42,11 +42,14 @@ STANDARD_AGGREGATIONS = {
 def generate_standard_aggregations(instance: MinervaInstance):
     trend_path = Path(instance.root, 'trend')
 
+    created_entity_aggregations = set()
+
     for file_path in trend_path.rglob('*.yaml'):
-        generate_standard_aggregations_for(instance, file_path)
+        generate_standard_aggregations_for(instance, file_path, created_entity_aggregations)
 
 
-def generate_standard_aggregations_for(instance: MinervaInstance, trend_store_path: Path):
+def generate_standard_aggregations_for(instance: MinervaInstance, trend_store_path: Path,
+                                       created_entity_aggregations: Set[str]):
     trend_path = Path(instance.root, 'trend')
 
     relative_path = trend_store_path.absolute().relative_to(trend_path)
@@ -57,13 +60,14 @@ def generate_standard_aggregations_for(instance: MinervaInstance, trend_store_pa
         print(relative_path)
 
         generate_aggregations(
-            instance.root, relative_path, trend_store, aggregation_hints
+            instance.root, relative_path, trend_store, aggregation_hints, created_entity_aggregations
         )
 
 
 def generate_aggregations(
         instance_root: Path, source_path: Path, trend_store: TrendStore,
-        aggregation_hints: Dict[str, EntityAggregationType]):
+        aggregation_hints: Dict[str, Tuple[EntityAggregationType, str]],
+        created_entity_aggregations: Set[str]):
     """
     Generate all standard aggregations for the specified trend store
     """
@@ -85,7 +89,7 @@ def generate_aggregations(
     relations = entity_relations.get(trend_store.entity_type, [])
 
     for relation in relations:
-        generate_entity_aggregation(aggregation_hints, instance, relation, source_path, trend_store)
+        created_entity_aggregations = generate_entity_aggregation(aggregation_hints, instance, relation, source_path, trend_store, created_entity_aggregations)
 
     for source_granularity, target_granularity in aggregations:
         file_path, definition = generate_time_aggregation(
@@ -100,27 +104,41 @@ def generate_aggregations(
         target_trend_store = compile_time_aggregation(aggregation_context)
 
         for relation in relations:
-            generate_entity_aggregation(aggregation_hints, instance, relation, file_path, target_trend_store)
+            created_entity_aggregations = generate_entity_aggregation(aggregation_hints, instance, relation, file_path, target_trend_store, created_entity_aggregations)
 
+    return created_entity_aggregations
 
 def generate_entity_aggregation(
-        aggregation_hints, instance: MinervaInstance, relation: Relation, source_path: Path, trend_store: TrendStore
+        aggregation_hints, instance: MinervaInstance, relation: Relation, source_path: Path, trend_store: TrendStore,
+        created_entity_aggregations: Set[str]
 ):
-    aggregation_type = aggregation_hints.get(relation.name, DEFAULT_AGGREGATION_TYPE)
+    aggregation_type = aggregation_hints.get(relation.name, (DEFAULT_AGGREGATION_TYPE, ''))[0]
+    aggregation_prefix = aggregation_hints.get(relation.name, (DEFAULT_AGGREGATION_TYPE, ''))[1]
+    if aggregation_prefix:
+        # if aggregation_prefix is empty, do not add a prefix,
+        # but if you do add a prefix, put a dash between the prefix and the rest
+        aggregation_prefix += '_'
 
     file_path, definition = generate_entity_aggregation_yaml(
         instance.root, source_path, trend_store, relation,
-        aggregation_type
+        aggregation_type, aggregation_prefix
     )
     aggregation_context = EntityAggregationContext(
         instance, definition['entity_aggregation'], file_path
     )
-    compile_entity_aggregation(aggregation_context)
+
+    basename = definition['entity_aggregation']['basename']
+
+    compile_entity_aggregation(aggregation_context, combined_aggregation=(basename in created_entity_aggregations))
+    created_entity_aggregations.add(basename)
+
+    return created_entity_aggregations
 
 
 def generate_entity_aggregation_yaml(
         instance_root: Path, source_path: Path, trend_store: TrendStore,
-        relation: Relation, aggregation_type: EntityAggregationType) -> Tuple[Path, dict]:
+        relation: Relation, aggregation_type: EntityAggregationType,
+        aggregation_prefix: str) -> Tuple[Path, dict]:
     """
     Generate the YAML based aggregation definition and write it to a file.
     :param instance_root:
@@ -131,15 +149,14 @@ def generate_entity_aggregation_yaml(
     :return:
     """
     print(f'generate entity aggregation for {trend_store} using {relation}')
-    name = f"{trend_store.data_source}_{relation.target_entity_type}_{trend_store.granularity}"
+    name = f"{trend_store.data_source}_{aggregation_prefix}{relation.target_entity_type}_{trend_store.granularity}"
+    base_name = f"{trend_store.data_source}_{relation.target_entity_type}_{trend_store.granularity}"
     file_name = f"{name}.yaml"
     aggregation_file_path = Path(instance_root, "aggregation", file_name)
 
-    print(aggregation_file_path)
-
     parts = [
         OrderedDict([
-            ("name", translate_entity_aggregation_part_name(part.name, relation.target_entity_type)),
+            ("name", translate_entity_aggregation_part_name(part.name, relation.target_entity_type, aggregation_prefix)),
             ("source", part.name)
         ])
         for part in trend_store.parts
@@ -149,6 +166,7 @@ def generate_entity_aggregation_yaml(
         "entity_aggregation": OrderedDict([
             ("source", source_path.stem),
             ("name", name),
+            ("basename", base_name),
             ("data_source", trend_store.data_source),
             ("entity_type", relation.target_entity_type),
             ("relation", relation.name),
@@ -180,8 +198,6 @@ def generate_time_aggregation(
     file_name = f"{name}.yaml"
 
     aggregation_file_path = Path(instance_root, "aggregation", file_name)
-
-    print(aggregation_file_path)
 
     print(f"Generating aggregation {source_granularity} -> {target_granularity}")  # noqa: E501
 
