@@ -466,17 +466,36 @@ def alter_tables_in_trend_store(trend_store: TrendStore, force=False):
 
 def change_trend_store(trend_store: TrendStore, force=False, statement_timeout: Optional[str]=None):
     with closing(connect()) as conn:
-        if statement_timeout is not None:
-            set_statement_timeout(conn, statement_timeout)
-
         for part in trend_store.parts:
+            if statement_timeout is not None:
+                set_statement_timeout(conn, statement_timeout)
+
+            check_trend_store_part_exists(conn, trend_store, part.name)
+
             print("applying changes for part '{}':".format(part.name))
 
-            result = change_trend_store_part(conn, part, force)
+            try:
+                result = change_trend_store_part(conn, part, force)
+            except psycopg2.errors.FeatureNotSupported as exc:
+                conn.rollback()
+                print("error changing trend store part '{}': {}".format(part.name, str(exc)))
+            else:
+                conn.commit()
 
-            conn.commit()
+                yield part.name, result
 
-            yield part.name, result
+
+def check_trend_store_part_exists(conn, trend_store, part_name):
+    query = (
+        "SELECT * FROM trend_directory.get_or_create_trend_store_part("
+        "(trend_directory.get_trend_store(%s::text, %s::text, %s::interval)).id, %s"
+        ")"
+    )
+
+    query_args = (trend_store.data_source, trend_store.entity_type, trend_store.granularity, part_name)
+
+    with conn.cursor() as cursor:
+        cursor.execute(query, query_args)
 
 
 def change_trend_store_part(conn, trend_store_part, force=False):
