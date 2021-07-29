@@ -245,9 +245,9 @@ def change_trends_cmd(args):
 
         for part_name, result in change_trend_store(trend_store, force=args.force, statement_timeout=args.statement_timeout):
             if result[0] or result[1] or result[2]:
-                print("added: {}".format(result[0]))
-                print("removed: {}".format(result[1]))
-                print("changed: {}".format(result[2]))
+                print("added {}".format(result[0]))
+                print("removed {}".format(result[1]))
+                print("changed {}".format(result[2]))
             else:
                 print('no changes were made')
     except Exception as exc:
@@ -470,6 +470,8 @@ def change_trend_store(trend_store: TrendStore, force=False, statement_timeout: 
             set_statement_timeout(conn, statement_timeout)
 
         for part in trend_store.parts:
+            print("applying changes for part '{}':".format(part.name))
+
             result = change_trend_store_part(conn, part, force)
 
             conn.commit()
