@@ -211,6 +211,11 @@ def setup_change_trends_parser(subparsers):
     )
 
     cmd.add_argument(
+        '-v', '--verbose', action='store_true',
+        help='verbose progress reporting'
+    )
+
+    cmd.add_argument(
         '--force', action='store_true',
         help='change datatype even if the new datatype is less powerful than the old one'  # noqa: disable=E501
     )
@@ -233,23 +238,20 @@ def change_trends_cmd(args):
     trend_store = instance.load_trend_store_from_file(args.definition)
 
     try:
-        result = change_trend_store(trend_store, force=args.force, statement_timeout=args.statement_timeout)
+        if args.verbose:
+            print("applying changes to trend store {}".format(
+                trend_store
+            ))
 
-        if result:
-            text = result[0]
-            for part in result[1:]:
-                if text.endswith(':'):
-                    text = text + ' ' + part
-                elif part.endswith(':'):
-                    sys.stdout.write(text + '\n')
-                    text = part
-                else:
-                    text = text + ', ' + part
-            sys.stdout.write(text + '\n')
-        else:
-            sys.stdout.write('No changes were made.')
+        for part_name, result in change_trend_store(trend_store, force=args.force, statement_timeout=args.statement_timeout):
+            if result[0] or result[1] or result[2]:
+                print("added: {}".format(result[0]))
+                print("removed: {}".format(result[1]))
+                print("changed: {}".format(result[2]))
+            else:
+                print('no changes were made')
     except Exception as exc:
-        sys.stdout.write("Error:\n{}".format(str(exc)))
+        print("Error:\n{}".format(str(exc)))
         raise exc
 
 
@@ -462,37 +464,40 @@ def alter_tables_in_trend_store(trend_store: TrendStore, force=False):
         return None
 
 
-def change_trend_store(trend_store: TrendStore, force=False, statement_timeout: str=None):
-    query = (
-        'SELECT trend_directory.{}('
-        'trend_directory.get_trend_store('
-        '%s::text, %s::text, %s::interval'
-        '), %s::trend_directory.trend_store_part_descr[]'
-        ')'.format(
-            'change_trendstore_strong'
-            if force else 'change_trendstore_weak'
-        )
-    )
-
-    query_args = (
-        trend_store.data_source, trend_store.entity_type,
-        trend_store.granularity, trend_store.parts
-    )
-
+def change_trend_store(trend_store: TrendStore, force=False, statement_timeout: Optional[str]=None):
     with closing(connect()) as conn:
         if statement_timeout is not None:
             set_statement_timeout(conn, statement_timeout)
 
-        with closing(conn.cursor()) as cursor:
-            cursor.execute(query, query_args)
-            result = cursor.fetchone()
+        for part in trend_store.parts:
+            result = change_trend_store_part(conn, part, force)
 
-        conn.commit()
+            conn.commit()
 
-    if result and result[0]:
-        return result[0]
+            yield part.name, result
+
+
+def change_trend_store_part(conn, trend_store_part, force=False):
+    if force:
+        change_function = 'change_trend_store_part_strong'
     else:
-        return None
+        change_function = 'change_trend_store_part_weak'
+
+    query = (
+        'SELECT * FROM trend_directory.{}('
+        '%s::trend_directory.trend_store_part_descr'
+        ')'.format(change_function)
+    )
+
+    query_args = (
+        trend_store_part,
+    )
+
+    with conn.cursor() as cursor:
+        cursor.execute(query, query_args)
+        result = cursor.fetchone()
+
+    return result
 
 
 def set_statement_timeout(conn, statement_timeout: str):
