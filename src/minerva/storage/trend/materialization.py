@@ -175,7 +175,7 @@ class ViewMaterialization(Materialization):
 
     def drop_view(self, conn):
         create_view_query = sql.SQL(
-            'DROP VIEW {}'
+            'DROP VIEW IF EXISTS {}'
         ).format(
             sql.Identifier('trend', self.view_name())
         )
