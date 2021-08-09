@@ -5,6 +5,7 @@ from typing import List, Generator, Union, Tuple, Optional
 from collections import OrderedDict
 from pathlib import Path
 from enum import Enum
+from itertools import chain
 
 from minerva.commands import ConfigurationError
 from minerva.util.yaml import ordered_yaml_dump
@@ -536,7 +537,12 @@ class MinervaInstance:
         """
         Load and return trend store from the provided path
         """
-        definition = load_yaml(file)
+        if file.suffix == ".yaml":
+            definition = load_yaml(file)
+        elif file.suffix == ".json":
+            definition = load_json(file)
+        else:
+            raise ConfigurationError("Unsupported format '{}'".format(file.suffix))
 
         return TrendStore.from_dict(definition)
 
@@ -584,7 +590,10 @@ class MinervaInstance:
         """
         Return list of trend store file paths in the instance trend directory
         """
-        return sorted(Path(self.root, 'trend').rglob('*.yaml'))
+        return sorted(chain(
+            Path(self.root, 'trend').rglob('*.yaml'),
+            Path(self.root, 'trend').rglob('*.json')
+        ))
 
     def list_attribute_stores(self) -> List[Path]:
         """
