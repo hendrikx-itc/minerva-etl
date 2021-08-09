@@ -28,7 +28,7 @@ def test_create_data_source(start_db_container):
 
     assert proc.returncode == 0
 
-    with tempfile.NamedTemporaryFile('wt') as yaml_tmp_file:
+    with tempfile.NamedTemporaryFile('wt', suffix=".yaml") as yaml_tmp_file:
         ordered_yaml_dump(trend_store_dict, yaml_tmp_file)
         yaml_tmp_file.flush()
 

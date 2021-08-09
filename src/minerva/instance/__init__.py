@@ -537,12 +537,15 @@ class MinervaInstance:
         """
         Load and return trend store from the provided path
         """
-        if file.suffix == ".yaml":
-            definition = load_yaml(file)
-        elif file.suffix == ".json":
+        if isinstance(file, TextIOBase):
             definition = load_json(file)
         else:
-            raise ConfigurationError("Unsupported format '{}'".format(file.suffix))
+            if file.suffix == ".yaml":
+                definition = load_yaml(file)
+            elif file.suffix == ".json":
+                definition = load_json(file)
+            else:
+                raise ConfigurationError("Unsupported format '{}'".format(file.suffix))
 
         return TrendStore.from_dict(definition)
 
