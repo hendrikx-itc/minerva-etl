@@ -1,8 +1,4 @@
 pipeline {
-    parameters {
-        string(name: 'PACKAGE_SECTION', defaultValue: 'unstable', description: '')
-    }
-
     agent {
         node {
             label 'git'
@@ -71,7 +67,7 @@ pipeline {
 
                         sh './package 1804'
                         
-                        publishPackages buildDir1804.toString(), "common/bionic/${params.PACKAGE_SECTION}", 'bionic'
+                        publishPackages buildDir1804.toString(), "common/bionic/stable", 'bionic'
 
                         archiveArtifacts(artifacts: "${buildDir1804}/*")
                     }
