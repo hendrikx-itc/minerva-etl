@@ -4,6 +4,7 @@ import argparse
 import sys
 import datetime
 from typing import BinaryIO, Generator, Optional
+from pathlib import Path
 
 import yaml
 import psycopg2.errors
@@ -66,7 +67,7 @@ def setup_create_parser(subparsers):
     )
 
     cmd.add_argument(
-        'definition', type=argparse.FileType('r'),
+        'definition', type=Path,
         help='file containing trend store definition'
     )
 
@@ -100,7 +101,7 @@ def setup_add_trends_parser(subparsers):
     )
 
     cmd.add_argument(
-        'definition', type=argparse.FileType('r'),
+        'definition', type=Path,
         help='file containing trend store definition'
     )
 
@@ -130,7 +131,7 @@ def setup_add_parts_parser(subparsers):
     )
 
     cmd.add_argument(
-        'definition', type=argparse.FileType('r'),
+        'definition', type=Path,
         help='file containing trend store definition'
     )
 
@@ -143,7 +144,7 @@ def setup_remove_parser(subparsers):
     )
 
     cmd.add_argument(
-        'definition', type=argparse.FileType('r'),
+        'definition', type=Path,
         help='file containing trend store definition'
     )
 
@@ -180,7 +181,7 @@ def setup_alter_trends_parser(subparsers):
     )
 
     cmd.add_argument(
-        'definition', type=argparse.FileType('r'),
+        'definition', type=Path,
         help='file containing trend store definition'
     )
 
@@ -225,7 +226,7 @@ def setup_change_trends_parser(subparsers):
     )
 
     cmd.add_argument(
-        'definition', type=argparse.FileType('r'),
+        'definition', type=Path,
         help='file containing trend store definition'
     )
 
