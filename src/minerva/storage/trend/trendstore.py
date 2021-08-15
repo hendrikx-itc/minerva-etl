@@ -13,7 +13,7 @@ from minerva.storage.trend import schema
 from minerva.directory import DataSource, EntityType
 from minerva.storage.trend.granularity import create_granularity, Granularity
 from minerva.storage.trend.trendstorepart import TrendStorePart, PartitionExistsError
-from minerva.util import string_fns
+from minerva.util import string_fns, k
 
 
 class NoSuchTrendStore(Exception):
@@ -35,6 +35,8 @@ class NoSuchTrendStore(Exception):
 
 
 class TrendStore:
+    _trend_store_cache = {}
+
     class Descriptor:
         data_source: DataSource
         entity_type: EntityType
@@ -179,9 +181,18 @@ class TrendStore:
             if cursor.rowcount < 1:
                 return None
             else:
-                return TrendStore.from_record(cursor.fetchone())(cursor)
+                trend_store = TrendStore.from_record(cursor.fetchone())(cursor)
 
-        return query_db
+                TrendStore._trend_store_cache[(data_source, entity_type, str(granularity))] = trend_store
+
+                return trend_store
+
+        cached_trend_store = TrendStore._trend_store_cache.get((data_source, entity_type, str(granularity)))
+
+        if cached_trend_store is None:
+            return query_db
+        else:
+            return k(cached_trend_store)
 
     @classmethod
     def get_by_id(cls, id_: int):
