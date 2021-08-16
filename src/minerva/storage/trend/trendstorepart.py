@@ -172,29 +172,15 @@ class TrendStorePart:
 
         return f
 
-    def store(self, data_package: DataPackage, description: dict) -> ConnDbAction:
+    def store(self, data_package: DataPackage, job_id: int) -> ConnDbAction:
         def f(conn):
             try:
-                store_method = {'store_method': 'copy_from'}
-                action = {**description, **store_method}
-
                 with closing(conn.cursor()) as cursor:
-                    cursor.execute(
-                        "SELECT logging.start_job(%s)",
-                        (psycopg2.extras.Json(action),)
-                    )
-
-                    current_job_id = cursor.fetchone()[0]
                     modified = get_timestamp(cursor)
 
                     self.store_copy_from(
-                        data_package, modified, current_job_id
+                        data_package, modified, job_id
                     )(cursor)
-
-                    cursor.execute(
-                        "SELECT logging.end_job(%s)",
-                        (current_job_id,)
-                    )
 
                     for timestamp in data_package.timestamps():
                         self.mark_modified(timestamp, modified)(cursor)
@@ -205,28 +191,15 @@ class TrendStorePart:
                 raise exc
 
             except UniqueViolation as exc:
-                store_method = {'store_method': 'upsert'}
-                action = {**description, **store_method}
-
                 # Try again through a slower but more reliable method
                 conn.rollback()
 
                 with closing(conn.cursor()) as cursor:
-                    cursor.execute(
-                        "SELECT logging.start_job(%s)",
-                        (psycopg2.extras.Json(action),)
-                    )
-                    current_job_id = cursor.fetchone()[0]
                     modified = get_timestamp(cursor)
 
                     self.securely_store_copy_from(
-                        data_package, modified, current_job_id
+                        data_package, modified, job_id
                     )(cursor)
-
-                    cursor.execute(
-                        "SELECT logging.end_job(%s)",
-                        (current_job_id,)
-                    )
 
                     for timestamp in data_package.timestamps():
                         self.mark_modified(timestamp, modified)(cursor)

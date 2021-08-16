@@ -226,9 +226,9 @@ class TrendStore:
 
         return self
 
-    def store(self, data_package: DataPackage, description: dict) -> ConnDbAction:
+    def store(self, data_package: DataPackage, job_id: int) -> ConnDbAction:
         return string_fns([
-            part.store(package_part, description)
+            part.store(package_part, job_id)
             for part, package_part in self.split_package_by_parts(data_package)
         ])
 

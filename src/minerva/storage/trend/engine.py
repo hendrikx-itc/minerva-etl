@@ -17,26 +17,26 @@ class TrendEngine(Engine):
     pass_through = k(identity)
 
     @staticmethod
-    def store_cmd(package: DataPackage, description: dict):
+    def store_cmd(package: DataPackage, job_id: int):
         """
         Return a function to bind a data source to the store command.
 
         :param package: A DataPackageBase subclass instance
-        :param description: A description of the task that generated the data package
+        :param job_id: An Id of the job that generated the data package
         :return: function that binds a data source to the store command
         :rtype: (data_source) -> (conn) -> None
         """
-        return TrendEngine.make_store_cmd(TrendEngine.pass_through)(package, description)
+        return TrendEngine.make_store_cmd(TrendEngine.pass_through)(package, job_id)
 
     @staticmethod
-    def make_store_cmd(transform_package) -> Callable[[DataPackage, dict], Callable[[DataSource], Callable[[connection], None]]]:
+    def make_store_cmd(transform_package) -> Callable[[DataPackage, int], Callable[[DataSource], Callable[[connection], None]]]:
         """
         Return a function to bind a data source to the store command.
 
         :param transform_package: (TrendStore) -> (DataPackage)
         -> DataPackage
         """
-        def cmd(package: DataPackage, description: dict):
+        def cmd(package: DataPackage, job_id: int):
             def bind_data_source(data_source: DataSource):
                 def execute(conn):
                     trend_store = trend_store_for_package(
@@ -45,7 +45,7 @@ class TrendEngine(Engine):
 
                     trend_store.store(
                         transform_package(trend_store)(package),
-                        description
+                        job_id
                     )(conn)
 
                     conn.commit()
