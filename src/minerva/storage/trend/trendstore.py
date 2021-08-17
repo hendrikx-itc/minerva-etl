@@ -167,6 +167,13 @@ class TrendStore:
     @classmethod
     def get(cls, data_source: DataSource, entity_type: EntityType, granularity: Granularity):
         def query_db(cursor: extensions.cursor):
+            cache_key = (data_source.name, entity_type.name, str(granularity))
+
+            cached_trend_store = TrendStore._trend_store_cache.get(cache_key)
+
+            if cached_trend_store is not None:
+                return cached_trend_store
+
             args = data_source.id, entity_type.id, str(granularity)
 
             cls.get_query.execute(cursor, args)
@@ -183,16 +190,11 @@ class TrendStore:
             else:
                 trend_store = TrendStore.from_record(cursor.fetchone())(cursor)
 
-                TrendStore._trend_store_cache[(data_source, entity_type, str(granularity))] = trend_store
+                TrendStore._trend_store_cache[cache_key] = trend_store
 
                 return trend_store
 
-        cached_trend_store = TrendStore._trend_store_cache.get((data_source, entity_type, str(granularity)))
-
-        if cached_trend_store is None:
-            return query_db
-        else:
-            return k(cached_trend_store)
+        return query_db
 
     @classmethod
     def get_by_id(cls, id_: int):
