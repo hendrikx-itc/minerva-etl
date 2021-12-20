@@ -39,7 +39,6 @@ pipeline {
             
             steps {
                 script {
-                    sh 'ls -la'
                     sh 'pip3 install .'
                     sh 'pytest ./integration_tests --suppress-tests-failed-exit-code --junitxml=integrationtest_report.xml'
                     junit 'integrationtest_report.xml'
