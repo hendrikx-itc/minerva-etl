@@ -11,4 +11,4 @@ mkdir -p "$PKG_DIR"
 
 docker build -t package-minerva-etl -f "$SCRIPT_DIR/Dockerfile.${DISTRIBUTION}.package" "$SCRIPT_DIR/docker-context"
 
-docker run --name package-minerva-etl --rm -v "$SCRIPT_DIR:/package/source" -v "$PKG_DIR:/package/build" package-minerva-etl build-package
+docker run --rm -v "$SCRIPT_DIR:/package/source" -v "$PKG_DIR:/package/build" package-minerva-etl build-package
