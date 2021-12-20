@@ -33,7 +33,7 @@ pipeline {
             agent {
                 dockerfile {
                     filename 'Dockerfile.python'
-                    args '--user root --name pytest --network pytest -e TEST_DOCKER_NETWORK=pytest -v ${workspace}:/source -v /var/run/docker.sock:/var/run/docker.sock -w /source'
+                    args '--user root --network pytest -e TEST_DOCKER_NETWORK=pytest -v ${workspace}:/source -v /var/run/docker.sock:/var/run/docker.sock -w /source'
                 }
             }
             
