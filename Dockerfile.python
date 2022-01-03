@@ -14,5 +14,3 @@ RUN pip3 install \
     pytz \
     docker
 
-COPY . /minerva-etl
-RUN pip3 install /minerva-etl
