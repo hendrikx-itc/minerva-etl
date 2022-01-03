@@ -62,12 +62,14 @@ def test_store_matching(start_db_container):
 
         data_package_type = refined_package_type_for_entity_type(entity_type_name)
 
+        job_id = 12
+
         store_cmd = TrendEngine.store_cmd(
             DataPackage(
                 data_package_type,
                 granularity, trend_descriptors, data_rows
             ),
-            {'job': 'test-job'}
+            job_id
         )
 
         store_cmd(data_source)(conn)
@@ -136,9 +138,11 @@ def test_store_ignore_extra(start_db_container):
             granularity, trend_descriptors, data_rows
         )
 
+        job_id = 13
+
         store_cmd = TrendEngine.make_store_cmd(
             TrendEngine.filter_existing_trends
-        )(data_package, {'job': 'test-job'})
+        )(data_package, job_id)
 
         store_cmd(data_source)(conn)
 

@@ -92,7 +92,9 @@ def test_defaults(start_db_container):
 
     trend_store.create_partitions_for_timestamp(conn, timestamp)
 
-    trend_store.store(data_package, {'job': 'test-job'})(conn)
+    job_id = 10
+
+    trend_store.store(data_package, job_id)(conn)
 
     conn.commit()
 
@@ -205,7 +207,9 @@ def test_nulls(start_db_container):
 
     trend_store.create_partitions_for_timestamp(conn, timestamp)
 
-    trend_store.store(data_package, {'job': 'test-job'})(conn)
+    job_id = 11
+
+    trend_store.store(data_package, job_id)(conn)
 
     conn.commit()
 
