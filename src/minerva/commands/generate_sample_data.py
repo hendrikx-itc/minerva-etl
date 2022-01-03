@@ -98,8 +98,7 @@ def generate(config, timestamp: datetime.datetime, target_directory: Path):
 
     target_timestamp = granularity.truncate(now)
 
-    file_path = data_set_generator.generate(
+    for file_path in data_set_generator.generate(
         target_directory, target_timestamp, granularity
-    )
-
-    print(f"Generated file '{file_path}'")
+    ):
+        print(f"Generated file '{file_path}'")
