@@ -14,5 +14,5 @@ RUN pip3 install \
     pytz \
     docker
 
-RUN git clone -b minerva-etl-in-jenkins-pipeline --single-branch https://github.com/hendrikx-itc/python-minerva-etl.git
-RUN cd /python-minerva-etl && pip3 install .
+COPY . /minerva-etl
+RUN pip3 install /minerva-etl
