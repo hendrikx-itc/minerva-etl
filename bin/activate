@@ -27,9 +27,29 @@ echo $SCRIPT_DIR
 
 export MINERVA_ROOT=${SCRIPT_DIR%/*}
 
-echo "$MINERVA_ROOT"
+echo "MINERVA_ROOT: $MINERVA_ROOT"
 
 export PATH=$MINERVA_ROOT/bin:$PATH
+
+# Test if at virtual environment is already configured, and if not, create one
+# and install Minerva
+if [ -z "$VIRTUAL_ENV" ]
+then
+    VENV_DIR="$MINERVA_ROOT/venv"
+
+    if [ ! -d $VENV_DIR ]
+    then
+        echo "Creating virtualenv at $VENV_DIR"
+
+        virtualenv -p python3 $VENV_DIR
+
+        source $VENV_DIR/bin/activate
+
+        pip3 install -e $MINERVA_ROOT
+    else
+        source $VENV_DIR/bin/activate
+    fi
+fi
 
 echo "Starting Minerva database ..."
 docker run \
