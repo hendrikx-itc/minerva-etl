@@ -1,3 +1,4 @@
+title: Raw node counters
 data_source: hub
 entity_type: node
 granularity: 15m

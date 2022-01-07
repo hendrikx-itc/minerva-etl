@@ -1,0 +1,12 @@
+title: Raw node-module counters
+data_source: hub
+entity_type: node-module
+granularity: 15m
+partition_size: 1d
+parts:
+  - name: hub_node-module_processing_15m
+    trends:
+      - name: cpu_load
+        data_type: numeric
+      - name: memory_usage
+        data_type: integer

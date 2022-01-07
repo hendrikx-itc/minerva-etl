@@ -1,0 +1,10 @@
+name: node->v-site
+source_entity_type: node
+target_entity_type: v-site
+query: |-
+  SELECT
+    n.id AS source_id,
+    vs.id AS target_id
+  FROM entity."node" n 
+  JOIN entity."v-site" vs ON vs.name = substring(n.name from '([a-z]+)-.*')
+  GROUP BY n.id, vs.id

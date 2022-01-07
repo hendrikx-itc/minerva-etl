@@ -1,3 +1,4 @@
+title: KPIs calculated based on the counters
 data_source: hub-kpi
 entity_type: node
 granularity: 15m
