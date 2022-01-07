@@ -1,15 +1,12 @@
 # vim: filetype=sh
-export PGHOST=localhost
-export PGPORT=16050
-export PGUSER=postgres
-export PGDATABASE=minerva
-
 function absolute_dir {
     local old_pwd="$(pwd)"
     cd "$1"
     pwd
     cd "$old_pwd"
 }
+
+START_MINERVA_DB="${START_MINERVA_DB:-1}"
 
 SHELL_NAME="${SHELL##*/}"
 
@@ -23,40 +20,50 @@ RELATIVE_SCRIPT_DIR=${SCRIPT_PATH%/*}
 
 SCRIPT_DIR=$(absolute_dir $RELATIVE_SCRIPT_DIR)
 
-echo $SCRIPT_DIR
-
 export MINERVA_ROOT=${SCRIPT_DIR%/*}
-
-echo "MINERVA_ROOT: $MINERVA_ROOT"
-
 export PATH=$MINERVA_ROOT/bin:$PATH
 
 # Test if at virtual environment is already configured, and if not, create one
 # and install Minerva
-if [ -z "$VIRTUAL_ENV" ]
+if [ -z "$VIRTUAL_ENV" ] || [ ! -d "$VIRTUAL_ENV" ]
 then
     VENV_DIR="$MINERVA_ROOT/venv"
 
     if [ ! -d $VENV_DIR ]
     then
-        echo "Creating virtualenv at $VENV_DIR"
+        echo "Creating virtualenv at '$VENV_DIR'"
 
-        virtualenv -p python3 --system-site-packages $VENV_DIR
+        python3 -m venv --system-site-packages $VENV_DIR
 
         source $VENV_DIR/bin/activate
 
         pip3 install -e $MINERVA_ROOT
     else
+        echo "Activating virtualenv at '$VENV_DIR'"
+
         source $VENV_DIR/bin/activate
     fi
 fi
 
-echo "Starting Minerva database ..."
-docker run \
-    --rm \
-    -e "POSTGRES_HOST_AUTH_METHOD=trust" \
-    -p $PGPORT:5432 \
-    -v "$MINERVA_ROOT/development/postgresql.conf:/etc/postgresql/postgresql.conf" \
-    -d \
-    hendrikxitc/minerva
-echo "Started"
+# Activate the Minerva tiny_instance example instance so that you immediately
+# have something to work with.
+echo "Activating example instance $MINERVA_ROOT/examples/tiny_instance..."
+source "$MINERVA_ROOT/examples/tiny_instance/bin/activate"
+
+if [ "$START_MINERVA_DB" = "1" ]
+then
+    echo "Starting Minerva database ..."
+    export PGHOST=localhost
+    export PGPORT=16050
+    export PGUSER=postgres
+    export PGDATABASE=minerva
+
+    docker run \
+        --rm \
+        -e "POSTGRES_HOST_AUTH_METHOD=trust" \
+        -p $PGPORT:5432 \
+        -v "$MINERVA_ROOT/development/postgresql.conf:/etc/postgresql/postgresql.conf" \
+        -d \
+        hendrikxitc/minerva
+    echo "Started"
+fi
