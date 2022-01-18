@@ -21,7 +21,3 @@
           data_type: numeric
         - name: power_kwh
           data_type: numeric
-        - name: freq_power
-          data_type: numeric[]
-          parser_config:
-            separator: ","
