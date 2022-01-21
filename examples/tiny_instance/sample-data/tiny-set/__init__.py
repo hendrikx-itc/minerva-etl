@@ -5,6 +5,7 @@ import jinja2
 
 template_file_name = "sample.csv"
 
+
 def generate(target_dir, timestamp, granularity):
     dir_path = os.path.dirname(os.path.abspath(__file__))
 

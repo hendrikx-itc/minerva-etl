@@ -443,15 +443,17 @@ def create_copy_from_lines(modified: datetime, job: int, rows: List[DataPackageR
     map_values = zip_apply(serializers)
 
     return (
-        u"{entity_id:d}\t"
-        "'{timestamp!s}'\t"
-        "'{created!s}'\t"
-        "{job_id:d}\t"
-        "{values}\n".format(
+        (
+            "{entity_id}\t"
+            "'{timestamp}'\t"
+            "'{created}'\t"
+            "{job_id}\t"
+            "{values}\n"
+        ).format(
             entity_id=entity_id,
             timestamp=timestamp.isoformat(),
             created=modified.isoformat(),
-            job_id=job,
+            job_id=job or "NULL",
             values="\t".join(map_values(values))
         )
         for entity_id, timestamp, values in rows

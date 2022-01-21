@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from typing import Callable
 import logging
 from contextlib import contextmanager
 from contextlib import closing
@@ -12,6 +13,7 @@ from minerva.util import compose, k
 from minerva.directory import DataSource
 import minerva.storage.trend.datapackage
 from minerva.storage.trend.datapackage import DataPackage
+from minerva.logging import start_job, end_job
 from minerva.directory.entitytype import NoSuchEntityType, EntityType
 from minerva.harvest.fileprocessor import process_file
 from minerva.db import connect, connect_logging
@@ -35,7 +37,7 @@ class Loader:
         self.statistics = False
         self.pretend = True
         self.debug = False
-        self.data_source = 'loader'
+        self.data_source = "loader"
         self.show_progress = False
         self.merge_packages = True
         self.stop_on_missing_entity_type = False
@@ -59,18 +61,19 @@ class Loader:
             storage_provider = store_dummy
         else:
             if self.debug:
-                connect_to_db = partial(
-                    connect_logging, logging.getLogger('psycopg2')
-                )
+                connect_to_db = partial(connect_logging, logging.getLogger("psycopg2"))
             else:
                 connect_to_db = connect
 
             storage_provider = create_store_db_context(
-                self.data_source, parser.store_command(), connect_to_db,
+                self.data_source,
+                parser.store_command(),
+                connect_to_db,
             )
 
         try:
             with storage_provider() as store:
+
                 def handle_package(package, action: dict):
                     if self.debug:
                         print(package.render_table())
@@ -79,20 +82,16 @@ class Loader:
 
                 logging.info(
                     "Start processing file {0} of type {1}"
-                    " and config {2}".format(
-                        file_path, file_type, config
-                    )
+                    " and config {2}".format(file_path, file_type, config)
                 )
 
                 action = {
-                    'type': 'load-data',
-                    'file_type': file_type,
-                    'uri': str(file_path)
+                    "type": "load-data",
+                    "file_type": file_type,
+                    "uri": str(file_path),
                 }
 
-                packages_generator = process_file(
-                    file_path, parser, self.show_progress
-                )
+                packages_generator = process_file(file_path, parser, self.show_progress)
 
                 if self.merge_packages:
                     packages = DataPackage.merge_packages(packages_generator)
@@ -105,10 +104,10 @@ class Loader:
                     except NoSuchEntityType as exc:
                         if self.stop_on_missing_entity_type:
                             raise ConfigurationError(
-                                'No such entity type \'{entity_type}\'\n'
-                                'Create a data source using e.g.\n'
-                                '\n'
-                                '    minerva entity-type create {entity_type}\n'.format(
+                                "No such entity type '{entity_type}'\n"
+                                "Create a data source using e.g.\n"
+                                "\n"
+                                "    minerva entity-type create {entity_type}\n".format(
                                     entity_type=exc.entity_type_name
                                 )
                             )
@@ -116,7 +115,7 @@ class Loader:
                             logging.warning(exc)
 
         except ConfigurationError as err:
-            print('fatal: {}'.format(err))
+            print("fatal: {}".format(err))
 
         if self.statistics:
             for line in statistics.report():
@@ -140,9 +139,7 @@ class Statistics(object):
         return package
 
     def report(self):
-        return [
-            "{} packages".format(self.package_count)
-        ]
+        return ["{} packages".format(self.package_count)]
 
 
 def filter_trend_package(entity_filter, trend_filter, package: DataPackage):
@@ -160,10 +157,7 @@ def filter_trend_package(entity_filter, trend_filter, package: DataPackage):
         values = row[-1]
 
         trend_filtered_values = [
-            v
-            for include, v in
-            zip(trend_filter_map, values)
-            if include
+            v for include, v in zip(trend_filter_map, values) if include
         ]
 
         trend_filtered_row = tuple(row[:-1]) + (trend_filtered_values,)
@@ -171,8 +165,10 @@ def filter_trend_package(entity_filter, trend_filter, package: DataPackage):
         filtered_rows.append(trend_filtered_row)
 
     return minerva.storage.trend.datapackage.DataPackage(
-        package.data_package_type, package.granularity, filtered_trend_names,
-        filtered_rows
+        package.data_package_type,
+        package.granularity,
+        filtered_trend_names,
+        filtered_rows,
     )
 
 
@@ -191,10 +187,7 @@ def filter_attribute_package(entity_filter, attribute_filter, package):
         values = row[-1]
 
         attribute_filtered_values = [
-            v
-            for include, v in
-            zip(attribute_filter_map, values)
-            if include
+            v for include, v in zip(attribute_filter_map, values) if include
         ]
 
         attribute_filtered_row = row[:-1] + (attribute_filtered_values,)
@@ -202,13 +195,13 @@ def filter_attribute_package(entity_filter, attribute_filter, package):
         filtered_rows.append(attribute_filtered_row)
 
     return minerva.storage.attribute.datapackage.DataPackage(
-        filtered_attribute_names,
-        filtered_rows)
+        filtered_attribute_names, filtered_rows
+    )
 
 
 package_data_filters = {
     "trend": filter_trend_package,
-    "attribute": filter_attribute_package
+    "attribute": filter_attribute_package,
 }
 
 
@@ -222,8 +215,10 @@ def tee(fn):
 
 
 def create_store_db_context(
-        data_source_name: str, store_cmd, connect_to_db,
-        stop_on_missing_trend_store=False
+    data_source_name: str,
+    store_cmd: Callable[[DataPackage, int], Callable[[str], Callable[[any], None]]],
+    connect_to_db,
+    stop_on_missing_trend_store=False,
 ):
     @contextmanager
     def store_db_context():
@@ -234,9 +229,11 @@ def create_store_db_context(
             if data_source is None:
                 raise no_such_data_source_error(data_source_name)
 
-            def store_package(package, action):
+            def store_package(package: DataPackage, action: dict):
+                job_id = start_job(conn, action)
+
                 try:
-                    store_cmd(package, action)(data_source)(conn)
+                    store_cmd(package, job_id)(data_source)(conn)
                 except NoSuchTrendStore as exc:
                     if stop_on_missing_trend_store:
                         raise no_such_trend_store_error(
@@ -244,6 +241,8 @@ def create_store_db_context(
                         )
                     else:
                         logging.warning(str(exc))
+                finally:
+                    end_job(conn, job_id)
 
             yield store_package
 
@@ -252,26 +251,28 @@ def create_store_db_context(
 
 def no_such_data_source_error(data_source_name: str) -> ConfigurationError:
     return ConfigurationError(
-        'No such data source \'{data_source}\'\n'
-        'Create a data source using e.g.\n'
-        '\n'
-        '    minerva data-source create {data_source}\n'.format(
+        "No such data source '{data_source}'\n"
+        "Create a data source using e.g.\n"
+        "\n"
+        "    minerva data-source create {data_source}\n".format(
             data_source=data_source_name
         )
     )
 
 
-def no_such_trend_store_error(data_source: DataSource, entity_type: EntityType, granularity: str) -> ConfigurationError:
+def no_such_trend_store_error(
+    data_source: DataSource, entity_type: EntityType, granularity: str
+) -> ConfigurationError:
     return ConfigurationError(
-        'No table trend store found for the combination (data source: '
-        '{data_source}, entity type: {entity_type}, granularity: {granularity}'
-        ')\n'
-        'Create a table trend store using e.g.\n'
-        '\n'
-        '    minerva trend-store create --from-json'.format(
+        "No table trend store found for the combination (data source: "
+        "{data_source}, entity type: {entity_type}, granularity: {granularity}"
+        ")\n"
+        "Create a table trend store using e.g.\n"
+        "\n"
+        "    minerva trend-store create --from-json".format(
             data_source=data_source.name,
             entity_type=entity_type.name,
-            granularity=granularity
+            granularity=granularity,
         )
     )
 
