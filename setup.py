@@ -43,6 +43,7 @@ setup(
         "minerva.trigger",
         "minerva.loading",
         "minerva.loading.csv",
+        "minerva.logging",
     ],
     package_dir={"": "src"},
     entry_points={
