@@ -42,14 +42,11 @@ STANDARD_AGGREGATIONS = {
 def generate_standard_aggregations(instance: MinervaInstance):
     trend_path = Path(instance.root, 'trend')
 
-    created_entity_aggregations = set()
-
     for file_path in trend_path.rglob('*.yaml'):
-        generate_standard_aggregations_for(instance, file_path, created_entity_aggregations)
+        generate_standard_aggregations_for(instance, file_path)
 
 
-def generate_standard_aggregations_for(instance: MinervaInstance, trend_store_path: Path,
-                                       created_entity_aggregations: Set[str]):
+def generate_standard_aggregations_for(instance: MinervaInstance, trend_store_path: Path):
     trend_path = Path(instance.root, 'trend')
 
     relative_path = trend_store_path.absolute().relative_to(trend_path)
@@ -60,14 +57,13 @@ def generate_standard_aggregations_for(instance: MinervaInstance, trend_store_pa
         print(relative_path)
 
         generate_aggregations(
-            instance.root, relative_path, trend_store, aggregation_hints, created_entity_aggregations
+            instance.root, relative_path, trend_store, aggregation_hints
         )
 
 
 def generate_aggregations(
         instance_root: Path, source_path: Path, trend_store: TrendStore,
-        aggregation_hints: Dict[str, Tuple[EntityAggregationType, str]],
-        created_entity_aggregations: Set[str]):
+        aggregation_hints: Dict[str, Tuple[EntityAggregationType, str]]):
     """
     Generate all standard aggregations for the specified trend store
     """
@@ -89,7 +85,7 @@ def generate_aggregations(
     relations = entity_relations.get(trend_store.entity_type, [])
 
     for relation in relations:
-        created_entity_aggregations = generate_entity_aggregation(aggregation_hints, instance, relation, source_path, trend_store, created_entity_aggregations)
+        generate_entity_aggregation(aggregation_hints, instance, relation, source_path, trend_store)
 
     for source_granularity, target_granularity in aggregations:
         file_path, definition = generate_time_aggregation(
@@ -104,14 +100,11 @@ def generate_aggregations(
         target_trend_store = compile_time_aggregation(aggregation_context)
 
         for relation in relations:
-            created_entity_aggregations = generate_entity_aggregation(aggregation_hints, instance, relation, file_path, target_trend_store, created_entity_aggregations)
+            generate_entity_aggregation(aggregation_hints, instance, relation, file_path, target_trend_store)
 
-    return created_entity_aggregations
 
 def generate_entity_aggregation(
-        aggregation_hints, instance: MinervaInstance, relation: Relation, source_path: Path, trend_store: TrendStore,
-        created_entity_aggregations: Set[str]
-):
+        aggregation_hints, instance: MinervaInstance, relation: Relation, source_path: Path, trend_store: TrendStore):
     aggregation_type = aggregation_hints.get(relation.name, (DEFAULT_AGGREGATION_TYPE, ''))[0]
     aggregation_prefix = aggregation_hints.get(relation.name, (DEFAULT_AGGREGATION_TYPE, ''))[1]
     if aggregation_prefix:
@@ -129,7 +122,7 @@ def generate_entity_aggregation(
 
     basename = definition['entity_aggregation']['basename']
 
-    compile_entity_aggregation(aggregation_context, combined_aggregation=(basename in created_entity_aggregations))
+    compile_entity_aggregation(aggregation_context)
     created_entity_aggregations.add(basename)
 
     return created_entity_aggregations

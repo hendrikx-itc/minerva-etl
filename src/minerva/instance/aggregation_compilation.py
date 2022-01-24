@@ -1,4 +1,4 @@
-import re
+import re, os
 from collections import OrderedDict
 from itertools import chain
 from pathlib import Path
@@ -100,7 +100,7 @@ def create_base_name_to_name_translation(aggregation_definition: dict):
     return {element['source']: element['name'] for element in aggregation_definition['parts']}
 
 
-def compile_entity_aggregation(aggregation_context: EntityAggregationContext, combined_aggregation: bool):
+def compile_entity_aggregation(aggregation_context: EntityAggregationContext):
     aggregation_type = ENTITY_AGGREGATION_TYPE_MAP[aggregation_context.definition['aggregation_type']]
 
     if aggregation_type is EntityAggregationType.VIEW:
@@ -132,7 +132,7 @@ def compile_entity_aggregation(aggregation_context: EntityAggregationContext, co
             base_name
         )
 
-        if combined_aggregation:
+        if os.exists(aggregate_trend_store_file_path):
             print("Adding to aggregate trend store '{}'".format(
                 aggregate_trend_store_file_path
             ))
