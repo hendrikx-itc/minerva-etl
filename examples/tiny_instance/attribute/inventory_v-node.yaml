@@ -1,0 +1,15 @@
+data_source: inventory
+entity_type: v-node
+attributes:
+  - name: node
+    data_type: text
+    description: Node name (for convenience)
+  - name: hub 
+    data_type: text
+    description: Hub name (for convenience)
+  - name: freq
+    data_type: numeric
+    description: Transmission frequency
+  - name: state
+    data_type: text
+    description: Administrative state
