@@ -1,11 +1,13 @@
 #!/bin/sh
 
-python3 -m venv --system-site-packages venv
+export HOME=$WORKSPACE
 
-source venv/bin/activate
+python3 -m venv --system-site-packages $WORKSPACE/venv
 
-export HOME=/workspace
+. $WORKSPACE/venv/bin/activate
 
-pip install -e .
+pip install pytest
+
+pip install -e $WORKSPACE
 
 pytest $@

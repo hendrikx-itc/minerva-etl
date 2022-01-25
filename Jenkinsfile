@@ -16,7 +16,6 @@ pipeline {
             agent {
                 dockerfile {
                     filename 'Dockerfile.python'
-                    args '-v ${workspace}:/source'
                 }
             }
 

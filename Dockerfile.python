@@ -9,8 +9,5 @@ RUN apt update && apt install -y \
 
 RUN pip3 install \
     psycopg2 \
-    pytest\
-    pytest-custom_exit_code \
-    pytz \
     docker
 
