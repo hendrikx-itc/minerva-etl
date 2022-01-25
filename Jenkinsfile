@@ -23,7 +23,7 @@ pipeline {
             steps {
                 script {
                     sh 'python3 -m venv --system-site-packages venv'
-                    sh 'source venv/bin/activate'
+                    sh '. venv/bin/activate'
                     sh 'pip install .'
                     sh 'pytest ./tests --suppress-tests-failed-exit-code --junitxml=unittest_report.xml'
                     junit 'unittest_report.xml'
