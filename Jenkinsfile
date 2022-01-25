@@ -38,8 +38,7 @@ pipeline {
             
             steps {
                 script {
-                    sh 'pip3 install .'
-                    sh 'pytest ./integration_tests --suppress-tests-failed-exit-code --junitxml=integrationtest_report.xml'
+                    sh 'docker-context/run-tests integration_tests --suppress-tests-failed-exit-code --junitxml=integrationtest_report.xml'
                     junit 'integrationtest_report.xml'
                 }
             }
