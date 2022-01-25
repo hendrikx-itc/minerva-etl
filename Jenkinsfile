@@ -22,6 +22,7 @@ pipeline {
 
             steps {
                 script {
+                    sh 'pip3 install .'
                     sh 'pytest ./tests --suppress-tests-failed-exit-code --junitxml=unittest_report.xml'
                     junit 'unittest_report.xml'
                 }
