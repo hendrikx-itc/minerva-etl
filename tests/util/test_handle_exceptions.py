@@ -3,7 +3,7 @@ import unittest
 from minerva.util import handle_exceptions, dict_to_handler
 
 
-class TestException(Exception):
+class NormalException(Exception):
     pass
 
 
@@ -19,12 +19,12 @@ class TestHandleExceptions(unittest.TestCase):
         state = {}
 
         def fn():
-            raise TestException("some error occurred")
+            raise NormalException("some error occurred")
 
         def handle_test_exception():
             state["val"] = 42
 
-        handler_map = {TestException: handle_test_exception}
+        handler_map = {NormalException: handle_test_exception}
 
         handle = dict_to_handler(handler_map)
 
@@ -36,13 +36,15 @@ class TestHandleExceptions(unittest.TestCase):
         """
         Unhandled exceptions shoud be re-raised
         """
+        state = {}
+
         def fn():
             raise UnhandledException("some error occurred")
 
         def handle_test_exception():
             state["val"] = 42
 
-        handler_map = {TestException: handle_test_exception}
+        handler_map = {NormalException: handle_test_exception}
 
         handle = dict_to_handler(handler_map)
 

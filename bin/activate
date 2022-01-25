@@ -20,14 +20,14 @@ RELATIVE_SCRIPT_DIR=${SCRIPT_PATH%/*}
 
 SCRIPT_DIR=$(absolute_dir $RELATIVE_SCRIPT_DIR)
 
-export MINERVA_ROOT=${SCRIPT_DIR%/*}
-export PATH=$MINERVA_ROOT/bin:$PATH
+export WORKSPACE=${SCRIPT_DIR%/*}
+export PATH=$WORKSPACE/bin:$PATH
 
 # Test if at virtual environment is already configured, and if not, create one
 # and install Minerva
 if [ -z "$VIRTUAL_ENV" ] || [ ! -d "$VIRTUAL_ENV" ]
 then
-    VENV_DIR="$MINERVA_ROOT/venv"
+    VENV_DIR="$WORKSPACE/venv"
 
     if [ ! -d $VENV_DIR ]
     then
@@ -37,7 +37,7 @@ then
 
         source $VENV_DIR/bin/activate
 
-        pip3 install -e $MINERVA_ROOT
+        pip3 install -e $WORKSPACE
     else
         echo "Activating virtualenv at '$VENV_DIR'"
 
@@ -47,8 +47,8 @@ fi
 
 # Activate the Minerva tiny_instance example instance so that you immediately
 # have something to work with.
-echo "Activating example instance $MINERVA_ROOT/examples/tiny_instance..."
-source "$MINERVA_ROOT/examples/tiny_instance/bin/activate"
+echo "Activating example instance $WORKSPACE/examples/tiny_instance..."
+source "$WORKSPACE/examples/tiny_instance/bin/activate"
 
 if [ "$START_MINERVA_DB" = "1" ]
 then
@@ -62,7 +62,7 @@ then
         --rm \
         -e "POSTGRES_HOST_AUTH_METHOD=trust" \
         -p $PGPORT:5432 \
-        -v "$MINERVA_ROOT/development/postgresql.conf:/etc/postgresql/postgresql.conf" \
+        -v "$WORKSPACE/development/postgresql.conf:/etc/postgresql/postgresql.conf" \
         -d \
         hendrikxitc/minerva
     echo "Started"
