@@ -2,6 +2,6 @@
 
 IMAGE_NAME=python-test
 
-docker build -t $IMAGE_NAME -f Dockerfile.python $WORKSPACE
+docker build -t $IMAGE_NAME -f Dockerfile.python $WORKSPACE/docker-context
 
-docker run --rm -v $WORKSPACE:/workspace -w /workspace $IMAGE_NAME /workspace/docker-context/run-tests /workspace/tests
+docker run --user=$(id -u):$(id -g) -e WORKSPACE=$WORKSPACE --rm -v $WORKSPACE:/workspace -w /workspace $IMAGE_NAME /workspace/docker-context/run-tests /workspace/tests
