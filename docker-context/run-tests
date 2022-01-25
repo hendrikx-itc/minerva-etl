@@ -6,7 +6,7 @@ python3 -m venv --system-site-packages $WORKSPACE/venv
 
 . $WORKSPACE/venv/bin/activate
 
-pip install pytest
+pip install pytest pytest-custom_exit_code
 
 pip install -e $WORKSPACE
 
