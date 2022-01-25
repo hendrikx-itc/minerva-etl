@@ -1,3 +1,4 @@
+from typing import Type
 from collections import OrderedDict
 
 import yaml
@@ -5,27 +6,28 @@ import yaml
 
 class SqlSrc(str):
     @staticmethod
-    def representer(dumper, data):
+    def representer(dumper, data: str) -> str:
         return dumper.represent_scalar('tag:yaml.org,2002:str', data, style='|')
+
+
+def dict_representer(dumper: Type[yaml.Dumper], data: OrderedDict):
+    return dumper.represent_mapping(
+        yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG,
+        data.items()
+    )
 
 
 def ordered_yaml_dump(data, stream=None, Dumper=yaml.Dumper, **kwds):
     class OrderedDumper(Dumper):
         pass
 
-    def _dict_representer(dumper, data: OrderedDict):
-        return dumper.represent_mapping(
-            yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG,
-            data.items()
-        )
-
-    OrderedDumper.add_representer(OrderedDict, _dict_representer)
+    OrderedDumper.add_representer(OrderedDict, dict_representer)
     OrderedDumper.add_representer(SqlSrc, SqlSrc.representer)
 
     return yaml.dump(data, stream, OrderedDumper, **kwds)
 
 
-def ordered_yaml_load(stream, Loader=yaml.Loader, object_pairs_hook=OrderedDict):
+def ordered_yaml_load(stream, Loader=yaml.Loader, object_pairs_hook=OrderedDict) -> OrderedDict:
     class OrderedLoader(Loader):
         pass
 
