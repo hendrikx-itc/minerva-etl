@@ -132,7 +132,7 @@ def compile_entity_aggregation(aggregation_context: EntityAggregationContext):
             base_name
         )
 
-        if os.is_file(aggregate_trend_store_file_path):
+        if os.path.exists(aggregate_trend_store_file_path):
             print("Adding to aggregate trend store '{}'".format(
                 aggregate_trend_store_file_path
             ))
