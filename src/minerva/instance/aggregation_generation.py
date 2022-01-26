@@ -123,9 +123,6 @@ def generate_entity_aggregation(
     basename = definition['entity_aggregation']['basename']
 
     compile_entity_aggregation(aggregation_context)
-    created_entity_aggregations.add(basename)
-
-    return created_entity_aggregations
 
 
 def generate_entity_aggregation_yaml(

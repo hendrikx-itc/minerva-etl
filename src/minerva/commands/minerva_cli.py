@@ -11,7 +11,6 @@ from minerva.commands import data_source, trend_store, entity_type, load_data, \
 
 
 def main():
-    print('Test succeeded')
     parser = argparse.ArgumentParser(
         description='Minerva administration tool set'
     )
