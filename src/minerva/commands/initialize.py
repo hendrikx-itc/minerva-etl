@@ -97,7 +97,7 @@ def initialize_cmd(args):
         header('Live monitoring for materializations')
 
         try:
-            live_monitor()
+            live_monitor(None, 1)
         except KeyboardInterrupt:
             print("Stopped")
 
