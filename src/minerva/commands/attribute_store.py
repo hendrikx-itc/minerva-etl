@@ -62,21 +62,23 @@ def create_attribute_store_cmd(args):
         f"Creating attribute store '{attribute_store}'... "
     )
 
-    with connect() as conn:
-        conn.autocommit = True
+    conn = connect()
+    conn.autocommit = True
 
-        try:
-            create_attribute_store(conn, attribute_store)
-            sys.stdout.write("OK\n")
-        except DuplicateAttributeStore as exc:
-            sys.stdout.write(f'{exc}\n')
-        except Exception as exc:
-            sys.stdout.write(f'Error:\n{exc}\n')
+    try:
+        create_attribute_store(conn, attribute_store)
+        sys.stdout.write("OK\n")
+    except DuplicateAttributeStore as exc:
+        sys.stdout.write(f'{exc}\n')
+    except Exception as exc:
+        sys.stdout.write(f'Error:\n{exc}\n')
+    finally:
+        conn.close()
 
 
 def create_attribute_store(conn, attribute_store: AttributeStore):
     query = (
-        'SELECT attribute_directory.create_attribute_store('
+        'CALL attribute_directory.create_attribute_store('
         '%s::text, %s::text, {}'
         ')'
     ).format(
@@ -94,14 +96,20 @@ def create_attribute_store(conn, attribute_store: AttributeStore):
         attribute_store.data_source, attribute_store.entity_type
     )
 
-    with closing(conn.cursor()) as cursor:
-        try:
-            cursor.execute(query, query_args)
-        except UniqueViolation as exc:
-            # raise DuplicateAttributeStore(
-            #     attribute_store.data_source, attribute_store.entity_type
-            # ) from exc
-            pass
+    conn = connect()
+    conn.autocommit = True
+
+    cursor = conn.cursor()
+    try:
+        cursor.execute(query, query_args)
+    except UniqueViolation as exc:
+        # raise DuplicateAttributeStore(
+        #     attribute_store.data_source, attribute_store.entity_type
+        # ) from exc
+        pass
+    finally:
+        cursor.close()
+    
 
 def setup_delete_parser(subparsers):
     cmd = subparsers.add_parser(

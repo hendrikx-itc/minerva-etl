@@ -214,7 +214,7 @@ class AttributeStore:
         """Create, initialize and return the attribute store."""
         def f(cursor):
             query = (
-                "SELECT * FROM attribute_directory.create_attribute_store("
+                "CALL attribute_directory.create_attribute_store("
                 "%s, %s, %s::attribute_directory.attribute_descr[]"
                 ")"
             )
