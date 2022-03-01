@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+"""Logic for loading data into Minerva."""
 from typing import Callable
 import logging
 from contextlib import contextmanager
@@ -18,13 +19,12 @@ from minerva.directory.entitytype import NoSuchEntityType, EntityType
 from minerva.harvest.fileprocessor import process_file
 from minerva.db import connect, connect_logging
 from minerva.harvest.plugins import get_plugin
-
-
-class ConfigurationError(Exception):
-    pass
+from minerva.error import ConfigurationError
 
 
 class Loader:
+    """Common data loading logic."""
+
     statistics: bool
     pretend: bool
     debug: bool
@@ -34,6 +34,7 @@ class Loader:
     stop_on_missing_entity_type: bool
 
     def __init__(self):
+        """Initialize new Loader instance."""
         self.statistics = False
         self.pretend = True
         self.debug = False
@@ -44,8 +45,9 @@ class Loader:
 
     def load_data(self, file_type: str, config: dict, file_path: Path):
         """
-        Load the data in the file specified by `file_path` of type
-        `file_type`. The parser will be configured with `config`.
+        Load the data in the file specified by `file_path` of type `file_type`.
+
+        The parser will be configured with `config`.
         :param file_type: The type of file
         :param config: The parser configuration
         :param file_path: The file to process
@@ -122,27 +124,38 @@ class Loader:
                 logging.info(line)
 
 
-def create_regex_filter(x):
-    if x:
-        return re.compile(x).match
+def create_regex_filter(expression):
+    """Construct a filter function from a regular expression string."""
+    if expression:
+        return re.compile(expression).match
     else:
         return k(True)
 
 
-class Statistics(object):
+class Statistics:
+    """Holder and extractor for data statistics."""
+
     def __init__(self):
         self.package_count = 0
 
     def extract_statistics(self, package):
+        """Extract statistics from the provided package and store them."""
         self.package_count += 1
 
         return package
 
     def report(self):
+        """Return list of report lines with collected statistics."""
         return ["{} packages".format(self.package_count)]
 
 
 def filter_trend_package(entity_filter, trend_filter, package: DataPackage):
+    """
+    Filter data in a trend package.
+
+    The data in the provided package is filtered based on the provided `entity_filter` and
+    `trend_filter` and return a new package with the filtered data.
+    """
     filtered_trend_names = list(filter(trend_filter, package.trend_descriptors))
 
     trend_filter_map = map(trend_filter, package.trend_descriptors)
@@ -173,6 +186,12 @@ def filter_trend_package(entity_filter, trend_filter, package: DataPackage):
 
 
 def filter_attribute_package(entity_filter, attribute_filter, package):
+    """
+    Filter data in a attribute package.
+
+    The data in the provided package is filtered based on the provided `entity_filter` and
+    `trend_filter` and return a new package with the filtered data.
+    """
     filtered_attribute_names = filter(attribute_filter, package.attribute_names)
 
     attribute_filter_map = map(attribute_filter, package.attribute_names)
