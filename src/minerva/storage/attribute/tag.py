@@ -1,18 +1,11 @@
 # -*- coding: utf-8 -*-
 __docformat__ = "restructuredtext en"
-
-__copyright__ = """
-Copyright (C) 2008-2013 Hendrikx-ITC B.V.
-
-Distributed under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 3, or (at your option) any later
-version.  The full license is in the file COPYING, distributed as part of
-this software.
-"""
 from contextlib import closing
 
 from minerva.db.util import create_temp_table, drop_table, \
     create_copy_from_file
+
+from psycopg2 import sql
 
 
 def tag_attributes(conn, tag_links):
@@ -24,15 +17,15 @@ def tag_attributes(conn, tag_links):
     """
     tmp_table_name = store_in_temp_table(conn, tag_links)
 
-    query = (
-        "INSERT INTO attribute_directory.attribute_tag_link "
-            "(attribute_id, tag_id) "
+    query = sql.SQL(
+        "INSERT INTO attribute_directory.attribute_tag_link (attribute_id, tag_id) "
         "(SELECT tmp.attribute_id, tag.id "
         "FROM {} tmp "
         "JOIN directory.tag tag ON lower(tag.name) = lower(tmp.tag) "
         "LEFT JOIN attribute_directory.attribute_tag_link ttl ON "
         "ttl.attribute_id = tmp.attribute_id AND ttl.tag_id = tag.id "
-        "WHERE ttl.attribute_id IS NULL)").format(tmp_table_name)
+        "WHERE ttl.attribute_id IS NULL)"
+    ).format(sql.Identifier(tmp_table_name))
 
     with closing(conn.cursor()) as cursor:
         cursor.execute(query)

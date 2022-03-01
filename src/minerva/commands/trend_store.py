@@ -1,16 +1,15 @@
 import json
 from contextlib import closing
-import argparse
 import sys
 import datetime
-from typing import BinaryIO, Generator, Optional
+from typing import Generator, Optional
 from pathlib import Path
 
-import yaml
 import psycopg2.errors
+from psycopg2 import sql
 
 from minerva.commands import LoadHarvestPlugin, ListPlugins, load_json, \
-    ConfigurationError, show_rows_from_cursor
+    show_rows_from_cursor
 from minerva.db import connect
 from minerva.db.error import UniqueViolation, LockNotAvailable
 from minerva.harvest.trend_config_deducer import deduce_config
@@ -51,6 +50,7 @@ def setup_command_parser(subparsers):
     setup_show_parser(cmd_subparsers)
     setup_list_parser(cmd_subparsers)
     setup_list_config_parser(cmd_subparsers)
+    setup_check_config_parser(cmd_subparsers)
     setup_partition_parser(cmd_subparsers)
     setup_process_modified_log_parser(cmd_subparsers)
     setup_materialize_parser(cmd_subparsers)
@@ -505,10 +505,12 @@ def change_trend_store_part(conn, trend_store_part, force=False):
     else:
         change_function = 'change_trend_store_part_weak'
 
-    query = (
-        'SELECT * FROM trend_directory.{}('
+    query = sql.SQL(
+        'SELECT * FROM {}('
         '%s::trend_directory.trend_store_part_descr'
         ')'.format(change_function)
+    ).format(
+        sql.Identifier("trend_directory", change_function)
     )
 
     query_args = (
@@ -738,6 +740,64 @@ def list_config_trend_stores_cmd(args):
 
     for trend_store in trend_stores:
         print(trend_store)
+
+
+def setup_check_config_parser(subparsers):
+    cmd = subparsers.add_parser(
+        'check-config', help='check trend stores from configuration'
+    )
+
+    cmd.add_argument(
+        'definition', type=Path, nargs="?",
+        help='file containing trend store definition'
+    )
+
+    cmd.set_defaults(cmd=check_config_trend_stores_cmd)
+
+
+def check_config_trend_stores_cmd(args):
+    instance = MinervaInstance.load()
+
+    if args.definition:
+        trend_store = instance.load_trend_store_from_file(args.definition)
+
+        check_trend_store(args.definition, trend_store)
+    else:
+        trend_stores_with_errors = 0
+
+        for definition_path in instance.list_trend_stores():
+            trend_store = instance.load_trend_store_from_file(definition_path)
+
+            error_count = check_trend_store(definition_path, trend_store)
+
+            if error_count:
+                trend_stores_with_errors += 1
+
+        if trend_stores_with_errors == 0:
+            print("All trend stores Ok")
+        else:
+            print(f"{trend_stores_with_errors} trend stores with errors")
+
+
+def check_trend_store(definition_path: Path, trend_store: TrendStore):
+    error_count = 0
+
+    # Check for duplicate part names
+    for part in trend_store.parts:
+        matching_parts = [p for p in trend_store.parts if p.name == part.name]
+        name_occurrences = len(matching_parts)
+
+        if name_occurrences > 1:
+            print(f"There are {name_occurrences} parts named '{part.name}', but part names must be unique")
+
+            error_count += 1
+
+    if error_count == 0:
+        print(f"{definition_path} - Ok")
+    else:
+        print(f"{definition_path} - {error_count} errors")
+
+    return error_count
 
 
 def setup_partition_parser(subparsers):

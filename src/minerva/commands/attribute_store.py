@@ -96,9 +96,6 @@ def create_attribute_store(conn, attribute_store: AttributeStore):
         attribute_store.data_source, attribute_store.entity_type
     )
 
-    conn = connect()
-    conn.autocommit = True
-
     cursor = conn.cursor()
     try:
         cursor.execute(query, query_args)

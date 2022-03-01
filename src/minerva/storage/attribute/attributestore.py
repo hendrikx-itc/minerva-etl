@@ -215,7 +215,7 @@ class AttributeStore:
         def f(cursor):
             query = (
                 "CALL attribute_directory.create_attribute_store("
-                "%s, %s, %s::attribute_directory.attribute_descr[]"
+                "%s::text, %s::text, %s::attribute_directory.attribute_descr[]"
                 ")"
             )
 

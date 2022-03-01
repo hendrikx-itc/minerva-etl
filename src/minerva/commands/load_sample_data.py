@@ -6,6 +6,7 @@ import datetime
 import subprocess
 from pathlib import Path
 from importlib import import_module
+import tempfile
 
 import yaml
 import pytz
@@ -91,7 +92,7 @@ def cmd_generate_and_load(config):
 
     data_set_generator = import_module(name)
 
-    target_dir = '/tmp'
+    target_dir = tempfile.mkdtemp()
 
     for cmd in data_set_generator.generate(target_dir):
         print(' - executing: {}'.format(' '.join(cmd)))
@@ -119,7 +120,7 @@ def generate_and_load(config, interval_count: int):
         name, config['data_type'], start, end
     ))
 
-    target_dir = "/tmp"
+    target_dir = tempfile.mkdtemp()
 
     data_source = config['data_source']
 
@@ -135,7 +136,7 @@ def generate_and_load(config, interval_count: int):
         data_source, parser.store_command(), connect
     )
 
-    action = {} #'load-sample-data'
+    action = {}
 
     with storage_provider() as store:
         for timestamp in timestamp_range:

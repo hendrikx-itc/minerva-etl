@@ -39,4 +39,4 @@ def ordered_yaml_load(stream, Loader=yaml.Loader, object_pairs_hook=OrderedDict)
         yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG,
         construct_mapping)
 
-    return yaml.load(stream, OrderedLoader)
+    return yaml.load(stream, OrderedLoader)  # nosec

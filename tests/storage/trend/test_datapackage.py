@@ -16,7 +16,6 @@ from minerva.test.trend import refined_package_type_for_entity_type
 class TestDataPackage(unittest.TestCase):
     def test_constructor(self):
         granularity = create_granularity("900s")
-        timestamp = "2013-05-28 12:00:00"
         trends = [
             Trend.Descriptor('counter_a', datatype.registry['integer'], ''),
             Trend.Descriptor('counter_b', datatype.registry['numeric'], ''),

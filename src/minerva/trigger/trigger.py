@@ -224,11 +224,7 @@ class Trigger:
 
         with closing(conn.cursor()) as cursor:
             for query in queries:
-                try:
-                    cursor.execute(query)
-                except Exception:
-                    # Function already exists
-                    pass
+                cursor.execute(query)
 
     def link_trend_stores(self, conn):
         query = (

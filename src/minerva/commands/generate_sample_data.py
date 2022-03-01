@@ -5,6 +5,7 @@ import sys
 import datetime
 from pathlib import Path
 from importlib import import_module
+import tempfile
 
 import yaml
 import pytz
@@ -30,7 +31,7 @@ def setup_command_parser(subparsers):
     )
 
     cmd.add_argument(
-        '-t', '--target-directory', default=Path("/tmp"), type=Path,
+        '-t', '--target-directory', type=Path,
         help="directory where generated files will be written"
     )
 
@@ -46,8 +47,13 @@ def generate_sample_data_cmd(args):
         args.instance_root or os.environ.get(INSTANCE_ROOT_VARIABLE) or os.getcwd()
     )
 
+    if args.target_directory is None:
+        target_directory = Path(tempfile.mkdtemp())
+    else:
+        target_directory = args.target_directory
+
     try:
-        generate_sample_data(instance_root, args.timestamp, args.target_directory, args.dataset)
+        generate_sample_data(instance_root, args.timestamp, target_directory, args.dataset)
     except ConfigurationError as exc:
         sys.stdout.write('{}\n'.format(str(exc)))
 

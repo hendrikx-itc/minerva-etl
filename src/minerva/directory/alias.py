@@ -5,6 +5,8 @@ Alias related functions
 from io import StringIO
 from contextlib import closing
 
+from psycopg2 import sql
+
 
 class NoSuchAliasType(Exception):
     """
@@ -35,33 +37,34 @@ def store(conn, aliases, type_name):
     tmp_table = "tmp_alias"
 
     with closing(conn.cursor()) as cursor:
-
-        query = (
-            "CREATE TEMPORARY TABLE \"{0}\" "
-            "(LIKE directory.alias) ON COMMIT DROP".format(tmp_table)
-        )
+        query = sql.SQL(
+            "CREATE TEMPORARY TABLE {} "
+            "(LIKE directory.alias) ON COMMIT DROP"
+        ).format(sql.Identifier(tmp_table))
 
         cursor.execute(query)
 
-        query = (
-            "COPY \"{0}\" (entity_id, name, type_id) "
-            "FROM STDIN".format(tmp_table)
-        )
+        query = sql.SQL(
+            "COPY {}(entity_id, name, type_id) "
+            "FROM STDIN"
+        ).format(sql.Identifier(tmp_table))
 
         cursor.copy_expert(query, _f)
 
-        query = (
+        query = sql.SQL(
             "INSERT INTO directory.alias (entity_id, name, type_id) ON CONFLICT DO NOTHING"
-            "SELECT tmp.entity_id, tmp.name, tmp.type_id FROM \"{0}\" tmp "
+            "SELECT tmp.entity_id, tmp.name, tmp.type_id FROM {} tmp "
             "LEFT JOIN directory.alias a "
             "ON a.entity_id = tmp.entity_id AND a.type_id = tmp.type_id "
-            "WHERE a.entity_id IS NULL ".format(tmp_table)
+            "WHERE a.entity_id IS NULL "
+        ).format(
+            sql.Identifier(tmp_table)
         )
 
         cursor.execute(query)
 
 
-def create_type(conn, type_name):
+def create_type(conn, type_name: str) -> int:
     """
     Create alias type and return type id
     """
@@ -69,12 +72,12 @@ def create_type(conn, type_name):
 
     with closing(conn.cursor()) as cursor:
         cursor.execute(query, (type_name,))
-        id, = cursor.fetchone()
+        alias_type_id, = cursor.fetchone()
 
-    return id
+    return alias_type_id
 
 
-def get_type_id(conn, type_name):
+def get_type_id(conn, type_name: str) -> int:
     """
     Return id of alias type
     """
@@ -84,8 +87,8 @@ def get_type_id(conn, type_name):
         cursor.execute(query, (type_name,))
 
         if cursor.rowcount > 0:
-            id, = cursor.fetchone()
-            return id
+            alias_type_id, = cursor.fetchone()
+            return alias_type_id
         else:
             raise NoSuchAliasType
 
@@ -106,7 +109,9 @@ def flush(conn, type_name):
 
 
 def get_entity_id_by_alias(conn, type_name, alias):
-    query = "SELECT entity_id FROM alias.{} WHERE alias = %s".format(alias)
+    query = sql.SQL(
+        "SELECT entity_id FROM {} WHERE alias = %s"
+    ).format(sql.Identifier("alias", type_name))
 
     with closing(conn.cursor()) as cursor:
         cursor.execute(query, (alias,))

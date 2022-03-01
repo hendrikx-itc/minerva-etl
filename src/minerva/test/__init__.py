@@ -3,6 +3,7 @@ from contextlib import closing, contextmanager
 from functools import wraps
 
 import psycopg2.extras
+from psycopg2 import sql
 
 from minerva.util.debug import log_call_basic
 
@@ -86,7 +87,11 @@ def with_data_context(conn, test_set):
 
 
 def row_count(cursor, table):
-    cursor.execute("SELECT COUNT(*) FROM {}".format(table.render()))
+    query = sql.SQL(
+        "SELECT COUNT(*) FROM {}"
+    ).format(sql.Identifier(table.render()))
+
+    cursor.execute(query)
 
     count, = cursor.fetchone()
 

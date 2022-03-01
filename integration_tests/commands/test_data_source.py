@@ -1,4 +1,4 @@
-import subprocess
+import subprocess # nosec
 
 
 def test_create_data_source(start_db_container):

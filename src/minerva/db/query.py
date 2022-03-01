@@ -1,17 +1,19 @@
 # -*- coding: utf-8 -*-
+"""Dynamic query construction classes"""
 import re
 import copy
 from datetime import datetime
 from operator import attrgetter
 from itertools import chain, groupby
 from functools import partial, reduce
+from typing import Iterable
 
 from minerva.util import k, if_set
 
 
 enclose = partial(str.format, "{0[0]}{1}{0[1]}")
 
-parenthesize = partial(enclose, '()')
+parenthesize = partial(enclose, "()")
 
 quote = partial(enclose, '""')
 
@@ -19,7 +21,8 @@ quote = partial(enclose, '""')
 identifier_regex = re.compile("^[a-z][a-z_0-9]*$")
 
 
-def iter_concat(iterables):
+def iter_concat(iterables) -> list:
+    """Concatenate iterables into a single list"""
     return list(chain(*iterables))
 
 
@@ -32,28 +35,39 @@ def smart_quote(name):
     """
     if identifier_regex.match(name) and name not in reserved_keywords:
         return name
-    else:
-        return quote(name)
+
+    return quote(name)
 
 
 class Sql:
+    """Base class for SQL components"""
+
     def curry(self, *args, **kwargs):
+        """
+        Fill in part of the arguments and return self
+
+        This is used in constructs where in some part of the code, part of the arguments can be
+        provided, and in another part of the code (possibly another function), another part of the
+        arguments is provided.
+        :param args: Part or all of the positional arguments
+        :param kwargs: Part or all of the keyword arguments
+        :return: self
+        """
         get_name = attrgetter("name")
         sorted_arguments = sorted(self.arguments(), key=get_name)
 
         arguments = dict(
-            (key, list(it))
-            for key, it in groupby(sorted_arguments, get_name)
+            (key, list(it)) for key, it in groupby(sorted_arguments, get_name)
         )
 
         pos_arguments = arguments.get(None, [])
 
-        for argument, a in zip(pos_arguments, args):
-            argument.value = a
+        for argument, arg in zip(pos_arguments, args):
+            argument.value = arg
 
-        for keyword, value in kwargs.iteritems():
-            for a in arguments.get(keyword, []):
-                a.value = value
+        for keyword, value in kwargs.items():
+            for argument in arguments.get(keyword, []):
+                argument.value = value
 
         return self
 
@@ -61,13 +75,13 @@ class Sql:
         """
         Render and return SQL as string
         """
-        if len(args) > 0 or len(kwargs.keys()):
+        if args or kwargs.keys():
             self.curry(*args, **kwargs)
 
         return self._render()
 
     def _render(self):
-        raise NotImplemented()
+        raise NotImplementedError()
 
     def references(self):
         """
@@ -99,7 +113,7 @@ class Call(Sql):
 
 class SchemaObject(Sql):
     def references(self):
-        return self,
+        return (self,)
 
 
 class Schema(SchemaObject):
@@ -261,9 +275,9 @@ class FormattedValue(Sql):
 
 def format_bool(b):
     if b is True:
-        return 'true'
+        return "true"
     else:
-        return 'false'
+        return "false"
 
 
 def format_datetime(dt):
@@ -314,7 +328,7 @@ class Argument(Sql):
 
     def arguments(self):
         if self.value is None:
-            return self,
+            return (self,)
         else:
             return tuple()
 
@@ -440,7 +454,7 @@ class As(Sql):
 
     def references(self):
         if isinstance(self.source, (Table, Column)):
-            return self.source,
+            return (self.source,)
         else:
             return tuple()
 
@@ -467,21 +481,21 @@ def is_iterable(obj):
     return hasattr(obj, "__iter__")
 
 
-def ensure_iterable(obj):
+def ensure_iterable(obj) -> Iterable:
     if is_iterable(obj):
         return obj
     else:
         return [obj]
 
 
-def ensure_sql(obj):
+def ensure_sql(obj) -> Sql:
     if isinstance(obj, Sql):
         return obj
     else:
         return Value(obj)
 
 
-def ensure_sql_type(obj):
+def ensure_sql_type(obj) -> SqlType:
     if isinstance(obj, SqlType):
         return obj
     else:
@@ -556,7 +570,7 @@ class Join(FromItem):
     def __init__(self, left, right, on=None, join_type=None):
         self.left = ensure_from(left)
         self.right = ensure_from(right)
-        self.on = on
+        self._on = on
         self.join_type = join_type
 
     def _render(self):
@@ -566,14 +580,14 @@ class Join(FromItem):
             join = "JOIN"
 
         return "{} {} {} ON {}".format(
-            self.left.render(), join, self.right.render(), self.on.render()
+            self.left.render(), join, self.right.render(), self._on.render()
         )
 
     def as_(self, alias):
         return As(self, alias)
 
     def on(self, on):
-        self.on = on
+        self._on = on
 
         return self
 
@@ -586,22 +600,34 @@ def ensure_from(obj):
 
 
 class WithQuery(SqlQuery):
-    def __init__(self, name, columns=[], query=None):
+    def __init__(self, name, columns=None, query=None):
         self.name = name
-        self.columns = ensure_iterable(columns)
+
+        if columns is None:
+            self.columns = []
+        else:
+            self.columns = ensure_iterable(columns)
+
         self.query = query
 
     def _render(self):
         if self.columns:
             columns_part = ", ".join([c.render() for c in self.columns])
-            return "{} {} AS ({})".format(self.name, columns_part)
+            return "{} AS ({})".format(self.name, columns_part)
         else:
             return "{} AS ({})".format(self.name, self.query.render())
 
 
 class Select(SqlQuery):
-    def __init__(self, expressions, with_query=None, from_=None, where_=None,
-                 group_by_=None, limit=None):
+    def __init__(
+        self,
+        expressions,
+        with_query=None,
+        from_=None,
+        where_=None,
+        group_by_=None,
+        limit=None,
+    ):
         self.expressions = list(map(ensure_sql, ensure_iterable(expressions)))
         self.with_query = with_query
         self.sources = list(map(ensure_from, ensure_iterable(from_)))
@@ -648,31 +674,29 @@ class Select(SqlQuery):
         parts.append(expressions_part)
 
         if self.sources:
-            sources_part = "FROM {}".format(
-                ", ".join(s.render() for s in self.sources))
+            sources_part = "FROM {}".format(", ".join(s.render() for s in self.sources))
 
             parts.append(sources_part)
 
         if self.requirements:
-            requirements_part = "WHERE {}".format(self.requirements.render())
+            requirements_part = f"WHERE {self.requirements.render()}"
 
             parts.append(requirements_part)
 
         if self.group_by:
             group_by_part = "GROUP BY {}".format(
-                ", ".join(g.render() for g in self.group_by))
+                ", ".join(g.render() for g in self.group_by)
+            )
 
             parts.append(group_by_part)
 
         if self._limit:
-            parts.append("LIMIT {0:d}".format(self._limit))
+            parts.append(f"LIMIT {self._limit:d}")
 
         return " ".join(parts)
 
     def references(self):
-        idents = []
-
-        idents.append(chain(*[e.references() for e in self.expressions]))
+        idents = [list(chain(*[e.references() for e in self.expressions]))]
 
         if self.sources:
             idents.append(chain(*[s.references() for s in self.sources]))
@@ -683,9 +707,7 @@ class Select(SqlQuery):
         return iter_concat(idents)
 
     def arguments(self):
-        arguments = []
-
-        arguments.append(chain(*[e.arguments() for e in self.expressions]))
+        arguments = [list(chain(*[e.arguments() for e in self.expressions]))]
 
         if self.sources:
             arguments.append(chain(*[s.arguments() for s in self.sources]))
@@ -695,101 +717,114 @@ class Select(SqlQuery):
 
         return iter_concat(arguments)
 
-    def limit(self, n):
+    def set_limit(self, num: int):
+        """Set `LIMIT` to `num`"""
+        self._limit = num
+
+    def limit(self, num: int):
+        """Return a copy of the select statement with `LIMIT` set to `num`"""
         select = self.clone()
-        select._limit = n
+        select.set_limit(num)
 
         return select
 
 
 class Insert(SqlQuery):
-    def __init__(self, into=None, columns=[]):
-        self.into = into
+    """SQL INSERT statement"""
+    def __init__(self, into=None, columns=None):
+        self._into = into
         self._returning = None
-        self.columns = columns
+
+        if columns is None:
+            self.columns = []
+        else:
+            self.columns = columns
 
     def into(self, table):
-        self.into = table
+        """Set the `INTO` target of the INSERT statement"""
+        self._into = table
 
         return self
 
     def returning(self, column_name):
+        """Add `RETURNING` part to INSERT statement"""
         self._returning = column_name
 
         return self
 
-    def render(self):
+    def _render(self):
         columns_part = ", ".join(c.render() for c in self.columns)
 
         args_part = ", ".join(map(k("%s"), self.columns))
 
-        query = (
-            "INSERT INTO {}({}) "
-            "VALUES ({})").format(self.into.render(), columns_part, args_part)
+        query = f"INSERT INTO {self._into.render()}({columns_part}) VALUES ({args_part})"
 
         if self._returning:
-            query += " RETURNING {}".format(self._returning)
+            query += f" RETURNING {self._returning}"
 
         return query
 
 
 class Truncate(SqlQuery):
+    """SQL TRUNCATE statement"""
     def __init__(self, table, cascade=False):
         self.table = table
         self._cascade = cascade
 
-    def render(self):
+    def _render(self):
         if self._cascade:
-            q = "TRUNCATE {} CASCADE"
+            sql = "TRUNCATE {} CASCADE"
         else:
-            q = "TRUNCATE {}"
+            sql = "TRUNCATE {}"
 
-        return q.format(self.table.render())
+        return sql.format(self.table.render())
 
     def cascade(self):
+        """Set the flag to use `CASCADE` to true"""
         self._cascade = True
 
         return self
 
 
 class Drop(SqlQuery):
+    """SQL DROP statement"""
     def __init__(self, schema_obj, if_exists=False):
         self.schema_obj = schema_obj
         self._if_exists = if_exists
 
-    def render(self):
+    def _render(self):
         if isinstance(self.schema_obj, Table):
             if self._if_exists:
-                sql = "DROP TABLE IF EXISTS {}".format(
-                    self.schema_obj.render())
+                sql = f"DROP TABLE IF EXISTS {self.schema_obj.render()}"
             else:
-                sql = "DROP TABLE {}".format(self.schema_obj.render())
+                sql = f"DROP TABLE {self.schema_obj.render()}"
 
             return sql
-        else:
-            msg = "Cannot drop object of type {}"
 
-            raise Exception(msg.format(type(self.schema_obj)))
+        msg = "Cannot drop object of type {}"
+
+        raise Exception(msg.format(type(self.schema_obj)))
 
     def if_exists(self):
+        """Set the flag to use `IF EXISTS` to true"""
         self._if_exists = True
 
         return self
 
 
 def is_table(ident):
+    """Return true if `ident` is a Table, false otherwise"""
     return isinstance(ident, Table)
 
 
 def filter_tables(references):
+    """Return list with only the tables from `references`"""
     return list(filter(is_table, references))
 
 
-def table_exists(cursor, table):
-    criterion = And(
-        Eq(Column("relname")),
-        Eq(Column("relkind"))
-    )
+def table_exists(cursor, table) -> bool:
+    """Return true if specified table exists, false otherwise"""
+    criterion = And(Eq(Column("relname")), Eq(Column("relkind")))
 
     query = Select(1, from_=Table("pg_class"), where_=criterion)
 
@@ -800,7 +835,8 @@ def table_exists(cursor, table):
     return cursor.rowcount > 0
 
 
-def column_exists(cursor, table, column):
+def column_exists(cursor, table, column) -> bool:
+    """Return true if specified column exists, false otherwise"""
     query = (
         "SELECT 1 "
         "FROM pg_class c, pg_attribute a, pg_namespace n "
@@ -819,6 +855,7 @@ def column_exists(cursor, table, column):
 
 
 def extract_tables(references):
+    """Return list with all direct and indirect referenced tables"""
     tables = []
 
     for ref in references:

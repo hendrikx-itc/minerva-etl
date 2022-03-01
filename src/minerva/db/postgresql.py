@@ -39,7 +39,7 @@ def disable_transactions(conn):
 
 
 def full_table_name(name, schema=None):
-    if not schema is None:
+    if schema is not None:
         return "\"{0:s}\".\"{1:s}\"".format(schema, name)
     else:
         return "\"{0}\"".format(name)
@@ -132,9 +132,12 @@ column_name = '{2:s}';".format(schema, table, column))
 def schema_exists(conn, name):
     with closing(conn.cursor()) as cursor:
         query = (
-            "SELECT COUNT(*) FROM information_schema.schemata WHERE "
-            "schema_name = '{0:s}'").format(name)
-        cursor.execute(query)
+            "SELECT COUNT(*) FROM information_schema.schema "
+            "WHERE schema_name = %s"
+        )
+
+        query_args = (name,)
+        cursor.execute(query, query_args)
 
         (num, ) = cursor.fetchone()
 
@@ -142,18 +145,18 @@ def schema_exists(conn, name):
 
 
 def create_schema(conn, name, owner):
-    with closing(conn.cursor()) as cursor:
-        cursor.execute("SELECT COUNT(*) FROM pg_catalog.pg_namespace WHERE \
-nspname = '{0:s}';".format(name))
+    query = (
+        "CREATE SCHEMA \"{0:s}\" "
+        "AUTHORIZATION {1:s}"
+    ).format(name, owner)
 
-        (num, ) = cursor.fetchone()
+    if not schema_exists(conn, name):
+        with closing(conn.cursor()) as cursor:
+            cursor.execute(query)
 
-        if num == 0:
-            cursor.execute("CREATE SCHEMA \"{0:s}\"\
-AUTHORIZATION {1:s}".format(name, owner))
-            conn.commit()
-        else:
-            raise ExistsError("Schema {0:s} already exists".format(name))
+        conn.commit()
+    else:
+        raise ExistsError("Schema {0:s} already exists".format(name))
 
 
 def alter_table_owner(conn, table, owner):
@@ -204,7 +207,7 @@ groname = '{0:s}';".format(name))
         if num == 0:
             cursor.execute("CREATE ROLE \"{0:s}\"".format(name))
 
-        if not group is None:
+        if group is not None:
             query = "GRANT {0:s} TO {1:s}".format(group, name)
             cursor.execute(query)
 
