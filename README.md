@@ -3,6 +3,7 @@
 The Python interface and administration tooling to the Minerva database.
 
 [![License](https://img.shields.io/github/license/hendrikx-itc/minerva-etl)](LICENSE)
+[![pypi](https://img.shields.io/pypi/v/minerva-etl.svg)](https://pypi.org/project/minerva-etl/)
 [![Codacy Badge](https://app.codacy.com/project/badge/Grade/c5362e2ab5e64942af78dd09ab70afa7)](https://www.codacy.com/gh/hendrikx-itc/minerva-etl/dashboard?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=hendrikx-itc/minerva-etl&amp;utm_campaign=Badge_Grade)
 
 Minerva is an open-source ETL platform optimized for real-time big data
