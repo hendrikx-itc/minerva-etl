@@ -13,6 +13,11 @@ PostgreSQL.
 To access an existing Minerva instance from code, or to set up a new Minerva
 instance, this is the component you need to use.
 
+## Contributing
+
+Read the [contributing guide](CONTRIBUTING.md) if you want to help develop or
+improve Minerva ETL.
+
 ## Dependencies and requirements
 
 Minerva depends on the following software:
