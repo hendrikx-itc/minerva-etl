@@ -121,9 +121,7 @@ class Materialization:
         set_enabled_query = (
             'UPDATE trend_directory.materialization '
             'SET processing_delay = %s, stability_delay = %s, reprocessing_period = %s, enabled = %s '
-            'FROM trend_directory.trend_store_part '
-            'WHERE trend_store_part.id = materialization.dst_trend_store_part_id '
-            'AND trend_store_part.name = %s '
+            'WHERE materialization::text = %s'
         )
 
         set_enabled_args = (
@@ -131,6 +129,8 @@ class Materialization:
             self.reprocessing_period, self.enabled,
             self.target_trend_store_part
         )
+
+        print(set_enabled_query % set_enabled_args)
         
         with conn.cursor() as cursor:
             cursor.execute(set_enabled_query, set_enabled_args)
@@ -268,6 +268,10 @@ class FunctionMaterialization(Materialization):
         )
 
         with conn.cursor() as cursor:
+            print("#" * 80)
+            print(create_function_query.as_string(cursor))
+            print("-" * 80)
+            
             cursor.execute(create_function_query)
 
     def drop_function(self, conn):
@@ -295,6 +299,10 @@ class FunctionMaterialization(Materialization):
             f'trend."{self.target_trend_store_part}"(timestamp with time zone)',
             self.target_trend_store_part
         )
+
+        print('=' * 80)
+        print(define_function_materialization_query % define_materialization_args)
+        print('-' * 80)
         
         with conn.cursor() as cursor:
             cursor.execute(define_function_materialization_query, define_materialization_args)
