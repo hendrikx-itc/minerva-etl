@@ -51,7 +51,7 @@ def names_to_entity_ids(cursor, entity_type: str, names: List[str]) -> List[int]
     ).format(sql.Identifier(entity_type_name))
 
     entity_ids = []
-    
+
     cursor.execute(query, (names,))
 
     rows = cursor.fetchall()

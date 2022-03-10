@@ -38,18 +38,13 @@ class Materialization:
             return cursor.rowcount
 
     def link_sources(self, conn):
-        count_trend_store_query = (
-            "SELECT COUNT(*) "
-            "FROM trend_directory.materialization m, trend_directory.trend_store_part tsp "
-            "WHERE m::text = %s and tsp.name = %s "
-            )
-        
         link_trend_store_query = (
             "INSERT INTO trend_directory.materialization_trend_store_link("
             "materialization_id, trend_store_part_id, timestamp_mapping_func) "
             "SELECT m.id, tsp.id, %s::regprocedure "
             "FROM trend_directory.materialization m, trend_directory.trend_store_part tsp "
             "WHERE m::text = %s and tsp.name = %s "
+            "RETURNING *"
         )
 
         with conn.cursor() as cursor:
@@ -60,15 +55,10 @@ class Materialization:
                     link['trend_store_part']
                 )
 
-                cursor.execute(count_trend_store_query, link_trend_store_args[1:])
+                cursor.execute(link_trend_store_query, link_trend_store_args)
 
-                (count,) = cursor.fetchone() 
-
-                if count == 0:
+                if cursor.rowcount == 0:
                     raise ConfigurationError(f"Could not link source trend store part '{link['trend_store_part']}'")
-                else:
-                    cursor.execute(link_trend_store_query, link_trend_store_args)
-                    
 
     def unlink_sources(self, conn):
         unlink_trend_store_query = (
@@ -121,9 +111,7 @@ class Materialization:
         set_enabled_query = (
             'UPDATE trend_directory.materialization '
             'SET processing_delay = %s, stability_delay = %s, reprocessing_period = %s, enabled = %s '
-            'FROM trend_directory.trend_store_part '
-            'WHERE trend_store_part.id = materialization.dst_trend_store_part_id '
-            'AND trend_store_part.name = %s '
+            'WHERE materialization::text = %s'
         )
 
         set_enabled_args = (
@@ -131,7 +119,7 @@ class Materialization:
             self.reprocessing_period, self.enabled,
             self.target_trend_store_part
         )
-        
+
         with conn.cursor() as cursor:
             cursor.execute(set_enabled_query, set_enabled_args)
 
@@ -210,7 +198,7 @@ class ViewMaterialization(Materialization):
             f'trend."{self.view_name()}"',
             self.target_trend_store_part
         )
-        
+
         with conn.cursor() as cursor:
             cursor.execute(define_view_materialization_query, define_view_materialization_args)
 
@@ -295,7 +283,7 @@ class FunctionMaterialization(Materialization):
             f'trend."{self.target_trend_store_part}"(timestamp with time zone)',
             self.target_trend_store_part
         )
-        
+
         with conn.cursor() as cursor:
             cursor.execute(define_function_materialization_query, define_materialization_args)
 
