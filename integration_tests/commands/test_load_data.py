@@ -1,5 +1,6 @@
 import subprocess
 import tempfile
+import json
 
 from minerva.util.yaml import ordered_yaml_dump
 
@@ -36,13 +37,26 @@ def test_create_data_source(start_db_container):
 
     assert proc.returncode == 0
 
-    with tempfile.NamedTemporaryFile("wt") as tmp_file:
-        tmp_file.write("a,b,c\n")
-        tmp_file.write("1,2,3\n")
-        tmp_file.flush()
+    with tempfile.NamedTemporaryFile("wt") as csv_file, tempfile.NamedTemporaryFile("wt") as config_file:
+        parser_config = {
+            "timestamp": "timestamp",
+            "identifier": "entity",
+            "delimiter": ",",
+            "chunk_size": 5000,
+            "columns": [],
+            "entity_type": "node",
+            "granularity": "1d",
+        }
+
+        json.dump(parser_config, config_file)
+        config_file.flush()
+
+        csv_file.write("timestamp,entity,a,b,c\n")
+        csv_file.write("2022-03-11T00:00:00,node_1,1,2,3\n")
+        csv_file.flush()
 
         proc = subprocess.run(
-            ['minerva', 'load-data', '--data-source', 'test', '--type', 'csv', tmp_file.name]
+            ['minerva', 'load-data', '--data-source', 'test', '--parser-config', config_file.name, '--type', 'csv', csv_file.name]
         )
 
     assert proc.returncode == 0

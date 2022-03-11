@@ -75,7 +75,7 @@ def test_store_copy_from_1(start_db_container):
 
         table = Table('trend', part.name)
 
-        assert row_count(cursor, table) == 11
+        assert row_count(cursor, table.identifier()) == 11
 
         table.select(Call("max", Column("job_id"))).execute(cursor)
 
@@ -131,7 +131,7 @@ def test_store_copy_from_2(start_db_container):
 
         conn.rollback()
 
-        assert row_count(cursor, table) == 0
+        assert row_count(cursor, table.identifier()) == 0
 
 
 def test_update_modified_column(start_db_container):
@@ -178,14 +178,16 @@ def test_update_modified_column(start_db_container):
             data_package_type, granularity, trends, data_rows
         )
 
-        description = {'job': 'from-test'}
+        job_id = 10
 
-        trend_store.store(data_package, description)(conn)
+        trend_store.store(data_package, job_id)(conn)
         time.sleep(1)
         data_package = DataPackage(
             data_package_type, granularity, trends, update_data_rows
         )
-        trend_store.store(data_package, description)(conn)
+
+        job_id = 11
+        trend_store.store(data_package, job_id)(conn)
         conn.commit()
 
         query = table.select([Column("job_id")])
@@ -235,17 +237,17 @@ def test_update(start_db_container):
         data_package_type, granularity, trend_descriptors, data_rows
     )
 
-    description = {'job': 'from-test-a'}
+    job_id = 10
 
-    trend_store.store(data_package, description)(conn)
+    trend_store.store(data_package, job_id)(conn)
 
     data_package = DataPackage(
         data_package_type, granularity, trend_descriptors, update_data_rows
     )
 
-    description = {'job': 'from-test-b'}
+    job_id = 11
 
-    trend_store.store(data_package, description)(conn)
+    trend_store.store(data_package, job_id)(conn)
     conn.commit()
 
     query = table.select([Column("job_id"), Column("CCR")])

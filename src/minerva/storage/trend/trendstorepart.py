@@ -423,7 +423,7 @@ def create_copy_from_query(table: Table, trend_names: List[str]) -> str:
 def create_insert_query(table: Table, column_names: List[str]) -> sql.SQL:
     """Return insertion query to be performed when copy fails"""
     update_parts = [
-        sql.Literal('"{}" = excluded."{}"'.format(column, column))
+        sql.SQL("{} = {}").format(sql.Identifier(column), sql.Identifier("excluded", column))
         for column in column_names
         if column not in ('entity_id', 'timestamp', 'created')
     ]

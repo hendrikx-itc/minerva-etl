@@ -19,7 +19,10 @@ DEFAULT_CONFIG = {
     "timestamp": "timestamp",
     "identifier": "entity",
     "delimiter": ",",
-    "chunk_size": DEFAULT_CHUNK_SIZE
+    "chunk_size": DEFAULT_CHUNK_SIZE,
+    "columns": [],
+    "entity_type": "node",
+    "granularity": "15m",
 }
 
 

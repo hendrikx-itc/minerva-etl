@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """Logic for loading data into Minerva."""
-from typing import Callable
+from typing import Callable, Optional
 import logging
 from contextlib import contextmanager
 from contextlib import closing
@@ -43,7 +43,7 @@ class Loader:
         self.merge_packages = True
         self.stop_on_missing_entity_type = False
 
-    def load_data(self, file_type: str, config: dict, file_path: Path):
+    def load_data(self, file_type: str, config: Optional[dict], file_path: Path):
         """
         Load the data in the file specified by `file_path` of type `file_type`.
 
@@ -116,8 +116,8 @@ class Loader:
                         else:
                             logging.warning(exc)
 
-        except ConfigurationError as err:
-            print("fatal: {}".format(err))
+        except ConfigurationError:
+            raise
 
         if self.statistics:
             for line in statistics.report():

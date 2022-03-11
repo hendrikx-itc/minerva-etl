@@ -1,11 +1,13 @@
+"""Helper functions unrelated to other functionality."""
 from minerva.util import head, tail
 from minerva.util.tabulate import render_table
 
 
 def render_source(source):
     """
-    Renders a data 'source' in the form of a table-like object:
+    Render a data 'source' in the form of a table-like object.
 
+    Example:
     [
         ('column_1', 'column_2', 'column_3', ...),
         (1, 2, 3,...),

@@ -77,6 +77,10 @@ class TrendStore:
         columns
     ).where_(Eq(Column("id")))
 
+    @classmethod
+    def clear_cache(cls):
+        cls._trend_store_cache = {}
+
     def __init__(
             self, id_: int, data_source: DataSource, entity_type: EntityType,
             granularity: Granularity, partition_size: timedelta, retention_period):

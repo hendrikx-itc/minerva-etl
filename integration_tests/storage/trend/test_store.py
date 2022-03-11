@@ -137,8 +137,10 @@ def test_store_copy_from_2(start_db_container):
     trend_store.create_partitions_for_timestamp(conn, timestamp)
     conn.commit()
 
+    job_id = 10
+
     with pytest.raises(DataTypeMismatch):
-        trend_store.store(data_package, {'job': 'test-job'})(conn)
+        trend_store.store(data_package, job_id)(conn)
 
     conn.rollback()
 
@@ -188,16 +190,20 @@ def test_update_modified_column(start_db_container):
 
         data_package = DataPackage(data_package_type, granularity, trend_descriptors, data_rows)
 
+        job_id = 10
+
         trend_store.store(
-            data_package, {'job': 'test-job'}
+            data_package, job_id
         )(conn)
 
         time.sleep(1)
 
         data_package = DataPackage(data_package_type, granularity, trend_descriptors, update_data_rows)
 
+        job_id = 11
+
         trend_store.store(
-            data_package, {'job': 'test-job'}
+            data_package, job_id
         )(conn)
         conn.commit()
 
@@ -275,14 +281,18 @@ def test_update(start_db_container):
 
     data_package = DataPackage(data_package_type, granularity, trend_descriptors, data_rows)
 
+    job_id = 10
+
     trend_store.store(
-        data_package, {'job': 'test-job'}
+        data_package, job_id
     )(conn)
 
     data_package = DataPackage(data_package_type, granularity, trend_descriptors, update_data_rows)
 
+    job_id = 11
+
     trend_store.store(
-        data_package, {'job': 'test-job'}
+        data_package, job_id
     )(conn)
 
     conn.commit()
@@ -348,9 +358,11 @@ def test_update_and_modify_columns_fractured(start_db_container):
 
     data_package = DataPackage(data_package_type, granularity, trend_descriptors_a, data_rows_a)
 
+    job_id = 10
+
     trend_store.store(
         data_package,
-        {'job': 'test-job-a'}
+        job_id
     )(conn)
     time.sleep(0.2)
 
@@ -363,9 +375,11 @@ def test_update_and_modify_columns_fractured(start_db_container):
 
     data_package = DataPackage(data_package_type, granularity, trend_descriptors_b, data_rows_b)
 
+    job_id = 11
+
     trend_store.store(
         data_package,
-        {'job': 'test-job-b'}
+        job_id
     )(conn)
 
     query = table.select(check_columns)
@@ -500,10 +514,14 @@ def test_store_copy_from(start_db_container):
 
     data_package = DataPackage(data_package_type, granularity, trend_descriptors, rows)
 
-    transaction = trend_store.store(data_package, {'job': 'test-job'})
+    job_id = 10
+
+    transaction = trend_store.store(data_package, job_id)
     transaction(conn)
 
-    transaction = trend_store.store(data_package, {'job': 'test-job'})
+    job_id = 11
+
+    transaction = trend_store.store(data_package, job_id)
     transaction(conn)
 
 
@@ -550,7 +568,9 @@ def test_store_copy_from_missing_column(start_db_container):
 
     data_package = DataPackage(data_package_type, granularity, trend_descriptors, rows)
 
-    transaction = trend_store.store(data_package, {})
+    job_id = 10
+
+    transaction = trend_store.store(data_package, job_id)
     transaction(conn)
 
     # Store second part with one column extra
@@ -573,9 +593,11 @@ def test_store_copy_from_missing_column(start_db_container):
 
     data_package = DataPackage(data_package_type, granularity, trend_descriptors, rows)
 
+    job_id = 10
+
     # Storing should succeed and just store what can be placed in the trend
     # store parts.
-    transaction = trend_store.store(data_package, {})
+    transaction = trend_store.store(data_package, job_id)
     transaction(conn)
 
 
@@ -624,7 +646,9 @@ def test_store(start_db_container):
 
     data_package = DataPackage(data_package_type, granularity, trend_descriptors, rows)
 
-    transaction = trend_store.store(data_package, {})
+    job_id = 10
+
+    transaction = trend_store.store(data_package, job_id)
     transaction(conn)
 
     table = Table('trend', 'test-trend-store')
@@ -650,7 +674,9 @@ def test_store(start_db_container):
 
     data_package = DataPackage(data_package_type, granularity, trend_descriptors, rows)
 
-    transaction = trend_store.store(data_package, {})
+    job_id = 10
+
+    transaction = trend_store.store(data_package, job_id)
     transaction(conn)
 
     with conn.cursor() as cursor:
@@ -710,8 +736,10 @@ def test_store_ignore_column(start_db_container):
     part = trend_store.part_by_name['test-trend-store']
     trend_names = [t.name for t in part.trends]
 
+    job_id = 10
+
     transaction = trend_store.store(
-        data_package.filter_trends(partial(contains, set(trend_names))), {}
+        data_package.filter_trends(partial(contains, set(trend_names))), job_id
     )
 
     transaction(conn)

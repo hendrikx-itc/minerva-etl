@@ -1,3 +1,9 @@
+"""
+Contains the fixture for all integration tests.
+
+The logic in this package starts a Docker container with Minerva before the
+tests are run and make sure that same Docker container is stopped afterwards.
+"""
 import time
 import os
 

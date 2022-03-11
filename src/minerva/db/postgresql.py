@@ -4,21 +4,14 @@ Provides basic database functionality like dropping tables, creating users,
 granting privileges, etc.
 """
 __docformat__ = "restructuredtext en"
-
-__copyright__ = """
-Copyright (C) 2008-2013 Hendrikx-ITC B.V.
-
-Distributed under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 3, or (at your option) any later
-version.  The full license is in the file COPYING, distributed as part of
-this software.
-"""
 from contextlib import closing
 
 import psycopg2
+from psycopg2 import sql
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 
 from minerva.db.error import ExistsError
+from minerva.util.tabulate import render_table
 
 
 def prepare_statements(conn, statements):
@@ -119,10 +112,14 @@ table_schema = '{0:s}' AND table_name = '{1:s}'".format(schema, table))
 
 
 def column_exists(conn, schema, table, column):
+    query = (
+        "SELECT COUNT(*) FROM information_schema.columns "
+        "WHERE table_schema = %s AND table_name = %s AND "
+        "column_name = %s"
+    )
+
     with closing(conn.cursor()) as cursor:
-        cursor.execute("SELECT COUNT(*) FROM information_schema.columns WHERE \
-table_schema = '{0:s}' AND table_name = '{1:s}' AND \
-column_name = '{2:s}';".format(schema, table, column))
+        cursor.execute(query, (schema, table, column))
 
         (num, ) = cursor.fetchone()
 
@@ -167,9 +164,10 @@ def alter_table_owner(conn, table, owner):
 
 
 def create_user(conn, name, password=None, groups=None):
+    query = "SELECT COUNT(*) FROM pg_catalog.pg_shadow WHERE usename = %s;"
+
     with closing(conn.cursor()) as cursor:
-        cursor.execute("SELECT COUNT(*) FROM pg_catalog.pg_shadow WHERE \
-usename = '{0:s}';".format(name))
+        cursor.execute(query, (name,))
 
         (num, ) = cursor.fetchone()
 
@@ -182,7 +180,7 @@ usename = '{0:s}';".format(name))
 
             cursor.execute(query)
 
-            if not groups is None:
+            if groups is not None:
                 if hasattr(groups, "__iter__"):
                     for group in groups:
                         query = "GRANT {0:s} TO {1:s}".format(group, name)
@@ -196,11 +194,14 @@ usename = '{0:s}';".format(name))
 
 def create_group(conn, name, group=None):
     """
+    @param conn: database connection
+    @param name: name of the new group
     @param group: parent group
     """
+    query = "SELECT COUNT(*) FROM pg_catalog.pg_group WHERE groname = %s;"
+
     with closing(conn.cursor()) as cursor:
-        cursor.execute("SELECT COUNT(*) FROM pg_catalog.pg_group WHERE \
-groname = '{0:s}';".format(name))
+        cursor.execute(query, (name,))
 
         (num, ) = cursor.fetchone()
 
@@ -218,14 +219,35 @@ def create_db(conn, name, owner):
     """
     Create a new database using template0 with UTF8 encoding.
     """
+    query = "SELECT COUNT(*) FROM pg_catalog.pg_database WHERE datname = %s"
+
+    create_query = sql.SQL(
+        "CREATE DATABASE {} WITH ENCODING='UTF8' OWNER={} TEMPLATE template0"
+    ).format(sql.Identifier(name), sql.Identifier(owner))
+
     with closing(conn.cursor()) as cursor:
-        cursor.execute("SELECT COUNT(*) FROM pg_catalog.pg_database WHERE \
-datname = '{0:s}';".format(name))
+        cursor.execute(query, (name,))
 
         (num, ) = cursor.fetchone()
 
         if num == 0:
-            cursor.execute("CREATE DATABASE \"{0:s}\" WITH ENCODING='UTF8' \
-OWNER=\"{1:s}\" TEMPLATE template0".format(name, owner))
+            cursor.execute(create_query)
 
     conn.commit()
+
+
+def show_table_data(conn, table: sql.Identifier):
+    query = sql.SQL("SELECT * FROM {}").format(table)
+
+    with conn.cursor() as cursor:
+        cursor.execute(query)
+
+        rows = cursor.fetchall()
+
+        column_names = [column [0] for column in cursor.description]
+
+    column_align = [">"] * len(column_names)
+    column_sizes = ["max"] * len(column_names)
+
+    for line in render_table(column_names, column_align, column_sizes, rows):
+        print(line)

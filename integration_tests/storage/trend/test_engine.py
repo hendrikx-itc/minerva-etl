@@ -2,6 +2,9 @@ from contextlib import closing
 from datetime import datetime, timedelta
 
 import pytz
+from psycopg2 import sql
+
+from minerva.db.postgresql import show_table_data
 from minerva.storage.trend.datapackage import DataPackage
 
 from minerva.test import clear_database

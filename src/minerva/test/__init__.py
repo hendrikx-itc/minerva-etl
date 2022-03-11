@@ -5,6 +5,7 @@ from functools import wraps
 import psycopg2.extras
 from psycopg2 import sql
 
+from minerva.storage.trend.trendstore import TrendStore
 from minerva.util.debug import log_call_basic
 
 
@@ -44,6 +45,8 @@ def with_conn(*setup_functions):
 
 
 def clear_database(conn):
+    TrendStore.clear_cache()
+
     with conn.cursor() as cursor:
         cursor.execute("DELETE FROM trend_directory.table_trend CASCADE")
         cursor.execute(
@@ -86,10 +89,10 @@ def with_data_context(conn, test_set):
     yield data
 
 
-def row_count(cursor, table):
+def row_count(cursor, table: sql.Identifier):
     query = sql.SQL(
         "SELECT COUNT(*) FROM {}"
-    ).format(sql.Identifier(table.render()))
+    ).format(table)
 
     cursor.execute(query)
 

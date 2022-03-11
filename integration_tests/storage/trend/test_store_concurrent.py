@@ -8,6 +8,7 @@ from datetime import datetime
 import pytz
 
 from minerva.storage.trend.trendstorepart import TrendStorePart
+from minerva.test.trend import refined_package_type_for_entity_type
 from minerva.util import head
 from minerva.directory import EntityType, DataSource
 from minerva.test import connect, with_conn, clear_database
@@ -53,8 +54,8 @@ update_timestamp = query(
 
 
 @with_conn()
-def store_batch(conn, trend_store, data_package):
-    trend_store.store(data_package).run(conn)
+def store_batch(conn, trend_store, data_package, job_id: int):
+    trend_store.store(data_package, job_id)(conn)
 
 
 def test_store_concurrent(start_db_container):
@@ -64,21 +65,30 @@ def test_store_concurrent(start_db_container):
     conn = clear_database(start_db_container)
     timestamp = pytz.utc.localize(datetime(2013, 8, 27, 18, 0, 0))
 
-    trend_names = ["c1", "c2", "c3"]
+    trend_descriptors = [
+        Trend.Descriptor('c1', datatype.registry['smallint'], ''),
+        Trend.Descriptor('c2', datatype.registry['smallint'], ''),
+        Trend.Descriptor('c3', datatype.registry['smallint'], ''),
+    ]
+
     rows = [
-        ("Cell={}".format(i), ("1", "2", "3"))
+        (i, timestamp, ("1", "2", "3"))
         for i in range(100)
     ]
 
     granularity = create_granularity("900s")
 
+    entity_type_name = "test_type"
+
+    data_package_type = refined_package_type_for_entity_type(entity_type_name)
+
     data_package = DataPackage(
-        granularity, timestamp, trend_names, rows
+        data_package_type, granularity, trend_descriptors, rows
     )
 
     with closing(conn.cursor()) as cursor:
         data_source = DataSource.from_name("test-source")(cursor)
-        entity_type = EntityType.from_name("test_type")(cursor)
+        entity_type = EntityType.from_name(entity_type_name)(cursor)
         trend_store = TrendStore.create(TrendStore.Descriptor(
             data_source, entity_type, granularity, [
                 TrendStorePart.Descriptor(
@@ -100,22 +110,22 @@ def test_store_concurrent(start_db_container):
     threads = [
         Thread(
             target=partial(
-                store_batch, trend_store, data_package
+                store_batch, trend_store, data_package, 10
             )
         ),
         Thread(
             target=partial(
-                store_batch, trend_store, data_package
+                store_batch, trend_store, data_package, 11
             )
         ),
         Thread(
             target=partial(
-                store_batch, trend_store, data_package
+                store_batch, trend_store, data_package, 12
             )
         ),
         Thread(
             target=partial(
-                store_batch, trend_store, data_package
+                store_batch, trend_store, data_package, 13
             )
         )
     ]

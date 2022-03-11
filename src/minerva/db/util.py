@@ -90,24 +90,6 @@ def table_exists(cursor, schema, table):
     return exists
 
 
-def column_exists(conn, schema, table, column):
-    with closing(conn.cursor()) as cursor:
-        query = (
-            "SELECT COUNT(*) FROM information_schema.columns "
-            "WHERE table_schema = %s "
-            "AND table_name = %s "
-            "AND column_name = %s"
-        )
-
-        args = schema, table, column
-
-        cursor.execute(query, args)
-
-        (num, ) = cursor.fetchone()
-
-        return num > 0
-
-
 def create_temp_table_from(cursor, table):
     """
     Create a temporary table that is like `table` and return the temporary
