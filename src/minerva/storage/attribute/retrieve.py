@@ -5,8 +5,11 @@ from decimal import Decimal
 from itertools import groupby
 from operator import itemgetter
 
+from psycopg2 import sql
+
+from minerva.db.query import Table
+from minerva.directory import EntityType
 from minerva.util.timestamp import to_unix_timestamp
-from minerva.directory.entitytype import EntityType
 from minerva.directory.entity import Entity
 
 
@@ -14,12 +17,12 @@ def enquote_ident(ident):
     return '"{}"'.format(ident)
 
 
-def retrieve(conn, table, attribute_names, entities, ts=None):
+def retrieve(conn, table: Table, attribute_names, entities, ts=None):
     """
     Retrieve all attribute data or attribute data for a specific timestamp.
 
     :param conn: Minerva database connection
-    :param table_name: name of table containing desired attribute data
+    :param table: table containing desired attribute data
     :param attribute_names: list of attributes to retrieve
     :param entities: list of entities to get attribute data for; None means
     all entities
@@ -81,20 +84,27 @@ def retrieve_current(conn, table, attribute_names, entities):
     in_part = ""
 
     if entities is not None:
-        entity_set = ",".join(map(str, entities))
+        entity_set = sql.SQL(",").join(map(sql.Literal, entities))
 
         if entity_set:
-            in_part = "entity_id in ({0:s})".format(entity_set)
+            in_part = sql.SQL("entity_id in ({})").format(entity_set)
         else:
             return []
 
-    attribute_columns = ['d."{0}"'.format(a) for a in attribute_names]
-    columns_part = ",".join(["d.entity_id", "d.timestamp"] + attribute_columns)
+    attribute_columns = [sql.Identifier("d", a) for a in attribute_names]
+    columns_part = sql.SQL(",").join(["d.entity_id", "d.timestamp"] + attribute_columns)
 
-    query = "SELECT {0} FROM {1} d ".format(columns_part, table.render())
+    query_parts = [
+        sql.SQL("SELECT {0} FROM {1} d ").format(
+            columns_part, table.identifier()
+        )
+    ]
 
     if in_part:
-        query += "WHERE " + in_part
+        query_parts.append(sql.SQL("WHERE "))
+        query_parts.append(in_part)
+
+    query = sql.Composed(query_parts)
 
     with closing(conn.cursor()) as cursor:
         cursor.execute(query)
@@ -109,21 +119,28 @@ def retrieve_related(conn, table_name, attribute_names, entities,
 
     TODO: implement way to get attribute data for a specific timestamp.
     """
-    where_parts = []
     join_parts = []
 
-    full_base_tbl_name = "attribute.\"{}\"".format(table_name)
+    full_base_tbl_identifier = sql.Identifier("attribute", table_name)
 
-    attr_columns = map(enquote_ident, attribute_names)
+    columns = map(sql.Identifier, ["r.source_id", "r.target_id", "timestamp"] + attribute_names)
 
-    query = (
-        "SELECT r.source_id, r.target_id, \"timestamp\", {0} FROM {1} "
-        "JOIN relation.\"{2}\" r ON r.target_id = {1}.entity_id ").format(
-        ", ".join(attr_columns), full_base_tbl_name, relation_table_name)
+    query_parts = [
+        sql.SQL(
+            "SELECT {0} FROM {1} "
+            "JOIN {2} r ON r.target_id = {1}.entity_id "
+        ).format(
+            sql.SQL(", ").join(columns),
+            full_base_tbl_identifier,
+            sql.Identifier("relation", relation_table_name)
+        )
+    ]
 
     join_parts.append(
         " JOIN  ".format(
-            full_base_tbl_name))
+            full_base_tbl_identifier
+        )
+    )
 
     where_parts = []
 
@@ -135,12 +152,14 @@ def retrieve_related(conn, table_name, attribute_names, entities,
             return []
 
     if where_parts:
-        query = query + " WHERE " + " AND ".join(where_parts)
+        query_parts.append(" WHERE " + " AND ".join(where_parts))
 
-    query = query + " ORDER BY \"timestamp\""
+    query_parts.append(sql.SQL(' ORDER BY "timestamp"'))
 
-    if not limit is None:
-        query = query + " LIMIT {0:d}".format(limit)
+    if limit is not None:
+        query_parts.append(" LIMIT {0:d}".format(limit))
+
+    query = sql.Composed(query_parts)
 
     with closing(conn.cursor()) as cursor:
         cursor.execute(query)
@@ -149,14 +168,14 @@ def retrieve_related(conn, table_name, attribute_names, entities,
 
 
 def retrieve_attributes_for_entity(conn, entity_id, attribute_ids):
-    query = (
-        "SELECT a.id, a.name, attribute_directory.to_table_name(astore) "
-            "as table_name, et.name as entitytype_name "
+    query = sql.SQL(
+        "SELECT a.id, a.name, attribute_directory.to_table_name(astore) AS table_name, et.name AS entitytype_name "
         "FROM attribute_directory.attribute a "
         "JOIN attribute_directory.attributestore astore on a.attributestore_id = astore.id " 
         "JOIN directory.entitytype et ON et.id = astore.entitytype_id "
         "WHERE a.id IN ({}) "
-        "ORDER BY table_name").format(",".join(map(str, attribute_ids)))
+        "ORDER BY table_name"
+    ).format(sql.SQL(",").join(map(sql.Literal, attribute_ids)))
 
     with closing(conn.cursor()) as cursor:
         entity = Entity.get(entity_id)(cursor)
@@ -164,7 +183,7 @@ def retrieve_attributes_for_entity(conn, entity_id, attribute_ids):
     result = {}
 
     def prepare_value(value):
-        if not value is None:
+        if value is not None:
             #if trendvalue is Decimal(Numeric) json cannot serialize it.
             if isinstance(value, Decimal):
                 value = float(value)
@@ -182,7 +201,8 @@ def retrieve_attributes_for_entity(conn, entity_id, attribute_ids):
 
         rows = cursor.fetchall()
 
-        source_entitytype = get_entity_type_by_id(conn, entity.entitytype_id)
+        source_entitytype = EntityType.get(entity.entity_type_id)(cursor)
+
         for table_name, attrs_iter in groupby(rows, get_tablename):
             attrs = list(attrs_iter)
             attr_names = map(get_name, attrs)

@@ -2,10 +2,11 @@
 from datetime import datetime
 from contextlib import closing
 from itertools import chain
-from typing import List, Callable, Any, Tuple, Iterable, Generator
+from typing import List, Callable, Any, Iterable, Generator
 
 import psycopg2
 import psycopg2.extras
+from psycopg2 import sql
 from minerva.storage.trend.datapackage import DataPackageRow
 from psycopg2.extensions import adapt, register_adapter, AsIs, QuotedString
 
@@ -280,17 +281,17 @@ class TrendStorePart:
     @staticmethod
     def _update_existing_from_tmp(tmp_table: Table, table: Table, column_names: List[str], modified: datetime) -> CursorDbAction:
         def f(cursor):
-            set_columns = ", ".join(
-                '"{0}"={1}."{0}"'.format(name, tmp_table.render())
+            set_columns = sql.SQL(", ").join(
+                sql.SQL("{0}={1}.{0}").format(sql.Identifier(name), tmp_table.identifier())
                 for name in column_names
             )
 
-            update_query = (
+            update_query = sql.SQL(
                 'UPDATE {0} SET modified=greatest(%s, {0}.modified), {1} '
                 'FROM {2} '
                 'WHERE {0}.entity_id={2}.entity_id '
                 'AND {0}."timestamp"={2}."timestamp"'
-            ).format(table.render(), set_columns, tmp_table.render())
+            ).format(table.identifier(), set_columns, tmp_table.identifier())
 
             args = (modified, )
 
@@ -313,17 +314,17 @@ class TrendStorePart:
             all_column_names = ['entity_id', 'timestamp', 'modified']
             all_column_names.extend(column_names)
 
-            tmp_column_names = ", ".join(
-                'tmp."{0}"'.format(name)
+            tmp_column_names = sql.SQL(", ").join(
+                sql.Identifier("tmp", name)
                 for name in all_column_names
             )
 
-            dest_column_names = ", ".join(
-                '"{0}"'.format(name)
+            dest_column_names = sql.SQL(", ").join(
+                sql.Identifier(name)
                 for name in all_column_names
             )
 
-            insert_query = (
+            insert_query = sql.SQL(
                 'INSERT INTO {table} ({dest_columns}) '
                 'SELECT {tmp_columns} FROM {tmp_table} AS tmp '
                 'LEFT JOIN {table} ON '
@@ -331,10 +332,10 @@ class TrendStorePart:
                 'AND tmp.entity_id = {table}.entity_id '
                 'WHERE {table}.entity_id IS NULL'
             ).format(
-                table=table.render(),
+                table=table.identifier(),
                 dest_columns=dest_column_names,
                 tmp_columns=tmp_column_names,
-                tmp_table=tmp_table.render()
+                tmp_table=tmp_table.identifier()
             )
 
             try:
@@ -419,23 +420,23 @@ def create_copy_from_query(table: Table, trend_names: List[str]) -> str:
     )
 
 
-def create_insert_query(table: Table, column_names: List[str]) -> str:
+def create_insert_query(table: Table, column_names: List[str]) -> sql.SQL:
     """Return insertion query to be performed when copy fails"""
     update_parts = [
-        '"{}" = excluded."{}"'.format(column, column)
+        sql.Literal('"{}" = excluded."{}"'.format(column, column))
         for column in column_names
         if column not in ('entity_id', 'timestamp', 'created')
     ]
 
-    return (
-        'INSERT INTO trend."{0}"({1}) '
+    return sql.SQL(
+        'INSERT INTO {0}({1}) '
         'VALUES ({2}) '
         'ON CONFLICT (entity_id, timestamp) DO UPDATE SET {3};'
     ).format(
-        table.name,
-        ",".join(map(quote_ident, column_names)),
-        ",".join('%s' for _ in column_names),
-        ",".join(update_parts)
+        table.identifier(),
+        sql.SQL(",").join(sql.Identifier(column_name) for column_name in column_names),
+        sql.SQL(",").join(sql.Placeholder() for _ in column_names),
+        sql.SQL(",").join(update_parts)
     )
 
 

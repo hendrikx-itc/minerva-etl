@@ -5,6 +5,8 @@ from pathlib import Path
 from typing import List, Optional, Tuple, Union
 
 import yaml
+from psycopg2 import sql
+
 from minerva.error import ConfigurationError
 from minerva.instance import TrendStorePart, MinervaInstance, TrendStore, GeneratedTrend, Trend, Relation, \
     EntityAggregationType, ENTITY_AGGREGATION_TYPE_MAP
@@ -337,11 +339,11 @@ def define_fingerprint_sql(src_part: TrendStorePart):
     )
 
 
-def enable_sql(name):
-    return [
+def enable_sql(name) -> sql.SQL:
+    return sql.SQL(
         "UPDATE trend_directory.materialization SET enabled = true "
-        "WHERE materialization::text = '{}';\n".format(name)
-    ]
+        "WHERE materialization::text = '{}';"
+    ).format(sql.Literal(name))
 
 
 AGGREGATE_DATA_TYPE_MAPPING_SUM = {

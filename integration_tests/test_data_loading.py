@@ -7,6 +7,8 @@ from contextlib import closing
 
 import pytz
 
+from psycopg2 import sql
+
 from minerva.storage.inputdescriptor import InputDescriptor
 from minerva.storage.trend.trendstorepart import TrendStorePart
 from minerva.test import clear_database
@@ -100,11 +102,11 @@ def test_defaults(start_db_container):
 
     # Check outcome
 
-    query = (
+    query = sql.SQL(
         'SELECT x, y '
-        'FROM trend."{}" '
+        'FROM {} '
         'ORDER BY entity_id'
-    ).format(trend_store.part_by_name['test-trend-store'].base_table_name())
+    ).format(trend_store.part_by_name['test-trend-store'].base_table().identifier())
 
     with closing(conn.cursor()) as cursor:
         cursor.execute(query)
@@ -215,11 +217,13 @@ def test_nulls(start_db_container):
 
     # Check outcome
 
-    query = (
+    query = sql.SQL(
         'SELECT x, y '
-        'FROM trend."{}" '
+        'FROM {} '
         'ORDER BY entity_id'
-    ).format(trend_store.part_by_name['test-trend-store'].base_table_name())
+    ).format(
+        trend_store.part_by_name['test-trend-store'].base_table().identifier()
+    )
 
     with closing(conn.cursor()) as cursor:
         cursor.execute(query)

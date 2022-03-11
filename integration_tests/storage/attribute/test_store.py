@@ -5,9 +5,11 @@ from datetime import datetime
 
 import pytz
 
+from psycopg2 import sql
+
 from minerva.directory import DataSource, EntityType
 
-from minerva.test import with_conn, clear_database
+from minerva.test import clear_database
 from minerva.storage import datatype
 from minerva.storage.attribute.attribute import AttributeDescriptor
 from minerva.storage.attribute.attributestore import AttributeStore, Query, \
@@ -45,11 +47,11 @@ def test_simple(start_db_container):
 
         cursor.execute(query, (attribute_store.id,))
 
-        query = (
+        query = sql.SQL(
             "SELECT timestamp "
             "FROM {0} "
             "LIMIT 1"
-        ).format(attribute_store.table.render())
+        ).format(attribute_store.table.identifier())
 
         cursor.execute(query)
         timestamp, = cursor.fetchone()
@@ -114,11 +116,11 @@ def test_update_modified_column(start_db_container):
         attribute_store.create(cursor)
         conn.commit()
 
-    query = Query((
+    query = Query(sql.SQL(
         "SELECT modified, hash "
         "FROM {0} "
         "WHERE entity_id = 10023"
-    ).format(attribute_store.history_table.render()))
+    ).format(attribute_store.history_table.identifier()))
 
     attribute_store.store(data_package_a)(conn)
 
@@ -183,10 +185,10 @@ def test_update(start_db_container):
 
         conn.commit()
 
-        query = (
+        query = sql.SQL(
             'SELECT modified, "CCR" '
             'FROM {0}'
-        ).format(attribute_store.history_table.render())
+        ).format(attribute_store.history_table.identifier())
 
         cursor.execute(query)
         test_list = [(modified, ccr) for modified, ccr in cursor.fetchall()]

@@ -5,7 +5,9 @@ from contextlib import closing
 
 import pytz
 
-from minerva.test import with_conn, clear_database
+from psycopg2 import sql
+
+from minerva.test import clear_database
 from minerva.directory import DataSource, EntityType
 from minerva.storage.attribute.attribute import AttributeDescriptor
 from minerva.storage.attribute.attributestore import (
@@ -149,8 +151,8 @@ def test_store_batch_simple(start_db_container):
             (attribute_store.id,),
         )
 
-        query = ('SELECT timestamp, "Drops" ' "FROM {0}").format(
-            attribute_store.table.render()
+        query = sql.SQL('SELECT timestamp, "Drops" FROM {0}').format(
+            attribute_store.table.identifier()
         )
 
         cursor.execute(query)
@@ -193,8 +195,8 @@ def test_store_batch_with_list_a(start_db_container):
             (attribute_store.id,),
         )
 
-        query = ("SELECT timestamp, height " "FROM {0}").format(
-            attribute_store.table.render()
+        query = sql.SQL("SELECT timestamp, height FROM {}").format(
+            sql.Identifier(attribute_store.table.schema.name, attribute_store.table.name)
         )
 
         cursor.execute(query)
@@ -321,8 +323,8 @@ def test_store_batch_update(start_db_container):
 
         attribute_store.store(data_package)(start_db_container)
         conn.commit()
-        modified_query = ("SELECT modified FROM {0} " "WHERE entity_id = 10023").format(
-            attribute_store.history_table.render()
+        modified_query = sql.SQL("SELECT modified FROM {} WHERE entity_id = 10023").format(
+            attribute_store.history_table.identifier()
         )
 
         cursor.execute(modified_query)
@@ -343,8 +345,8 @@ def test_store_batch_update(start_db_container):
             (attribute_store.id,),
         )
 
-        query = ('SELECT timestamp, "Drops" ' "FROM {0}").format(
-            attribute_store.table.render()
+        query = sql.SQL('SELECT timestamp, "Drops" FROM {0}').format(
+            attribute_store.table.identifier()
         )
 
         cursor.execute(query)
@@ -441,8 +443,8 @@ def test_compact(start_db_container):
         attribute_store.store(data_package_b)(start_db_container)
         conn.commit()
 
-        count_query = ("SELECT count(*) " "FROM {0}").format(
-            attribute_store.history_table.render()
+        count_query = sql.SQL("SELECT count(*) FROM {0}").format(
+            attribute_store.history_table.identifier()
         )
 
         cursor.execute(count_query)

@@ -9,6 +9,8 @@ import pytz
 
 import pytest
 
+from psycopg2 import sql
+
 from minerva.db.query import Table, Call, Column, Eq, And
 from minerva.db.error import DataTypeMismatch
 from minerva.storage.trend.trendstorepart import TrendStorePart
@@ -715,8 +717,10 @@ def test_store_ignore_column(start_db_container):
     transaction(conn)
 
 
-def row_count(cursor, table):
-    cursor.execute("SELECT count(*) FROM {}".format(table.render()))
+def row_count(cursor, table: Table):
+    query = sql.SQL("SELECT count(*) FROM {}").format(table.identifier())
+
+    cursor.execute(query)
 
     count, = cursor.fetchone()
 

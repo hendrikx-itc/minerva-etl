@@ -8,6 +8,8 @@ from itertools import chain, groupby
 from functools import partial, reduce
 from typing import Iterable
 
+from psycopg2 import sql
+
 from minerva.util import k, if_set
 
 
@@ -176,6 +178,9 @@ class Table(SchemaObject):
                 raise Exception("invalid schema '{}'".format(schema))
         else:
             self.schema = None
+
+    def identifier(self) -> sql.Identifier:
+        return sql.Identifier(self.schema.name, self.name)
 
     def _render(self):
         if self.schema:
