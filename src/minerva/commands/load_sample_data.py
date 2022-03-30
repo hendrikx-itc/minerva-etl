@@ -1,3 +1,4 @@
+import gzip
 import os
 from typing import Optional
 
@@ -138,26 +139,49 @@ def generate_and_load(config, interval_count: int):
 
     action = {}
 
+    file_count = 0
+
     with storage_provider() as store:
+        def process_file(data_file, file_path):
+            packages_generator = parser.load_packages(data_file, file_path)
+
+            packages = DataPackage.merge_packages(packages_generator)
+
+            for package in packages:
+                try:
+                    store(package, action)
+                except NoSuchEntityType as exc:
+                    # Suppress messages about missing entity types
+                    pass
+
+            print(f"- {file_path}")
+
         for timestamp in timestamp_range:
             print(' ' * 60, end='\r')
             print(' - {}'.format(timestamp), end='\r')
 
-            file_path = data_set_generator.generate(
+            generate_result = data_set_generator.generate(
                 target_dir, timestamp, granularity
             )
 
-            with open(file_path) as data_file:
-                packages_generator = parser.load_packages(data_file, file_path)
+            try:
+                # Older data generators return one file path per timestamp
+                with open_file(Path(generate_result)) as data_file:
+                    process_file(data_file, generate_result)
+                    file_count += 1
+            except TypeError:
+                # Newer data generators return a generator of file paths per timestamp
+                for file_path in generate_result:
+                    with open_file(Path(file_path)) as data_file:
+                        process_file(data_file, file_path)
+                        file_count += 1
 
-                packages = DataPackage.merge_packages(packages_generator)
+    print(" " * 60, end="\r")
+    print(f"Loaded {file_count} files for {interval_count} intervals")
 
-                for package in packages:
-                    try:
-                        store(package, action)
-                    except NoSuchEntityType as exc:
-                        # Suppress messages about missing entity types
-                        pass
 
-    print(' ' * 60, end='\r')
-    print('Loaded data for {} intervals'.format(interval_count))
+def open_file(file_path: Path):
+    if file_path.suffix == ".gz":
+        return gzip.open(file_path)
+    else:
+        return file_path.open()
