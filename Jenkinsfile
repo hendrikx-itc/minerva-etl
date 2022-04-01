@@ -55,18 +55,18 @@ pipeline {
 
                     script {
                         //---------------------------
-                        // Build Ubuntu 18.04 package
+                        // Build Ubuntu 20.04 package
                         //---------------------------
-                        def buildDir1804 = 'pkg-build/1804'
+                        def buildDir2004 = 'pkg-build/2004'
 
                         // Clean the build directory before starting
-                        sh "rm -rf ${buildDir1804}"
+                        sh "rm -rf ${buildDir2004}"
 
-                        sh './package 1804'
+                        sh './package 2004'
                         
-                        publishPackages buildDir1804.toString(), "common/bionic/stable", 'bionic'
+                        publishPackages buildDir2004.toString(), "common/bionic/stable", 'bionic'
 
-                        archiveArtifacts(artifacts: "${buildDir1804}/*")
+                        archiveArtifacts(artifacts: "${buildDir2004}/*")
                     }
                 }
             }
