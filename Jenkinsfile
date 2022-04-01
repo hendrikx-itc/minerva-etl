@@ -64,7 +64,7 @@ pipeline {
 
                         sh './package 2004'
                         
-                        publishPackages buildDir2004.toString(), "common/bionic/stable", 'bionic'
+                        publishPackages buildDir2004.toString(), "common/focal/stable", 'focal'
 
                         archiveArtifacts(artifacts: "${buildDir2004}/*")
                     }
