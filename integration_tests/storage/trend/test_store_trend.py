@@ -1,3 +1,4 @@
+"""Test trend data store functionality."""
 import time
 from datetime import datetime, timedelta
 

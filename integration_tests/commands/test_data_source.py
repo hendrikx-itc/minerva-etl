@@ -1,10 +1,12 @@
+"""Test administration commands for data sources."""
 import subprocess  # nosec
 
 
 def test_create_data_source(start_db_container):
+    """Test creation and deletion of a data source."""
     data_source_name = "test"
 
-    proc = subprocess.run(["minerva", "data-source", "create", data_source_name])
+    proc = subprocess.run(["minerva", "data-source", "create", data_source_name], check=True)
 
     conn = start_db_container
 
@@ -20,7 +22,7 @@ def test_create_data_source(start_db_container):
 
     assert proc.returncode == 0
 
-    proc = subprocess.run(["minerva", "data-source", "delete", data_source_name])
+    proc = subprocess.run(["minerva", "data-source", "delete", data_source_name], check=True)
 
     with conn.cursor() as cursor:
         cursor.execute(

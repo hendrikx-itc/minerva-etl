@@ -1,3 +1,4 @@
+"""Test load-data sub-command."""
 import subprocess
 import tempfile
 import json
@@ -16,8 +17,10 @@ trend_store_dict = {
 }
 
 
-def test_create_data_source(start_db_container):
-    proc = subprocess.run(["minerva", "data-source", "create", "test"])
+def test_load_csv_file(start_db_container):
+    """Test loading of a CSV file."""
+    conn = start_db_container
+    proc = subprocess.run(["minerva", "data-source", "create", "test"], check=True)
 
     assert proc.returncode == 0
 
@@ -25,7 +28,7 @@ def test_create_data_source(start_db_container):
         ordered_yaml_dump(trend_store_dict, yaml_tmp_file)
         yaml_tmp_file.flush()
 
-        proc = subprocess.run(["minerva", "trend-store", "create", yaml_tmp_file.name])
+        proc = subprocess.run(["minerva", "trend-store", "create", yaml_tmp_file.name], check=True)
 
     assert proc.returncode == 0
 
@@ -60,11 +63,21 @@ def test_create_data_source(start_db_container):
                 "--type",
                 "csv",
                 csv_file.name,
-            ]
+            ],
+            check=True
         )
 
     assert proc.returncode == 0
 
-    proc = subprocess.run(["minerva", "data-source", "delete", "test"])
+    with conn.cursor() as cursor:
+        cursor.execute(
+            'SELECT c FROM trend."test_node_1d"'
+        )
+
+        (c_value,) = cursor.fetchone()
+
+        assert c_value == 3
+
+    proc = subprocess.run(["minerva", "data-source", "delete", "test"], check=True)
 
     assert proc.returncode == 0

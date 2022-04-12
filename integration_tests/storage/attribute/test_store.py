@@ -191,6 +191,6 @@ def test_update(start_db_container):
         ).format(attribute_store.history_table.identifier())
 
         cursor.execute(query)
-        test_list = [(modified, ccr) for modified, ccr in cursor.fetchall()]
+        test_list = list(cursor.fetchall())
         assert test_list[0][0] != test_list[1][0]
         assert test_list[0][1] != test_list[1][1]

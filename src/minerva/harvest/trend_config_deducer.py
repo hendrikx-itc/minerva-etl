@@ -1,3 +1,4 @@
+"""Provide functionality to deduce trend stores from data."""
 import os
 import traceback
 
@@ -5,12 +6,12 @@ from minerva.harvest.error import DataError
 from minerva.harvest.plugin_api_trend import HarvestParserTrend
 
 
-def deduce_config(file_path, parser: HarvestParserTrend, show_progress=False):
+def deduce_config(file_path, parser: HarvestParserTrend):
     """
     Process a single file with specified plugin.
     """
     if not os.path.exists(file_path):
-        raise Exception("Could not find file '{0}'".format(file_path))
+        raise Exception(f"Could not find file '{file_path}'")
 
     _directory, filename = os.path.split(file_path)
 
@@ -24,14 +25,10 @@ def deduce_config(file_path, parser: HarvestParserTrend, show_progress=False):
                         trend_descriptors[trend_descriptor.name] = trend_descriptor
         except DataError as exc:
             raise exc
-            # raise ParseError(
-            #    "{0!s} at position {1:d}".format(exc, data_file.tell())
-            # )
         except Exception:
             stack_trace = traceback.format_exc()
             position = -1  # data_file.tell()
-            message = "{0} at position {1:d}".format(stack_trace, position)
-            raise Exception(message)
+            raise Exception(f"{stack_trace} at position {position:d}")
 
     return {
         "data_source": "DATASOURCE",

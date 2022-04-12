@@ -8,8 +8,10 @@ import psycopg2
 from minerva.util import expand_args
 from minerva.db.query import Table
 from minerva.directory import EntityType, DataSource
-from minerva.db.error import translate_postgresql_exception, \
-    translate_postgresql_exceptions
+from minerva.db.error import (
+    translate_postgresql_exception,
+    translate_postgresql_exceptions,
+)
 from minerva.storage.attribute.attribute import Attribute
 from minerva.storage.outputdescriptor import OutputDescriptor
 from minerva.storage.valuedescriptor import ValueDescriptor
@@ -18,8 +20,6 @@ from minerva.storage import datatype
 
 class NoSuchAttributeError(Exception):
     """Exception type indicating an unknown attribute."""
-
-    pass
 
 
 class AttributeStoreDescriptor:
@@ -63,10 +63,11 @@ class AttributeStore:
 
     def table_name(self):
         """Return the table name for this attribute store."""
-        return "{0}_{1}".format(self.data_source.name, self.entity_type.name)
+        return f"{self.data_source.name}_{self.entity_type.name}"
 
     def update_attributes(self, attribute_descriptors):
         """Add to, or update current attributes."""
+
         def f(cursor):
             self.check_attributes_exist(attribute_descriptors)(cursor)
             self.check_attribute_types(attribute_descriptors)(cursor)
@@ -79,25 +80,26 @@ class AttributeStore:
 
         :param attribute_store_id: Unique database ID of the attribute store
         """
+
         def f(cursor):
             query = (
-                "SELECT id, name, data_type, attribute_store_id, description "
+                "SELECT id, name, data_type, description "
                 "FROM attribute_directory.attribute "
                 "WHERE attribute_store_id = %s"
             )
-            args = attribute_store_id,
+            args = (attribute_store_id,)
 
             cursor.execute(query, args)
 
             def row_to_attribute(row):
-                (
-                    attribute_id, name, data_type, attribute_store_id_,
-                    description
-                ) = row
+                (attribute_id, name, data_type, description) = row
 
                 return Attribute(
-                    attribute_id, name, datatype.registry[data_type],
-                    attribute_store_id, description
+                    attribute_id,
+                    name,
+                    datatype.registry[data_type],
+                    attribute_store_id,
+                    description,
                 )
 
             return [row_to_attribute(row) for row in cursor.fetchall()]
@@ -113,6 +115,7 @@ class AttributeStore:
         exists, it is loaded, or a new one is created if it doesn't.
 
         """
+
         def f(cursor):
             query = (
                 "SELECT * "
@@ -131,7 +134,7 @@ class AttributeStore:
                 attribute_store_id,
                 data_source,
                 entity_type,
-                AttributeStore.get_attributes(attribute_store_id)(cursor)
+                AttributeStore.get_attributes(attribute_store_id)(cursor),
             )
 
         return f
@@ -139,6 +142,7 @@ class AttributeStore:
     @classmethod
     def get_by_attributes(cls, data_source, entity_type):
         """Load and return AttributeStore with specified attributes."""
+
         def f(cursor):
             query = (
                 "SELECT id "
@@ -149,13 +153,13 @@ class AttributeStore:
             args = data_source.id, entity_type.id
             cursor.execute(query, args)
 
-            attribute_store_id, = cursor.fetchone()
+            (attribute_store_id,) = cursor.fetchone()
 
             return AttributeStore(
                 attribute_store_id,
                 data_source,
                 entity_type,
-                AttributeStore.get_attributes(attribute_store_id)(cursor)
+                AttributeStore.get_attributes(attribute_store_id)(cursor),
             )
 
         return f
@@ -167,6 +171,7 @@ class AttributeStore:
 
         :param id_: Unique database ID of the attribute store
         """
+
         def f(cursor):
             query = (
                 "SELECT data_source_id, entity_type_id "
@@ -174,7 +179,7 @@ class AttributeStore:
                 "WHERE id = %s"
             )
 
-            args = id_,
+            args = (id_,)
             cursor.execute(query, args)
 
             data_source_id, entity_type_id = cursor.fetchone()
@@ -183,8 +188,10 @@ class AttributeStore:
             data_source = DataSource.get(data_source_id)(cursor)
 
             return AttributeStore(
-                id_, data_source, entity_type,
-                AttributeStore.get_attributes(id_)(cursor)
+                id_,
+                data_source,
+                entity_type,
+                AttributeStore.get_attributes(id_)(cursor),
             )
 
         return f
@@ -199,22 +206,23 @@ class AttributeStore:
 
         cursor.execute(query)
 
-        load = expand_args(partial(
-            AttributeStore.load_attribute_store, cursor))
+        load = expand_args(partial(AttributeStore.load_attribute_store, cursor))
 
         return map(load, cursor.fetchall())
 
     @staticmethod
-    def load_attribute_store(
-            id_: int, data_source_id: int, entity_type_id: int):
+    def load_attribute_store(id_: int, data_source_id: int, entity_type_id: int):
         """Load an attribute store from it's database row data."""
+
         def f(cursor):
             data_source = DataSource.get(data_source_id)(cursor)
             entity_type = EntityType.get(entity_type_id)(cursor)
 
             return AttributeStore(
-                id_, data_source, entity_type,
-                AttributeStore.get_attributes(id_)(cursor)
+                id_,
+                data_source,
+                entity_type,
+                AttributeStore.get_attributes(id_)(cursor),
             )
 
         return f
@@ -222,6 +230,7 @@ class AttributeStore:
     @staticmethod
     def create(attribute_store_descriptor):
         """Create, initialize and return the attribute store."""
+
         def f(cursor):
             query = (
                 "CALL attribute_directory.create_attribute_store("
@@ -232,20 +241,16 @@ class AttributeStore:
             args = (
                 attribute_store_descriptor.data_source.name,
                 attribute_store_descriptor.entity_type.name,
-                attribute_store_descriptor.attribute_descriptors
+                attribute_store_descriptor.attribute_descriptors,
             )
             cursor.execute(query, args)
 
-            (
-                attribute_store_id, data_source_id, entity_type_id
-            ) = cursor.fetchone()
+            (attribute_store_id, data_source_id, entity_type_id) = cursor.fetchone()
 
             entity_type = EntityType.get(entity_type_id)(cursor)
             data_source = DataSource.get(data_source_id)(cursor)
 
-            attributes = AttributeStore.get_attributes(
-                attribute_store_id
-            )(cursor)
+            attributes = AttributeStore.get_attributes(attribute_store_id)(cursor)
 
             return AttributeStore(
                 attribute_store_id, data_source, entity_type, attributes
@@ -260,21 +265,18 @@ class AttributeStore:
             "FROM attribute_directory.attribute_store "
             "WHERE id = %s"
         )
-        args = self.id,
+        args = (self.id,)
         cursor.execute(query, args)
 
     def _stage_data(self, cursor, data_package):
-        output_descriptors = self.get_output_descriptors(
-            data_package.attribute_names
-        )
+        output_descriptors = self.get_output_descriptors(data_package.attribute_names)
 
-        data_package.copy_expert(
-            self.staging_table, output_descriptors
-        )(cursor)
+        data_package.copy_expert(self.staging_table, output_descriptors)(cursor)
 
     @translate_postgresql_exceptions
     def store(self, data_package):
         """Write data in one batch using staging table."""
+
         def f(conn):
             if data_package.is_empty():
                 return
@@ -291,10 +293,7 @@ class AttributeStore:
 
         def name_to_value_descriptor(name):
             try:
-                return ValueDescriptor(
-                    name,
-                    attributes_by_name[name].data_type
-                )
+                return ValueDescriptor(name, attributes_by_name[name].data_type)
             except KeyError:
                 raise NoSuchAttributeError(name)
 
@@ -313,11 +312,12 @@ class AttributeStore:
             "SELECT attribute_directory.transfer_staged(attribute_store) "
             "FROM attribute_directory.attribute_store "
             "WHERE id = %s",
-            (self.id,)
+            (self.id,),
         )
 
     def check_attributes_exist(self, attribute_descriptors):
         """Check if attributes exist and create missing."""
+
         def f(cursor):
             query = (
                 "SELECT attribute_directory.check_attributes_exist("
@@ -337,6 +337,7 @@ class AttributeStore:
 
     def check_attribute_types(self, attribute_descriptors):
         """Check and correct attribute data types."""
+
         def f(cursor):
             query = (
                 "SELECT attribute_directory.check_attribute_types("
@@ -358,7 +359,7 @@ class AttributeStore:
 class Query:
     """Generic query wrapper."""
 
-    __slots__ = 'sql',
+    __slots__ = ("sql",)
 
     def __init__(self, sql):
         """Type initializer."""

@@ -1,8 +1,5 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
-"""
-Provides the function process_file for processing a single file.
-"""
+"""Provides the function process_file for processing a single file."""
 import threading
 from pathlib import Path
 import time
@@ -14,14 +11,14 @@ from minerva.harvest.error import DataError
 
 
 class ParseError(Exception):
-    pass
+    """An error during text parsing of input file."""
 
 
 def process_file(
         file_path: Path, parser: HarvestParserTrend, show_progress=False):
     """Process a single file with specified plugin."""
     if not file_path.exists():
-        raise Exception("Could not find file '{0}'".format(file_path))
+        raise Exception(f"Could not find file '{file_path}'")
 
     with file_path.open(encoding='utf-8') as data_file:
         stop_event = threading.Event()
@@ -57,7 +54,7 @@ def start_progress_reporter(data_file, condition):
 
             percentage = position / size * 100
 
-            print('{}'.format(percentage))
+            print(f"{percentage}")
 
             time.sleep(1.0)
 

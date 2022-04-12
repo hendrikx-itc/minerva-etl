@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+"""Test concurrent storing of trend data using multiple threads."""
 from contextlib import closing
 from time import sleep
 from threading import Thread
@@ -147,7 +148,7 @@ def test_store_copy_from():
 
         conn.commit()
 
-    print("initial timestamp: {}".format(initial_timestamp))
+    print(f"initial timestamp: {initial_timestamp}")
 
     task1 = start_after(0, task("task 1", 4))
     thread1 = Thread(target=task1)
@@ -165,17 +166,17 @@ def test_store_copy_from():
             get_timestamp(cursor)
             final_timestamp = get_scalar(cursor)
 
-    print("final timestamp: {}".format(final_timestamp))
+    print(f"final timestamp: {final_timestamp}")
 
 
 def task(name, duration):
     def f():
-        print("{} start".format(name))
+        print(f"{name} start")
 
         with closing(connect()) as conn:
             with closing(conn.cursor()) as cursor:
                 timestamp = now(cursor)
-                print("{} timestamp: {}".format(name, timestamp))
+                print(f"{name} timestamp: {timestamp}")
 
                 sleep(duration)
 
@@ -183,7 +184,7 @@ def task(name, duration):
 
             conn.commit()
 
-        print("{} commit".format(name))
+        print(f"{name} commit")
 
     return f
 
