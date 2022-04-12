@@ -1,17 +1,17 @@
+"""Provides the 'initialize' sub-command."""
 import os
 from contextlib import closing
 import sys
 import glob
 from pathlib import Path
-from minerva.db.error import translate_postgresql_exception
-import psycopg2
 
 import yaml
+
 from minerva.commands import ConfigurationError
 from minerva.commands.live_monitor import live_monitor
 
 from minerva.db import connect
-from minerva.db.error import DuplicateSchema
+from minerva.db.error import translate_postgresql_exception
 
 from minerva.instance import INSTANCE_ROOT_VARIABLE, MinervaInstance
 from minerva.commands.attribute_store import \
@@ -24,8 +24,7 @@ from minerva.commands.notification_store import \
 from minerva.commands.partition import create_partitions_for_trend_store
 from minerva.commands.trigger import create_trigger
 from minerva.commands.load_sample_data import load_sample_data
-from minerva.commands.relation import DuplicateRelation, define_relation, \
-    materialize_relations
+from minerva.commands.relation import define_relation, materialize_relations
 from minerva.commands.virtual_entity import materialize_virtual_entities
 from minerva.commands.trend_materialization import define_materialization
 

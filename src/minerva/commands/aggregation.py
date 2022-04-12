@@ -41,7 +41,7 @@ def generate_standard_aggregations_cmd(args):
 
     if args.trend_store:
         for file_path in args.trend_store:
-            generate_standard_aggregations_for(instance, Path(file_path), set())
+            generate_standard_aggregations_for(instance, Path(file_path))
     else:
         generate_standard_aggregations(instance)
 
