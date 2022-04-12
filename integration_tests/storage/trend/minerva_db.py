@@ -1,4 +1,4 @@
-from contextlib import closing, contextmanager
+from contextlib import closing
 
 from minerva.test import connect, clear_database
 

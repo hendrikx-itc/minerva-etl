@@ -48,5 +48,5 @@ class TestHandleExceptions(unittest.TestCase):
 
         handle = dict_to_handler(handler_map)
 
-        with self.assertRaises(UnhandledException) as cm:
+        with self.assertRaises(UnhandledException):
             handle_exceptions(handle, fn)()

@@ -27,18 +27,9 @@ class TestEntity(unittest.TestCase):
         """
         entity_type_a = EntityType(id_=68, name="DummyTypeA", description="")
 
-        entity_1 = Entity(
+        Entity(
             id_=24,
             created=pytz.utc.localize(datetime.utcnow()),
             name="dummy1",
             entity_type_id=entity_type_a.id,
-        )
-
-        entity_type_b = EntityType(id_=69, name="DummyTypeB", description="")
-
-        Entity(
-            id_=72,
-            created=pytz.utc.localize(datetime.utcnow()),
-            name="dummy2",
-            entity_type_id=entity_type_b.id,
         )

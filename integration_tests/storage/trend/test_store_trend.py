@@ -11,7 +11,7 @@ import pytest
 from minerva.db.error import DataTypeMismatch
 from minerva.storage.trend.trendstorepart import TrendStorePart
 from minerva.util import first
-from minerva.db.query import Table, Column, Call, Eq
+from minerva.db.query import Table, Column, Call
 from minerva.directory.datasource import DataSource
 from minerva.directory.entitytype import EntityType
 from minerva.test import clear_database, row_count

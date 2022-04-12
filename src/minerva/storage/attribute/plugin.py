@@ -18,8 +18,6 @@ from minerva.storage.attribute import datapackage as dp
 from minerva.storage.attribute import rawdatapackage as rdp
 from minerva.storage.attribute.attribute import Attribute
 from minerva.storage.attribute.attributestore import AttributeStore
-from minerva.storage.attribute.retrieve import retrieve, retrieve_current, \
-    retrieve_attributes_for_entity
 
 
 class AttributePlugin(object):
@@ -39,24 +37,6 @@ class AttributePlugin(object):
         self.conn.commit()
 
         attributestore.store_txn(datapackage).run(self.conn)
-
-    def retrieve_attributes_for_entity(self, entity_id, attributes):
-        return retrieve_attributes_for_entity(self.conn, entity_id, attributes)
-
-    def retrieve(self, datasource, entitytype, attribute_names, entities,
-                 timestamp=None):
-        attributestore = AttributeStore(datasource, entitytype)
-
-        return retrieve(self.conn, attributestore.history_table, attribute_names,
-                        entities, timestamp)
-
-    def retrieve_current(self, datasource, entitytype, attribute_names,
-                         entities, limit=None):
-
-        attributestore = AttributeStore(datasource, entitytype)
-
-        return retrieve_current(self.conn, attributestore.table,
-                                attribute_names, entities)
 
     def store_raw(self, datasource, rawdatapackage):
         with closing(self.conn.cursor()) as cursor:

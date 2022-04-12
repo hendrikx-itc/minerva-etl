@@ -2,7 +2,7 @@
 from contextlib import closing
 from datetime import datetime
 
-from minerva.test import with_conn, clear_database
+from minerva.test import clear_database
 from minerva.directory import DataSource
 from minerva.directory.entityref import EntityIdRef
 from minerva.storage import datatype

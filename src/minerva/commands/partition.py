@@ -39,9 +39,9 @@ def create_specific_partitions_for_trend_store(conn, trend_store_id, timestamp):
             except PartitionExistsError:
                 conn.rollback()
                 retry = False
-            except LockNotAvailable as e:
+            except LockNotAvailable as exc:
                 conn.rollback()
-                print(e)
+                print(exc)
                 sleep(1)
             except DeadLockDetected:
                 pass
@@ -142,9 +142,9 @@ def create_partition_for_trend_store_part(conn, trend_store_part_id, partition_i
             cursor.execute(query, args)
         except psycopg2.errors.DuplicateTable:
             raise PartitionExistsError(trend_store_part_id, partition_index)
-        except psycopg2.errors.LockNotAvailable as e:
-            raise LockNotAvailable(e)
+        except psycopg2.errors.LockNotAvailable as exc:
+            raise LockNotAvailable(exc)
 
-        name, p = cursor.fetchone()
+        name, _ = cursor.fetchone()
 
         return name

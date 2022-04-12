@@ -116,7 +116,7 @@ first = head
 
 def tail(iterable):
     """
-    Return a list with everything but the first element of `iterable`
+    Return a list with everything but the first element of `iterable`.
     """
     return iterable[1:]
 
@@ -214,9 +214,7 @@ def identity(x):
 
 
 def no_op(*args, **kwargs):
-    """
-    Do nothing
-    """
+    """Do nothing."""
     pass
 
 
@@ -302,8 +300,9 @@ def expand_args(fn):
 
 def pack_args(fn):
     """
-    Return a function that wraps `fn` so it accepts positional arguments that
-    will be packed and passed as a tuple.
+    Return a function that wraps `fn` and accepts positional arguments.
+
+    The positional arguments will be packed and passed as one tuple.
     """
     def wrapper(*args):
         return fn(args)
@@ -325,16 +324,12 @@ def if_set(v, f: Callable[[Any], Any]):
 
 
 def lines(sep="\n", lines="") -> List[str]:
-    """
-    Split string on line separators and return list with lines.
-    """
+    """Split string on line separators and return list with lines."""
     return lines.split(sep)
 
 
 def unlines(lines: Iterable[str]) -> str:
-    """
-    Join lines with a newline character in between.
-    """
+    """Join lines with a newline character in between."""
     return "\n".join(lines)
 
 
@@ -361,7 +356,7 @@ def merge_dicts(x: Optional[dict], y: Optional[dict]) -> dict:
 
 def string_fns(fns):
     """
-    Return function that calls all functions on the same arguments
+    Return function that calls all functions on the same arguments.
 
     :param fns:
     :return:

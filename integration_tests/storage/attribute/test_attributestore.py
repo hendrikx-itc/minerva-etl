@@ -196,7 +196,9 @@ def test_store_batch_with_list_a(start_db_container):
         )
 
         query = sql.SQL("SELECT timestamp, height FROM {}").format(
-            sql.Identifier(attribute_store.table.schema.name, attribute_store.table.name)
+            sql.Identifier(
+                attribute_store.table.schema.name, attribute_store.table.name
+            )
         )
 
         cursor.execute(query)
@@ -323,9 +325,9 @@ def test_store_batch_update(start_db_container):
 
         attribute_store.store(data_package)(start_db_container)
         conn.commit()
-        modified_query = sql.SQL("SELECT modified FROM {} WHERE entity_id = 10023").format(
-            attribute_store.history_table.identifier()
-        )
+        modified_query = sql.SQL(
+            "SELECT modified FROM {} WHERE entity_id = 10023"
+        ).format(attribute_store.history_table.identifier())
 
         cursor.execute(modified_query)
         (modified_a,) = cursor.fetchone()
