@@ -201,15 +201,14 @@ class TrendStore:
         return query_db
 
     @classmethod
-    def get_by_id(cls, id_: int):
-        def f(conn):
-            args = (id_,)
+    def get_by_id(cls, trend_store_id: int):
+        def f(cursor):
+            args = (trend_store_id,)
 
-            with closing(conn.cursor()) as cursor:
-                cls.get_by_id_query.execute(cursor, args)
+            cls.get_by_id_query.execute(cursor, args)
 
-                if cursor.rowcount == 1:
-                    return TrendStore.from_record(cursor.fetchone())(cursor)
+            if cursor.rowcount == 1:
+                return TrendStore.from_record(cursor.fetchone())(cursor)
 
         return f
 

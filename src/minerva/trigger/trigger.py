@@ -1,12 +1,15 @@
+"""Provide the Trigger class."""
 from contextlib import closing
 from typing import List
 
+from psycopg2 import sql
+
 from minerva.commands import ConfigurationError
 from minerva.db import error
-from psycopg2 import sql
 
 
 class Trigger:
+    """Provide the trigger management functionality."""
     name: str
     kpi_data: List
     kpi_function: str
@@ -56,6 +59,10 @@ class Trigger:
 
     @staticmethod
     def from_dict(data: dict):
+        """Instantiate a Trigger from definition data.
+
+        The data for instantiation is typically loaded from a yaml or json file.
+        """
         return Trigger(
             data["name"],
             data["kpi_data"],
@@ -74,6 +81,7 @@ class Trigger:
         )
 
     def create(self, conn):
+        """Create the trigger in the Minerva database."""
         yield " - creating KPI type"
 
         try:
@@ -124,6 +132,7 @@ class Trigger:
 
     @staticmethod
     def delete(conn, name: str):
+        """Delete a trigger from a Minerva database."""
         query = "SELECT trigger.delete_rule(%s)"
         query_args = (name,)
 
@@ -133,6 +142,7 @@ class Trigger:
 
     @staticmethod
     def set_enabled(conn, name: str, enabled: bool):
+        """Set the enabled flag for a trigger in the database."""
         query = "UPDATE trigger.rule SET enabled = %s WHERE name = %s RETURNING enabled"
         query_args = (enabled, name)
 
@@ -141,10 +151,12 @@ class Trigger:
             return cursor.fetchone()
 
     def set_weight(self, conn):
+        """Set the weight of this trigger in the database."""
         Trigger.set_weight_by_name(conn, self.name, self.weight)
 
     @staticmethod
     def execute(conn, name, timestamp=None):
+        """Execute a trigger for a specific timestamp."""
         if timestamp is None:
             query = "SELECT * FROM trigger.create_notifications(%s::name)"
             query_args = (name,)
@@ -160,7 +172,8 @@ class Trigger:
             return notification_count
 
     def create_kpi_type(self, conn):
-        type_name = "{}_kpi".format(self.name)
+        """Create the KPI type in the database."""
+        type_name = f"{self.name}_kpi"
 
         column_specs = [
             ("entity_id", "integer"),
@@ -173,7 +186,7 @@ class Trigger:
         )
 
         columns = [
-            sql.SQL("{{}} {}".format(data_type)).format(sql.Identifier(name))
+            sql.SQL(f"{{}} {data_type}").format(sql.Identifier(name))
             for name, data_type in column_specs
         ]
 
@@ -193,8 +206,9 @@ class Trigger:
             cursor.execute(query)
 
     def create_kpi_function(self, conn, or_replace=False):
-        function_name = "{}_kpi".format(self.name)
-        type_name = "{}_kpi".format(self.name)
+        """Create the KPI function in the database."""
+        function_name = f"{self.name}_kpi"
+        type_name = f"{self.name}_kpi"
 
         if or_replace:
             create_function_part = sql.SQL("CREATE OR REPLACE FUNCTION")
@@ -238,11 +252,14 @@ class Trigger:
 
     @staticmethod
     def create_mapping_function_query(definition):
-        return (
-            'CREATE FUNCTION trend."{}"(timestamp with time zone) '
+        return sql.SQL(
+            'CREATE FUNCTION {}(timestamp with time zone) '
             "RETURNS SETOF timestamp with time zone "
             "AS $$ {} $$ LANGUAGE sql STABLE;"
-        ).format(definition["name"], definition["source"])
+        ).format(
+            sql.Identifier("trend", definition["name"]),
+            definition["source"]
+        )
 
     def create_mapping_functions(self, conn):
         queries = [
@@ -266,10 +283,9 @@ class Trigger:
 
         with closing(conn.cursor()) as cursor:
             for trend_store_link in self.trend_store_links:
+                mapping_function_name = trend_store_link["mapping_function"]
                 mapping_function = sql.Literal(
-                    "trend.{}(timestamp with time zone)".format(
-                        trend_store_link["mapping_function"]
-                    )
+                    f"trend.{mapping_function_name}(timestamp with time zone)"
                 )
                 formatted_query = query.format(mapping_function)
 
@@ -317,8 +333,7 @@ class Trigger:
 
             if cursor.rowcount == 0:
                 raise ConfigurationError(
-                    f"No such notification store: \
-                    {self.notification_store}"
+                    f"No such notification store: {self.notification_store}"
                 )
 
             cursor.execute(create_query)
@@ -333,10 +348,14 @@ class Trigger:
             )
 
     def set_thresholds(self, conn):
-        function_name = "{}_set_thresholds".format(self.name)
+        """Set the thresholds of this trigger in the database."""
+        function_name = f"{self.name}_set_thresholds"
 
-        query = 'SELECT trigger_rule."{}"({})'.format(
-            function_name, ",".join(len(self.thresholds) * ["%s"])
+        query = sql.SQL(
+            'SELECT {}({})'
+        ).format(
+            sql.Identifier("trigger_rule", function_name),
+            sql.SQL(",").join(len(self.thresholds) * [sql.Placeholder()])
         )
 
         query_args = tuple(threshold["value"] for threshold in self.thresholds)
@@ -345,7 +364,8 @@ class Trigger:
             cursor.execute(query, query_args)
 
     def set_condition(self, conn):
-        query = (
+        """Set the condition of this trigger in the database."""
+        query = sql.SQL(
             "SELECT trigger.set_condition(rule, %s) "
             "FROM trigger.rule WHERE name = %s"
         )
@@ -357,6 +377,7 @@ class Trigger:
 
     @staticmethod
     def set_weight_by_name(conn, name: str, weight: int):
+        """Set the weight of the specified trigger in the database."""
         query = "SELECT trigger.set_weight(%s::name, %s::text)"
 
         query_args = (name, str(weight))

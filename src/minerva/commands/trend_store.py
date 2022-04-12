@@ -90,9 +90,9 @@ def create_trend_store_cmd(args):
         create_trend_store(trend_store, args.create_partitions)
         sys.stdout.write("OK\n")
     except DuplicateTrendStore as exc:
-        print("Could not create trend store: {}".format(exc))
+        print(f"Could not create trend store: {exc}")
     except Exception as exc:
-        sys.stdout.write("Error:\n{}".format(str(exc)))
+        sys.stdout.write(f"Error:\n{exc}")
         raise exc
 
 
@@ -121,7 +121,7 @@ def add_trends_cmd(args):
         else:
             sys.stdout.write("No trends to be added\n")
     except Exception as exc:
-        sys.stdout.write("Error:\n{}".format(str(exc)))
+        sys.stdout.write(f"Error:\n{exc}")
         raise exc
 
 
@@ -161,8 +161,7 @@ def remove_trends_cmd(args):
         else:
             sys.stdout.write("No trends to be removed.\n")
     except Exception as exc:
-
-        sys.stdout.write("Error:\n{}".format(str(exc)))
+        sys.stdout.write(f"Error:\n{exc}")
         raise exc
 
 
