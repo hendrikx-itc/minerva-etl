@@ -7,13 +7,12 @@ import yaml
 class SqlSrc(str):
     @staticmethod
     def representer(dumper, data: str) -> str:
-        return dumper.represent_scalar('tag:yaml.org,2002:str', data, style='|')
+        return dumper.represent_scalar("tag:yaml.org,2002:str", data, style="|")
 
 
 def dict_representer(dumper: Type[yaml.Dumper], data: OrderedDict):
     return dumper.represent_mapping(
-        yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG,
-        data.items()
+        yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG, data.items()
     )
 
 
@@ -27,7 +26,9 @@ def ordered_yaml_dump(data, stream=None, Dumper=yaml.Dumper, **kwds):
     return yaml.dump(data, stream, OrderedDumper, **kwds)
 
 
-def ordered_yaml_load(stream, Loader=yaml.Loader, object_pairs_hook=OrderedDict) -> OrderedDict:
+def ordered_yaml_load(
+    stream, Loader=yaml.Loader, object_pairs_hook=OrderedDict
+) -> OrderedDict:
     class OrderedLoader(Loader):
         pass
 
@@ -36,7 +37,7 @@ def ordered_yaml_load(stream, Loader=yaml.Loader, object_pairs_hook=OrderedDict)
         return object_pairs_hook(loader.construct_pairs(node))
 
     OrderedLoader.add_constructor(
-        yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG,
-        construct_mapping)
+        yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG, construct_mapping
+    )
 
     return yaml.load(stream, OrderedLoader)  # nosec

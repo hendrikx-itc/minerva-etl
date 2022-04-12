@@ -4,7 +4,7 @@ import argparse
 from psycopg2 import sql
 
 from minerva.instance import load_yaml
-from minerva.db import connect, error
+from minerva.db import connect
 
 
 def setup_command_parser(subparsers):

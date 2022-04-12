@@ -5,8 +5,7 @@ from minerva.harvest.error import DataError
 from minerva.harvest.plugin_api_trend import HarvestParserTrend
 
 
-def deduce_config(
-        file_path, parser: HarvestParserTrend, show_progress=False):
+def deduce_config(file_path, parser: HarvestParserTrend, show_progress=False):
     """
     Process a single file with specified plugin.
     """
@@ -21,16 +20,16 @@ def deduce_config(
         try:
             for package in parser.load_packages(data_file, filename):
                 for trend_descriptor in package.trend_descriptors:
-                    if not trend_descriptor.name in trend_descriptors:
+                    if trend_descriptor.name not in trend_descriptors:
                         trend_descriptors[trend_descriptor.name] = trend_descriptor
         except DataError as exc:
             raise exc
-            #raise ParseError(
+            # raise ParseError(
             #    "{0!s} at position {1:d}".format(exc, data_file.tell())
-            #)
+            # )
         except Exception:
             stack_trace = traceback.format_exc()
-            position = -1# data_file.tell()
+            position = -1  # data_file.tell()
             message = "{0} at position {1:d}".format(stack_trace, position)
             raise Exception(message)
 
@@ -41,8 +40,11 @@ def deduce_config(
         "partition_size": "PARTITIONSIZE",
         "parts": [
             {
-                'name': 'PART',
-                'trends': [trend_descriptor.to_dict() for name, trend_descriptor in trend_descriptors.items()]
+                "name": "PART",
+                "trends": [
+                    trend_descriptor.to_dict()
+                    for name, trend_descriptor in trend_descriptors.items()
+                ],
             }
-        ]
+        ],
     }

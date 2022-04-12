@@ -22,9 +22,23 @@ class Trigger:
     mapping_functions: List
     granularity: str
 
-    def __init__(self, name, kpi_data, kpi_function, thresholds, condition,
-                 weight, notification, data, tags, fingerprint, notification_store,
-                 trend_store_links, mapping_functions, granularity):
+    def __init__(
+        self,
+        name,
+        kpi_data,
+        kpi_function,
+        thresholds,
+        condition,
+        weight,
+        notification,
+        data,
+        tags,
+        fingerprint,
+        notification_store,
+        trend_store_links,
+        mapping_functions,
+        granularity,
+    ):
         self.name = name
         self.kpi_data = kpi_data
         self.kpi_function = kpi_function
@@ -56,7 +70,7 @@ class Trigger:
             data["notification_store"],
             data["trend_store_links"],
             data["mapping_functions"],
-            data["granularity"]
+            data["granularity"],
         )
 
     def create(self, conn):
@@ -110,7 +124,7 @@ class Trigger:
 
     @staticmethod
     def delete(conn, name: str):
-        query = 'SELECT trigger.delete_rule(%s)'
+        query = "SELECT trigger.delete_rule(%s)"
         query_args = (name,)
 
         with closing(conn.cursor()) as cursor:
@@ -119,7 +133,7 @@ class Trigger:
 
     @staticmethod
     def set_enabled(conn, name: str, enabled: bool):
-        query = 'UPDATE trigger.rule SET enabled = %s WHERE name = %s RETURNING enabled'
+        query = "UPDATE trigger.rule SET enabled = %s WHERE name = %s RETURNING enabled"
         query_args = (enabled, name)
 
         with closing(conn.cursor()) as cursor:
@@ -141,46 +155,46 @@ class Trigger:
         with closing(conn.cursor()) as cursor:
             cursor.execute(query, query_args)
 
-            notification_count, = cursor.fetchone()
+            (notification_count,) = cursor.fetchone()
 
             return notification_count
 
     def create_kpi_type(self, conn):
-        type_name = '{}_kpi'.format(self.name)
+        type_name = "{}_kpi".format(self.name)
 
         column_specs = [
-            ('entity_id', 'integer'),
-            ('timestamp', 'timestamp with time zone')
+            ("entity_id", "integer"),
+            ("timestamp", "timestamp with time zone"),
         ]
 
         column_specs.extend(
-            (kpi_column['name'], kpi_column['data_type'])
+            (kpi_column["name"], kpi_column["data_type"])
             for kpi_column in self.kpi_data
         )
 
         columns = [
-            sql.SQL('{{}} {}'.format(data_type)).format(sql.Identifier(name))
+            sql.SQL("{{}} {}".format(data_type)).format(sql.Identifier(name))
             for name, data_type in column_specs
         ]
 
-        columns_part = sql.SQL(', ').join(columns)
+        columns_part = sql.SQL(", ").join(columns)
 
         query_parts = [
-            sql.SQL(
-                "CREATE TYPE trigger_rule.{} AS ("
-            ).format(sql.Identifier(type_name)),
+            sql.SQL("CREATE TYPE trigger_rule.{} AS (").format(
+                sql.Identifier(type_name)
+            ),
             columns_part,
-            sql.SQL(')')
+            sql.SQL(")"),
         ]
 
-        query = sql.SQL('').join(query_parts)
+        query = sql.SQL("").join(query_parts)
 
         with closing(conn.cursor()) as cursor:
             cursor.execute(query)
 
     def create_kpi_function(self, conn, or_replace=False):
-        function_name = '{}_kpi'.format(self.name)
-        type_name = '{}_kpi'.format(self.name)
+        function_name = "{}_kpi".format(self.name)
+        type_name = "{}_kpi".format(self.name)
 
         if or_replace:
             create_function_part = sql.SQL("CREATE OR REPLACE FUNCTION")
@@ -189,39 +203,35 @@ class Trigger:
 
         query_parts = [
             sql.SQL(
-                '{} trigger_rule.{}(timestamp with time zone)\n'
-                'RETURNS SETOF trigger_rule.{}\n'
-                'AS $trigger$'
-            ).format(create_function_part, sql.Identifier(function_name), sql.Identifier(type_name)),
+                "{} trigger_rule.{}(timestamp with time zone)\n"
+                "RETURNS SETOF trigger_rule.{}\n"
+                "AS $trigger$"
+            ).format(
+                create_function_part,
+                sql.Identifier(function_name),
+                sql.Identifier(type_name),
+            ),
             sql.SQL(self.kpi_function),
-            sql.SQL(
-                '$trigger$ LANGUAGE plpgsql STABLE;'
-            )
+            sql.SQL("$trigger$ LANGUAGE plpgsql STABLE;"),
         ]
 
-        query = sql.SQL('').join(query_parts)
+        query = sql.SQL("").join(query_parts)
 
         with closing(conn.cursor()) as cursor:
             cursor.execute(query)
 
     def define_notification_message(self, conn):
-        query = 'SELECT trigger.define_notification_message(%s, %s)'
+        query = "SELECT trigger.define_notification_message(%s, %s)"
 
-        query_args = (
-            self.name,
-            self.notification
-        )
+        query_args = (self.name, self.notification)
 
         with closing(conn.cursor()) as cursor:
             cursor.execute(query, query_args)
 
     def define_notification_data(self, conn):
-        query = 'SELECT trigger.define_notification_data(%s, %s)'
+        query = "SELECT trigger.define_notification_data(%s, %s)"
 
-        query_args = (
-            self.name,
-            self.data
-        )
+        query_args = (self.name, self.data)
 
         with closing(conn.cursor()) as cursor:
             cursor.execute(query, query_args)
@@ -230,9 +240,9 @@ class Trigger:
     def create_mapping_function_query(definition):
         return (
             'CREATE FUNCTION trend."{}"(timestamp with time zone) '
-            'RETURNS SETOF timestamp with time zone '
-            'AS $$ {} $$ LANGUAGE sql STABLE;'
-        ).format(definition['name'], definition['source'])
+            "RETURNS SETOF timestamp with time zone "
+            "AS $$ {} $$ LANGUAGE sql STABLE;"
+        ).format(definition["name"], definition["source"])
 
     def create_mapping_functions(self, conn):
         queries = [
@@ -245,26 +255,31 @@ class Trigger:
                 cursor.execute(query)
 
     def link_trend_stores(self, conn):
-        query = (
-            'INSERT INTO trigger.rule_trend_store_link(rule_id, trend_store_part_id, timestamp_mapping_func) '
-            "SELECT rule.id, trend_store_part.id, '{}(timestamp with time zone)'::regprocedure "
-            'FROM trigger.rule, trend_directory.trend_store_part '
-            'WHERE rule.name = %s AND trend_store_part.name = %s'
+        query = sql.SQL(
+            "INSERT INTO trigger.rule_trend_store_link("
+            "rule_id, trend_store_part_id, timestamp_mapping_func"
+            ") "
+            "SELECT rule.id, trend_store_part.id, {}::regprocedure "
+            "FROM trigger.rule, trend_directory.trend_store_part "
+            "WHERE rule.name = %s AND trend_store_part.name = %s"
         )
 
         with closing(conn.cursor()) as cursor:
             for trend_store_link in self.trend_store_links:
-                mapping_function = 'trend.{}'.format(trend_store_link['mapping_function'])
+                mapping_function = sql.Literal(
+                    "trend.{}(timestamp with time zone)".format(
+                        trend_store_link["mapping_function"]
+                    )
+                )
                 formatted_query = query.format(mapping_function)
 
-                query_args = (self.name, trend_store_link['part_name'])
+                query_args = (self.name, trend_store_link["part_name"])
 
                 cursor.execute(formatted_query, query_args)
 
     def set_fingerprint(self, conn):
-        query = sql.SQL('SELECT trigger.set_fingerprint({}, {});').format(
-            sql.Literal(self.name),
-            sql.Literal(self.fingerprint)
+        query = sql.SQL("SELECT trigger.set_fingerprint({}, {});").format(
+            sql.Literal(self.name), sql.Literal(self.fingerprint)
         )
 
         with closing(conn.cursor()) as cursor:
@@ -276,10 +291,10 @@ class Trigger:
             "FROM trigger.create_rule('{}', array[{}]::trigger.threshold_def[]);"
         ).format(
             self.name,
-            ','.join(
-                "('{}', '{}')".format(threshold['name'], threshold['data_type'])
+            ",".join(
+                "('{}', '{}')".format(threshold["name"], threshold["data_type"])
                 for threshold in self.thresholds
-            )
+            ),
         )
 
         get_notification_store_query = (
@@ -298,12 +313,13 @@ class Trigger:
         )
 
         with closing(conn.cursor()) as cursor:
-            cursor.execute(get_notification_store_query,
-                           (self.notification_store,))
+            cursor.execute(get_notification_store_query, (self.notification_store,))
 
             if cursor.rowcount == 0:
-                raise ConfigurationError(f'No such notification store: \
-                    {self.notification_store}')
+                raise ConfigurationError(
+                    f"No such notification store: \
+                    {self.notification_store}"
+                )
 
             cursor.execute(create_query)
 
@@ -313,26 +329,25 @@ class Trigger:
 
             cursor.execute(
                 set_properties_query,
-                (self.granularity, rule_id, self.notification_store)
+                (self.granularity, rule_id, self.notification_store),
             )
 
     def set_thresholds(self, conn):
-        function_name = '{}_set_thresholds'.format(self.name)
+        function_name = "{}_set_thresholds".format(self.name)
 
         query = 'SELECT trigger_rule."{}"({})'.format(
-            function_name,
-            ','.join(len(self.thresholds) * ['%s'])
+            function_name, ",".join(len(self.thresholds) * ["%s"])
         )
 
-        query_args = tuple(threshold['value'] for threshold in self.thresholds)
+        query_args = tuple(threshold["value"] for threshold in self.thresholds)
 
         with closing(conn.cursor()) as cursor:
             cursor.execute(query, query_args)
 
     def set_condition(self, conn):
         query = (
-            'SELECT trigger.set_condition(rule, %s) '
-            'FROM trigger.rule WHERE name = %s'
+            "SELECT trigger.set_condition(rule, %s) "
+            "FROM trigger.rule WHERE name = %s"
         )
 
         query_args = (self.condition, self.name)
@@ -342,9 +357,7 @@ class Trigger:
 
     @staticmethod
     def set_weight_by_name(conn, name: str, weight: int):
-        query = (
-            'SELECT trigger.set_weight(%s::name, %s::text)'
-        )
+        query = "SELECT trigger.set_weight(%s::name, %s::text)"
 
         query_args = (name, str(weight))
 

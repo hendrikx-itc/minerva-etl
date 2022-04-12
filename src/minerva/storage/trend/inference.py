@@ -18,13 +18,14 @@ def get_tables(cursor, schema):
     query = (
         "SELECT relname, "
         "CASE relkind "
-            "WHEN 'r' THEN 'table'::trend.storetype "
-            "WHEN 'v' THEN 'view'::trend.storetype "
-            "ELSE NULL "
+        "WHEN 'r' THEN 'table'::trend.storetype "
+        "WHEN 'v' THEN 'view'::trend.storetype "
+        "ELSE NULL "
         "END "
         "FROM pg_class "
         "JOIN pg_namespace ON pg_class.relnamespace = pg_namespace.oid "
-        "WHERE nspname = 'trend' AND (relkind = 'r' OR relkind = 'v')")
+        "WHERE nspname = 'trend' AND (relkind = 'r' OR relkind = 'v')"
+    )
 
     args = tuple()
 
@@ -37,9 +38,10 @@ def get_column_names(cursor, partition_name):
     query = (
         "SELECT attname FROM pg_attribute "
         "JOIN pg_class ON pg_class.oid = pg_attribute.attrelid "
-        "WHERE relname = %s AND attnum > 0 AND attisdropped = FALSE")
+        "WHERE relname = %s AND attnum > 0 AND attisdropped = FALSE"
+    )
 
-    args = (partition_name, )
+    args = (partition_name,)
 
     cursor.execute(query, args)
 

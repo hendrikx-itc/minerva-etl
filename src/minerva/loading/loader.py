@@ -154,8 +154,8 @@ def filter_trend_package(entity_filter, trend_filter, package: DataPackage):
     """
     Filter data in a trend package.
 
-    The data in the provided package is filtered based on the provided `entity_filter` and
-    `trend_filter` and return a new package with the filtered data.
+    The data in the provided package is filtered based on the provided `entity_filter`
+    and `trend_filter` and return a new package with the filtered data.
     """
     filtered_trend_names = list(filter(trend_filter, package.trend_descriptors))
 
@@ -190,8 +190,8 @@ def filter_attribute_package(entity_filter, attribute_filter, package):
     """
     Filter data in a attribute package.
 
-    The data in the provided package is filtered based on the provided `entity_filter` and
-    `trend_filter` and return a new package with the filtered data.
+    The data in the provided package is filtered based on the provided `entity_filter`
+    and `trend_filter` and return a new package with the filtered data.
     """
     filtered_attribute_names = filter(attribute_filter, package.attribute_names)
 

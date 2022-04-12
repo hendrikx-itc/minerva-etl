@@ -9,8 +9,8 @@ class RelationType:
         def __init__(self, name, cardinality):
             self.name = name
             self.cardinality = cardinality
-            
-    def __init__(self, id_, name, cardinality='one-to-one'):
+
+    def __init__(self, id_, name, cardinality="one-to-one"):
         self.id = id_
         self.name = name
         self.cardinality = cardinality
@@ -51,13 +51,15 @@ class RelationType:
             )
             args = (name, cardinality)
         else:
-            query = "INSERT INTO relation_directory.type (name) VALUES (%s) RETURNING id"
+            query = (
+                "INSERT INTO relation_directory.type (name) VALUES (%s) RETURNING id"
+            )
             args = (name,)
 
         with closing(conn.cursor()) as cursor:
             cursor.execute(query, args)
 
-            relation_type_id, = cursor.fetchone()
+            (relation_type_id,) = cursor.fetchone()
 
         return relation_type_id
 

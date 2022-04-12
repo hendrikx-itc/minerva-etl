@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
-from typing import List
 import os
 import sys
-import subprocess  # nosec
 import logging
 from logging.handlers import RotatingFileHandler
 
@@ -28,10 +26,7 @@ def parse_loglevel(level_str):
 def setup_logging(
     verbose=True, level="INFO", directory=None, filename=None, rotation_size="10MB"
 ):
-    """
-    Setup logging.
-    """
-
+    """Setup logging."""
     root_logger = logging.getLogger("")
 
     for handler in root_logger.handlers:

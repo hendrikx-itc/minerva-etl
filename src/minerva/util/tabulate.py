@@ -1,12 +1,8 @@
 # -*- coding: utf-8 -*-
 from functools import partial, reduce
-from typing import List, Iterator, Iterable
+from typing import List, Iterable
 
-WITH_ACCS = {
-    "auto": min,
-    "min": min,
-    "max": max
-}
+WITH_ACCS = {"auto": min, "min": min, "max": max}
 
 
 def join(sep, items):
@@ -21,7 +17,12 @@ def join(sep, items):
         yield v
 
 
-def render_rst_table(column_names: List[str], column_align: List[str], column_sizes: List[str], rows: List[Iterable]) -> List[str]:
+def render_rst_table(
+    column_names: List[str],
+    column_align: List[str],
+    column_sizes: List[str],
+    rows: List[Iterable],
+) -> List[str]:
     """
     ReStructuredText table
     """
@@ -29,25 +30,29 @@ def render_rst_table(column_names: List[str], column_align: List[str], column_si
     col_sep = " | "
     col_widths = calc_column_widths(column_names, rows, column_sizes)
 
-    header = "| " + render_line(
-        col_sep, column_names, col_widths, "^" * col_count) + " |"
-    horizontal_sep = "+-" + render_horizontal_sep(
-        "-+-", "-", col_widths) + "-+"
-    horizontal_sep_header = "+=" + render_horizontal_sep(
-        "=+=", "=", col_widths) + "=+"
+    header = (
+        "| " + render_line(col_sep, column_names, col_widths, "^" * col_count) + " |"
+    )
+    horizontal_sep = "+-" + render_horizontal_sep("-+-", "-", col_widths) + "-+"
+    horizontal_sep_header = "+=" + render_horizontal_sep("=+=", "=", col_widths) + "=+"
     body_rows = [
         "| " + render_line(col_sep, row, col_widths, column_align) + " |"
         for row in rows
     ]
 
     return (
-        [horizontal_sep, header, horizontal_sep_header] +
-        list(join(horizontal_sep, body_rows)) +
-        [horizontal_sep]
+        [horizontal_sep, header, horizontal_sep_header]
+        + list(join(horizontal_sep, body_rows))
+        + [horizontal_sep]
     )
 
 
-def render_table(column_names: List[str], column_align: Iterable[str], column_sizes: List[str], rows: List[Iterable]) -> List[str]:
+def render_table(
+    column_names: List[str],
+    column_align: Iterable[str],
+    column_sizes: List[str],
+    rows: List[Iterable],
+) -> List[str]:
     """
     Return list of lines of rendered table.
 
@@ -81,10 +86,7 @@ def render_table(column_names: List[str], column_align: Iterable[str], column_si
 
     header = render_line(col_sep, column_names, col_widths, "^" * col_count)
     horizontal_sep = render_horizontal_sep("-+-", "-", col_widths)
-    body = [
-        render_line(col_sep, row, col_widths, column_align)
-        for row in rows
-    ]
+    body = [render_line(col_sep, row, col_widths, column_align) for row in rows]
 
     return [header, horizontal_sep] + body
 
@@ -102,10 +104,7 @@ def calc_column_widths(column_names, rows, column_sizes):
 
 
 def reduce_row(accumulators, row1, row2):
-    return [
-        acc(val1, val2)
-        for acc, val1, val2 in zip(accumulators, row1, row2)
-    ]
+    return [acc(val1, val2) for acc, val1, val2 in zip(accumulators, row1, row2)]
 
 
 def render_line(col_sep, values, widths, alignments):

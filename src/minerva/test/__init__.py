@@ -11,7 +11,7 @@ from minerva.util.debug import log_call_basic
 
 def connect():
     conn = psycopg2.connect(
-        '', connection_factory=psycopg2.extras.LoggingConnection, connect_timeout=3
+        "", connection_factory=psycopg2.extras.LoggingConnection, connect_timeout=3
     )
 
     conn.initialize(logging.root)
@@ -31,6 +31,7 @@ def with_conn(*setup_functions):
         def some_function(conn):
             ...
         """
+
         @wraps(f)
         def wrapper(*args, **kwargs):
             with closing(connect()) as conn:
@@ -64,20 +65,16 @@ def clear_database(conn):
 
 def remove_entity_types(conn):
     with conn.cursor() as cursor:
-        cursor.execute('SELECT name FROM directory.entity_type')
+        cursor.execute("SELECT name FROM directory.entity_type")
 
         names = [name for name, in cursor.fetchall()]
 
         for name in names:
+            cursor.execute('DROP FUNCTION IF EXISTS entity."{}"'.format(f"get_{name}"))
             cursor.execute(
-                'DROP FUNCTION IF EXISTS entity."{}"'.format(f'get_{name}')
+                'DROP FUNCTION IF EXISTS entity."{}"'.format(f"create_{name}")
             )
-            cursor.execute(
-                'DROP FUNCTION IF EXISTS entity."{}"'.format(f'create_{name}')
-            )
-            cursor.execute(
-                'DROP FUNCTION IF EXISTS entity."{}"'.format(f'to_{name}')
-            )
+            cursor.execute('DROP FUNCTION IF EXISTS entity."{}"'.format(f"to_{name}"))
 
 
 @contextmanager
@@ -90,14 +87,10 @@ def with_data_context(conn, test_set):
 
 
 def row_count(cursor, table: sql.Identifier):
-    query = sql.SQL(
-        "SELECT COUNT(*) FROM {}"
-    ).format(table)
+    query = sql.SQL("SELECT COUNT(*) FROM {}").format(table)
 
     cursor.execute(query)
 
-    count, = cursor.fetchone()
+    (count,) = cursor.fetchone()
 
     return count
-
-

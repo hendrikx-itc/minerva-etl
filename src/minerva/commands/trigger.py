@@ -12,9 +12,7 @@ from minerva.commands import show_rows
 
 
 def setup_command_parser(subparsers):
-    cmd = subparsers.add_parser(
-        'trigger', help='command for administering triggers'
-    )
+    cmd = subparsers.add_parser("trigger", help="command for administering triggers")
 
     cmd_subparsers = cmd.add_subparsers()
 
@@ -29,13 +27,12 @@ def setup_command_parser(subparsers):
 
 
 def setup_create_parser(subparsers):
-    cmd = subparsers.add_parser(
-        'create', help='command for creating triggers'
-    )
+    cmd = subparsers.add_parser("create", help="command for creating triggers")
 
     cmd.add_argument(
-        'definition', type=argparse.FileType('r'),
-        help='file containing trend store definition'
+        "definition",
+        type=argparse.FileType("r"),
+        help="file containing trend store definition",
     )
 
     cmd.set_defaults(cmd=create_trigger_cmd)
@@ -45,9 +42,7 @@ def create_trigger_cmd(args):
     instance = MinervaInstance.load()
     trigger = instance.load_trigger_from_file(args.definition)
 
-    sys.stdout.write(
-        "Creating trigger '{}' ...\n".format(trigger.name)
-    )
+    sys.stdout.write("Creating trigger '{}' ...\n".format(trigger.name))
 
     try:
         create_trigger(trigger)
@@ -68,11 +63,9 @@ def create_trigger(trigger: Trigger):
 
 
 def setup_enable_parser(subparsers):
-    cmd = subparsers.add_parser(
-        'enable', help='command for enabling triggers'
-    )
+    cmd = subparsers.add_parser("enable", help="command for enabling triggers")
 
-    cmd.add_argument('name', help='name of trigger')
+    cmd.add_argument("name", help="name of trigger")
 
     cmd.set_defaults(cmd=enable_trigger_cmd)
 
@@ -88,11 +81,9 @@ def enable_trigger_cmd(args):
 
 
 def setup_disable_parser(subparsers):
-    cmd = subparsers.add_parser(
-        'disable', help='command for disabling triggers'
-    )
+    cmd = subparsers.add_parser("disable", help="command for disabling triggers")
 
-    cmd.add_argument('name', help='name of trigger')
+    cmd.add_argument("name", help="name of trigger")
 
     cmd.set_defaults(cmd=disable_trigger_cmd)
 
@@ -100,19 +91,17 @@ def setup_disable_parser(subparsers):
 def disable_trigger_cmd(args):
     with closing(connect()) as conn:
         conn.autocommit = True
-      
+
         if Trigger.set_enabled(conn, args.name, False) is not None:
             print(f"Trigger {args.name} has been disabled")
         else:
-            print(f"No trigger {args.name} exist")    
+            print(f"No trigger {args.name} exist")
 
 
 def setup_delete_parser(subparsers):
-    cmd = subparsers.add_parser(
-        'delete', help='command for deleting triggers'
-    )
+    cmd = subparsers.add_parser("delete", help="command for deleting triggers")
 
-    cmd.add_argument('name', help='name of trigger')
+    cmd.add_argument("name", help="name of trigger")
 
     cmd.set_defaults(cmd=delete_trigger_cmd)
 
@@ -128,21 +117,19 @@ def delete_trigger_cmd(args):
 
 
 def setup_list_parser(subparsers):
-    cmd = subparsers.add_parser(
-        'list', help='command for listing triggers'
-    )
+    cmd = subparsers.add_parser("list", help="command for listing triggers")
 
     cmd.set_defaults(cmd=list_cmd)
 
 
 def setup_update_weight_parser(subparsers):
     cmd = subparsers.add_parser(
-        'update-weight', help='command for updating the weight of a trigger from the configuration'
+        "update-weight",
+        help="command for updating the weight of a trigger from the configuration",
     )
 
     cmd.add_argument(
-        'definition', type=argparse.FileType('r'),
-        help='yaml description for trigger'
+        "definition", type=argparse.FileType("r"), help="yaml description for trigger"
     )
 
     cmd.set_defaults(cmd=update_weight_cmd)
@@ -164,12 +151,12 @@ def update_weight_cmd(args):
 
 def setup_update_kpi_function_parser(subparsers):
     cmd = subparsers.add_parser(
-        'update-kpi-function', help='command for updating the kpi function of a trigger from the configuration'
+        "update-kpi-function",
+        help="command for updating the kpi function of a trigger from the configuration",
     )
 
     cmd.add_argument(
-        'definition', type=argparse.FileType('r'),
-        help='yaml description for trigger'
+        "definition", type=argparse.FileType("r"), help="yaml description for trigger"
     )
 
     cmd.set_defaults(cmd=update_kpi_function_cmd)
@@ -179,9 +166,7 @@ def update_kpi_function_cmd(args):
     instance = MinervaInstance.load()
     trigger = instance.load_trigger_from_file(args.definition)
 
-    sys.stdout.write(
-        "Updating kpi function of '{}'... ".format(trigger.name)
-    )
+    sys.stdout.write("Updating kpi function of '{}'... ".format(trigger.name))
 
     with connect() as conn:
         conn.autocommit = True
@@ -204,15 +189,15 @@ def timedelta_to_string(t):
         days -= num_years * 365
 
         if num_years > 1:
-            ret.append('{:d} years'.format(num_years))
+            ret.append("{:d} years".format(num_years))
         else:
-            ret.append('{:d} year'.format(num_years))
+            ret.append("{:d} year".format(num_years))
 
     if days > 0:
         if days > 1:
-            ret.append('{:d} days'.format(days))
+            ret.append("{:d} days".format(days))
         else:
-            ret.append('{:d} day'.format(days))
+            ret.append("{:d} day".format(days))
 
     seconds = t.seconds
     num_hours = int(seconds / 3600)
@@ -221,22 +206,22 @@ def timedelta_to_string(t):
         seconds -= num_hours * 3600
 
         if num_hours > 1:
-            ret.append('{:d} hours'.format(num_hours))
+            ret.append("{:d} hours".format(num_hours))
         else:
-            ret.append('{:d} hour'.format(num_hours))
+            ret.append("{:d} hour".format(num_hours))
 
     num_minutes = int(seconds / 60)
     if num_minutes > 0:
         if num_minutes > 1:
-            ret.append('{:d} minutes'.format(num_minutes))
+            ret.append("{:d} minutes".format(num_minutes))
         else:
-            ret.append('{:d} minute'.format(num_minutes))
+            ret.append("{:d} minute".format(num_minutes))
 
-    return ' '.join(ret)
+    return " ".join(ret)
 
 
 def list_cmd(_args):
-    query = 'SELECT id, name, granularity, enabled FROM trigger.rule'
+    query = "SELECT id, name, granularity, enabled FROM trigger.rule"
 
     with closing(connect()) as conn:
         conn.autocommit = True
@@ -247,25 +232,23 @@ def list_cmd(_args):
             rows = cursor.fetchall()
 
     show_rows(
-        ['id', 'name', 'granularity', 'enabled'],
+        ["id", "name", "granularity", "enabled"],
         [
             (id_, name, timedelta_to_string(granularity), enabled)
             for id_, name, granularity, enabled in rows
-        ]
+        ],
     )
 
 
 def setup_create_notifications_parser(subparsers):
     cmd = subparsers.add_parser(
-        'create-notifications',
-        help='command for executing triggers and creating notifications'
+        "create-notifications",
+        help="command for executing triggers and creating notifications",
     )
 
-    cmd.add_argument('--trigger', help="name of trigger")
+    cmd.add_argument("--trigger", help="name of trigger")
 
-    cmd.add_argument(
-        '--timestamp', help="timestamp for which to execute trigger"
-    )
+    cmd.add_argument("--timestamp", help="timestamp for which to execute trigger")
 
     cmd.set_defaults(cmd=execute_trigger_cmd)
 

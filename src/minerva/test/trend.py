@@ -11,7 +11,7 @@ from minerva.storage.trend.test import DataSet
 from minerva.storage.trend.granularity import create_granularity
 from minerva.storage.trend.trend import Trend
 from minerva.storage.trend.trendstore import TrendStore
-from minerva.directory.entityref import EntityIdRef, EntityRef, entity_name_ref_class
+from minerva.directory.entityref import EntityIdRef, entity_name_ref_class
 from minerva.util import k
 
 

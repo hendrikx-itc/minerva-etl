@@ -8,6 +8,7 @@ from dateutil.relativedelta import relativedelta
 
 DUMMY_EPOCH = datetime.datetime(year=1900, month=1, day=1)
 
+
 @total_ordering
 class Granularity:
     delta: relativedelta
@@ -28,10 +29,10 @@ class Granularity:
 
             parts.append(days)
 
-        if not parts or (
-                self.delta.hours or self.delta.minutes or self.delta.seconds):
-            parts.append(time_to_str(
-                self.delta.hours, self.delta.minutes, self.delta.seconds))
+        if not parts or (self.delta.hours or self.delta.minutes or self.delta.seconds):
+            parts.append(
+                time_to_str(self.delta.hours, self.delta.minutes, self.delta.seconds)
+            )
 
         return " ".join(parts)
 
@@ -45,26 +46,16 @@ class Granularity:
         return (DUMMY_EPOCH + self.delta) - DUMMY_EPOCH
 
     def inc(self, x: datetime.datetime) -> datetime.datetime:
-        return x.tzinfo.localize(
-            datetime.datetime(
-                *(x + self.delta).timetuple()[:6]
-            )
-        )
+        return x.tzinfo.localize(datetime.datetime(*(x + self.delta).timetuple()[:6]))
 
     def decr(self, x: datetime.datetime) -> datetime.datetime:
-        return x.tzinfo.localize(
-            datetime.datetime(
-                *(x - self.delta).timetuple()[:6]
-            )
-        )
+        return x.tzinfo.localize(datetime.datetime(*(x - self.delta).timetuple()[:6]))
 
     def truncate(self, x: datetime.datetime) -> datetime.datetime:
         years, months, days, hours, minutes, seconds = x.timetuple()[:6]
 
         if self.delta == DELTA_1D:
-            return x.tzinfo.localize(
-                datetime.datetime(years, months, days, 0, 0, 0)
-            )
+            return x.tzinfo.localize(datetime.datetime(years, months, days, 0, 0, 0))
         elif self.delta == DELTA_1H:
             return x.tzinfo.localize(
                 datetime.datetime(years, months, days, hours, 0, 0)
@@ -104,7 +95,7 @@ def timedelta_to_granularity(delta: datetime.timedelta) -> Granularity:
 
 
 def str_to_granularity(granularity_str: str) -> Granularity:
-    m = re.match('([0-9]{2}):([0-9]{2}):([0-9]{2})', granularity_str)
+    m = re.match("([0-9]{2}):([0-9]{2}):([0-9]{2})", granularity_str)
 
     if m:
         hours_str, minutes_str, seconds_str = m.groups()
@@ -113,25 +104,23 @@ def str_to_granularity(granularity_str: str) -> Granularity:
         minutes = int(minutes_str)
         seconds = int(seconds_str)
 
-        return Granularity(
-            relativedelta(hours=hours, minutes=minutes, seconds=seconds)
-        )
+        return Granularity(relativedelta(hours=hours, minutes=minutes, seconds=seconds))
 
-    m = re.match('^([0-9]+)[ ]*(s|second|seconds)$', granularity_str)
+    m = re.match("^([0-9]+)[ ]*(s|second|seconds)$", granularity_str)
 
     if m:
         seconds_str, _ = m.groups()
 
         return Granularity(relativedelta(seconds=int(seconds_str)))
 
-    m = re.match('^([0-9]+)[ ]*(m|min|minute|minutes)$', granularity_str)
+    m = re.match("^([0-9]+)[ ]*(m|min|minute|minutes)$", granularity_str)
 
     if m:
         minutes_str, _ = m.groups()
 
         return Granularity(relativedelta(minutes=int(minutes_str)))
 
-    m = re.match('^([0-9]+)[ ]*(h|hour|hours)$', granularity_str)
+    m = re.match("^([0-9]+)[ ]*(h|hour|hours)$", granularity_str)
 
     if m:
         hours_str, _ = m.groups()
@@ -139,21 +128,21 @@ def str_to_granularity(granularity_str: str) -> Granularity:
 
         return Granularity(relativedelta(minutes=(60 * hours)))
 
-    m = re.match('([0-9]+)[ ]*(d|day|days)', granularity_str)
+    m = re.match("([0-9]+)[ ]*(d|day|days)", granularity_str)
 
     if m:
         days_str, _ = m.groups()
 
         return Granularity(relativedelta(days=int(days_str)))
 
-    m = re.match('([0-9]+)[ ]*(w|week|weeks)', granularity_str)
+    m = re.match("([0-9]+)[ ]*(w|week|weeks)", granularity_str)
 
     if m:
         weeks_str, _ = m.groups()
 
         return Granularity(relativedelta(days=int(weeks_str) * 7))
 
-    m = re.match('([0-9]+)[ ]*(month|months)', granularity_str)
+    m = re.match("([0-9]+)[ ]*(month|months)", granularity_str)
 
     if m:
         months_str, _ = m.groups()
@@ -166,7 +155,7 @@ def str_to_granularity(granularity_str: str) -> Granularity:
 granularity_casts: Dict[Any, Callable[[Any], Granularity]] = {
     datetime.timedelta: timedelta_to_granularity,
     str: str_to_granularity,
-    int: int_to_granularity
+    int: int_to_granularity,
 }
 
 
@@ -192,16 +181,16 @@ DELTA_15M = relativedelta(minutes=15)
 
 def months_str(num: int) -> str:
     if num == 1:
-        return '1 month'
+        return "1 month"
     else:
-        return '{} months'.format(num)
+        return "{} months".format(num)
 
 
 def days_str(num: int) -> str:
     if num == 1:
-        return '1 day'
+        return "1 day"
     else:
-        return '{} days'.format(num)
+        return "{} days".format(num)
 
 
 def time_to_str(hours: int, minutes: int, seconds: int) -> str:
@@ -213,5 +202,5 @@ def create_granularity(gr: Union[str, datetime.timedelta, int]) -> Granularity:
         return granularity_casts[type(gr)](gr)
     except IndexError:
         raise Exception(
-            'unsupported type to convert to granularity: {}'.format(type(gr))
+            "unsupported type to convert to granularity: {}".format(type(gr))
         )

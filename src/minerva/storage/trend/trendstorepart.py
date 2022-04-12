@@ -11,15 +11,19 @@ from minerva.storage.trend.datapackage import DataPackageRow
 from psycopg2.extensions import adapt, register_adapter, AsIs, QuotedString
 
 from minerva.db import CursorDbAction, ConnDbAction
-from minerva.db.util import quote_ident, create_file
+from minerva.db.util import create_file
 from minerva.db.error import DuplicateTable
 from minerva.storage import datatype, DataPackage
 from minerva.db.query import Table
 from minerva.storage.trend import schema
 from minerva.storage.trend.trend import Trend, NoSuchTrendError
 
-from minerva.db.error import NoCopyInProgress, \
-    translate_postgresql_exception, translate_postgresql_exceptions, DataTypeMismatch, UniqueViolation
+from minerva.db.error import (
+    translate_postgresql_exception,
+    translate_postgresql_exceptions,
+    DataTypeMismatch,
+    UniqueViolation,
+)
 from minerva.util import zip_apply, first
 
 LARGE_BATCH_THRESHOLD = 10
@@ -41,14 +45,12 @@ class TrendStorePart:
         trend_descriptors: List[Trend.Descriptor]
         generated_trend_descriptors: List[Trend.Descriptor]
 
-        def __init__(
-                self, name: str, trend_descriptors: List[Trend.Descriptor]):
+        def __init__(self, name: str, trend_descriptors: List[Trend.Descriptor]):
             self.name = name
             self.trend_descriptors = trend_descriptors
             self.generated_trend_descriptors = list()
 
-    def __init__(
-            self, id_: int, trend_store, name: str, trends: List[Trend]):
+    def __init__(self, id_: int, trend_store, name: str, trends: List[Trend]):
         self.id = id_
         self.trend_store = trend_store
         self.name = name
@@ -65,17 +67,13 @@ class TrendStorePart:
             "WHERE trend_store_part_id = %s"
         )
 
-        args = (trend_store_part_id, )
+        args = (trend_store_part_id,)
 
         cursor.execute(query, args)
 
         return [
-            Trend(
-                id_, name, datatype.registry[data_type], trend_store_id,
-                description
-            )
-            for id_, name, data_type, trend_store_id, description
-            in cursor.fetchall()
+            Trend(id_, name, datatype.registry[data_type], trend_store_id, description)
+            for id_, name, data_type, trend_store_id, description in cursor.fetchall()
         ]
 
     @staticmethod
@@ -87,14 +85,13 @@ class TrendStorePart:
         :param record: An iterable that represents a trend_store record
         :return: function that creates and returns TrendStore object
         """
+
         def f(cursor):
             (trend_store_part_id, trend_store_id, name) = record
 
             trends = TrendStorePart.get_trends(cursor, trend_store_part_id)
 
-            return TrendStorePart(
-                trend_store_part_id, trend_store, name, trends
-            )
+            return TrendStorePart(trend_store_part_id, trend_store, name, trends)
 
         return f
 
@@ -116,7 +113,7 @@ class TrendStorePart:
             try:
                 trend = trend_by_name[name]
             except KeyError:
-                raise NoSuchTrendError('no trend with name {}'.format(name))
+                raise NoSuchTrendError("no trend with name {}".format(name))
             else:
                 data_type = trend.data_type
 
@@ -124,10 +121,7 @@ class TrendStorePart:
                     datatype.copy_from_serializer_config(data_type)
                 )
 
-        return [
-            get_serializer_by_trend_name(name)
-            for name in trend_names
-        ]
+        return [get_serializer_by_trend_name(name) for name in trend_names]
 
     @classmethod
     def get_by_id(cls, id_: int) -> CursorDbAction:
@@ -137,14 +131,13 @@ class TrendStorePart:
             cls.get_by_id_query.execute(cursor, args)
 
             if cursor.rowcount == 1:
-                return TrendStorePart.from_record(
-                    cursor.fetchone()
-                )(cursor)
+                return TrendStorePart.from_record(cursor.fetchone())(cursor)
 
         return f
 
-    def check_trends_exist(self, trend_descriptors: List[Trend.Descriptor]) \
-            -> CursorDbAction:
+    def check_trends_exist(
+        self, trend_descriptors: List[Trend.Descriptor]
+    ) -> CursorDbAction:
         """
         Returns function that creates missing trends as described by
         'trend_descriptors' and returns a new TrendStore.
@@ -179,9 +172,7 @@ class TrendStorePart:
                 with closing(conn.cursor()) as cursor:
                     modified = get_timestamp(cursor)
 
-                    self.store_copy_from(
-                        data_package, modified, job_id
-                    )(cursor)
+                    self.store_copy_from(data_package, modified, job_id)(cursor)
 
                     for timestamp in data_package.timestamps():
                         self.mark_modified(timestamp, modified)(cursor)
@@ -191,16 +182,16 @@ class TrendStorePart:
 
                 raise exc
 
-            except UniqueViolation as exc:
+            except UniqueViolation:
                 # Try again through a slower but more reliable method
                 conn.rollback()
 
                 with closing(conn.cursor()) as cursor:
                     modified = get_timestamp(cursor)
 
-                    self.securely_store_copy_from(
-                        data_package, modified, job_id
-                    )(cursor)
+                    self.securely_store_copy_from(data_package, modified, job_id)(
+                        cursor
+                    )
 
                     for timestamp in data_package.timestamps():
                         self.mark_modified(timestamp, modified)(cursor)
@@ -209,7 +200,9 @@ class TrendStorePart:
 
         return f
 
-    def store_copy_from(self, data_package: DataPackage, modified: datetime, job_id: int) -> CursorDbAction:
+    def store_copy_from(
+        self, data_package: DataPackage, modified: datetime, job_id: int
+    ) -> CursorDbAction:
         """
         Store the data using the PostgreSQL specific COPY FROM command
         """
@@ -226,15 +219,10 @@ class TrendStorePart:
             )
 
             copy_from_file = create_copy_from_file(
-                modified,
-                job_id,
-                data_package.refined_rows(cursor),
-                serializers
+                modified, job_id, data_package.refined_rows(cursor), serializers
             )
 
-            copy_from_query = create_copy_from_query(
-                self.base_table(), trend_names
-            )
+            copy_from_query = create_copy_from_query(self.base_table(), trend_names)
 
             try:
                 cursor.copy_expert(copy_from_query, copy_from_file)
@@ -242,18 +230,21 @@ class TrendStorePart:
                 raise translate_postgresql_exception(exc)
 
             # Only valid for psycopg <2.8, so not compatible with the version on Ubuntu 18.04
-            #try:
+            # try:
             #    cursor.copy_expert(copy_from_query, copy_from_file)
-            #except psycopg2.errors.InvalidTextRepresentation as exc:
+            # except psycopg2.errors.InvalidTextRepresentation as exc:
             #    raise DataTypeMismatch()
 
         return f
 
-    def securely_store_copy_from(self, data_package: DataPackage, modified: datetime, job_id: int) -> CursorDbAction:
+    def securely_store_copy_from(
+        self, data_package: DataPackage, modified: datetime, job_id: int
+    ) -> CursorDbAction:
         """
         Same function as the previous, but with a slower, but less error-prone
         method
         """
+
         def f(cursor):
             trend_names = [
                 trend_descriptor.name
@@ -267,9 +258,7 @@ class TrendStorePart:
                 for row in data_package.refined_rows(cursor)
             ]
 
-            command = create_insert_query(
-                self.base_table(), column_names
-            )
+            command = create_insert_query(self.base_table(), column_names)
 
             try:
                 psycopg2.extras.execute_batch(cursor, command, values)
@@ -279,21 +268,25 @@ class TrendStorePart:
         return f
 
     @staticmethod
-    def _update_existing_from_tmp(tmp_table: Table, table: Table, column_names: List[str], modified: datetime) -> CursorDbAction:
+    def _update_existing_from_tmp(
+        tmp_table: Table, table: Table, column_names: List[str], modified: datetime
+    ) -> CursorDbAction:
         def f(cursor):
             set_columns = sql.SQL(", ").join(
-                sql.SQL("{0}={1}.{0}").format(sql.Identifier(name), tmp_table.identifier())
+                sql.SQL("{0}={1}.{0}").format(
+                    sql.Identifier(name), tmp_table.identifier()
+                )
                 for name in column_names
             )
 
             update_query = sql.SQL(
-                'UPDATE {0} SET modified=greatest(%s, {0}.modified), {1} '
-                'FROM {2} '
-                'WHERE {0}.entity_id={2}.entity_id '
+                "UPDATE {0} SET modified=greatest(%s, {0}.modified), {1} "
+                "FROM {2} "
+                "WHERE {0}.entity_id={2}.entity_id "
                 'AND {0}."timestamp"={2}."timestamp"'
             ).format(table.identifier(), set_columns, tmp_table.identifier())
 
-            args = (modified, )
+            args = (modified,)
 
             try:
                 cursor.execute(update_query, args)
@@ -303,39 +296,40 @@ class TrendStorePart:
         return f
 
     @staticmethod
-    def _copy_missing_from_tmp(tmp_table: Table, table: Table, column_names: List[str]) -> CursorDbAction:
+    def _copy_missing_from_tmp(
+        tmp_table: Table, table: Table, column_names: List[str]
+    ) -> CursorDbAction:
         """
         Store the data using the PostgreSQL specific COPY FROM command and a
         temporary table. The temporary table is joined against the target table
         to make sure only missing records (based on entity_id, timestamp
         combination) are inserted.
         """
+
         def f(cursor):
-            all_column_names = ['entity_id', 'timestamp', 'modified']
+            all_column_names = ["entity_id", "timestamp", "modified"]
             all_column_names.extend(column_names)
 
             tmp_column_names = sql.SQL(", ").join(
-                sql.Identifier("tmp", name)
-                for name in all_column_names
+                sql.Identifier("tmp", name) for name in all_column_names
             )
 
             dest_column_names = sql.SQL(", ").join(
-                sql.Identifier(name)
-                for name in all_column_names
+                sql.Identifier(name) for name in all_column_names
             )
 
             insert_query = sql.SQL(
-                'INSERT INTO {table} ({dest_columns}) '
-                'SELECT {tmp_columns} FROM {tmp_table} AS tmp '
-                'LEFT JOIN {table} ON '
+                "INSERT INTO {table} ({dest_columns}) "
+                "SELECT {tmp_columns} FROM {tmp_table} AS tmp "
+                "LEFT JOIN {table} ON "
                 'tmp."timestamp" = {table}."timestamp" '
-                'AND tmp.entity_id = {table}.entity_id '
-                'WHERE {table}.entity_id IS NULL'
+                "AND tmp.entity_id = {table}.entity_id "
+                "WHERE {table}.entity_id IS NULL"
             ).format(
                 table=table.identifier(),
                 dest_columns=dest_column_names,
                 tmp_columns=tmp_column_names,
-                tmp_table=tmp_table.identifier()
+                tmp_table=tmp_table.identifier(),
             )
 
             try:
@@ -354,7 +348,9 @@ class TrendStorePart:
 
         return f
 
-    def ensure_data_types(self, trend_descriptors: List[Trend.Descriptor]) -> CursorDbAction:
+    def ensure_data_types(
+        self, trend_descriptors: List[Trend.Descriptor]
+    ) -> CursorDbAction:
         """
         Check if database column types match trend data type and correct it if
         necessary.
@@ -414,48 +410,47 @@ def create_copy_from_query(table: Table, trend_names: List[str]) -> str:
     """Return SQL query that can be used in the COPY FROM command."""
     column_names = chain(schema.system_columns, trend_names)
 
-    return "COPY {0}({1}) FROM STDIN".format(
-        table.render(),
-        ",".join(map(quote_ident, column_names))
+    return sql.SQL("COPY {}({}) FROM STDIN").format(
+        table.identifier(), sql.SQL(",").join(column_names)
     )
 
 
 def create_insert_query(table: Table, column_names: List[str]) -> sql.SQL:
     """Return insertion query to be performed when copy fails"""
     update_parts = [
-        sql.SQL("{} = {}").format(sql.Identifier(column), sql.Identifier("excluded", column))
+        sql.SQL("{} = {}").format(
+            sql.Identifier(column), sql.Identifier("excluded", column)
+        )
         for column in column_names
-        if column not in ('entity_id', 'timestamp', 'created')
+        if column not in ("entity_id", "timestamp", "created")
     ]
 
     return sql.SQL(
-        'INSERT INTO {0}({1}) '
-        'VALUES ({2}) '
-        'ON CONFLICT (entity_id, timestamp) DO UPDATE SET {3};'
+        "INSERT INTO {0}({1}) "
+        "VALUES ({2}) "
+        "ON CONFLICT (entity_id, timestamp) DO UPDATE SET {3};"
     ).format(
         table.identifier(),
         sql.SQL(",").join(sql.Identifier(column_name) for column_name in column_names),
         sql.SQL(",").join(sql.Placeholder() for _ in column_names),
-        sql.SQL(",").join(update_parts)
+        sql.SQL(",").join(update_parts),
     )
 
 
-def create_copy_from_lines(modified: datetime, job: int, rows: List[DataPackageRow], serializers: List) -> Generator[str, None, None]:
+def create_copy_from_lines(
+    modified: datetime, job: int, rows: List[DataPackageRow], serializers: List
+) -> Generator[str, None, None]:
     map_values = zip_apply(serializers)
 
     return (
         (
-            "{entity_id}\t"
-            "'{timestamp}'\t"
-            "'{created}'\t"
-            "{job_id}\t"
-            "{values}\n"
+            "{entity_id}\t" "'{timestamp}'\t" "'{created}'\t" "{job_id}\t" "{values}\n"
         ).format(
             entity_id=entity_id,
             timestamp=timestamp.isoformat(),
             created=modified.isoformat(),
             job_id=job or "NULL",
-            values="\t".join(map_values(values))
+            values="\t".join(map_values(values)),
         )
         for entity_id, timestamp, values in rows
     )
@@ -466,10 +461,10 @@ def create_value_row(modified: datetime, job_id: int, row: DataPackageRow):
     return [str(entity_id), timestamp, modified, job_id] + list(values)
 
 
-def create_copy_from_file(modified: datetime, job_id: int, rows: List[DataPackageRow], serializers: List):
-    return create_file(
-        create_copy_from_lines(modified, job_id, rows, serializers)
-    )
+def create_copy_from_file(
+    modified: datetime, job_id: int, rows: List[DataPackageRow], serializers: List
+):
+    return create_file(create_copy_from_lines(modified, job_id, rows, serializers))
 
 
 def get_timestamp(cursor) -> datetime:

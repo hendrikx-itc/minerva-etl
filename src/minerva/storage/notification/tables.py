@@ -4,8 +4,13 @@ import psycopg2
 from psycopg2 import sql
 
 from minerva.db.postgresql import grant
-from minerva.storage.generic import create_column, RecoverableError, \
-    NonRecoverableError, NoOpFix, create_full_table_name
+from minerva.storage.generic import (
+    create_column,
+    RecoverableError,
+    NonRecoverableError,
+    NoOpFix,
+    create_full_table_name,
+)
 
 
 def create_parent_notification_table(conn, datasource, attributes):
@@ -25,17 +30,27 @@ def create_parent_data_table(conn, datasource_name, attributes, data_types):
     """
     Create parent data table. Actual data is stored in inherited tables.
     """
-    columns_part = "".join(
-        ["\"{0}\" {1}, ".format(name, type) for
-            (name, type) in zip(attributes, data_types)])
+    schema = "notification"
 
-    query = ("CREATE TABLE {0}.\"{1}\" ("
+    columns_part = sql.SQL("").join(
+        [
+            sql.SQL("{0} {1}, ").format(sql.Identifier(name), data_type)
+            for (name, data_type) in zip(attributes, data_types)
+        ]
+    )
+
+    query = sql.SQL(
+        'CREATE TABLE {} ('
         "id integer NOT NULL, "
-        "\"timestamp\" timestamp with time zone NOT NULL, "
-        "\"modified\" timestamp with time zone NOT NULL, "
+        '"timestamp" timestamp with time zone NOT NULL, '
+        '"modified" timestamp with time zone NOT NULL, '
         "entity_id integer NOT NULL, "
-        "{2}"
-        ")".format(SCHEMA, datasource_name, columns_part))
+        "{}"
+        ")".format(
+            sql.Identifier(schema, datasource_name),
+            columns_part
+        )
+    )
 
     # TODO: Add PROCEDURE for inserting data in right child table
 
@@ -47,8 +62,11 @@ def create_data_table(conn, schema, table_name, column_names, data_types):
     :param table_name: name of table to be created
     """
     columns_part = "".join(
-        ["\"{0}\" {1}, ".format(name, type) for
-            (name, type) in zip(column_names, data_types)])
+        [
+            '"{0}" {1}, '.format(name, type)
+            for (name, type) in zip(column_names, data_types)
+        ]
+    )
 
     full_table_name = create_full_table_name(schema, table_name)
 
@@ -59,25 +77,31 @@ def create_data_table(conn, schema, table_name, column_names, data_types):
         '"modified" timestamp with time zone NOT NULL, '
         "{1}"
         'CONSTRAINT "{2}_pkey" PRIMARY KEY (entity_id, "timestamp"))'.format(
-            full_table_name, columns_part, table_name))
+            full_table_name, columns_part, table_name
+        )
+    )
 
     alter_query = (
         "ALTER TABLE {0} ALTER COLUMN modified "
-        "SET DEFAULT CURRENT_TIMESTAMP".format(full_table_name))
+        "SET DEFAULT CURRENT_TIMESTAMP".format(full_table_name)
+    )
 
     index_query_modified = (
         'CREATE INDEX "idx_{0}_modified" ON {1} '
-        'USING btree (modified)'.format(table_name, full_table_name))
+        "USING btree (modified)".format(table_name, full_table_name)
+    )
 
     index_query_timestamp = (
         'CREATE INDEX "idx_{0}_timestamp" ON {1} '
-        'USING btree (timestamp)'.format(table_name, full_table_name))
+        "USING btree (timestamp)".format(table_name, full_table_name)
+    )
 
     trigger_query = (
         "CREATE TRIGGER update_modified_modtime "
         "BEFORE UPDATE "
         "ON {0} FOR EACH ROW EXECUTE PROCEDURE "
-        "directory.update_modified_column()".format(full_table_name))
+        "directory.update_modified_column()".format(full_table_name)
+    )
 
     owner_query = "ALTER TABLE {} OWNER TO minerva_writer".format(full_table_name)
 
@@ -95,8 +119,9 @@ def create_data_table(conn, schema, table_name, column_names, data_types):
             if exc.pgcode == psycopg2.errorcodes.DUPLICATE_TABLE:
                 raise RecoverableError(str(exc), NoOpFix)
             else:
-                raise NonRecoverableError(\
-                    "ProgrammingError({0}): {1}".format(exc.pgcode, exc.pgerror))
+                raise NonRecoverableError(
+                    "ProgrammingError({0}): {1}".format(exc.pgcode, exc.pgerror)
+                )
         else:
             grant(conn, "TABLE", "SELECT", full_table_name, "minerva")
             conn.commit()
@@ -110,13 +135,12 @@ def create_temp_table_from(conn, schema, table):
     tmp_table_name = "tmp_{0}".format(table)
 
     query = sql.SQL("CREATE TEMPORARY TABLE {} (LIKE {}) ON COMMIT DROP").format(
-        sql.Identifier(tmp_table_name),
-        sql.Identifier(schema, table)
+        sql.Identifier(tmp_table_name), sql.Identifier(schema, table)
     )
 
-    query_drop_modified_column = sql.SQL(
-        "ALTER TABLE {} DROP COLUMN modified"
-    ).format(sql.Identifier(tmp_table_name))
+    query_drop_modified_column = sql.SQL("ALTER TABLE {} DROP COLUMN modified").format(
+        sql.Identifier(tmp_table_name)
+    )
 
     with closing(conn.cursor()) as cursor:
         cursor.execute(query)
@@ -128,8 +152,11 @@ def create_temp_table_from(conn, schema, table):
                 # Might happen after database connection loss
                 raise RecoverableError(str(exc), do_nothing)
             else:
-                raise NonRecoverableError("{0}, {1!s} in query '{2}'".format(
-                    exc.pgcode, exc, query_drop_modified_column))
+                raise NonRecoverableError(
+                    "{0}, {1!s} in query '{2}'".format(
+                        exc.pgcode, exc, query_drop_modified_column
+                    )
+                )
 
     return tmp_table_name
 

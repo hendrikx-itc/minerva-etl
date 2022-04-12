@@ -68,7 +68,7 @@ def start_db_container(request):
             conn = connect()
             connected = True
             print("connected to db")
-        except Exception as exc:
+        except Exception:
             print("waiting to connect to db...")
             connected = False
             time.sleep(1)

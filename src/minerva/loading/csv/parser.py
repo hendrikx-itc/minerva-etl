@@ -34,30 +34,32 @@ class Parser(HarvestParserTrend):
             self.config = config
 
     def load_packages(self, stream, name):
-        csv_reader = csv.reader(stream, delimiter=self.config['delimiter'])
+        csv_reader = csv.reader(stream, delimiter=self.config["delimiter"])
 
         header = next(csv_reader)
 
-        timestamp_provider = is_timestamp_provider(header, self.config['timestamp'])
+        timestamp_provider = is_timestamp_provider(header, self.config["timestamp"])
 
-        identifier_provider = is_identifier_provider(header, self.config['identifier'])
+        identifier_provider = is_identifier_provider(header, self.config["identifier"])
 
         value_parsers = [
             (
-                itemgetter(header.index(column['name'])),
-                registry[column['data_type']].string_parser(column.get('parser_config', {"null_value": ""})),
+                itemgetter(header.index(column["name"])),
+                registry[column["data_type"]].string_parser(
+                    column.get("parser_config", {"null_value": ""})
+                ),
             )
-            for column in self.config['columns']
+            for column in self.config["columns"]
         ]
 
         trend_descriptors = [
-            Trend.Descriptor(column['name'], registry['text'], '')
-            for column in self.config['columns']
+            Trend.Descriptor(column["name"], registry["text"], "")
+            for column in self.config["columns"]
         ]
 
-        entity_type_name = self.config['entity_type']
+        entity_type_name = self.config["entity_type"]
 
-        granularity = create_granularity(self.config['granularity'])
+        granularity = create_granularity(self.config["granularity"])
 
         entity_ref_type = entity_name_ref_class(entity_type_name)
 
@@ -75,18 +77,15 @@ class Parser(HarvestParserTrend):
                 tuple(
                     parse_value(value_parser, get_value, row)
                     for get_value, value_parser in value_parsers
-                )
+                ),
             )
             for row in csv_reader
         )
 
-        chunk_size = self.config.get('chunk_size', DEFAULT_CHUNK_SIZE)
+        chunk_size = self.config.get("chunk_size", DEFAULT_CHUNK_SIZE)
 
         for chunk in chunked(rows, chunk_size):
-            yield DataPackage(
-                data_package_type, granularity,
-                trend_descriptors, chunk
-            )
+            yield DataPackage(data_package_type, granularity, trend_descriptors, chunk)
 
 
 def chunked(iterable, size: int):
@@ -124,7 +123,7 @@ def parse_value(value_parser, get_value, row):
 
 
 def is_timestamp_provider(header, name):
-    if name == 'current_timestamp':
+    if name == "current_timestamp":
         timestamp = datetime.datetime.now()
 
         def f(*args):

@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 from typing import Tuple, NewType, List, Callable, Any
 
-import psycopg2
-
 from minerva.directory.helpers import aliases_to_entity_ids, \
     names_to_entity_ids
 from minerva.directory import EntityType
