@@ -81,9 +81,9 @@ def test_create(start_db_container):
 
 
 def test_from_attributes(start_db_container):
+    """Test creation of a new attribute store from attributes."""
     conn = clear_database(start_db_container)
 
-    """Test creation of a new attribute store from attributes."""
     with closing(conn.cursor()) as cursor:
         data_source = DataSource.from_name("integration-test")(cursor)
         entity_type = EntityType.from_name("UtranCell")(cursor)
