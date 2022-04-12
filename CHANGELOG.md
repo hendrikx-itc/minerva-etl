@@ -11,3 +11,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Support for Minerva 5.3.0 with triggers that have a json data definition
 
+
+[Unreleased]: https://github.com/hendrikx-itc/minerva-etl/compare/v5.4.0...HEAD
+[5.4.0]: https://github.com/hendrikx-itc/minerva-etl/compare/v5.3.0...v5.4.0
