@@ -1,1 +1,1 @@
-"""Tests for the command line tools"""
+"""Tests for the command line tools."""

@@ -1,5 +1,4 @@
-"""
-Contains the fixture for all integration tests.
+"""Contains the fixture for all integration tests.
 
 The logic in this package starts a Docker container with Minerva before the
 tests are run and make sure that same Docker container is stopped afterwards.
@@ -62,12 +61,15 @@ def start_db_container(request):
 
     connected = False
 
+    print(f"connecting to db {os.environ['PGHOST']}:{os.environ['PGPORT']}")
+
     while not connected:
         try:
             conn = connect()
             connected = True
-            print('connected to db')
+            print("connected to db")
         except Exception as exc:
+            print("waiting to connect to db...")
             connected = False
             time.sleep(1)
 

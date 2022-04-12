@@ -1,1 +1,1 @@
-"""Tests using a real PostgreSQL Minerva database"""
+"""Tests using a real PostgreSQL Minerva database."""
