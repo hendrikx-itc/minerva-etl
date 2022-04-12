@@ -9,8 +9,9 @@ from minerva.directory import EntityType
 
 
 class EntityRef:
-    """
-    The abstract base class for types representing a reference to a single
+    """Abstract base class for entity reference types.
+
+    An EntityRef subclass is a type for representing a reference to a single
     entity.
     """
     def to_argument(self):
@@ -33,9 +34,7 @@ class EntityRef:
 
 
 class EntityIdRef(EntityRef):
-    """
-    A reference to an entity by its Id.
-    """
+    """A reference to an entity by its Id."""
     entity_id: int
 
     def __init__(self, entity_id: int):
@@ -99,9 +98,7 @@ def entity_alias_ref_class(alias_type: str, entity_type: str):
 
 def _create_name_ref_class(entity_type: str):
     class EntityNameRef(EntityRef):
-        """
-        A reference to an entity by an alias.
-        """
+        """A reference to an entity by an alias."""
 
         def __init__(self, alias):
             self.alias = alias

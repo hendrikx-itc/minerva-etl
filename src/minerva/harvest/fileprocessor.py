@@ -3,18 +3,13 @@
 """
 Provides the function process_file for processing a single file.
 """
-import os
 import threading
 from pathlib import Path
-
 import time
-import codecs
-
 from operator import not_
 
 from minerva.harvest.plugin_api_trend import HarvestParserTrend
 from minerva.util import compose
-
 from minerva.harvest.error import DataError
 
 
@@ -24,9 +19,7 @@ class ParseError(Exception):
 
 def process_file(
         file_path: Path, parser: HarvestParserTrend, show_progress=False):
-    """
-    Process a single file with specified plugin.
-    """
+    """Process a single file with specified plugin."""
     if not file_path.exists():
         raise Exception("Could not find file '{0}'".format(file_path))
 

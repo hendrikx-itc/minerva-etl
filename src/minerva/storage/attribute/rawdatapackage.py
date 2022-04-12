@@ -16,9 +16,7 @@ from minerva.storage.attribute.datapackage import DataPackage
 
 
 class RawDataPackage(DataPackage):
-
-    """
-    A datapackage class with refining functionality.
+    """A datapackage class with refining functionality.
 
     The RawDataPackage class just adds some helper functions to
     :class:`~minerva.storage.attribute.datapackage.DataPackage`.
@@ -40,11 +38,9 @@ class RawDataPackage(DataPackage):
         return self.get_entitytype_name()
 
     def refine(self, cursor):
-        """
-        Return a DataPackage with 'refined' data of this package.
+        """Return a DataPackage with 'refined' data of this package.
 
         This means that all distinguished names are translated to entity Ids.
-
         """
         aliases, timestamps, value_rows = zip(*self.rows)
 

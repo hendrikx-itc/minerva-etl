@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
-"""
-Unit tests for the core.datatype module
-"""
+"""Unit tests for the core.datatype module."""
 import decimal
 from datetime import datetime
 import unittest

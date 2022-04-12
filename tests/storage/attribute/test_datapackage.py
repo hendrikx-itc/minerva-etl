@@ -189,9 +189,7 @@ class TestDataPackage(unittest.TestCase):
         )
     
     def test_create_copy_from_lines(self):
-        """
-        The format of the copy-from-file should be acceptable by PostgreSQL.
-        """
+        """The format of the copy-from-file should be acceptable by PostgreSQL."""
         data_package = DataPackage(
             ["power", "height", "state", "remark"],
             [

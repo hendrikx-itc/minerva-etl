@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
-"""
-Unit tests for the storing of data packages.
-"""
+"""Unit tests for the storing of data packages."""
 from datetime import datetime
 import unittest
 
@@ -14,9 +12,7 @@ from minerva.db.query import smart_quote, Schema, Table, Column, Value, \
 
 class TestQuery(unittest.TestCase):
     def test_smart_quote(self):
-        """
-        Names that require quoting for PostgreSQL should be quoted.
-        """
+        """Names that require quoting for PostgreSQL should be quoted."""
         self.assertEqual('name', smart_quote('name'))
 
         self.assertEqual('"Name"', smart_quote('Name'))

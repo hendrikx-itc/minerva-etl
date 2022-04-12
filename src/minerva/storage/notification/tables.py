@@ -1,14 +1,12 @@
-import re
-from datetime import datetime
 from contextlib import closing
 
 import psycopg2
+from psycopg2 import sql
 
-from minerva.db.postgresql import grant, column_exists
+from minerva.db.postgresql import grant
 from minerva.storage.generic import create_column, RecoverableError, \
     NonRecoverableError, NoOpFix, create_full_table_name
 
-from generic import do_nothing
 
 def create_parent_notification_table(conn, datasource, attributes):
     """
@@ -21,8 +19,6 @@ def create_parent_notification_table(conn, datasource, attributes):
 def check_columns_exist(conn, schema, table, column_names):
     for column_name in column_names:
         create_column(conn, schema, table, column_name, "smallint")
-
-
 
 
 def create_parent_data_table(conn, datasource_name, attributes, data_types):
@@ -41,10 +37,10 @@ def create_parent_data_table(conn, datasource_name, attributes, data_types):
         "{2}"
         ")".format(SCHEMA, datasource_name, columns_part))
 
+    # TODO: Add PROCEDURE for inserting data in right child table
 
-    # Add PROCEDURE for inserting data in right child table
 
-def create_data_table(conn, table_name, column_names, data_types):
+def create_data_table(conn, schema, table_name, column_names, data_types):
     """
     :param conn: psycopg2 database connection
     :param schema: name of the database schema to create the table in
@@ -107,18 +103,20 @@ def create_data_table(conn, table_name, column_names, data_types):
 
 
 def create_temp_table_from(conn, schema, table):
-    """
-    Create a temporary table that inherits from `table` and return the temporary
-    table name.
+    """Create a temporary table that inherits from `table`.
+
+    Return the name of the temporary table after creation.
     """
     tmp_table_name = "tmp_{0}".format(table)
-    full_table_name = create_full_table_name(schema, table)
 
-    query = """CREATE TEMPORARY TABLE \"{0}\" (LIKE {1})
-ON COMMIT DROP""".format(tmp_table_name, full_table_name)
+    query = sql.SQL("CREATE TEMPORARY TABLE {} (LIKE {}) ON COMMIT DROP").format(
+        sql.Identifier(tmp_table_name),
+        sql.Identifier(schema, table)
+    )
 
-    query_drop_modified_column = \
-        "ALTER TABLE \"{0}\" DROP COLUMN modified".format(tmp_table_name)
+    query_drop_modified_column = sql.SQL(
+        "ALTER TABLE {} DROP COLUMN modified"
+    ).format(sql.Identifier(tmp_table_name))
 
     with closing(conn.cursor()) as cursor:
         cursor.execute(query)
@@ -134,3 +132,7 @@ ON COMMIT DROP""".format(tmp_table_name, full_table_name)
                     exc.pgcode, exc, query_drop_modified_column))
 
     return tmp_table_name
+
+
+def do_nothing(*args, **kwargs):
+    pass

@@ -1,4 +1,3 @@
-from io import StringIO
 from contextlib import closing
 from functools import partial
 
@@ -42,71 +41,25 @@ class RelationType:
 
         return f
 
-    def add_relations(self, conn, relations):
-        _f = StringIO()
-
-        for source_id, target_id in relations:
-            _f.write("{0}\t{1}\t{2}\n".format(
-                source_id, target_id, self.id
-            ))
-
-        _f.seek(0)
-
-        tmp_table = "tmp_relation"
-
-        with closing(conn.cursor()) as cursor:
-
-            query = (
-                "CREATE TEMPORARY TABLE \"{0}\" "
-                "(LIKE relation.all)".format(tmp_table)
-            )
-
-            cursor.execute(query)
-
-            query = (
-                "COPY \"{0}\" (source_id, target_id, type_id) "
-                "FROM STDIN".format(tmp_table))
-
-            cursor.copy_expert(query, _f)
-
-            query = (
-                "INSERT INTO relation.\"{0}\" (source_id, target_id, type_id) "
-                "SELECT tmp.source_id, tmp.target_id, tmp.type_id "
-                "FROM \"{1}\" tmp "
-                "LEFT JOIN relation.\"{0}\" r "
-                "ON r.source_id = tmp.source_id "
-                "AND r.target_id = tmp.target_id "
-                "WHERE r.source_id IS NULL ".format(self.name, tmp_table)
-            )
-
-            cursor.execute(query)
-
-            cursor.execute("DROP TABLE {0}".format(tmp_table))
-
+    @staticmethod
     def create_relation_type(conn, name, cardinality=None):
         if cardinality is not None:
             query = (
-                "INSERT INTO relation.type (name, cardinality) "
+                "INSERT INTO relation_directory.type (name, cardinality) "
                 "VALUES (%s, %s) "
                 "RETURNING id"
             )
             args = (name, cardinality)
         else:
-            query = "INSERT INTO relation.type (name) VALUES (%s) RETURNING id"
+            query = "INSERT INTO relation_directory.type (name) VALUES (%s) RETURNING id"
             args = (name,)
 
         with closing(conn.cursor()) as cursor:
             cursor.execute(query, args)
 
-            relationtype_id, = cursor.fetchone()
+            relation_type_id, = cursor.fetchone()
 
-        return relationtype_id
-
-    def truncate(self, conn):
-        query = "TRUNCATE TABLE relation.\"{}\"".format(self.name)
-
-        with closing(conn.cursor()) as cursor:
-            cursor.execute(query)
+        return relation_type_id
 
     def is_one_to_one(self, conn):
         """

@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
-"""
-Alias related functions
-"""
+"""Alias related functions."""
 from io import StringIO
 from contextlib import closing
 

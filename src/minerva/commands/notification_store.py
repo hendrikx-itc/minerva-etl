@@ -2,11 +2,9 @@ from contextlib import closing
 import argparse
 import sys
 
-import psycopg2
-
 from minerva.db import connect
 from minerva.db.error import UniqueViolation
-from minerva.instance import MinervaInstance, NotificationStore, load_yaml
+from minerva.instance import MinervaInstance, NotificationStore
 
 
 class DuplicateNotificationStore(Exception):
@@ -45,9 +43,6 @@ def setup_create_parser(subparsers):
 
 
 def create_notification_store_cmd(args):
-    # definition = load_yaml(args.definition)
-    # notification_store_name = definition['data_source']
-
     notification_store = MinervaInstance.load_notification_store_from_file(args.definition)
     notification_store_name = notification_store.data_source
 

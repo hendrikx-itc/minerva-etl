@@ -13,6 +13,7 @@ class AttributeDescriptor:
 
 
 class Attribute:
+
     """Describes one attribute of an attribute store."""
     def __init__(
             self, id_, name, data_type, attribute_store_id,

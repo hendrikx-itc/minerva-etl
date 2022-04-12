@@ -1,13 +1,11 @@
-"""
-Provides common definition generating logic
-"""
+"""Provides common definition generating logic."""
 import re
 
 
 def translate_entity_aggregation_part_name(name: str, target_entity_type: str, prefix='') -> str:
-    """
-    Translate a part name with standard naming convention
-    <data_source>_<entity_type>_<granularity> to
+    """Translate a part name with standard naming convention.
+
+    Convert <data_source>_<entity_type>_<granularity> to
     <data_source_<target_entity_type>_<granularity>.
     """
     m = re.match("^([^_]+)_([^_]+)_(.*)$", name)

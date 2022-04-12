@@ -18,27 +18,35 @@ from minerva.storage import datatype
 
 class NoSuchAttributeError(Exception):
     """Exception type indicating an unknown attribute."""
+
     pass
 
 
 class AttributeStoreDescriptor:
+    """Pure descriptive type for attribute stores.
+
+    This type is only meant as a data type and has no functionality or database identifier.
+    """
+
     def __init__(self, data_source, entity_type, attribute_descriptors):
+        """Type initializer."""
         self.data_source = data_source
         self.entity_type = entity_type
         self.attribute_descriptors = attribute_descriptors
 
 
 class AttributeStore:
-
-    """
-    Provides the main interface to the attribute storage facilities.
+    """Provides the main interface to the attribute storage facilities.
 
     Use `store` for writing to the attribute store and `retrieve` for reading
     from the attribute store.
-
     """
 
     def __init__(self, id_, data_source, entity_type, attributes):
+        """Type initializer.
+
+        Also initializes generated attributes like `table`, `history_table` etc.
+        """
         self.id = id_
         self.data_source = data_source
         self.entity_type = entity_type
@@ -68,6 +76,7 @@ class AttributeStore:
     @staticmethod
     def get_attributes(attribute_store_id: int):
         """Load associated attributes from database and return them.
+
         :param attribute_store_id: Unique database ID of the attribute store
         """
         def f(cursor):
@@ -198,6 +207,7 @@ class AttributeStore:
     @staticmethod
     def load_attribute_store(
             id_: int, data_source_id: int, entity_type_id: int):
+        """Load an attribute store from it's database row data."""
         def f(cursor):
             data_source = DataSource.get(data_source_id)(cursor)
             entity_type = EntityType.get(entity_type_id)(cursor)
@@ -346,12 +356,12 @@ class AttributeStore:
 
 
 class Query:
-
     """Generic query wrapper."""
 
     __slots__ = 'sql',
 
     def __init__(self, sql):
+        """Type initializer."""
         self.sql = sql
 
     def execute(self, cursor, args=None):

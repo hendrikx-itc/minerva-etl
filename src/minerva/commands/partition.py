@@ -36,10 +36,10 @@ def create_specific_partitions_for_trend_store(conn, trend_store_id, timestamp):
 
                 yield name, partition_index, i + 1, len(rows)
                 retry = False
-            except PartitionExistsError as e:
+            except PartitionExistsError:
                 conn.rollback()
                 retry = False
-            except LockNotAvailable:
+            except LockNotAvailable as e:
                 conn.rollback()
                 print(e)
                 sleep(1)

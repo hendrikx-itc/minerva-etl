@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Dynamic query construction classes"""
+"""Dynamic query construction classes."""
 import re
 import copy
 from datetime import datetime

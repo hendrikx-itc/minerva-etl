@@ -73,9 +73,7 @@ class EntityType:
 
     @staticmethod
     def from_name(cursor, name):
-        """
-        Return new or existing entitytype with name `name`.
-        """
+        """Return new or existing entitytype with name `name`."""
         args = (name, )
 
         cursor.callproc("directory.name_to_entity_type", args)
@@ -151,9 +149,7 @@ class Entity:
 
 
 class DataSource:
-    """
-    A DataSource describes where a certain set of data comes from.
-    """
+    """A DataSource describes where a certain set of data comes from."""
     def __init__(self, id, name, description="", timezone="UTC"):
         self.id = id
         self.name = name

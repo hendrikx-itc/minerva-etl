@@ -9,6 +9,8 @@ the Free Software Foundation; either version 3, or (at your option) any later
 version.  The full license is in the file COPYING, distributed as part of
 this software.
 """
+from psycopg2 import sql
+
 from minerva.util import first
 from minerva.db.query import Table, smart_quote
 from minerva.db.error import translate_postgresql_exceptions
@@ -117,26 +119,25 @@ class NotificationStore(object):
 
             return self
 
-    def store_record(self, record):
-        """Return function that can store the data from a
-        :class:`~minerva.storage.notification.types.Record`."""
-
+    def store_record(self, record: Record):
+        """Return function that can store the data from a record."""
         @translate_postgresql_exceptions
         def f(cursor):
             column_names = ['entity_id', 'timestamp'] + record.attribute_names
-            columns_part = ','.join(map(smart_quote, column_names))
-
             entity_placeholder, entity_value = record.entity_ref.to_argument()
 
             placeholders = (
-                [entity_placeholder, "%s"] +
-                (["%s"] * len(record.attribute_names))
+                [entity_placeholder, sql.Placeholder()] +
+                (sql.Placeholder() for _ in record.attribute_names)
             )
 
-            query = (
-                "INSERT INTO {} ({}) "
-                "VALUES ({})"
-            ).format(self.table.render(), columns_part, ",".join(placeholders))
+            query = sql.SQL(
+                "INSERT INTO {}({}) VALUES ({})"
+            ).format(
+                self.table.identifier(),
+                sql.SQL(",").join(column_names),
+                sql.SQL(",").join(placeholders)
+            )
 
             args = (
                 [entity_value, record.timestamp]

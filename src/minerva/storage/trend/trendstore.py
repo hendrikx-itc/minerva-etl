@@ -13,7 +13,7 @@ from minerva.storage.trend import schema
 from minerva.directory import DataSource, EntityType
 from minerva.storage.trend.granularity import create_granularity, Granularity
 from minerva.storage.trend.trendstorepart import TrendStorePart, PartitionExistsError
-from minerva.util import string_fns, k
+from minerva.util import string_fns
 
 
 class NoSuchTrendStore(Exception):

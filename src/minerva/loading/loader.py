@@ -23,6 +23,7 @@ from minerva.error import ConfigurationError
 
 
 class Loader:
+
     """Common data loading logic."""
 
     statistics: bool

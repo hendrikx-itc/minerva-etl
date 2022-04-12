@@ -1,6 +1,6 @@
-"""
-Provides the 'report' sub-command for reporting on metrics of trend stores,
-attribute stores, etc.
+"""Provides the 'report' sub-command for reporting.
+
+Reporting is done on metrics of trend stores, attribute stores, etc.
 """
 from typing import Generator, List, Tuple
 
@@ -48,9 +48,7 @@ formatters = {
 
 
 def setup_command_parser(subparsers):
-    """
-    Setup the 'report' sub-command in the subparsers of the parent command.
-    """
+    """Setup the 'report' sub-command in the subparsers of the parent command."""
     cmd = subparsers.add_parser(
         'report',
         help='command for generating Minerva instance report with metrics'

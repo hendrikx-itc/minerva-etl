@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
-"""
-Defines the data types recognized by Minerva.
-"""
+"""Defines the data types recognized by Minerva."""
 import re
 from datetime import datetime, tzinfo
 import decimal

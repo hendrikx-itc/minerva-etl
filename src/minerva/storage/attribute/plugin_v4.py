@@ -13,7 +13,7 @@ this software.
 import json
 from contextlib import closing
 
-from minerva.directory.helpers import get_entity, get_entity_type_by_id
+from minerva.directory.entitytype import EntityType
 from minerva.storage.attribute.attribute import Attribute
 from minerva.storage.attribute.attributestore import AttributeStore
 from minerva.storage.attribute.datapackage import DataPackage
@@ -32,12 +32,12 @@ class AttributePlugin(object):
         attributes = datapackage.deduce_attributes()
 
         with closing(self.conn.cursor()) as cursor:
-            attributestore = AttributeStore.from_attributes(
+            attribute_store = AttributeStore.from_attributes(
                 cursor, datasource, entitytype, attributes)
 
         self.conn.commit()
 
-        attributestore.store_txn(datapackage).run(self.conn)
+        attribute_store.store_txn(datapackage).run(self.conn)
 
     def retrieve_attributes_for_entity(self, entity_id, attributes):
         return retrieve_attributes_for_entity(self.conn, entity_id, attributes)
@@ -52,23 +52,23 @@ class AttributePlugin(object):
     def retrieve_current(self, datasource, entitytype, attribute_names,
                          entities):
 
-        attributestore = AttributeStore(datasource, entitytype)
+        attribute_store = AttributeStore(datasource, entitytype)
 
-        return retrieve_current(self.conn, attributestore.curr_table,
+        return retrieve_current(self.conn, attribute_store.curr_table,
                                 attribute_names, entities)
 
-    def store_raw(self, datasource, raw_datapackage):
-        if not raw_datapackage.is_empty():
+    def store_raw(self, datasource, raw_data_package):
+        if not raw_data_package.is_empty():
             with closing(self.conn.cursor()) as cursor:
-                datapackage = raw_datapackage.refine(cursor)
+                data_package = raw_data_package.refine(cursor)
 
             self.conn.commit()
 
-            dn = raw_datapackage.rows[0][0]
+            dn = raw_data_package.rows[0][0]
             entity = get_entity(self.conn, dn)
-            entitytype = get_entity_type_by_id(self.conn, entity.entitytype_id)
+            entity_type = EntityType.get(entity.entitytype_id)(cursor)
 
-            self.store(datasource, entitytype, datapackage)
+            self.store(datasource, entity_type, data_package)
 
     def get_attribute_by_id(self, attribute_id):
         with closing(self.conn.cursor()) as cursor:

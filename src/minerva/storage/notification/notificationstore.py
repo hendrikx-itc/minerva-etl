@@ -3,6 +3,7 @@ from minerva.db.query import Table, smart_quote
 from minerva.db.error import translate_postgresql_exceptions
 from minerva.directory import DataSource
 from minerva.storage.notification.attribute import Attribute
+from minerva.storage.notification.types import Record
 
 
 class NotificationStoreDescriptor:
@@ -62,7 +63,7 @@ class NotificationStore:
 
     @staticmethod
     def create(notification_store_descriptor):
-        """Create notification store in database"""
+        """Create notification store in database."""
         def f(cursor):
             query = (
                 "SELECT * "
@@ -92,10 +93,8 @@ class NotificationStore:
 
         return f
 
-    def store_record(self, record):
-        """Return function that can store the data from a
-        :class:`~minerva.storage.notification.types.Record`."""
-
+    def store_record(self, record: Record):
+        """Return function that can store the data from a record."""
         @translate_postgresql_exceptions
         def f(cursor):
             column_names = ['entity_id', 'timestamp'] + record.attribute_names

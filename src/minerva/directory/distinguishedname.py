@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
-"""
-Provice basic functions for manipulating distinguished names.
-"""
+"""Provide basic functions for manipulating distinguished names."""
 import re
 
 explode_regex = re.compile("([^,]+)=([^,]+)")
@@ -23,27 +21,21 @@ def implode(parts):
 
 
 def split_parts(distinguished_name):
-    """
-    Split the parts of a distinguished name into a list.
-    """
+    """Split the parts of a distinguished name into a list."""
     regex = re.compile(r"(?<!\\),")
 
     return regex.split(distinguished_name)
 
 
 def escape(part):
-    """
-    Escape reserved characters in the name part.
-    """
+    """Escape reserved characters in the name part."""
     part = part.replace(",", "\\,")
 
     return part
 
 
 def entity_type_name_from_dn(dn):
-    """
-    Return type of last component of distinguished name
-    """
+    """Return type of last component of distinguished name."""
     return explode(dn)[-1][0]
 
 
@@ -53,7 +45,7 @@ class DistinguishedName:
 
     @staticmethod
     def from_str(dn_str):
-        """Return new DistinguishedName instance constructed from `dn_str`"""
+        """Return new DistinguishedName instance constructed from `dn_str`."""
         return DistinguishedName(explode(dn_str))
 
     def to_str(self):

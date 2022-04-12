@@ -9,9 +9,9 @@ from functools import partial, reduce
 
 
 def compose_pair(fn_a, fn_b):
-    """
-    Return a new function that executes both functions after each other,
-    feeding the result of `fn_b` as the argument to `fn_a`.
+    """Return a new function that executes both functions after each other.
+
+    The result of `fn_b` is passed as the argument to `fn_a`.
     """
     def composed(*args, **kwargs):
         return fn_a(fn_b(*args, **kwargs))
@@ -107,9 +107,7 @@ def matches(constraints, instance):
 
 
 def head(iterable):
-    """
-    Return the first element of `iterable`
-    """
+    """Return the first element of `iterable`"""
     return iterable[0]
 
 
