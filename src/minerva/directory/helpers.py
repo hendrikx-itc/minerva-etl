@@ -9,7 +9,6 @@ from psycopg2 import sql
 
 from minerva.util import identity, k, fst
 from minerva.db.error import translate_postgresql_exceptions
-from minerva.directory.distinguishedname import entity_type_name_from_dn
 
 
 MATCH_ALL = re.compile(".*")
@@ -74,18 +73,18 @@ def create_entities_from_names(cursor, entity_type: str, names: list) -> List[in
 
 def create_entity_from_name(cursor, entity_type: str, name: str) -> int:
     insert_query = sql.SQL(
-        'INSERT INTO entity.{}(name) '
+        'INSERT INTO {}(name) '
         'VALUES (%s) '
         'ON CONFLICT DO NOTHING '
         'RETURNING id'
-    ).format(sql.Identifier(entity_type))
+    ).format(sql.Identifier("entity", entity_type))
 
     cursor.execute(insert_query, (name,))
 
     if cursor.rowcount == 0:
         select_query = sql.SQL(
-            'SELECT id FROM entity.{} WHERE name = %s'
-        ).format(sql.Identifier(entity_type))
+            'SELECT id FROM {} WHERE name = %s'
+        ).format(sql.Identifier("entity", entity_type))
 
         cursor.execute(select_query, (name,))
 

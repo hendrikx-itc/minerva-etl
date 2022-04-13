@@ -48,9 +48,7 @@ get_timestamp = query("SELECT timestamp FROM concurrency_test WHERE id = 1")
 
 
 update_timestamp = query(
-    "UPDATE concurrency_test "
-    "SET timestamp = greatest(timestamp, %s) "
-    "WHERE id = 1"
+    "UPDATE concurrency_test " "SET timestamp = greatest(timestamp, %s) " "WHERE id = 1"
 )
 
 
@@ -67,15 +65,12 @@ def test_store_concurrent(start_db_container):
     timestamp = pytz.utc.localize(datetime(2013, 8, 27, 18, 0, 0))
 
     trend_descriptors = [
-        Trend.Descriptor('c1', datatype.registry['smallint'], ''),
-        Trend.Descriptor('c2', datatype.registry['smallint'], ''),
-        Trend.Descriptor('c3', datatype.registry['smallint'], ''),
+        Trend.Descriptor("c1", datatype.registry["smallint"], ""),
+        Trend.Descriptor("c2", datatype.registry["smallint"], ""),
+        Trend.Descriptor("c3", datatype.registry["smallint"], ""),
     ]
 
-    rows = [
-        (i, timestamp, ("1", "2", "3"))
-        for i in range(100)
-    ]
+    rows = [(i, timestamp, ("1", "2", "3")) for i in range(100)]
 
     granularity = create_granularity("900s")
 
@@ -83,52 +78,39 @@ def test_store_concurrent(start_db_container):
 
     data_package_type = refined_package_type_for_entity_type(entity_type_name)
 
-    data_package = DataPackage(
-        data_package_type, granularity, trend_descriptors, rows
-    )
+    data_package = DataPackage(data_package_type, granularity, trend_descriptors, rows)
 
     with closing(conn.cursor()) as cursor:
         data_source = DataSource.from_name("test-source")(cursor)
         entity_type = EntityType.from_name(entity_type_name)(cursor)
-        trend_store = TrendStore.create(TrendStore.Descriptor(
-            data_source, entity_type, granularity, [
-                TrendStorePart.Descriptor(
-                    'test-trend-store',
-                    [
-                        Trend.Descriptor('c1', datatype.registry['smallint'], ''),
-                        Trend.Descriptor('c2', datatype.registry['smallint'], ''),
-                        Trend.Descriptor('c3', datatype.registry['smallint'], '')
-                    ]
-                )
-            ],
-            86400
-        ))(cursor)
+        trend_store = TrendStore.create(
+            TrendStore.Descriptor(
+                data_source,
+                entity_type,
+                granularity,
+                [
+                    TrendStorePart.Descriptor(
+                        "test-trend-store",
+                        [
+                            Trend.Descriptor("c1", datatype.registry["smallint"], ""),
+                            Trend.Descriptor("c2", datatype.registry["smallint"], ""),
+                            Trend.Descriptor("c3", datatype.registry["smallint"], ""),
+                        ],
+                    )
+                ],
+                86400,
+            )
+        )(cursor)
 
         trend_store.create_partitions_for_timestamp(conn, timestamp)
 
     conn.commit()
 
     threads = [
-        Thread(
-            target=partial(
-                store_batch, trend_store, data_package, 10
-            )
-        ),
-        Thread(
-            target=partial(
-                store_batch, trend_store, data_package, 11
-            )
-        ),
-        Thread(
-            target=partial(
-                store_batch, trend_store, data_package, 12
-            )
-        ),
-        Thread(
-            target=partial(
-                store_batch, trend_store, data_package, 13
-            )
-        )
+        Thread(target=partial(store_batch, trend_store, data_package, 10)),
+        Thread(target=partial(store_batch, trend_store, data_package, 11)),
+        Thread(target=partial(store_batch, trend_store, data_package, 12)),
+        Thread(target=partial(store_batch, trend_store, data_package, 13)),
     ]
 
     for thread in threads:

@@ -24,27 +24,27 @@ def test_store_copy_from_1(start_db_container):
     conn = clear_database(start_db_container)
 
     trends = [
-        Trend.Descriptor('CellID', datatype.registry['integer'], ''),
-        Trend.Descriptor('CCR', datatype.registry['numeric'], ''),
-        Trend.Descriptor('CCRatts', datatype.registry['integer'], ''),
-        Trend.Descriptor('Drops', datatype.registry['integer'], ''),
+        Trend.Descriptor("CellID", datatype.registry["integer"], ""),
+        Trend.Descriptor("CCR", datatype.registry["numeric"], ""),
+        Trend.Descriptor("CCRatts", datatype.registry["integer"], ""),
+        Trend.Descriptor("Drops", datatype.registry["integer"], ""),
     ]
 
     curr_timezone = timezone("Europe/Amsterdam")
     timestamp = curr_timezone.localize(datetime(2013, 1, 2, 10, 45, 0))
 
     data_rows = [
-        (10023, timestamp, ('10023', '0.9919', '2105', '17')),
-        (10047, timestamp, ('10047', '0.9963', '4906', '18')),
-        (10048, timestamp, ('10048', '0.9935', '2448', '16')),
-        (10049, timestamp, ('10049', '0.9939', '5271', '32')),
-        (10050, timestamp, ('10050', '0.9940', '3693', '22')),
-        (10051, timestamp, ('10051', '0.9944', '3753', '21')),
-        (10052, timestamp, ('10052', '0.9889', '2168', '24')),
-        (10053, timestamp, ('10053', '0.9920', '2372', '19')),
-        (10085, timestamp, ('10085', '0.9987', '2282', '3')),
-        (10086, timestamp, ('10086', '0.9972', '1763', '5')),
-        (10087, timestamp, ('10087', '0.9931', '1453', '10'))
+        (10023, timestamp, ("10023", "0.9919", "2105", "17")),
+        (10047, timestamp, ("10047", "0.9963", "4906", "18")),
+        (10048, timestamp, ("10048", "0.9935", "2448", "16")),
+        (10049, timestamp, ("10049", "0.9939", "5271", "32")),
+        (10050, timestamp, ("10050", "0.9940", "3693", "22")),
+        (10051, timestamp, ("10051", "0.9944", "3753", "21")),
+        (10052, timestamp, ("10052", "0.9889", "2168", "24")),
+        (10053, timestamp, ("10053", "0.9920", "2372", "19")),
+        (10085, timestamp, ("10085", "0.9987", "2282", "3")),
+        (10086, timestamp, ("10086", "0.9972", "1763", "5")),
+        (10087, timestamp, ("10087", "0.9931", "1453", "10")),
     ]
 
     granularity = create_granularity("900s")
@@ -56,11 +56,15 @@ def test_store_copy_from_1(start_db_container):
         data_source = DataSource.from_name("test-src009")(cursor)
         entity_type = EntityType.from_name(entity_type_name)(cursor)
 
-        trend_store = TrendStore.create(TrendStore.Descriptor(
-            data_source, entity_type, granularity, [
-                TrendStorePart.Descriptor('test_store', trends)
-            ], partition_size
-        ))(cursor)
+        trend_store = TrendStore.create(
+            TrendStore.Descriptor(
+                data_source,
+                entity_type,
+                granularity,
+                [TrendStorePart.Descriptor("test_store", trends)],
+                partition_size,
+            )
+        )(cursor)
 
         trend_store.create_partitions_for_timestamp(conn, timestamp)
 
@@ -68,13 +72,13 @@ def test_store_copy_from_1(start_db_container):
 
         data_package = DataPackage(data_package_type, granularity, trends, data_rows)
 
-        part = trend_store.part_by_name['test_store']
+        part = trend_store.part_by_name["test_store"]
         job_id = 1
         part.store_copy_from(data_package, modified, job_id)(cursor)
 
         conn.commit()
 
-        table = Table('trend', part.name)
+        table = Table("trend", part.name)
 
         assert row_count(cursor, table.identifier()) == 11
 
@@ -89,41 +93,43 @@ def test_store_copy_from_2(start_db_container):
     conn = clear_database(start_db_container)
 
     trends = [
-        Trend.Descriptor('CCR', datatype.registry['integer'], ''),
-        Trend.Descriptor('CCRatts', datatype.registry['integer'], ''),
-        Trend.Descriptor('Drops', datatype.registry['integer'], ''),
+        Trend.Descriptor("CCR", datatype.registry["integer"], ""),
+        Trend.Descriptor("CCRatts", datatype.registry["integer"], ""),
+        Trend.Descriptor("Drops", datatype.registry["integer"], ""),
     ]
 
     curr_timezone = timezone("Europe/Amsterdam")
     timestamp = curr_timezone.localize(datetime(2013, 1, 2, 10, 45, 0))
 
-    data_rows = [
-        (10023, timestamp, ('0.9919', '2105', '17'))
-    ]
+    data_rows = [(10023, timestamp, ("0.9919", "2105", "17"))]
 
     modified = curr_timezone.localize(datetime.now())
-    granularity = create_granularity('900s')
+    granularity = create_granularity("900s")
     partition_size = timedelta(seconds=86400)
     entity_type_name = "test-type002"
 
     with conn.cursor() as cursor:
         data_source = DataSource.from_name("test-src010")(cursor)
         entity_type = EntityType.from_name(entity_type_name)(cursor)
-        trend_store = TrendStore.create(TrendStore.Descriptor(
-            data_source, entity_type, granularity, [
-                TrendStorePart.Descriptor('test_store', trends)
-            ], partition_size
-        ))(cursor)
+        trend_store = TrendStore.create(
+            TrendStore.Descriptor(
+                data_source,
+                entity_type,
+                granularity,
+                [TrendStorePart.Descriptor("test_store", trends)],
+                partition_size,
+            )
+        )(cursor)
 
         trend_store.create_partitions_for_timestamp(conn, timestamp)
 
-        table = Table('trend', 'test_store')
+        table = Table("trend", "test_store")
 
         data_package_type = refined_package_type_for_entity_type(entity_type_name)
 
         data_package = DataPackage(data_package_type, granularity, trends, data_rows)
 
-        trend_store_part = trend_store.part_by_name['test_store']
+        trend_store_part = trend_store.part_by_name["test_store"]
 
         conn.commit()
 
@@ -141,19 +147,19 @@ def test_update_modified_column(start_db_container):
     curr_timezone = timezone("Europe/Amsterdam")
 
     trends = [
-        Trend.Descriptor('CellID', datatype.registry['integer'], ''),
-        Trend.Descriptor('CCR', datatype.registry['numeric'], ''),
-        Trend.Descriptor('DROPS', datatype.registry['integer'], ''),
+        Trend.Descriptor("CellID", datatype.registry["integer"], ""),
+        Trend.Descriptor("CCR", datatype.registry["numeric"], ""),
+        Trend.Descriptor("DROPS", datatype.registry["integer"], ""),
     ]
 
     timestamp = curr_timezone.localize(datetime.now())
 
     data_rows = [
-        (10023, timestamp, ('10023', '0.9919', '17')),
-        (10047, timestamp, ('10047', '0.9963', '18'))
+        (10023, timestamp, ("10023", "0.9919", "17")),
+        (10047, timestamp, ("10047", "0.9963", "18")),
     ]
 
-    update_data_rows = [(10023, timestamp, ('10023', '0.9919', '17'))]
+    update_data_rows = [(10023, timestamp, ("10023", "0.9919", "17"))]
     granularity = create_granularity("900s")
     partition_size = timedelta(seconds=86400)
     entity_type_name = "test-type001"
@@ -162,22 +168,24 @@ def test_update_modified_column(start_db_container):
         data_source = DataSource.from_name("test-src009")(cursor)
         entity_type = EntityType.from_name(entity_type_name)(cursor)
 
-        trend_store = TrendStore.create(TrendStore.Descriptor(
-            data_source, entity_type, granularity, [
-                TrendStorePart.Descriptor('test-store', trends)
-            ], partition_size
-        ))(cursor)
+        trend_store = TrendStore.create(
+            TrendStore.Descriptor(
+                data_source,
+                entity_type,
+                granularity,
+                [TrendStorePart.Descriptor("test-store", trends)],
+                partition_size,
+            )
+        )(cursor)
 
         trend_store.create_partitions_for_timestamp(conn, timestamp)
 
         conn.commit()
 
-        table = Table('trend', 'test-store')
+        table = Table("trend", "test-store")
 
         data_package_type = refined_package_type_for_entity_type(entity_type_name)
-        data_package = DataPackage(
-            data_package_type, granularity, trends, data_rows
-        )
+        data_package = DataPackage(data_package_type, granularity, trends, data_rows)
 
         job_id = 10
 
@@ -203,16 +211,16 @@ def test_update(start_db_container):
     conn = clear_database(start_db_container)
 
     trend_descriptors = [
-        Trend.Descriptor("CellID", datatype.registry['integer'], ''),
-        Trend.Descriptor("CCR", datatype.registry['numeric'], ''),
-        Trend.Descriptor("Drops", datatype.registry['integer'], ''),
+        Trend.Descriptor("CellID", datatype.registry["integer"], ""),
+        Trend.Descriptor("CCR", datatype.registry["numeric"], ""),
+        Trend.Descriptor("Drops", datatype.registry["integer"], ""),
     ]
 
     timestamp = datetime.now()
 
     data_rows = [
         (10023, timestamp, ("10023", "0.9919", "17")),
-        (10047, timestamp, ("10047", "0.9963", "18"))
+        (10047, timestamp, ("10047", "0.9963", "18")),
     ]
     update_data_rows = [(10023, timestamp, ("10023", "0.5555", "17"))]
     granularity = create_granularity("900s")
@@ -223,15 +231,19 @@ def test_update(start_db_container):
         data_source = DataSource.from_name("test-src009")(cursor)
         entity_type = EntityType.from_name(entity_type_name)(cursor)
 
-        trend_store = TrendStore.create(TrendStore.Descriptor(
-            data_source, entity_type, granularity, [
-                TrendStorePart.Descriptor('test-store', trend_descriptors)
-            ], partition_size
-        ))(cursor)
+        trend_store = TrendStore.create(
+            TrendStore.Descriptor(
+                data_source,
+                entity_type,
+                granularity,
+                [TrendStorePart.Descriptor("test-store", trend_descriptors)],
+                partition_size,
+            )
+        )(cursor)
 
     trend_store.create_partitions_for_timestamp(conn, timestamp)
 
-    table = Table('trend', 'test-store')
+    table = Table("trend", "test-store")
 
     data_package_type = refined_package_type_for_entity_type(entity_type_name)
     data_package = DataPackage(

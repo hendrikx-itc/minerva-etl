@@ -9,5 +9,5 @@ def test_create_relationtype(start_db_container):
 
     with conn.cursor() as cursor:
         RelationType.create(
-            RelationType.Descriptor('test-relation-type', 'one-to-one')
+            RelationType.Descriptor("test-relation-type", "one-to-one")
         )(cursor)

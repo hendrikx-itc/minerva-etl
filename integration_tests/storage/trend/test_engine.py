@@ -20,12 +20,12 @@ def test_store_matching(start_db_container):
     conn = clear_database(start_db_container)
 
     trend_descriptors = [
-        Trend.Descriptor('x', datatype.registry['integer'], ''),
-        Trend.Descriptor('y', datatype.registry['integer'], ''),
+        Trend.Descriptor("x", datatype.registry["integer"], ""),
+        Trend.Descriptor("y", datatype.registry["integer"], ""),
     ]
 
     trend_store_part_descr = TrendStorePart.Descriptor(
-        'test-trend-store', trend_descriptors
+        "test-trend-store", trend_descriptors
     )
 
     timestamp = pytz.utc.localize(datetime(2013, 1, 2, 10, 45, 0))
@@ -41,7 +41,7 @@ def test_store_matching(start_db_container):
         (10053, timestamp, (10053, 2372)),
         (10085, timestamp, (10085, 2282)),
         (10086, timestamp, (10086, 1763)),
-        (10087, timestamp, (10087, 1453))
+        (10087, timestamp, (10087, 1453)),
     ]
 
     granularity = create_granularity("900s")
@@ -52,10 +52,15 @@ def test_store_matching(start_db_container):
         data_source = DataSource.from_name("test-src009")(cursor)
         entity_type = EntityType.from_name(entity_type_name)(cursor)
 
-        trend_store = TrendStore.create(TrendStore.Descriptor(
-            data_source, entity_type, granularity,
-            [trend_store_part_descr], partition_size
-        ))(cursor)
+        trend_store = TrendStore.create(
+            TrendStore.Descriptor(
+                data_source,
+                entity_type,
+                granularity,
+                [trend_store_part_descr],
+                partition_size,
+            )
+        )(cursor)
 
         trend_store.create_partitions_for_timestamp(conn, timestamp)
 
@@ -66,11 +71,8 @@ def test_store_matching(start_db_container):
         job_id = 12
 
         store_cmd = TrendEngine.store_cmd(
-            DataPackage(
-                data_package_type,
-                granularity, trend_descriptors, data_rows
-            ),
-            job_id
+            DataPackage(data_package_type, granularity, trend_descriptors, data_rows),
+            job_id,
         )
 
         store_cmd(data_source)(conn)
@@ -92,7 +94,7 @@ def test_store_ignore_extra(start_db_container):
     conn = clear_database(start_db_container)
 
     trend_descriptors = [
-        Trend.Descriptor('x', datatype.registry['integer'], ''),
+        Trend.Descriptor("x", datatype.registry["integer"], ""),
     ]
 
     timestamp = pytz.utc.localize(datetime(2013, 1, 2, 10, 45, 0))
@@ -108,42 +110,38 @@ def test_store_ignore_extra(start_db_container):
         (10053, timestamp, (10053, 2372)),
         (10085, timestamp, (10085, 2282)),
         (10086, timestamp, (10086, 1763)),
-        (10087, timestamp, (10087, 1453))
+        (10087, timestamp, (10087, 1453)),
     ]
 
     granularity = create_granularity("900s")
     partition_size = timedelta(seconds=86400)
-    data_package_type = refined_package_type_for_entity_type('test-type001')
+    data_package_type = refined_package_type_for_entity_type("test-type001")
 
     with closing(conn.cursor()) as cursor:
         data_source = DataSource.from_name("test-src009")(cursor)
         entity_type = EntityType.from_name("test-type001")(cursor)
 
-        parts = [
-            TrendStorePart.Descriptor(
-                'test-trend-store', trend_descriptors
-            )
-        ]
+        parts = [TrendStorePart.Descriptor("test-trend-store", trend_descriptors)]
 
-        trend_store = TrendStore.create(TrendStore.Descriptor(
-            data_source, entity_type, granularity,
-            parts, partition_size
-        ))(cursor)
+        trend_store = TrendStore.create(
+            TrendStore.Descriptor(
+                data_source, entity_type, granularity, parts, partition_size
+            )
+        )(cursor)
 
         trend_store.create_partitions_for_timestamp(conn, timestamp)
 
         conn.commit()
 
         data_package = DataPackage(
-            data_package_type,
-            granularity, trend_descriptors, data_rows
+            data_package_type, granularity, trend_descriptors, data_rows
         )
 
         job_id = 13
 
-        store_cmd = TrendEngine.make_store_cmd(
-            TrendEngine.filter_existing_trends
-        )(data_package, job_id)
+        store_cmd = TrendEngine.make_store_cmd(TrendEngine.filter_existing_trends)(
+            data_package, job_id
+        )
 
         store_cmd(data_source)(conn)
 

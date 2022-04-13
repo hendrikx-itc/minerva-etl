@@ -48,15 +48,10 @@ def test_table_drop(start_db_container):
 def test_copy_from(start_db_container):
     conn = start_db_container
 
-    data = (
-        "1\tfirst\n"
-        "2\tsecond\n"
-        "3\tthird\n")
+    data = "1\tfirst\n" "2\tsecond\n" "3\tthird\n"
 
     stream = StringIO(data)
-    columns = [
-        Column("id", type_="integer"),
-        Column("name", type_="character varying")]
+    columns = [Column("id", type_="integer"), Column("name", type_="character varying")]
 
     table = Table("test_table", columns=columns)
 

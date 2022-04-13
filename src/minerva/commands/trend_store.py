@@ -1,3 +1,4 @@
+"""Provides the trend-store sub-command."""
 import json
 from contextlib import closing
 import sys
@@ -26,6 +27,7 @@ from minerva.instance import TrendStore, MinervaInstance
 
 class DuplicateTrendStore(Exception):
     def __init__(self, data_source, entity_type, granularity):
+        super().__init__()
         self.data_source = data_source
         self.entity_type = entity_type
         self.granularity = granularity
@@ -234,19 +236,19 @@ def change_trends_cmd(args):
 
     try:
         if args.verbose:
-            print("applying changes to trend store {}".format(trend_store))
+            print(f"applying changes to trend store {trend_store}")
 
-        for part_name, result in change_trend_store(
+        for _, (added, removed, changed) in change_trend_store(
             trend_store, force=args.force, statement_timeout=args.statement_timeout
         ):
-            if result[0] or result[1] or result[2]:
-                print("added {}".format(result[0]))
-                print("removed {}".format(result[1]))
-                print("changed {}".format(result[2]))
+            if added or removed or changed:
+                print(f"added {added}")
+                print(f"removed {removed}")
+                print(f"changed {changed}")
             else:
                 print("no changes were made")
     except Exception as exc:
-        print("Error:\n{}".format(str(exc)))
+        print(f"Error:\n{exc}")
         raise exc
 
 
@@ -268,7 +270,7 @@ def add_parts_cmd(args):
             sys.stdout.write(f" - added {added_part_name}\n")
             parts_added += 1
     except Exception as exc:
-        sys.stdout.write("Error:\n{}".format(str(exc)))
+        sys.stdout.write(f"Error:\n{exc}")
         raise exc
 
     if parts_added:
@@ -438,12 +440,17 @@ def remove_trends_from_trend_store(trend_store: TrendStore):
 
 
 def alter_tables_in_trend_store(trend_store: TrendStore, force=False):
-    query = (
-        "SELECT trend_directory.{}("
+    if force:
+        change_function = sql.Identifier("trend_directory", "change_all_trend_data")
+    else:
+        change_function = sql.Identifier("trend_directory", "change_trend_data_upward")
+
+    query = sql.SQL(
+        "SELECT {}("
         "trend_directory.get_trend_store("
         "%s::text, %s::text, %s::interval"
         "), %s::trend_directory.trend_store_part_descr[]"
-        ")".format("change_all_trend_data" if force else "change_trend_data_upward")
+        ")".format(change_function)
     )
 
     query_args = (
@@ -476,16 +483,14 @@ def change_trend_store(
 
             check_trend_store_part_exists(conn, trend_store, part.name)
 
-            print("applying changes for part '{}':".format(part.name))
+            print(f"applying changes for part '{part.name}':")
 
             try:
                 result = change_trend_store_part(conn, part, force)
             except psycopg2.errors.FeatureNotSupported as exc:
                 conn.rollback()
                 print(
-                    "error changing trend store part '{}': {}".format(
-                        part.name, str(exc)
-                    )
+                    f"error changing trend store part '{part.name}': {exc}"
                 )
             else:
                 conn.commit()
@@ -892,7 +897,9 @@ def remove_old_partitions_cmd(args):
                     if not args.pretend:
                         try:
                             cursor.execute(
-                                sql.SQL("DROP TABLE {}").format(sql.Identifier("trend_partition", partition_name))
+                                sql.SQL("DROP TABLE {}").format(
+                                    sql.Identifier("trend_partition", partition_name)
+                                )
                             )
                             cursor.execute(
                                 "DELETE FROM trend_directory.partition WHERE id = %s",

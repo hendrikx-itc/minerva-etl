@@ -97,7 +97,7 @@ def cmd_generate_and_load(config):
     for cmd in data_set_generator.generate(target_dir):
         print(" - executing: {}".format(" ".join(cmd)))
 
-        subprocess.run(cmd)
+        subprocess.run(cmd, shell=False)
 
 
 def generate_and_load(config, interval_count: int):

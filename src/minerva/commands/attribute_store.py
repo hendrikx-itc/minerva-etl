@@ -1,3 +1,4 @@
+"""Provides the attribute-store sub-command."""
 from contextlib import closing
 import argparse
 import sys
@@ -12,18 +13,18 @@ from minerva.commands import show_rows_from_cursor, show_rows
 
 
 class DuplicateAttributeStore(Exception):
+    """Exception indicating the attribute store already exists."""
     def __init__(self, data_source, entity_type):
+        super().__init__()
         self.data_source = data_source
         self.entity_type = entity_type
 
     def __str__(self):
-        return "Duplicate attribute store {}, {}".format(
-            self.data_source,
-            self.entity_type,
-        )
+        return f"Duplicate attribute store {self.data_source}, {self.entity_type}"
 
 
 def setup_command_parser(subparsers):
+    """Initialize the 'attribute-store' parser and add it to `subparsers`."""
     cmd = subparsers.add_parser(
         "attribute-store", help="command for administering attribute stores"
     )
@@ -42,6 +43,7 @@ def setup_command_parser(subparsers):
 
 
 def setup_create_parser(subparsers):
+    """Initialize the 'create' parser and add it to `subparsers`."""
     cmd = subparsers.add_parser("create", help="command for creating attribute stores")
 
     cmd.add_argument(
@@ -54,6 +56,7 @@ def setup_create_parser(subparsers):
 
 
 def create_attribute_store_cmd(args):
+    """Create an attribute store using the specified arguments."""
     attribute_store = MinervaInstance.load_attribute_store_from_file(args.definition)
 
     sys.stdout.write(f"Creating attribute store '{attribute_store}'... ")
@@ -73,6 +76,7 @@ def create_attribute_store_cmd(args):
 
 
 def create_attribute_store(conn, attribute_store: AttributeStore):
+    """Create the specified attribute store in the database."""
     query = (
         "CALL attribute_directory.create_attribute_store(" "%s::text, %s::text, {}" ")"
     ).format(
@@ -98,6 +102,7 @@ def create_attribute_store(conn, attribute_store: AttributeStore):
 
 
 def setup_delete_parser(subparsers):
+    """Initialize the 'delete' parser and add it to `subparsers`."""
     cmd = subparsers.add_parser("delete", help="command for deleting attribute stores")
 
     cmd.add_argument("name", help="name of attribute store")
@@ -106,6 +111,7 @@ def setup_delete_parser(subparsers):
 
 
 def delete_attribute_store_cmd(args):
+    """Delete an attribute store using the specified arguments."""
     query = "SELECT attribute_directory.delete_attribute_store(%s::name)"
 
     query_args = (args.name,)
@@ -118,6 +124,7 @@ def delete_attribute_store_cmd(args):
 
 
 def setup_add_attribute_parser(subparsers):
+    """Initialize the 'add-attribute' parser and add it to `subparsers`."""
     cmd = subparsers.add_parser(
         "add-attribute", help="add an attribute to an attribute store"
     )
@@ -137,6 +144,7 @@ def setup_add_attribute_parser(subparsers):
 
 
 def add_attribute_to_attribute_store_cmd(args):
+    """Add an attribute using the specified arguments."""
     query = (
         "SELECT attribute_directory.create_attribute("
         "attribute_store, %s::name, %s::text, %s::text"
@@ -162,6 +170,7 @@ def add_attribute_to_attribute_store_cmd(args):
 
 
 def setup_remove_attribute_parser(subparsers):
+    """Initialize the 'remove-attribute' parser and add it to `subparsers`."""
     cmd = subparsers.add_parser(
         "remove-attribute", help="add an attribute to an attribute store"
     )
@@ -199,6 +208,7 @@ def remove_attribute_from_attribute_store_cmd(args):
 
 
 def setup_show_parser(subparsers):
+    """Initialize the 'show' parser and add it to `subparsers`."""
     cmd = subparsers.add_parser("show", help="show information on attribute stores")
 
     cmd.add_argument("attribute_store", help="Attribute store to show")
@@ -236,12 +246,14 @@ def show_attribute_store_cmd(args):
 
 
 def setup_list_parser(subparsers):
+    """Initialize the 'list' parser and add it to `subparsers`."""
     cmd = subparsers.add_parser("list", help="list attribute stores in database")
 
     cmd.set_defaults(cmd=list_attribute_stores_cmd)
 
 
 def setup_list_config_parser(subparsers):
+    """Initialize the 'list-config' parser and add it to `subparsers`."""
     cmd = subparsers.add_parser(
         "list-config", help="list attribute stores in configuration"
     )
@@ -281,6 +293,7 @@ def list_attribute_stores_cmd(_args):
 
 
 def setup_materialization_parser(subparsers):
+    """Initialize the 'materialization' parser and add it to `subparsers`."""
     cmd = subparsers.add_parser(
         "materialization", help="command for managing attribute materialization"
     )
@@ -399,6 +412,7 @@ def create_materialization_cmd(args):
 
 
 def setup_list_materialization_parser(subparsers):
+    """Initialize the 'list' parser and add it to `subparsers`."""
     cmd = subparsers.add_parser(
         "list", help="command for listing attribute materializations"
     )
@@ -436,11 +450,11 @@ def list_materializations_cmd(args):
             rows = cursor.fetchall()
 
     if args.name_only:
-        for id_, src_view, attribute_store in rows:
+        for _, _, attribute_store in rows:
             print(attribute_store)
     elif args.id_only:
-        for id_, src_view, attribute_store in rows:
-            print(id_)
+        for materialization_id, _, _ in rows:
+            print(materialization_id)
     else:
         show_rows(
             ["id", "src_view", "attribute_store"],
@@ -499,10 +513,10 @@ def run_materialization_cmd(args):
             rows = cursor.fetchall()
 
         for attribute_store, row_count in rows:
-            print("{}: {}".format(attribute_store, row_count))
+            print(f"{attribute_store}: {row_count}")
 
             if args.materialize_curr:
-                print("Materializing curr-ptr for {}".format(attribute_store))
+                print(f"Materializing curr-ptr for {attribute_store}")
                 materialize_curr_ptr_by_name(conn, attribute_store)
 
 
@@ -526,15 +540,15 @@ def materialize_all_curr_ptr(conn):
 
                 try:
                     materialize_curr_ptr_by_id(conn, attribute_store_id)
-                except psycopg2.errors.LockNotAvailable as e:
+                except psycopg2.errors.LockNotAvailable as exc:
                     conn.rollback()
 
                     print(
-                        f"Error materializing curr-ptr for {attribute_store_name}: {e}"
+                        f"Error materializing curr-ptr for {attribute_store_name}: {exc}"
                     )
 
-        except Exception as e:
-            raise translate_postgresql_exception(e)
+        except Exception as exc:
+            raise translate_postgresql_exception(exc)
 
 
 def materialize_curr_ptr_by_id(conn, attribute_store_id: int):

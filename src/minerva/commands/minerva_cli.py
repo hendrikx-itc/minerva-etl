@@ -3,21 +3,38 @@ import argparse
 
 from minerva import __version__
 from minerva.error import ConfigurationError
-from minerva.commands import data_source, trend_store, entity_type, load_data, \
-    structure, alias, attribute_store, initialize, relation, \
-    trigger, load_sample_data, virtual_entity, notification_store, \
-    aggregation, live_monitor, trend_materialization, quick_start, report, \
-    generate_sample_data
+from minerva.commands import (
+    data_source,
+    trend_store,
+    entity_type,
+    load_data,
+    structure,
+    alias,
+    attribute_store,
+    initialize,
+    relation,
+    trigger,
+    load_sample_data,
+    virtual_entity,
+    notification_store,
+    aggregation,
+    live_monitor,
+    trend_materialization,
+    quick_start,
+    report,
+    generate_sample_data,
+)
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        description='Minerva administration tool set'
-    )
+    parser = argparse.ArgumentParser(description="Minerva administration tool set")
 
     parser.add_argument(
-        '--version', '-v', action="store_true", default=False,
-        help="show Minerva version"
+        "--version",
+        "-v",
+        action="store_true",
+        default=False,
+        help="show Minerva version",
     )
 
     subparsers = parser.add_subparsers()
@@ -45,11 +62,11 @@ def main():
     args = parser.parse_args()
 
     if args.version:
-        print("minerva {}".format(__version__))
+        print(f"minerva {__version__}")
 
         return 0
 
-    if 'cmd' not in args:
+    if "cmd" not in args:
         parser.print_help()
 
         return 0
@@ -57,10 +74,10 @@ def main():
         try:
             return args.cmd(args)
         except ConfigurationError as e:
-            print(f'Configuration error: {e}')
+            print(f"Configuration error: {e}")
 
             return 1
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     sys.exit(main())

@@ -23,8 +23,6 @@ def with_data(test_set):
         i.conn.rollback()
         i.conn.close()
 
-    return type('C', (object,), {
-        "__init__": __init__,
-        "setup": setup,
-        "teardown": teardown
-    })
+    return type(
+        "C", (object,), {"__init__": __init__, "setup": setup, "teardown": teardown}
+    )

@@ -31,9 +31,10 @@ def get_tables(cursor):
         "JOIN pg_namespace ON pg_class.relnamespace = pg_namespace.oid "
         "WHERE nspname = %s "
         "AND (relkind = 'r' OR relkind = 'v') "
-        "AND relhassubclass = true")
+        "AND relhassubclass = true"
+    )
 
-    args = (schema.name, )
+    args = (schema.name,)
 
     cursor.execute(query, args)
 

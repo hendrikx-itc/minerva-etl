@@ -13,7 +13,7 @@ def create_simple_package():
         (123001, (405, 0.0, "enabled")),
         (123002, (300, 10.5, "enabled")),
         (123003, (41033, 22.3, "enabled")),
-        (123004, (880, 30.0, "enabled"))
+        (123004, (880, 30.0, "enabled")),
     ]
 
     return DataPackage(timestamp, attribute_names, rows)
