@@ -12,11 +12,13 @@ judgment, and feel free to propose changes to this document in a pull request.
 [Code of Conduct](#code-of-conduct)
 
 [How Can I Contribute?](#how-can-i-contribute)
-  * [Reporting Bugs](#reporting-bugs)
-  * [Suggesting Enhancements](#suggesting-enhancements)
+
+* [Reporting Bugs](#reporting-bugs)
+* [Suggesting Enhancements](#suggesting-enhancements)
 
 [Styleguides](#styleguides)
-  * [Git Commit Messages](#git-commit-messages)
+
+* [Git Commit Messages](#git-commit-messages)
 
 ## Code of Conduct
 
@@ -98,10 +100,10 @@ understand your suggestion :pencil: and find related suggestions :mag_right:.
 
 The process described here has several goals:
 
-- Maintain Minerva ETL's quality
-- Fix problems that are important to users
-- Engage the community in working toward the best possible Minerva ETL
-- Enable a sustainable system for Minerva ETL's maintainers to review contributions
+* Maintain Minerva ETL's quality
+* Fix problems that are important to users
+* Engage the community in working toward the best possible Minerva ETL
+* Enable a sustainable system for Minerva ETL's maintainers to review contributions
 
 Please follow these steps to have your contribution considered by the maintainers:
 
@@ -123,19 +125,18 @@ accepted.
 * Limit the first line to 72 characters or less
 * Reference issues and pull requests liberally after the first line
 * Consider starting the commit message with an applicable emoji:
-    * :art: `:art:` when improving the format/structure of the code
-    * :racehorse: `:racehorse:` when improving performance
-    * :non-potable_water: `:non-potable_water:` when plugging memory leaks
-    * :memo: `:memo:` when writing docs
-    * :penguin: `:penguin:` when fixing something on Linux
-    * :apple: `:apple:` when fixing something on macOS
-    * :checkered_flag: `:checkered_flag:` when fixing something on Windows
-    * :bug: `:bug:` when fixing a bug
-    * :fire: `:fire:` when removing code or files
-    * :green_heart: `:green_heart:` when fixing the CI build
-    * :white_check_mark: `:white_check_mark:` when adding tests
-    * :lock: `:lock:` when dealing with security
-    * :arrow_up: `:arrow_up:` when upgrading dependencies
-    * :arrow_down: `:arrow_down:` when downgrading dependencies
-    * :shirt: `:shirt:` when removing linter warnings
-
+  * :art: `:art:` when improving the format/structure of the code
+  * :racehorse: `:racehorse:` when improving performance
+  * :non-potable_water: `:non-potable_water:` when plugging memory leaks
+  * :memo: `:memo:` when writing docs
+  * :penguin: `:penguin:` when fixing something on Linux
+  * :apple: `:apple:` when fixing something on macOS
+  * :checkered_flag: `:checkered_flag:` when fixing something on Windows
+  * :bug: `:bug:` when fixing a bug
+  * :fire: `:fire:` when removing code or files
+  * :green_heart: `:green_heart:` when fixing the CI build
+  * :white_check_mark: `:white_check_mark:` when adding tests
+  * :lock: `:lock:` when dealing with security
+  * :arrow_up: `:arrow_up:` when upgrading dependencies
+  * :arrow_down: `:arrow_down:` when downgrading dependencies
+  * :shirt: `:shirt:` when removing linter warnings
