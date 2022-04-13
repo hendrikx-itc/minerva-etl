@@ -88,7 +88,7 @@ def load_sample_data(
 def cmd_generate_and_load(config):
     name = config["name"]
 
-    print("Loading dataset '{}'".format(name))
+    print(f"Loading dataset '{name}'")
 
     data_set_generator = import_module(name)
 
@@ -97,7 +97,7 @@ def cmd_generate_and_load(config):
     for cmd in data_set_generator.generate(target_dir):
         print(" - executing: {}".format(" ".join(cmd)))
 
-        subprocess.run(cmd, shell=False)
+        subprocess.run(cmd, shell=False, check=True)
 
 
 def generate_and_load(config, interval_count: int):
@@ -160,7 +160,7 @@ def generate_and_load(config, interval_count: int):
 
         for timestamp in timestamp_range:
             print(" " * 60, end="\r")
-            print(" - {}".format(timestamp), end="\r")
+            print(f" - {timestamp}", end="\r")
 
             generate_result = data_set_generator.generate(
                 target_dir, timestamp, granularity

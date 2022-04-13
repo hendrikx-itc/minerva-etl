@@ -49,9 +49,9 @@ class TestError(unittest.TestCase):
     def test_no_such_column_error(self):
         @translate_postgresql_exceptions
         def f():
-            create_table_query = "CREATE TABLE test(" "id integer, " "name text)"
+            create_table_query = "CREATE TABLE test(id integer, name text)"
 
-            select_query = 'SELECT "non-existing-column" ' "FROM test"
+            select_query = 'SELECT "non-existing-column" FROM test'
 
             with closing(connect()) as conn:
                 with closing(conn.cursor()) as cursor:
@@ -64,9 +64,9 @@ class TestError(unittest.TestCase):
     def test_data_type_mismatch_error(self):
         @translate_postgresql_exceptions
         def f():
-            create_table_query = "CREATE TABLE test(" "id integer, " "name text)"
+            create_table_query = "CREATE TABLE test(id integer, name text)"
 
-            insert_query = "INSERT INTO test(id, name) " "VALUES (%s, %s)"
+            insert_query = "INSERT INTO test(id, name) VALUES (%s, %s)"
 
             with closing(connect()) as conn:
                 with closing(conn.cursor()) as cursor:
@@ -79,7 +79,7 @@ class TestError(unittest.TestCase):
     def test_duplicate_table_error(self):
         @translate_postgresql_exceptions
         def f():
-            create_table_query = "CREATE TABLE test(" "id integer, " "name text)"
+            create_table_query = "CREATE TABLE test(id integer, name text)"
 
             with closing(connect()) as conn:
                 with closing(conn.cursor()) as cursor:

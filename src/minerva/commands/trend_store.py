@@ -450,8 +450,8 @@ def alter_tables_in_trend_store(trend_store: TrendStore, force=False):
         "trend_directory.get_trend_store("
         "%s::text, %s::text, %s::interval"
         "), %s::trend_directory.trend_store_part_descr[]"
-        ")".format(change_function)
-    )
+        ")"
+    ).format(change_function)
 
     query_args = (
         trend_store.data_source,

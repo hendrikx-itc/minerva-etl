@@ -70,13 +70,13 @@ def main():
         parser.print_help()
 
         return 0
-    else:
-        try:
-            return args.cmd(args)
-        except ConfigurationError as e:
-            print(f"Configuration error: {e}")
 
-            return 1
+    try:
+        return args.cmd(args)
+    except ConfigurationError as e:
+        print(f"Configuration error: {e}")
+
+        return 1
 
 
 if __name__ == "__main__":

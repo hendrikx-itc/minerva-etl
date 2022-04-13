@@ -26,4 +26,4 @@ def test_create_temp_table_from(start_db_container):
 
         tmp_table = create_temp_table_from(cursor, table)
 
-    assert tmp_table.name == "tmp_{}".format(table.name)
+    assert tmp_table.name == f"tmp_{table.name}"
