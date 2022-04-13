@@ -158,7 +158,7 @@ def compile_entity_aggregation(aggregation_context: EntityAggregationContext):
 
             with aggregate_trend_store_file_path.open("r") as in_file:
                 existing_trend_store = TrendStore.from_dict(
-                    yaml.load(in_file, Loader=yaml.FullLoader)
+                    yaml.safe_load(in_file, Loader=yaml.FullLoader)
                 )
                 aggregate_trend_store.parts += existing_trend_store.parts
 

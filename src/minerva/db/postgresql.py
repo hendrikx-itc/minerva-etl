@@ -86,25 +86,33 @@ def drop_table(conn, schema, table):
 
 
 def drop_all_tables(conn, schema):
+    tables_query = sql.SQL(
+        "SELECT table_name FROM information_schema.tables WHERE "
+        "table_schema = %s"
+    )
+
+    tables_query_args = (schema,)
+
+    drop_table_query = sql.SQL("DROP TABLE {} CASCADE")
+
     with closing(conn.cursor()) as cursor:
-        query = (
-            "SELECT table_name FROM information_schema.tables WHERE "
-            "table_schema = '{0:s}'").format(schema)
-        cursor.execute(query)
+        cursor.execute(tables_query, tables_query_args)
 
         rows = cursor.fetchall()
 
         for (table_name, ) in rows:
-            cursor.execute("DROP TABLE {0:s} CASCADE".format(
-                full_table_name(table_name, schema)))
+            cursor.execute(drop_table_query.format(sql.Identifier(schema, table_name)))
 
     conn.commit()
 
 
 def table_exists(conn, schema, table):
+    query = sql.SQL("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = %s AND table_name = %s")
+
+    query_args = (schema, table)
+
     with closing(conn.cursor()) as cursor:
-        cursor.execute("SELECT COUNT(*) FROM information_schema.tables WHERE \
-table_schema = '{0:s}' AND table_name = '{1:s}'".format(schema, table))
+        cursor.execute(query, query_args)
 
         (num, ) = cursor.fetchone()
 
@@ -142,10 +150,9 @@ def schema_exists(conn, name):
 
 
 def create_schema(conn, name, owner):
-    query = (
-        "CREATE SCHEMA \"{0:s}\" "
-        "AUTHORIZATION {1:s}"
-    ).format(name, owner)
+    query = sql.SQL(
+        "CREATE SCHEMA {} AUTHORIZATION {}"
+    ).format(sql.Identifier(name), sql.Identifier(owner))
 
     if not schema_exists(conn, name):
         with closing(conn.cursor()) as cursor:
@@ -157,8 +164,12 @@ def create_schema(conn, name, owner):
 
 
 def alter_table_owner(conn, table, owner):
+    query = sql.SQL(
+        "ALTER TABLE {} OWNER TO {}"
+    ).format(sql.Identifier(table), sql.Identifier(owner))
+
     with closing(conn.cursor()) as cursor:
-        cursor.execute("ALTER TABLE {0} OWNER TO {1}".format(table, owner))
+        cursor.execute(query)
 
     conn.commit()
 
@@ -173,20 +184,23 @@ def create_user(conn, name, password=None, groups=None):
 
         if num == 0:
             if password is None:
-                query = "CREATE USER {0:s}".format(name)
+                query = sql.SQL("CREATE USER {}").format(sql.Identifier(name))
             else:
-                query = "CREATE USER {0:s} LOGIN PASSWORD '{1:s}'".format(
-                    name, password)
+                query = sql.SQL(
+                    "CREATE USER {} LOGIN PASSWORD {}"
+                ).format(
+                    sql.Identifier(name), sql.Literal(password)
+                )
 
             cursor.execute(query)
 
             if groups is not None:
                 if hasattr(groups, "__iter__"):
                     for group in groups:
-                        query = "GRANT {0:s} TO {1:s}".format(group, name)
+                        query = sql.SQL("GRANT {} TO {}").format(sql.Identifier(group), sql.Identifier(name))
                         cursor.execute(query)
                 else:
-                    query = "GRANT {0:s} TO {1:s}".format(groups, name)
+                    query = sql.SQL("GRANT {} TO {}").format(sql.Identifier(groups), sql.Identifier(name))
                     cursor.execute(query)
 
             conn.commit()
@@ -206,10 +220,10 @@ def create_group(conn, name, group=None):
         (num, ) = cursor.fetchone()
 
         if num == 0:
-            cursor.execute("CREATE ROLE \"{0:s}\"".format(name))
+            cursor.execute(sql.SQL("CREATE ROLE {}").format(sql.Identifier(name)))
 
         if group is not None:
-            query = "GRANT {0:s} TO {1:s}".format(group, name)
+            query = sql.SQL("GRANT {} TO {}").format(sql.Identifier(group), sql.Identifier(name))
             cursor.execute(query)
 
         conn.commit()

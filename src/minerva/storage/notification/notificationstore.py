@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
-from minerva.db.query import Table, smart_quote
+from psycopg2 import sql
+
+from minerva.db.query import Table
 from minerva.db.error import translate_postgresql_exceptions
 from minerva.directory import DataSource
 from minerva.storage.notification.attribute import Attribute
@@ -22,10 +24,11 @@ class NotificationStore:
     @staticmethod
     def load(cursor, data_source):
         """Load NotificationStore from database and return it."""
-        query = (
+        query = sql.SQL(
             "SELECT id "
             "FROM notification_directory.notification_store "
-            "WHERE data_source_id = %s")
+            "WHERE data_source_id = %s"
+        )
 
         args = data_source.id,
 
@@ -42,7 +45,7 @@ class NotificationStore:
     @staticmethod
     def get_attributes(notification_store_id):
         def f(cursor):
-            query = (
+            query = sql.SQL(
                 "SELECT id, notification_store_id, name, data_type, "
                 "description "
                 "FROM notification_directory.attribute "
@@ -65,7 +68,7 @@ class NotificationStore:
     def create(notification_store_descriptor):
         """Create notification store in database."""
         def f(cursor):
-            query = (
+            query = sql.SQL(
                 "SELECT * "
                 "FROM notification_directory.create_notification_store("
                 "%s, %s::notification_directory.attr_def[]"
@@ -97,20 +100,23 @@ class NotificationStore:
         """Return function that can store the data from a record."""
         @translate_postgresql_exceptions
         def f(cursor):
-            column_names = ['entity_id', 'timestamp'] + record.attribute_names
-            columns_part = ','.join(map(smart_quote, column_names))
+            column_names = ["entity_id", "timestamp"] + record.attribute_names
+            columns_part = sql.SQL(",").join((sql.Identifier(column_name) for column_name in column_names))
 
             entity_placeholder, entity_value = record.entity_ref.to_argument()
 
             placeholders = (
-                [entity_placeholder, "%s"] +
-                (["%s"] * len(record.attribute_names))
+                [sql.SQL(entity_placeholder), sql.Placeholder()] +
+                (sql.Placeholder() for _ in record.attribute_names)
             )
 
-            query = (
-                "INSERT INTO {} ({}) "
-                "VALUES ({})"
-            ).format(self.table.render(), columns_part, ",".join(placeholders))
+            query = sql.SQL(
+                "INSERT INTO {}({}) VALUES ({})"
+            ).format(
+                self.table.identifier(),
+                columns_part,
+                sql.SQL(",").join(placeholders)
+            )
 
             args = (
                 [entity_value, record.timestamp]

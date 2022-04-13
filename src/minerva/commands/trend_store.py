@@ -518,9 +518,7 @@ def change_trend_store_part(conn, trend_store_part, force=False):
         change_function = "change_trend_store_part_weak"
 
     query = sql.SQL(
-        "SELECT * FROM {}("
-        "%s::trend_directory.trend_store_part_descr"
-        ")".format(change_function)
+        "SELECT * FROM {}(%s::trend_directory.trend_store_part_descr)"
     ).format(sql.Identifier("trend_directory", change_function))
 
     query_args = (trend_store_part,)
@@ -894,10 +892,10 @@ def remove_old_partitions_cmd(args):
                     if not args.pretend:
                         try:
                             cursor.execute(
-                                f'drop table trend_partition."{partition_name}"'
+                                sql.SQL("DROP TABLE {}").format(sql.Identifier("trend_partition", partition_name))
                             )
                             cursor.execute(
-                                "delete from trend_directory.partition where id = %s",
+                                "DELETE FROM trend_directory.partition WHERE id = %s",
                                 (partition_id,),
                             )
                             conn.commit()
