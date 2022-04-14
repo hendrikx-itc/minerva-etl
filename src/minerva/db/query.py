@@ -8,7 +8,7 @@ from itertools import chain, groupby
 from functools import partial, reduce
 from typing import Iterable
 
-from psycopg2 import sql
+import psycopg2
 
 from minerva.util import k, if_set
 
@@ -107,10 +107,10 @@ class Call(Sql):
 
         self.args = list(map(ensure_sql, args))
 
-    def render(self):
+    def _render(self):
         args_part = ", ".join(a.render() for a in self.args)
 
-        return "{}({})".format(self.function.render(), args_part)
+        return f"{self.function.render()}({args_part})"
 
 
 class SchemaObject(Sql):
@@ -148,7 +148,7 @@ class Function(SchemaObject):
             elif isinstance(schema, str):
                 self.schema = Schema(schema)
             else:
-                raise Exception("invalid schema '{}'".format(schema))
+                raise Exception(f"invalid schema '{schema}'")
         else:
             self.schema = None
 
@@ -175,30 +175,36 @@ class Table(SchemaObject):
             elif isinstance(schema, str):
                 self.schema = Schema(schema)
             else:
-                raise Exception("invalid schema '{}'".format(schema))
+                raise Exception(f"invalid schema '{schema}'")
         else:
             self.schema = None
 
-    def identifier(self) -> sql.Identifier:
-        return sql.Identifier(self.schema.name, self.name)
+    def identifier(self) -> psycopg2.sql.Identifier:
+        return psycopg2.sql.Identifier(self.schema.name, self.name)
 
     def _render(self):
         if self.schema:
-            return "{}.{}".format(self.schema.render(), smart_quote(self.name))
+            return f"{self.schema.render()}.{smart_quote(self.name)}"
         else:
             return smart_quote(self.name)
 
     def create(self):
         col_specs = ", ".join([c.definition() for c in self.columns])
-        statement = "CREATE TABLE {}({});".format(self.render(), col_specs)
+        statement = f"CREATE TABLE {self.render()}({col_specs});"
 
         return Script([statement])
 
-    def insert(self, columns=[]):
-        return Insert(self, columns)
+    def insert(self, columns=None):
+        if columns is None:
+            return Insert(self, [])
+        else:
+            return Insert(self, columns)
 
-    def select(self, columns=[], **kwargs):
-        return Select(columns, from_=self, **kwargs)
+    def select(self, columns=None, **kwargs):
+        if columns is None:
+            return Select([], from_=self, **kwargs)
+        else:
+            return Select(columns, from_=self, **kwargs)
 
     def truncate(self, *args, **kwargs):
         return Truncate(self, *args, **kwargs)
@@ -229,7 +235,7 @@ class Column(SchemaObject):
             elif isinstance(table, As):
                 self.table = Table(table.alias)
             else:
-                raise Exception("invalid table '{}'".format(table))
+                raise Exception(f"invalid table '{table}'")
         else:
             self.table = None
 
@@ -238,7 +244,7 @@ class Column(SchemaObject):
 
     def _render(self):
         if self.table:
-            return "{}.{}".format(self.table.render(), smart_quote(self.name))
+            return f"{self.table.render()}.{smart_quote(self.name)}"
         else:
             return smart_quote(self.name)
 
@@ -321,7 +327,7 @@ class Argument(Sql):
             return self.value.render()
         else:
             if self.name:
-                return "%({})s".format(self.name)
+                return f"%({self.name})s"
             else:
                 return "%s"
 
@@ -378,7 +384,7 @@ class UnaryOperator(Operator):
 
 class Any(UnaryOperator):
     def _render(self):
-        return "ANY({})".format(self.x.render())
+        return f"ANY({self.x.render()})"
 
 
 def is_unset_argument(x):
@@ -390,12 +396,12 @@ class Parenthesis(Sql):
         self.expression = expression
 
     def _render(self):
-        return "({})".format(self.expression.render())
+        return f"({self.expression.render()})"
 
 
 class And(BinaryOperator):
     def _render(self):
-        return "{} AND {}".format(self.l_.render(), self.r.render())
+        return f"{self.l_.render()} AND {self.r.render()}"
 
 
 ands = partial(reduce, And)
@@ -403,7 +409,7 @@ ands = partial(reduce, And)
 
 class Or(BinaryOperator):
     def _render(self):
-        return "{} OR {}".format(self.l_.render(), self.r.render())
+        return f"{self.l_.render()} OR {self.r.render()}"
 
 
 ors = partial(reduce, Or)
@@ -411,42 +417,42 @@ ors = partial(reduce, Or)
 
 class Eq(BinaryOperator):
     def _render(self):
-        return "{} = {}".format(self.l_.render(), self.r.render())
+        return f"{self.l_.render()} = {self.r.render()}"
 
 
 class Lt(BinaryOperator):
     def _render(self):
-        return "{} < {}".format(self.l_.render(), self.r.render())
+        return f"{self.l_.render()} < {self.r.render()}"
 
 
 class Gt(BinaryOperator):
     def _render(self):
-        return "{} > {}".format(self.l_.render(), self.r.render())
+        return f"{self.l_.render()} > {self.r.render()}"
 
 
 class LtEq(BinaryOperator):
     def _render(self):
-        return "{} <= {}".format(self.l_.render(), self.r.render())
+        return f"{self.l_.render()} <= {self.r.render()}"
 
 
 class GtEq(BinaryOperator):
     def _render(self):
-        return "{} >= {}".format(self.l_.render(), self.r.render())
+        return f"{self.l_.render()} >= {self.r.render()}"
 
 
 class ArrayContains(BinaryOperator):
     def _render(self):
-        return "{} @> {}".format(self.l_.render(), self.r.render())
+        return f"{self.l_.render()} @> {self.r.render()}"
 
 
 class ArrayIsContainedBy(BinaryOperator):
     def _render(self):
-        return "{} <@ {}".format(self.l_.render(), self.r.render())
+        return f"{self.l_.render()} <@ {self.r.render()}"
 
 
 class In(BinaryOperator):
     def _render(self):
-        return "{} IN {}".format(self.l_.render(), self.r.render())
+        return f"{self.l_.render()} IN {self.r.render()}"
 
 
 class As(Sql):
@@ -455,7 +461,7 @@ class As(Sql):
         self.alias = alias
 
     def _render(self):
-        return "{} AS {}".format(self.source.render(), smart_quote(self.alias))
+        return f"{self.source.render()} AS {smart_quote(self.alias)}"
 
     def references(self):
         if isinstance(self.source, (Table, Column)):
@@ -580,7 +586,7 @@ class Join(FromItem):
 
     def _render(self):
         if self.join_type:
-            join = "{} JOIN".format(self.join_type)
+            join = f"{self.join_type} JOIN"
         else:
             join = "JOIN"
 
@@ -618,9 +624,9 @@ class WithQuery(SqlQuery):
     def _render(self):
         if self.columns:
             columns_part = ", ".join([c.render() for c in self.columns])
-            return "{} AS ({})".format(self.name, columns_part)
+            return f"{self.name} AS ({columns_part})"
         else:
-            return "{} AS ({})".format(self.name, self.query.render())
+            return f"{self.name} AS ({self.query.render()})"
 
 
 class Select(SqlQuery):
@@ -645,33 +651,38 @@ class Select(SqlQuery):
             self.group_by = ensure_iterable(group_by_)
 
     def clone(self):
+        """Return a clone of this instance."""
         return copy.copy(self)
 
     def from_(self, sources):
+        """Return a new Select object with `sources` set."""
         select = self.clone()
         select.sources = list(map(ensure_from, ensure_iterable(sources)))
 
         return select
 
     def where_(self, requirements):
+        """Return a new Select object with `requirements` set."""
         select = self.clone()
         select.requirements = requirements
 
         return select
 
     def group_by_(self, group_by):
+        """Return a new Select object with `group_by` set."""
         select = self.clone()
         select.group_by = ensure_iterable(group_by)
 
         return select
 
     def _render(self):
+        """Return a string with this Select rendered as SQL."""
         expressions_part = ", ".join(e.render() for e in self.expressions)
 
         parts = []
 
         if self.with_query:
-            with_part = "WITH {}".format(self.with_query.render())
+            with_part = f"WITH {self.with_query.render()}"
             parts.append(with_part)
 
         parts.append("SELECT")
@@ -701,6 +712,7 @@ class Select(SqlQuery):
         return " ".join(parts)
 
     def references(self):
+        """Return a list with all references in this Select."""
         idents = [list(chain(*[e.references() for e in self.expressions]))]
 
         if self.sources:
@@ -712,6 +724,7 @@ class Select(SqlQuery):
         return iter_concat(idents)
 
     def arguments(self):
+        """Return a list with all arguments in this Select."""
         arguments = [list(chain(*[e.arguments() for e in self.expressions]))]
 
         if self.sources:
@@ -758,6 +771,7 @@ class Insert(SqlQuery):
         return self
 
     def _render(self):
+        """Return a string with this Insert rendered as SQL."""
         columns_part = ", ".join(c.render() for c in self.columns)
 
         args_part = ", ".join(map(k("%s"), self.columns))
@@ -777,6 +791,7 @@ class Truncate(SqlQuery):
         self._cascade = cascade
 
     def _render(self):
+        """Return a string with this Truncate rendered as SQL."""
         if self._cascade:
             sql = "TRUNCATE {} CASCADE"
         else:
@@ -798,6 +813,7 @@ class Drop(SqlQuery):
         self._if_exists = if_exists
 
     def _render(self):
+        """Return a string with this Drop rendered as SQL."""
         if isinstance(self.schema_obj, Table):
             if self._if_exists:
                 sql = f"DROP TABLE IF EXISTS {self.schema_obj.render()}"
