@@ -1,7 +1,7 @@
 import datetime
 from functools import partial
 
-from minerva.directory.basetypes import DataSource
+from minerva.directory.datasource import DataSource
 from minerva.storage.trend.tables import make_table_name
 from minerva.util.tabulate import render_table
 

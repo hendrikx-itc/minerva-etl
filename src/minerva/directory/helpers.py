@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
-"""
-Helper functions for the directory schema.
-"""
+"""Helper functions for the directory schema."""
 import re
 from typing import List
 

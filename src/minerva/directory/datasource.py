@@ -5,8 +5,8 @@ class DataSource:
     """
     A DataSource describes where a certain set of data comes from.
     """
-    def __init__(self, id, name, description):
-        self.id = id
+    def __init__(self, id_, name, description):
+        self.id = id_
         self.name = name
         self.description = description
 
@@ -36,7 +36,7 @@ class DataSource:
         return execute
 
     @staticmethod
-    def get(data_source_id):
+    def get(id_):
         """Return function to get a datasource by Id."""
         def execute(cursor):
             """Return the data source with the specified Id."""
@@ -46,7 +46,7 @@ class DataSource:
                 "WHERE id = %s"
             )
 
-            args = (data_source_id,)
+            args = (id_,)
 
             cursor.execute(query, args)
 

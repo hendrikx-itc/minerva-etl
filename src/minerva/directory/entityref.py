@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+"""Provides entity reference classes."""
 from typing import Tuple, NewType, List, Callable, Any
 
 from minerva.directory.helpers import aliases_to_entity_ids, \

@@ -1,3 +1,4 @@
+"""Provides the RelationType class."""
 from contextlib import closing
 from functools import partial
 

@@ -1,3 +1,4 @@
+"""Provides the EntityType class."""
 from typing import Callable, Any, Optional
 
 

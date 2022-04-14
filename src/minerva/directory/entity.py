@@ -1,3 +1,6 @@
+"""Provides the Entity class."""
+
+
 class Entity:
     """
     All data within the Minerva platform is linked to entities. Entities are
