@@ -1013,12 +1013,11 @@ class MaterializationChunk:
     def materialize(self, conn):
         try:
             materialize_query = (
-                "SELECT (trend_directory.materialize(m, %s)).row_count "
-                "FROM trend_directory.materialization m WHERE id = %s"
+                "SELECT (trend_directory.materialize(%s, %s)).row_count "
             )
 
             with conn.cursor() as cursor:
-                cursor.execute(materialize_query, (self.timestamp, self.materialization_id))
+                cursor.execute(materialize_query, (self.materialization_id, self.timestamp))
                 row_count, = cursor.fetchone()
 
             conn.commit()

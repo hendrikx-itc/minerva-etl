@@ -162,7 +162,7 @@ def add_attribute_to_attribute_store_cmd(args):
         'attribute_store, %s::name, %s::text, %s::text'
         ') '
         'FROM attribute_directory.attribute_store '
-        'WHERE attribute_store::text = %s'
+        'WHERE attribute_directory.attribute_store_to_char(attribute_store.id) = %s'
     )
 
     query_args = (
@@ -203,7 +203,7 @@ def remove_attribute_from_attribute_store_cmd(args):
         'attribute_store, %s::name'
         ') '
         'FROM attribute_directory.attribute_store '
-        'WHERE attribute_store::text = %s'
+        'WHERE attribute_directory.attribute_store_to_char(attribute_store.id) = %s'
     )
 
     query_args = (
@@ -448,7 +448,7 @@ def setup_list_materialization_parser(subparsers):
 
 def list_materializations_cmd(args):
     query = (
-        "SELECT svm.id, svm.src_view, attribute_store::text "
+        "SELECT svm.id, svm.src_view, attribute_directory.attribute_store_to_char(attribute_store.id) "
         "FROM attribute_directory.sampled_view_materialization svm "
         "JOIN attribute_directory.attribute_store ON attribute_store.id = svm.attribute_store_id"
     )
@@ -499,7 +499,7 @@ def setup_run_materialization_parser(subparsers):
 
 def run_materialization_cmd(args):
     query = (
-        "SELECT attribute_store::text, attribute_directory.materialize(svm) "
+        "SELECT attribute_directory.attribute_store_to_char(attribute_store.id), attribute_directory.materialize(svm) "
         "FROM attribute_directory.sampled_view_materialization svm "
         "JOIN attribute_directory.attribute_store "
         "ON attribute_store.id = svm.attribute_store_id "
@@ -509,7 +509,7 @@ def run_materialization_cmd(args):
         query += "WHERE svm.id = %s"
         query_args = (args.id,)
     elif args.name:
-        query += "WHERE attribute_store::text = %s"
+        query += "WHERE attribute_directory.attribute_store_to_char(attribute_store.id) = %s"
         query_args = (args.name,)
     else:
         query_args = tuple()
@@ -532,7 +532,7 @@ def run_materialization_cmd(args):
 
 def materialize_all_curr_ptr(conn):
     query = (
-        'select ast.id, ast::text '
+        'select ast.id, attribute_directory.attribute_store_to_char(ast) '
         'from attribute_directory.attribute_store ast '
         'join attribute_directory.attribute_store_modified asm '
         'on ast.id = asm.attribute_store_id '
@@ -578,7 +578,7 @@ def materialize_curr_ptr_by_name(conn, attribute_store_name: str):
         'SELECT '
         'attribute_directory.materialize_curr_ptr(attribute_store) '
         'FROM attribute_directory.attribute_store '
-        'WHERE attribute_store::text = %s'
+        'WHERE attribute_directory.attribute_store_to_char(attribute_store.id) = %s'
     )
 
     with conn.cursor() as cursor:
