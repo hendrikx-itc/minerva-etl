@@ -43,8 +43,7 @@ class Materialization:
             "materialization_id, trend_store_part_id, timestamp_mapping_func) "
             "SELECT m.id, tsp.id, %s::regprocedure "
             "FROM trend_directory.materialization m, trend_directory.trend_store_part tsp "
-            "WHERE m::text = %s and tsp.name = %s "
-            "RETURNING *"
+            "WHERE m::text = %s and tsp.name = %s"
         )
 
         with conn.cursor() as cursor:
@@ -111,7 +110,9 @@ class Materialization:
         set_enabled_query = (
             'UPDATE trend_directory.materialization '
             'SET processing_delay = %s, stability_delay = %s, reprocessing_period = %s, enabled = %s '
-            'WHERE materialization::text = %s'
+            'FROM trend_directory.trend_store_part tsp '
+            'WHERE materialization.dst_trend_store_part_id = tsp.id '
+            'AND tsp.name = %s'
         )
 
         set_enabled_args = (
