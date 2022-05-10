@@ -23,7 +23,6 @@ from minerva.db.error import (
     DataTypeMismatch,
     UniqueViolation,
 )
-from minerva.storage.trend.trendstore import TrendStore
 from minerva.util import zip_apply, first
 
 LARGE_BATCH_THRESHOLD = 10
@@ -77,7 +76,7 @@ class TrendStorePart:
         ]
 
     @staticmethod
-    def from_record(record) -> Callable[[Any], Any]:
+    def from_record(record, trend_store: "TrendStore") -> Callable[[Any], Any]:
         """
         Return function that can instantiate a TrendStore from a
         trend_store type record.
@@ -88,8 +87,6 @@ class TrendStorePart:
 
         def f(cursor):
             (trend_store_part_id, trend_store_id, name) = record
-
-            trend_store = TrendStore.get_by_id(trend_store_id)(cursor)
 
             trends = TrendStorePart.get_trends(cursor, trend_store_part_id)
 
@@ -414,7 +411,7 @@ def create_copy_from_query(table: Table, trend_names: List[str]) -> str:
     column_names = chain(schema.system_columns, trend_names)
 
     return sql.SQL("COPY {}({}) FROM STDIN").format(
-        table.identifier(), sql.SQL(",").join(column_names)
+        table.identifier(), sql.SQL(",").join([sql.SQL(column_name) for column_name in column_names])
     )
 
 

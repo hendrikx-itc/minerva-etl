@@ -103,6 +103,8 @@ class Loader:
 
                 for package in packages:
                     try:
+                        statistics.extract_statistics(package)
+
                         handle_package(package, action)
                     except NoSuchEntityType as exc:
                         if self.stop_on_missing_entity_type:
@@ -138,16 +140,22 @@ class Statistics:
 
     def __init__(self):
         self.package_count = 0
+        self.record_count = 0
 
     def extract_statistics(self, package):
         """Extract statistics from the provided package and store them."""
         self.package_count += 1
 
+        self.record_count += len(package.rows)
+
         return package
 
     def report(self):
         """Return list of report lines with collected statistics."""
-        return ["{} packages".format(self.package_count)]
+        return [
+            f"packages: {self.package_count}",
+            f"records: {self.record_count}",
+        ]
 
 
 def filter_trend_package(entity_filter, trend_filter, package: DataPackage):

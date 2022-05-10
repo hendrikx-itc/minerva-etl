@@ -94,6 +94,12 @@ def load_data_cmd(cmd_parser, stop_on_missing_entity_type=False):
         loader.merge_packages = args.merge_packages
         loader.stop_on_missing_entity_type = stop_on_missing_entity_type
 
+        # Only show the logged message
+        logging.basicConfig(format="%(message)s")
+
+        if args.statistics:
+            logging.root.setLevel(logging.INFO)
+
         if args.debug:
             logging.root.setLevel(logging.DEBUG)
 

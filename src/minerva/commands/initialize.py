@@ -19,7 +19,7 @@ from minerva.commands.attribute_store import (
     DuplicateAttributeStore,
     SampledViewMaterialization,
 )
-from minerva.commands.trend_store import create_trend_store, DuplicateTrendStore
+from minerva.commands.trend_store.create import create_trend_store, DuplicateTrendStore
 from minerva.commands.notification_store import (
     create_notification_store_from_definition,
     DuplicateNotificationStore,
