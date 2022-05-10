@@ -23,6 +23,7 @@ def setup_command_parser(subparsers):
     setup_list_parser(cmd_subparsers)
     setup_update_weight_parser(cmd_subparsers)
     setup_update_kpi_function_parser(cmd_subparsers)
+    setup_update_data_function_parser(cmd_subparsers)
     setup_create_notifications_parser(cmd_subparsers)
 
 
@@ -177,6 +178,36 @@ def update_kpi_function_cmd(args):
             sys.stdout.write("Done\n")
         except Exception as e:
             sys.stdout.write(f"\nError updating kpi function:\n{e}")
+
+
+def setup_update_data_function_parser(subparsers):
+    cmd = subparsers.add_parser(
+        "update-data-function",
+        help="command for updating the data function of a trigger from the configuration",
+    )
+
+    cmd.add_argument(
+        "definition", type=argparse.FileType("r"), help="yaml description for trigger"
+    )
+
+    cmd.set_defaults(cmd=update_data_function_cmd)
+
+
+def update_data_function_cmd(args):
+    instance = MinervaInstance.load()
+    trigger = instance.load_trigger_from_file(args.definition)
+
+    sys.stdout.write("Updating data function of '{}'... ".format(trigger.name))
+
+    with connect() as conn:
+        conn.autocommit = True
+
+        try:
+            trigger.define_notification_data(conn)
+
+            sys.stdout.write("Done\n")
+        except Exception as e:
+            sys.stdout.write(f"\nError updating data function:\n{e}")
 
 
 def timedelta_to_string(t):
