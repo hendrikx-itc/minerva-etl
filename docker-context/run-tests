@@ -1,13 +1,14 @@
 #!/bin/sh
+set -e
 
 export HOME=$WORKSPACE
 
-python3 -m venv --system-site-packages $WORKSPACE/venv
+python3 -m venv $WORKSPACE/venv
 
 . $WORKSPACE/venv/bin/activate
 
-pip install pytest pytest-custom_exit_code
+pip install pytest pytest-custom_exit_code docker
 
-pip install -e $WORKSPACE
+pip install $WORKSPACE
 
 pytest $@
