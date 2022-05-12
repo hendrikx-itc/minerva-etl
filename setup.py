@@ -28,6 +28,7 @@ setup(
     packages=[
         "minerva",
         "minerva.commands",
+        "minerva.commands.trend_store",
         "minerva.util",
         "minerva.test",
         "minerva.db",
