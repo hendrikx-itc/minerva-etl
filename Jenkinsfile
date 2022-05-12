@@ -27,12 +27,19 @@ pipeline {
             }
         }
         
+        stage ('Prepare Integration Test') {
+            steps {
+                script {
+                    sh 'docker network create pytest'
+                }
+            }
+        }
 
         stage ('Integration Test') {
             agent {
                 dockerfile {
                     filename 'Dockerfile.python'
-                    args '--user root --network pytest -e TEST_DOCKER_NETWORK=pytest -v ${workspace}:/source -v /var/run/docker.sock:/var/run/docker.sock -w /source'
+                    args '--user root --network pytest -e TEST_DOCKER_NETWORK=pytest -v /var/run/docker.sock:/var/run/docker.sock'
                 }
             }
             
