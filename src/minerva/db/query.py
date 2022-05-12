@@ -9,6 +9,7 @@ from functools import partial, reduce
 from typing import Iterable
 
 import psycopg2
+from psycopg2 import sql
 
 from minerva.util import k, if_set
 
@@ -180,7 +181,7 @@ class Table(SchemaObject):
             self.schema = None
 
     def identifier(self) -> psycopg2.sql.Identifier:
-        return psycopg2.sql.Identifier(self.schema.name, self.name)
+        return sql.Identifier(self.schema.name, self.name)
 
     def _render(self):
         if self.schema:
@@ -793,11 +794,11 @@ class Truncate(SqlQuery):
     def _render(self):
         """Return a string with this Truncate rendered as SQL."""
         if self._cascade:
-            sql = "TRUNCATE {} CASCADE"
+            sql_part = "TRUNCATE {} CASCADE"
         else:
-            sql = "TRUNCATE {}"
+            sql_part = "TRUNCATE {}"
 
-        return sql.format(self.table.render())
+        return sql_part.format(self.table.render())
 
     def cascade(self):
         """Set the flag to use `CASCADE` to true"""
@@ -816,11 +817,11 @@ class Drop(SqlQuery):
         """Return a string with this Drop rendered as SQL."""
         if isinstance(self.schema_obj, Table):
             if self._if_exists:
-                sql = f"DROP TABLE IF EXISTS {self.schema_obj.render()}"
+                sql_part = f"DROP TABLE IF EXISTS {self.schema_obj.render()}"
             else:
-                sql = f"DROP TABLE {self.schema_obj.render()}"
+                sql_part = f"DROP TABLE {self.schema_obj.render()}"
 
-            return sql
+            return sql_part
 
         msg = "Cannot drop object of type {}"
 
