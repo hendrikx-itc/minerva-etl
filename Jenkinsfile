@@ -30,7 +30,7 @@ pipeline {
         stage ('Prepare Integration Test') {
             steps {
                 script {
-                    sh 'docker network create pytest'
+                    sh 'docker network create pytest || true'
                 }
             }
         }
