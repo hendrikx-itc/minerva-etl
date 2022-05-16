@@ -82,6 +82,15 @@ def report_cmd(args):
 
 
 def generate_report(conn, formatter: Formatter) -> Generator[str, None, None]:
+    for line in formatter.format_header('Entity Metrics', 2):
+        print(line)
+
+    print()
+
+    yield from generate_entity_report(conn, formatter)
+
+    print()
+
     for line in formatter.format_header('Trend Store Metrics', 2):
         print(line)
 
@@ -99,6 +108,34 @@ def generate_report(conn, formatter: Formatter) -> Generator[str, None, None]:
     yield from generate_attribute_report(conn, formatter)
 
     print()
+
+
+def generate_entity_report(conn, formatter: Formatter) -> Generator[str, None, None]:
+    entity_type_query = (
+        'SELECT name FROM directory.entity_type'
+    )
+
+    total_entity_count = 0
+
+    with conn.cursor() as cursor:
+        cursor.execute(entity_type_query)
+
+        entity_types = [name for name, in cursor.fetchall()]
+
+        yield f"Number of entity types: {len(entity_types)}"
+
+        for entity_type in entity_types:
+            query = sql.SQL("SELECT count(*) FROM entity.{}").format(
+                sql.Identifier(entity_type)
+            )
+
+            cursor.execute(query)
+
+            entity_count, = cursor.fetchone()
+
+            total_entity_count += entity_count
+
+    yield f"Total number of entities: {total_entity_count}"
 
 
 def generate_trend_report(conn, formatter: Formatter) -> Generator[str, None, None]:
