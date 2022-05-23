@@ -162,16 +162,15 @@ def generate_trend_report(conn, formatter: Formatter) -> Generator[str, None, No
                 data_source,
                 entity_type,
                 name,
-                get_trend_store_part_statistics(conn, name)
-            )
+            ) + get_trend_store_part_statistics(conn, name)
             for data_source, entity_type, name in rows
         ]
 
         column_names = [
-            'Data Source', 'Entity Type', 'Part Name', 'Record Count'
+            'Data Source', 'Entity Type', 'Part Name', 'Record Count', 'Trend Count'
         ]
 
-        column_align = ['<', '<', '<', '>']
+        column_align = ['<', '<', '<', '>', '>']
         column_sizes = ["max"] * len(column_names)
 
         yield from formatter.format_table(
@@ -186,12 +185,23 @@ def get_trend_store_part_statistics(conn, trend_store_part_name: str):
         sql.Identifier('trend', trend_store_part_name)
     )
 
+    trends_query = sql.SQL(
+        "select count(*) "
+        "from trend_directory.trend_store_part tsp "
+        "join trend_directory.table_trend tt on tt.trend_store_part_id = tsp.id "
+        "where tsp.name = %s;"
+    )
+
     with conn.cursor() as cursor:
         cursor.execute(query)
 
         row_count, = cursor.fetchone()
 
-        return row_count
+        cursor.execute(trends_query, (trend_store_part_name,))
+
+        trend_count, = cursor.fetchone()
+
+        return row_count, trend_count
 
 
 def generate_attribute_report(conn, formatter: Formatter) -> Generator[str, None, None]:

@@ -1,13 +1,14 @@
-FROM python:latest
+FROM python:3.9
 
 RUN apt update && apt install -y \
     git \
     postgresql-contrib \
     postgresql-client \
     gcc \
-    python3-dev 
+    python3-dev \
+    python3-pip
 
 RUN pip3 install \
     psycopg2 \
-    docker
-
+    docker \
+    pytest
