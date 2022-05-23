@@ -97,7 +97,7 @@ def initialize_cmd(args):
         header('Live monitoring for materializations')
 
         try:
-            live_monitor(None, 1)
+            live_monitor()
         except KeyboardInterrupt:
             print("Stopped")
 
@@ -161,33 +161,30 @@ def initialize_derivatives(instance_root):
 def initialize_attribute_stores(instance_root):
     instance = MinervaInstance.load(instance_root)
 
-    conn = connect()
-    conn.autocommit = True
+    with connect() as conn:
+        conn.autocommit = True
 
-    for attribute_store in instance.load_attribute_stores():
-        sys.stdout.write(f"Creating '{attribute_store}' ... ")
+        for attribute_store in instance.load_attribute_stores():
+            sys.stdout.write(f"Creating '{attribute_store}' ... ")
 
-        try:
-            conn = connect()
-            conn.autocommit = True
-            create_attribute_store(conn, attribute_store)
-        except DuplicateAttributeStore as exc:
-            print(f"Attribute store not created .. {attribute_store} already exist")
+            try:
+                create_attribute_store(conn, attribute_store)
+            except DuplicateAttributeStore as exc:
+                print(f"Attribute store not created .. {attribute_store} already exist")
 
-        sys.stdout.write("OK\n")
+            sys.stdout.write("OK\n")
 
-    # Attribute-store-like views can be used for quick attribute
-    # transformations or combinations. These views can be defined using plain
-    # SQL.
-    sql_files = glob.glob(
-        os.path.join(instance_root, 'attribute/*.sql')
-    )
+        # Attribute-store-like views can be used for quick attribute
+        # transformations or combinations. These views can be defined using plain
+        # SQL.
+        sql_files = glob.glob(
+            os.path.join(instance_root, 'attribute/*.sql')
+        )
 
-    for sql_file_path in sql_files:
-        print(sql_file_path)
+        for sql_file_path in sql_files:
+            print(sql_file_path)
 
-        execute_sql_file(sql_file_path)
-    conn.close()
+            execute_sql_file(sql_file_path)
 
 
 def initialize_trend_stores(instance_root):
