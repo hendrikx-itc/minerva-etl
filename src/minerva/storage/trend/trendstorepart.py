@@ -223,7 +223,7 @@ class TrendStorePart:
             )
 
             copy_from_query = create_copy_from_query(self.base_table(), trend_names)
-
+            
             try:
                 cursor.copy_expert(copy_from_query, copy_from_file)
             except psycopg2.DatabaseError as exc:
@@ -411,7 +411,7 @@ def create_copy_from_query(table: Table, trend_names: List[str]) -> str:
     column_names = chain(schema.system_columns, trend_names)
 
     return sql.SQL("COPY {}({}) FROM STDIN").format(
-        table.identifier(), sql.SQL(",").join([sql.SQL(column_name) for column_name in column_names])
+        table.identifier(), sql.SQL(",").join([sql.Identifier(column_name) for column_name in column_names])
     )
 
 
