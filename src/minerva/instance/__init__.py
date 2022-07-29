@@ -180,10 +180,20 @@ class TrendStorePart:
         )
 
     def to_dict(self) -> OrderedDict:
+        sorted_trends = sorted(
+            self.trends,
+            key=lambda x: x.name
+        )
+
+        sorted_generated_trends = sorted(
+            self.generated_trends,
+            key=lambda x: x.name
+        )
+
         return OrderedDict([
             ('name', self.name),
-            ('trends', [trend.to_dict() for trend in self.trends]),
-            ('generated_trends', [generated_trend.to_dict() for generated_trend in self.generated_trends])
+            ('trends', [trend.to_dict() for trend in sorted_trends]),
+            ('generated_trends', [generated_trend.to_dict() for generated_trend in sorted_generated_trends])
         ])
 
     @staticmethod
@@ -252,13 +262,18 @@ class TrendStore:
         return trend_store
 
     def to_dict(self) -> OrderedDict:
+        sorted_parts = sorted(
+            self.parts,
+            key=lambda x: x.name
+        )
+
         return OrderedDict([
             ('title', self.title),
             ('data_source', self.data_source),
             ('entity_type', self.entity_type),
             ('granularity', self.granularity),
             ('partition_size', self.partition_size),
-            ('parts', [part.to_dict() for part in self.parts])
+            ('parts', [part.to_dict() for part in sorted_parts])
         ])
 
 
@@ -336,13 +351,19 @@ class AttributeStore:
         if self.title:
             items.append(('title', self.title))
 
+        sorted_attributes = sorted(
+            self.attributes,
+            key=lambda x: x.name
+        )
+
         items.extend([
             ('data_source', self.data_source),
             ('entity_type', self.entity_type),
-            ('attributes', [attribute.to_dict() for attribute in self.attributes]),
+            ('attributes', [attribute.to_dict() for attribute in sorted_attributes]),
         ])
 
         return OrderedDict(items)
+
 
 class NotificationStore:
     title: Optional[str]
