@@ -255,6 +255,8 @@ def aggregation_view_sql(
     return (
         f'CREATE VIEW trend."{name}" AS\n'
         f"{entity_aggregation_query(source_part, relation)};\n"
+        "\n"
+        f'GRANT SELECT ON trend."{name}" TO minerva;\n'
     )
 
 
