@@ -1,6 +1,7 @@
 import gzip
 import os
 from typing import Optional
+from shutil import rmtree
 
 import sys
 import datetime
@@ -175,6 +176,12 @@ def generate_and_load(config, interval_count: int):
                     with open_file(Path(file_path)) as data_file:
                         process_file(data_file, file_path)
                         file_count += 1
+
+    # Remove temp dir with generated data
+    try:
+        rmtree(target_dir)
+    except Exception as exc:
+        print(f"Error removing temp directory '{target_dir}': {exc}")
 
     print(" " * 60, end="\r")
     print(f"Loaded {file_count} files for {interval_count} intervals")
