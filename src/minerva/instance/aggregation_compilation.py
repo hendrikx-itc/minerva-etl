@@ -163,7 +163,11 @@ def compile_entity_aggregation(aggregation_context: EntityAggregationContext):
 
                 # Only add parts that are not yet in the aggregate trend store
                 for part in existing_trend_store.parts:
-                    if not [True for agg_part in aggregate_trend_store.parts if agg_part.name == part.name]:
+                    if not [
+                        True
+                        for agg_part in aggregate_trend_store.parts
+                        if agg_part.name == part.name
+                    ]:
                         aggregate_trend_store.parts.append(part)
 
             with aggregate_trend_store_file_path.open("w") as out_file:
