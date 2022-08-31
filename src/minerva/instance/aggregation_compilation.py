@@ -1,4 +1,5 @@
-import re, os
+import re
+import os
 from collections import OrderedDict
 from itertools import chain
 from pathlib import Path
@@ -242,9 +243,9 @@ def generate_view_entity_aggregation(
         out_file_path = Path(aggregation_directory_path, file_name)
 
         with out_file_path.open("w") as out_file:
-            sql = aggregation_view_sql(part_name, part, relation)
+            sql_script = aggregation_view_sql(part_name, part, relation)
 
-            out_file.write(sql)
+            out_file.write(sql_script)
 
         print(f"written entity aggregation to '{out_file_path}'")
 
@@ -391,7 +392,7 @@ def define_fingerprint_sql(src_part: TrendStorePart):
     )
 
 
-def enable_sql(name) -> sql.SQL:
+def enable_sql(name) -> sql.Composed:
     return sql.SQL(
         "UPDATE trend_directory.materialization SET enabled = true "
         "WHERE materialization::text = '{}';"
