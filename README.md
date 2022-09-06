@@ -13,6 +13,9 @@ PostgreSQL.
 To access an existing Minerva instance from code, or to set up a new Minerva
 instance, this is the component you need to use.
 
+A complete setup guide can be found in [Minerva
+book](https://minerva-book.readthedocs.io).
+
 ## Contributing
 
 Read the [contributing guide](CONTRIBUTING.md) if you want to help develop or
