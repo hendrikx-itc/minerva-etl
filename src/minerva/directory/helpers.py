@@ -50,19 +50,22 @@ def names_to_entity_ids(cursor, entity_type: str, names: List[str]) -> List[int]
         'LEFT JOIN entity.{} e ON l.name = e.name '
     ).format(sql.Identifier(entity_type_name))
 
-    entity_ids = []
-
     cursor.execute(query, (names,))
 
     rows = cursor.fetchall()
+
+    # Use a temporary mapping dictionary that can be used to do the eventual
+    # lookup in order.
+    mapping = {}
 
     for name, entity_id in rows:
         if entity_id is None:
             entity_id = create_entity_from_name(cursor, entity_type_name, name)
 
-        entity_ids.append(entity_id)
+        mapping[name] = entity_id
 
-    return entity_ids
+    # Get Ids in order of the names in the input
+    return [mapping[name] for name in names]
 
 
 def create_entities_from_names(cursor, entity_type: str, names: list) -> List[int]:
