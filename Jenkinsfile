@@ -67,6 +67,20 @@ pipeline {
                         publishPackages buildDir1804.toString(), "common/bionic/stable", 'bionic'
 
                         archiveArtifacts(artifacts: "${buildDir1804}/*")
+
+                        //---------------------------
+                        // Build Ubuntu 20.04 package
+                        //---------------------------
+                        def buildDir2004 = 'pkg-build/2004'
+
+                        // Clean the build directory before starting
+                        sh "rm -rf ${buildDir2004}"
+
+                        sh './package 2004'
+
+                        publishPackages buildDir2004.toString(), "common/focal/stable", 'focal'
+
+                        archiveArtifacts(artifacts: "${buildDir2004}/*")
                     }
                 }
             }
