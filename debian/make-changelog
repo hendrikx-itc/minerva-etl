@@ -3,7 +3,7 @@ set -e
 
 CONTROL_FILE=${1:-control}
 
-DISTRIBUTION='bionic'
+DISTRIBUTION=${2:bionic}
 
 VERSION=`git describe --tags | sed 's/-\(rc[0-9]*\)/~\1/'`
 CHANGELOG_TIMESTAMP=`git log -1 --format=%cD`

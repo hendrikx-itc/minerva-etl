@@ -55,11 +55,6 @@ pipeline {
             steps {
                 // Report status of stage 'build' back to Gitlab
                 gitlabCommitStatus(name: 'build') {
-                    // Populate changelog file with version information from git tag
-                    dir ('debian') {
-                        sh './make-changelog'
-                    }
-
                     script {
                         //---------------------------
                         // Build Ubuntu 18.04 package
