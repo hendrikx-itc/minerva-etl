@@ -30,7 +30,7 @@ pipeline {
         stage ('Setup Docker network') {
             steps {
                 script {
-                    sh 'docker network create pytest'
+                    sh 'docker network create pytest || true'
                 }
             }
         }
