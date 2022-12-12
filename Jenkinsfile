@@ -26,7 +26,14 @@ pipeline {
                 }
             }
         }
-        
+
+        stage ('Setup Docker network') {
+            steps {
+                script {
+                    sh 'docker network create pytest'
+                }
+            }
+        }
 
         stage ('Integration Test') {
             agent {
