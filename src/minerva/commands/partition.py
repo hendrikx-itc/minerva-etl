@@ -121,10 +121,22 @@ def create_partitions_for_trend_store(
                 print(
                     f"Could not create partition for part {trend_store_part_id} - {partition_index}: {deadlock}\n"
                 )
+            except InvalidPartitionError as e:
+                conn.rollback()
+                print(
+                    f"Could not create partition for part {trend_store_part_id} - {partition_index}: {e}\n"
+                )
+                retry = False
 
 
 class PartitionExistsError(Exception):
     def __init__(self, trend_store_part_id, partition_index):
+        self.trend_store_part_id = trend_store_part_id
+        self.partition_index = partition_index
+
+
+class InvalidPartitionError(Exception):
+    def __init__(self, trend_store_part_id, partition_index, exception):
         self.trend_store_part_id = trend_store_part_id
         self.partition_index = partition_index
 
@@ -144,6 +156,8 @@ def create_partition_for_trend_store_part(conn, trend_store_part_id, partition_i
             raise PartitionExistsError(trend_store_part_id, partition_index)
         except psycopg2.errors.LockNotAvailable as e:
             raise LockNotAvailable(e)
+        except psycopg2.errors.InvalidObjectDefinition as e:
+            raise InvalidPartitionError(trend_store_part_id, partition_index, e)
 
         name, p = cursor.fetchone()
 
