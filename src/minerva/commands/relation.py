@@ -51,11 +51,25 @@ def define_relation(definition):
         with closing(conn.cursor()) as cursor:
             try:
                 cursor.execute(create_materialized_view_query(definition))
+                cursor.execute(grant_materialized_view_query(definition))
+                cursor.execute(create_index_query(definition))
                 cursor.execute(register_type_query(definition))
             except Exception as exc:
                 print(exc)
             finally:
                 conn.commit()
+
+
+def grant_materialized_view_query(relation):
+    return 'GRANT SELECT ON relation."{}" TO minerva'.format(
+        relation['name'],
+    )
+
+
+def create_index_query(relation):
+    return 'CREATE INDEX ON relation."{}"(source_id, target_id)'.format(
+        relation['name'],
+    )
 
 
 def create_materialized_view_query(relation):

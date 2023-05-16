@@ -229,7 +229,7 @@ def generate_view_entity_aggregation(
         f"Generating entity aggregation views ({len(trend_store.parts)}) for {trend_store}"
     )
     aggregation_directory_path = Path(
-        instance_root, "custom/post-init/entity-aggregation"
+        instance_root, "custom/pre-trigger-init/entity-aggregation"
     )
 
     if not aggregation_directory_path.is_dir():
@@ -247,7 +247,9 @@ def generate_view_entity_aggregation(
         out_file_path = Path(aggregation_directory_path, file_name)
 
         with out_file_path.open("w") as out_file:
-            sql_script = aggregation_view_sql(part_name, part, relation)
+            sql_script = aggregation_view_sql(
+                part_name, part, relation, trend_store.data_source, relation.target_entity_type, trend_store.granularity
+            )
 
             out_file.write(sql_script)
 
@@ -255,13 +257,48 @@ def generate_view_entity_aggregation(
 
 
 def aggregation_view_sql(
-    name: str, source_part: TrendStorePart, relation: Relation
+    name: str, source_part: TrendStorePart, relation: Relation, data_source: str, entity_type: str, granularity: str
 ) -> str:
     return (
         f'CREATE VIEW trend."{name}" AS\n'
         f"{entity_aggregation_query(source_part, relation)};\n"
         "\n"
         f'GRANT SELECT ON trend."{name}" TO minerva;\n'
+        '\n'
+        f"INSERT INTO trend_directory.trend_view(entity_type_id, data_source_id, granularity)\n"
+        "(\n"
+        f"  SELECT et.id, ds.id, '{granularity}'\n"
+        "  FROM directory.entity_type et, directory.data_source ds\n"
+        f"  WHERE et.name = '{entity_type}' AND ds.name = '{data_source}'\n"
+        ") ON CONFLICT DO NOTHING;\n"
+        "\n"
+        "INSERT INTO trend_directory.trend_view_part(name, trend_view_id)\n"
+        "(\n"
+        f"  SELECT '{name}', tv.id\n"
+        "  FROM trend_directory.trend_view tv\n"
+        "  JOIN directory.entity_type et ON et.id = tv.entity_type_id\n"
+        "  JOIN directory.data_source ds ON ds.id = tv.data_source_id\n"
+        f"  WHERE et.name = '{entity_type}' AND ds.name = '{data_source}'\n"
+        f"  AND tv.granularity = '{granularity}'\n"
+        ");\n"
+        "\n"
+        "INSERT INTO trend_directory.view_trend(trend_view_part_id, name, data_type, extra_data, description, time_aggregation, entity_aggregation)\n"
+        "(\n"
+        "  SELECT tvp.id, attname, format_type(atttypid, atttypmod), '{}', '', 'SUM', 'SUM'\n"
+        "  FROM pg_class c\n"
+        "  JOIN pg_namespace ns ON ns.oid = c.relnamespace\n"
+        "  JOIN pg_attribute a ON a.attrelid = c.oid,\n"
+        "  trend_directory.trend_view_part tvp\n"
+        "  JOIN trend_directory.trend_view tv ON tv.id = tvp.trend_view_id\n"
+        "  JOIN directory.entity_type et ON et.id = tv.entity_type_id\n"
+        "  JOIN directory.data_source ds ON ds.id = tv.data_source_id\n"
+        f"  WHERE relname = '{name}'\n"
+        "  AND ns.nspname = 'trend'\n"
+        "  AND NOT (attname = any(array['entity_id', 'timestamp']))\n"
+        f"  AND et.name = '{entity_type}' AND ds.name = '{data_source}'\n"
+        f"  AND tv.granularity = '{granularity}'\n"
+        f"  AND tvp.name = '{name}'\n"
+        ") ON CONFLICT DO NOTHING;\n"
     )
 
 
