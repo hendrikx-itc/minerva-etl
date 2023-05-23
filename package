@@ -7,6 +7,8 @@ case $DISTRIBUTION in
      DISTRIBUTION_NAME="bionic";;
   2004)
      DISTRIBUTION_NAME="focal";;
+  2204)
+     DISTRIBUTION_NAME="jammy";;
   *)
 esac
 
