@@ -39,6 +39,7 @@ class DuplicateRelation(Exception):
 
 def create_relation(args):
     definition = load_yaml(args.definition)
+    print(definition)
 
     try:
         define_relation(definition)
@@ -50,19 +51,42 @@ def define_relation(definition):
     with closing(connect()) as conn:
         with closing(conn.cursor()) as cursor:
             try:
-                cursor.execute(create_materialized_view_query(definition))
+                cursor.execute(create_materialized_table_query(definition))
+                cursor.execute(distribute_materialized_table_query(definition))
+                cursor.execute(create_materialization_function_query(definition))
                 cursor.execute(register_type_query(definition))
             except Exception as exc:
                 print(exc)
             finally:
                 conn.commit()
 
-
-def create_materialized_view_query(relation):
-    return 'CREATE MATERIALIZED VIEW relation."{}" AS\n{}'.format(
-        relation['name'],
-        relation['query']
+def create_materialized_table_query(relation):
+    return 'CREATE TABLE relation."{}" ("source_id" integer, "target_id" integer)'.format(
+        relation['name']
     )
+
+def distribute_materialized_table_query(relation):
+    return 'SELECT create_reference_table(\'relation."{}"\')'.format(
+        relation['name']
+    )
+
+def create_materialization_function_query(relation):
+    return ('CREATE FUNCTION relation_directory."materialize_{}"() ' +\
+        'RETURNS VOID AS $$ '+\
+        'TRUNCATE relation."{}"; ' +\
+        'INSERT INTO relation."{}" ({}); ' +\
+        '$$ LANGUAGE sql volatile').format(
+            relation['name'],
+            relation['name'],
+            relation['name'],
+            relation['query']
+            )
+
+#def create_materialized_view_query(relation):
+#    return 'CREATE MATERIALIZED VIEW relation."{}" AS\n{}'.format(
+#        relation['name'],
+#        relation['query']
+#    )
 
 
 def register_type_query(relation):
@@ -97,9 +121,8 @@ def materialize_relations():
             names = [name for name, in cursor.fetchall()]
 
             for name in names:
-                materialize_relation_query = sql.SQL(
-                    "REFRESH MATERIALIZED VIEW relation.{}"
-                ).format(sql.Identifier(name))
+                materialize_relation_query = \
+                    'SELECT relation_directory."materialize_{}"()'.format(name)
 
                 cursor.execute(materialize_relation_query)
 

@@ -436,7 +436,7 @@ def setup_list_materialization_parser(subparsers):
 
 def list_materializations_cmd(args):
     query = (
-        "SELECT svm.id, svm.src_view, attribute_store::text "
+        "SELECT svm.id, svm.src_view, attribute_directory.attribute_store_to_char(attribute_store.id) "
         "FROM attribute_directory.sampled_view_materialization svm "
         "JOIN attribute_directory.attribute_store ON attribute_store.id = svm.attribute_store_id"
     )
@@ -489,7 +489,7 @@ def setup_run_materialization_parser(subparsers):
 
 def run_materialization_cmd(args):
     query = (
-        "SELECT attribute_store::text, attribute_directory.materialize(svm) "
+        "SELECT attribute_directory.attribute_store_to_char(attribute_store.id), attribute_directory.materialize(svm) "
         "FROM attribute_directory.sampled_view_materialization svm "
         "JOIN attribute_directory.attribute_store "
         "ON attribute_store.id = svm.attribute_store_id "
@@ -499,7 +499,7 @@ def run_materialization_cmd(args):
         query += "WHERE svm.id = %s"
         query_args = (args.id,)
     elif args.name:
-        query += "WHERE attribute_store::text = %s"
+        query += "WHERE attribute_directory.attribute_store_to_char(attribute_store.id) = %s"
         query_args = (args.name,)
     else:
         query_args = tuple()

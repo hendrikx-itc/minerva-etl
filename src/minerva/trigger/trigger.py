@@ -315,7 +315,7 @@ class Trigger:
 
         get_notification_store_query = (
             "SELECT * FROM notification_directory.notification_store "
-            "WHERE notification_store::text = %s"
+            "WHERE notification_directory.notification_store_to_char(notification_store.id) = %s"
         )
 
         set_properties_query = (

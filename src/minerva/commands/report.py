@@ -222,7 +222,7 @@ def generate_attribute_report(conn, formatter: Formatter) -> Generator[str, None
 
 def get_attribute_store_names(conn) -> List[str]:
     query = (
-        'SELECT attribute_store::text AS name '
+        'SELECT attribute_directory.attribute_store_to_char(attribute_store.id) AS name '
         'FROM attribute_directory.attribute_store ORDER BY name'
     )
 

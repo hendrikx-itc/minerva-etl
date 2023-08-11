@@ -131,7 +131,7 @@ class PartitionExistsError(Exception):
 
 def create_partition_for_trend_store_part(conn, trend_store_part_id, partition_index):
     query = (
-        "SELECT p.name, trend_directory.create_partition(p, %s) "
+        "SELECT p.name, trend_directory.create_partition(p.id, %s) "
         "FROM trend_directory.trend_store_part p "
         "WHERE p.id = %s"
     )

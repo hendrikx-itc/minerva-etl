@@ -375,7 +375,7 @@ class TrendStorePart:
 
     def create_partition(self, conn, partition_index: int):
         query = (
-            "SELECT p.name, trend_directory.create_partition(p, %s) "
+            "SELECT p.name, trend_directory.create_partition(p.id, %s) "
             "FROM trend_directory.trend_store_part p "
             "WHERE p.id = %s"
         )

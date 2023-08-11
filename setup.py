@@ -22,9 +22,6 @@ setup(
         "pytz", "psycopg2>=2.8", "PyYAML", "configobj",
         "python-dateutil", "pyparsing", "jinja2"
     ],
-    extras_require={
-        "tests": ["pytest", "docker"]
-    },
     packages=[
         "minerva",
         "minerva.commands",
