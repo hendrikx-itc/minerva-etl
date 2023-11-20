@@ -110,6 +110,66 @@ def create_base_name_to_name_translation(aggregation_definition: dict):
     }
 
 
+def add_to_aggregate_trend_store(aggregation_context: EntityAggregationContext):
+    try:
+        aggregate_trend_store = define_aggregate_trend_store(aggregation_context)
+    except ConfigurationError as exc:
+        print("Error generating target trend store: {}".format(exc))
+        return 1
+
+    base_name = aggregation_context.definition["basename"]
+
+    aggregate_trend_store_file_path = (
+        aggregation_context.instance.trend_store_file_path(base_name)
+    )
+
+    if os.path.exists(aggregate_trend_store_file_path):
+        print(
+            "Adding to aggregate trend store '{}'".format(
+                aggregate_trend_store_file_path
+            )
+        )
+
+        with aggregate_trend_store_file_path.open("r") as in_file:
+            existing_trend_store = TrendStore.from_dict(
+                yaml.load(in_file, Loader=yaml.FullLoader)
+            )
+
+            # Only add parts that are not yet in the aggregate trend store
+            for part in existing_trend_store.parts:
+                if not [
+                    True
+                    for agg_part in aggregate_trend_store.parts
+                    if agg_part.name == part.name
+                ]:
+                    aggregate_trend_store.parts.append(part)
+
+        with aggregate_trend_store_file_path.open("w") as out_file:
+            out_file.write(aggregation_context.generated_file_header())
+            ordered_yaml_dump(
+                aggregate_trend_store.to_dict(),
+                stream=out_file,
+                Dumper=yaml.SafeDumper,
+                indent=2,
+            )
+
+    else:
+        print(
+            "Writing aggregate trend store to '{}'".format(
+                aggregate_trend_store_file_path
+            )
+        )
+
+        with aggregate_trend_store_file_path.open("w") as out_file:
+            out_file.write(aggregation_context.generated_file_header())
+            ordered_yaml_dump(
+                aggregate_trend_store.to_dict(),
+                stream=out_file,
+                Dumper=yaml.SafeDumper,
+                indent=2,
+            )
+
+
 def compile_entity_aggregation(aggregation_context: EntityAggregationContext):
     aggregation_type = ENTITY_AGGREGATION_TYPE_MAP[
         aggregation_context.definition["aggregation_type"]
@@ -129,71 +189,22 @@ def compile_entity_aggregation(aggregation_context: EntityAggregationContext):
         generate_view_entity_aggregation(
             aggregation_context.instance.root, trend_store, relation, name_translation
         )
-
     elif aggregation_type is EntityAggregationType.VIEW_MATERIALIZATION:
         try:
-            write_entity_aggregations(aggregation_context)
+            write_view_entity_aggregations(aggregation_context)
         except ConfigurationError as exc:
             print("Error generating aggregation: {}".format(exc))
             return 1
 
+        add_to_aggregate_trend_store(aggregation_context)
+    elif aggregation_type is EntityAggregationType.FUNCTION_MATERIALIZATION:
         try:
-            aggregate_trend_store = define_aggregate_trend_store(aggregation_context)
+            write_function_entity_aggregations(aggregation_context)
         except ConfigurationError as exc:
-            print("Error generating target trend store: {}".format(exc))
+            print("Error generating aggregation: {}".format(exc))
             return 1
 
-        base_name = aggregation_context.definition["basename"]
-
-        aggregate_trend_store_file_path = (
-            aggregation_context.instance.trend_store_file_path(base_name)
-        )
-
-        if os.path.exists(aggregate_trend_store_file_path):
-            print(
-                "Adding to aggregate trend store '{}'".format(
-                    aggregate_trend_store_file_path
-                )
-            )
-
-            with aggregate_trend_store_file_path.open("r") as in_file:
-                existing_trend_store = TrendStore.from_dict(
-                    yaml.load(in_file, Loader=yaml.FullLoader)
-                )
-
-                # Only add parts that are not yet in the aggregate trend store
-                for part in existing_trend_store.parts:
-                    if not [
-                        True
-                        for agg_part in aggregate_trend_store.parts
-                        if agg_part.name == part.name
-                    ]:
-                        aggregate_trend_store.parts.append(part)
-
-            with aggregate_trend_store_file_path.open("w") as out_file:
-                out_file.write(aggregation_context.generated_file_header())
-                ordered_yaml_dump(
-                    aggregate_trend_store.to_dict(),
-                    stream=out_file,
-                    Dumper=yaml.SafeDumper,
-                    indent=2,
-                )
-
-        else:
-            print(
-                "Writing aggregate trend store to '{}'".format(
-                    aggregate_trend_store_file_path
-                )
-            )
-
-            with aggregate_trend_store_file_path.open("w") as out_file:
-                out_file.write(aggregation_context.generated_file_header())
-                ordered_yaml_dump(
-                    aggregate_trend_store.to_dict(),
-                    stream=out_file,
-                    Dumper=yaml.SafeDumper,
-                    indent=2,
-                )
+        add_to_aggregate_trend_store(aggregation_context)
 
 
 def translate_source_part_name(
@@ -302,9 +313,9 @@ def aggregation_view_sql(
     )
 
 
-def write_entity_aggregations(aggregation_context: EntityAggregationContext) -> None:
+def write_function_entity_aggregations(aggregation_context: EntityAggregationContext) -> None:
     """
-    Generate and write aggregation materializations for all parts of the trend store
+    Generate and write function-based aggregation materializations for all parts of the trend store
 
     :param aggregation_context: Complete context for entity aggregation to write
     :return: None
@@ -333,7 +344,7 @@ def write_entity_aggregations(aggregation_context: EntityAggregationContext) -> 
 
         relation = relations[definition["relation"]]
 
-        aggregation = define_part_entity_aggregation(part, relation, dest_part["name"])
+        aggregation = define_function_part_entity_aggregation(part, relation, dest_part["name"])
 
         materialization_file_path = (
             aggregation_context.instance.materialization_file_path(dest_part["name"])
@@ -349,7 +360,81 @@ def write_entity_aggregations(aggregation_context: EntityAggregationContext) -> 
             )
 
 
-def define_part_entity_aggregation(part: TrendStorePart, relation: Relation, name: str):
+def write_view_entity_aggregations(aggregation_context: EntityAggregationContext) -> None:
+    """
+    Generate and write view-based aggregation materializations for all parts of the trend store
+
+    :param aggregation_context: Complete context for entity aggregation to write
+    :return: None
+    """
+    definition = aggregation_context.definition
+
+    for part in aggregation_context.source_definition.parts:
+        try:
+            dest_part = next(
+                dest_part
+                for dest_part in definition["parts"]
+                if dest_part["source"] == part.name
+            )
+        except StopIteration:
+            # Mapping definition is not found, so do a default mapping based
+            # on naming rules defined in function translate_source_part_name
+            dest_part = {
+                "source": part.name,
+                "name": translate_source_part_name(aggregation_context, part.name),
+            }
+
+        relations = {
+            relation.name: relation
+            for relation in aggregation_context.instance.load_relations()
+        }
+
+        relation = relations[definition["relation"]]
+
+        aggregation = define_view_part_entity_aggregation(part, relation, dest_part["name"])
+
+        materialization_file_path = (
+            aggregation_context.instance.materialization_file_path(dest_part["name"])
+        )
+
+        print("Writing materialization to '{}'".format(materialization_file_path))
+
+        with materialization_file_path.open("w") as out_file:
+            out_file.write(aggregation_context.generated_file_header())
+
+            ordered_yaml_dump(
+                aggregation, stream=out_file, Dumper=yaml.SafeDumper, indent=2
+            )
+
+
+def define_function_part_entity_aggregation(part: TrendStorePart, relation: Relation, name: str):
+    mapping_function = "trend.mapping_id"
+
+    return OrderedDict(
+        [
+            ("target_trend_store_part", name),
+            ("enabled", True),
+            ("processing_delay", "30m"),
+            ("stability_delay", "5m"),
+            ("reprocessing_period", "3 days"),
+            (
+                "sources",
+                [
+                    OrderedDict(
+                        [
+                            ("trend_store_part", part.name),
+                            ("mapping_function", mapping_function),
+                        ]
+                    )
+                ],
+            ),
+            ("function", entity_aggregation_function(part, relation)),
+            ("fingerprint_function", SqlSrc(define_fingerprint_sql(part))),
+        ]
+    )
+
+
+def define_view_part_entity_aggregation(part: TrendStorePart, relation: Relation, name: str):
     mapping_function = "trend.mapping_id"
 
     return OrderedDict(
@@ -374,6 +459,72 @@ def define_part_entity_aggregation(part: TrendStorePart, relation: Relation, nam
             ("fingerprint_function", SqlSrc(define_fingerprint_sql(part))),
         ]
     )
+
+
+def entity_aggregation_function(part: TrendStorePart, relation: Relation) -> list:
+    """
+    Return the SQL for a query that aggregates the specified trend store part
+    using the specified relation.
+
+    :param part: The trend store part to be aggregated
+    :param relation: The entity relation to use
+    :return: A query that aggregates the trend store part
+    """
+    trend_columns = [
+        '  {}("{}")::{} AS "{}"'.format(
+            trend.entity_aggregation,
+            trend.name,
+            aggregate_data_type(trend.data_type, trend.time_aggregation),
+            trend.name
+        )
+        for trend in part.trends
+    ]
+
+    result_columns = [
+        '"entity_id" integer',
+        '"timestamp" timestamp with time zone',
+    ]
+
+    columns = [
+        "  r.target_id AS entity_id",
+        "  $1 AS timestamp",
+    ]
+
+    # Add a samples column if it does not exist in the source part
+    if not [c for c in part.trends if c.name == "samples"]:
+        columns.append("  count(*)::smallint AS samples")
+        result_columns.append("samples smallint")
+
+    result_columns.extend(
+        '"{}" {}'.format(
+            trend.name,
+            aggregate_data_type(trend.data_type, trend.time_aggregation)
+        )
+        for trend in part.trends
+    )
+
+    columns.extend(trend_columns)
+
+    columns_part = ",\n       ".join(columns)
+
+    src = SqlSrc(
+        "BEGIN\n"
+        "RETURN QUERY EXECUTE $query$\n"
+        "    SELECT\n"
+        f"        {columns_part}\n"
+        f'    FROM trend."{part.name}" t\n'
+        f'    JOIN relation."{relation.name}" r ON t.entity_id = r.source_id\n'
+        '    WHERE timestamp = $1\n'
+        "    GROUP BY r.target_id"
+        "$query$ USING $1;\n"
+        "END;"
+    )
+
+    return OrderedDict([
+        ("return_type", return_type_sql(result_columns)),
+        ("src", src),
+        ("language", "plpgsql")
+    ])
 
 
 def entity_aggregation_query(part: TrendStorePart, relation: Relation) -> str:
@@ -443,7 +594,7 @@ def enable_sql(name) -> sql.Composed:
 AGGREGATE_DATA_TYPE_MAPPING_SUM = {
     "smallint": "bigint",
     "integer": "bigint",
-    "bigint": "numeric",
+    "bigint": "bigint",
     "float": "float",
     "double precision": "double precision",
     "real": "real",
@@ -732,6 +883,10 @@ def define_part_time_aggregation(
     )
 
 
+def return_type_sql(columns) -> SqlSrc:
+    return SqlSrc("TABLE (\n" + ",\n".join(columns) + "\n" + ")\n")
+
+
 def aggregate_function(
     src_trend_store_part: TrendStorePart, target_granularity
 ) -> OrderedDict:
@@ -780,8 +935,6 @@ def aggregate_function(
 
     result_columns += trend_columns
 
-    return_type = "TABLE (\n" + ",\n".join(result_columns) + "\n" + ")\n"
-
     src = (
         "BEGIN\n"
         + "RETURN QUERY EXECUTE $query$\n"
@@ -797,7 +950,7 @@ def aggregate_function(
 
     return OrderedDict(
         [
-            ("return_type", SqlSrc(return_type)),
+            ("return_type", return_type_sql(result_columns)),
             ("src", SqlSrc(src)),
             ("language", "plpgsql"),
         ]
