@@ -8,7 +8,7 @@ from pathlib import Path
 from collections import OrderedDict, defaultdict
 from typing import Dict, Tuple, Set
 
-from minerva.commands.aggregation import (
+from minerva.instance.aggregation_compilation import (
     TimeAggregationContext, compile_time_aggregation, EntityAggregationContext,
     compile_entity_aggregation
 )

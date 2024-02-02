@@ -254,7 +254,7 @@ def generate_view_entity_aggregation(
             ),
         )
 
-        file_name = f"{part_name}.sql"
+        file_name = f"{part_name}.sql".replace(" ", "-")
         out_file_path = Path(aggregation_directory_path, file_name)
 
         with out_file_path.open("w") as out_file:

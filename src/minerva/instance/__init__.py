@@ -508,7 +508,7 @@ class MinervaInstance:
         Return a full file path from the provided materialization name.
         """
         return Path(
-            self.root, 'materialization', f'{name}.yaml'
+            self.root, 'materialization', f'{name}.yaml'.replace(" ", "-")
         )
 
     def trend_store_file_path(self, name: str) -> Path:
@@ -519,7 +519,7 @@ class MinervaInstance:
         else:
             file_name = name
 
-        return Path(self.root, 'trend', file_name)
+        return Path(self.root, 'trend', file_name.replace(" ", "-"))
 
     def attribute_store_file_path(self, name: str):
         base_name, ext = os.path.splitext(name)
